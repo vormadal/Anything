@@ -4,4 +4,7 @@
     <Project Path="src/Anything.AppHost/Anything.AppHost.csproj" />
     <Project Path="src/Anything.ServiceDefaults/Anything.ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj" />
+  </Folder>
 </Solution>
