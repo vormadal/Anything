@@ -3,7 +3,7 @@
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume();
 
-var postgresdb = postgres.AddDatabase("postgres");
+var postgresDb = postgres.AddDatabase("postgres");
 
 // Note: To properly reference API project, we need the Aspire SDK
 // For now, we'll just configure the database
