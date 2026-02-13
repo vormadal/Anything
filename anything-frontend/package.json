@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:api": "kiota generate --openapi http://localhost:5000/swagger/v1/swagger.json --language typescript --output ./src/lib/api-client --class-name ApiClient"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
