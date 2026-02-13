@@ -10,25 +10,25 @@ public class ApplicationDbContext : DbContext
     }
 
     // Add DbSets here
-    public DbSet<TodoItem> TodoItems => Set<TodoItem>();
+    public DbSet<Something> Somethings => Set<Something>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         
-        modelBuilder.Entity<TodoItem>(entity =>
+        modelBuilder.Entity<Something>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
         });
     }
 }
 
-public class TodoItem
+public class Something
 {
     public int Id { get; set; }
-    public required string Title { get; set; }
-    public string? Description { get; set; }
-    public bool IsCompleted { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public required string Name { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
 }

@@ -1,4 +1,5 @@
 using Anything.API.Data;
+using Anything.API.Endpoints;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,53 +44,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-// Sample API endpoints
-app.MapGet("/api/todos", async (ApplicationDbContext db) =>
-{
-    return await db.TodoItems.ToListAsync();
-})
-.WithName("GetTodos");
-
-app.MapGet("/api/todos/{id}", async (int id, ApplicationDbContext db) =>
-{
-    return await db.TodoItems.FindAsync(id) is TodoItem todo
-        ? Results.Ok(todo)
-        : Results.NotFound();
-})
-.WithName("GetTodoById");
-
-app.MapPost("/api/todos", async (TodoItem todo, ApplicationDbContext db) =>
-{
-    db.TodoItems.Add(todo);
-    await db.SaveChangesAsync();
-    return Results.Created($"/api/todos/{todo.Id}", todo);
-})
-.WithName("CreateTodo");
-
-app.MapPut("/api/todos/{id}", async (int id, TodoItem inputTodo, ApplicationDbContext db) =>
-{
-    var todo = await db.TodoItems.FindAsync(id);
-    if (todo is null) return Results.NotFound();
-
-    todo.Title = inputTodo.Title;
-    todo.Description = inputTodo.Description;
-    todo.IsCompleted = inputTodo.IsCompleted;
-
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-})
-.WithName("UpdateTodo");
-
-app.MapDelete("/api/todos/{id}", async (int id, ApplicationDbContext db) =>
-{
-    if (await db.TodoItems.FindAsync(id) is TodoItem todo)
-    {
-        db.TodoItems.Remove(todo);
-        await db.SaveChangesAsync();
-        return Results.NoContent();
-    }
-    return Results.NotFound();
-})
-.WithName("DeleteTodo");
+// Map endpoints
+app.MapSomethingEndpoints();
 
 app.Run();
