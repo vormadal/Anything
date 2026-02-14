@@ -33,11 +33,13 @@ This PR implements a comprehensive CI/CD pipeline for the Anything project using
 
 ### 2. SonarCloud Configuration
 
-#### Backend (`sonar-project.properties`)
+#### Backend (`.github/workflows/backend-ci.yml`)
+- Configuration embedded in the workflow file (SonarScanner for .NET does not use sonar-project.properties)
 - Project key: `vormadal_Anything`
 - Organization: `vormadal`
 - Coverage reports: OpenCover XML format
-- Exclusions: Migrations, bin, obj, wwwroot
+- Exclusions: Migrations, bin, obj, wwwroot, Program.cs
+- Coverage exclusions: Migrations, Program.cs, ServiceDefaults
 
 #### Frontend (`anything-frontend/sonar-project.properties`)
 - Project key: `vormadal_Anything-frontend`
@@ -201,7 +203,7 @@ Pull request limits: 10 for code, 5 for actions
 
 ## Files Created/Modified
 
-### Created Files (12)
+### Created Files (11)
 1. `.github/workflows/backend-ci.yml`
 2. `.github/workflows/frontend-ci.yml`
 3. `.github/SETUP.md`
@@ -209,11 +211,12 @@ Pull request limits: 10 for code, 5 for actions
 5. `.github/ISSUE_TEMPLATE/bug_report.yml`
 6. `.github/ISSUE_TEMPLATE/feature_request.yml`
 7. `.github/dependabot.yml`
-8. `sonar-project.properties`
-9. `anything-frontend/sonar-project.properties`
-10. `CI-CD.md`
-11. `CONTRIBUTING.md`
-12. This summary file
+8. `anything-frontend/sonar-project.properties`
+9. `CI-CD.md`
+10. `CONTRIBUTING.md`
+11. This summary file
+
+**Note:** The backend uses SonarScanner for .NET which configures SonarCloud via command-line parameters in the workflow file, not via a sonar-project.properties file.
 
 ### Modified Files (2)
 1. `README.md` - Added badges and CI/CD section

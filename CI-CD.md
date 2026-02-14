@@ -83,10 +83,10 @@ The project uses **GitHub Actions** for CI/CD with the following workflows:
 
 ### Configuration Files
 
-- **Backend:** `sonar-project.properties` (root directory)
+- **Backend:** Configuration is in `.github/workflows/backend-ci.yml` (SonarScanner for .NET uses command-line parameters, not properties files)
 - **Frontend:** `anything-frontend/sonar-project.properties`
 
-These files define:
+These configurations define:
 - Project keys and organization
 - Source and test directories
 - Exclusions (migrations, generated code, etc.)
@@ -116,7 +116,9 @@ Add the following secrets in your GitHub repository settings:
 ### Frontend
 - Ready for Jest/Vitest integration
 - Configured to use LCOV format for SonarCloud
-- Coverage configuration in `sonar-project.properties`
+- Coverage configuration in `anything-frontend/sonar-project.properties`
+
+**Backend Configuration Note:** The backend uses SonarScanner for .NET, which does not support `sonar-project.properties` files. All configuration is done via command-line parameters in the `.github/workflows/backend-ci.yml` workflow file.
 
 ## Best Practices and Considerations
 
