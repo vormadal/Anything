@@ -2,6 +2,7 @@ using Anything.API.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anything.API.IntegrationTests.Infrastructure;
@@ -18,6 +19,10 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+        
+        // Set connection string using UseSetting - this is processed before Program.cs runs
+        builder.UseSetting("ConnectionStrings:postgres", _connectionString);
+        
         builder.ConfigureServices(services =>
         {
             // Remove all Aspire/Npgsql DbContext registrations
