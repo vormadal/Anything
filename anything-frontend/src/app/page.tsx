@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useSomethings, useCreateSomething, useDeleteSomething } from "@/hooks/useSomethings";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Home() {
   const [newSomethingName, setNewSomethingName] = useState("");
@@ -19,16 +20,18 @@ export default function Home() {
         name: newSomethingName,
       });
       setNewSomethingName("");
-    } catch (err) {
-      console.error("Failed to create something:", err);
+      toast.success("Item created successfully");
+    } catch {
+      toast.error("Failed to create item. Please try again.");
     }
   };
 
   const handleDeleteSomething = async (id: number) => {
     try {
       await deleteSomething.mutateAsync(id);
-    } catch (err) {
-      console.error("Failed to delete something:", err);
+      toast.success("Item deleted successfully");
+    } catch {
+      toast.error("Failed to delete item. Please try again.");
     }
   };
 

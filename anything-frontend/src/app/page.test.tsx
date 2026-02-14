@@ -2,9 +2,19 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import Home from './page'
+import { toast } from 'sonner'
 
 // Mock fetch globally
 global.fetch = jest.fn()
+
+// Mock toast
+jest.mock('sonner', () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+  },
+  Toaster: () => null,
+}))
 
 describe('Home Page Integration Tests', () => {
   beforeEach(() => {
@@ -143,6 +153,9 @@ describe('Home Page Integration Tests', () => {
       )
     })
 
+    // Verify success toast was called
+    expect(toast.success).toHaveBeenCalledWith('Item created successfully')
+
     // Verify input is cleared
     expect(input).toHaveValue('')
   })
@@ -210,6 +223,9 @@ describe('Home Page Integration Tests', () => {
         })
       )
     })
+
+    // Verify success toast was called
+    expect(toast.success).toHaveBeenCalledWith('Item deleted successfully')
   })
 
   it('should show loading state on add button when creating', async () => {
@@ -252,7 +268,6 @@ describe('Home Page Integration Tests', () => {
 
   it('should preserve form input when create fails', async () => {
     const user = userEvent.setup()
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
     ;(global.fetch as jest.Mock)
       // Initial fetch
@@ -285,18 +300,12 @@ describe('Home Page Integration Tests', () => {
     // Input should still contain the text since creation failed
     expect(input).toHaveValue('Will Fail')
 
-    // Verify console.error was called
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Failed to create something:',
-      expect.any(Error)
-    )
-
-    consoleSpy.mockRestore()
+    // Verify error toast was called
+    expect(toast.error).toHaveBeenCalledWith('Failed to create item. Please try again.')
   })
 
   it('should keep existing items visible when delete fails', async () => {
     const user = userEvent.setup()
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
     const mockData = [
       { id: 1, name: 'Persistent Item', createdOn: '2024-01-01T00:00:00Z' },
     ]
@@ -334,12 +343,7 @@ describe('Home Page Integration Tests', () => {
     // Item should still be visible after failed delete
     expect(screen.getByText('Persistent Item')).toBeInTheDocument()
 
-    // Verify console.error was called
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Failed to delete something:',
-      expect.any(Error)
-    )
-
-    consoleSpy.mockRestore()
+    // Verify error toast was called
+    expect(toast.error).toHaveBeenCalledWith('Failed to delete item. Please try again.')
   })
 })
