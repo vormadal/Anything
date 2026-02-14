@@ -1,14 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useSomethings, useCreateSomething, useUpdateSomething, useDeleteSomething } from "@/hooks/useSomethings";
+import { useSomethings, useCreateSomething, useDeleteSomething } from "@/hooks/useSomethings";
 import { useState } from "react";
 
 export default function Home() {
   const [newSomethingName, setNewSomethingName] = useState("");
   const { data: somethings, isLoading, error } = useSomethings();
   const createSomething = useCreateSomething();
-  const updateSomething = useUpdateSomething();
   const deleteSomething = useDeleteSomething();
 
   const handleCreateSomething = async (e: React.FormEvent) => {
