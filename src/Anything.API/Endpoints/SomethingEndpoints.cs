@@ -27,6 +27,18 @@ public static class SomethingEndpoints
 
         group.MapPost("/", async (CreateSomethingRequest request, ApplicationDbContext db) =>
         {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    { "Name", ["Name is required and cannot be empty or whitespace."] }
+                });
+
+            if (request.Name.Length > 200)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    { "Name", ["Name cannot exceed 200 characters."] }
+                });
+
             var something = new Something
             {
                 Name = request.Name
@@ -40,8 +52,20 @@ public static class SomethingEndpoints
 
         group.MapPut("/{id}", async (int id, UpdateSomethingRequest request, ApplicationDbContext db) =>
         {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    { "Name", ["Name is required and cannot be empty or whitespace."] }
+                });
+
+            if (request.Name.Length > 200)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    { "Name", ["Name cannot exceed 200 characters."] }
+                });
+
             var something = await db.Somethings.FindAsync(id);
-            if (something is null || something.DeletedOn != null) 
+            if (something is null || something.DeletedOn != null)
                 return Results.NotFound();
 
             something.Name = request.Name;

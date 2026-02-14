@@ -249,4 +249,97 @@ describe('Home Page Integration Tests', () => {
     // Should show "Adding..." while pending
     expect(screen.getByRole('button', { name: 'Adding...' })).toBeInTheDocument()
   })
+
+  it('should preserve form input when create fails', async () => {
+    const user = userEvent.setup()
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    ;(global.fetch as jest.Mock)
+      // Initial fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      // Create POST fails
+      .mockResolvedValueOnce({
+        ok: false,
+      })
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No items yet. Create your first one above!')).toBeInTheDocument()
+    })
+
+    const input = screen.getByPlaceholderText('What do you want to create?')
+    await user.type(input, 'Will Fail')
+
+    const addButton = screen.getByRole('button', { name: 'Add' })
+    await user.click(addButton)
+
+    // Wait for the mutation to settle
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Add' })).not.toBeDisabled()
+    })
+
+    // Input should still contain the text since creation failed
+    expect(input).toHaveValue('Will Fail')
+
+    // Verify console.error was called
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to create something:',
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it('should keep existing items visible when delete fails', async () => {
+    const user = userEvent.setup()
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const mockData = [
+      { id: 1, name: 'Persistent Item', createdOn: '2024-01-01T00:00:00Z' },
+    ]
+
+    ;(global.fetch as jest.Mock)
+      // Initial fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData,
+      })
+      // Delete request fails
+      .mockResolvedValueOnce({
+        ok: false,
+      })
+      // Refetch after failed deletion returns same data
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData,
+      })
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Persistent Item')).toBeInTheDocument()
+    })
+
+    const deleteButton = screen.getByRole('button', { name: 'Delete' })
+    await user.click(deleteButton)
+
+    // Wait for mutation to settle
+    await waitFor(() => {
+      expect(deleteButton).not.toBeDisabled()
+    })
+
+    // Item should still be visible after failed delete
+    expect(screen.getByText('Persistent Item')).toBeInTheDocument()
+
+    // Verify console.error was called
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to delete something:',
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
 })
