@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Anything.API.IntegrationTests.Infrastructure;
 using Microsoft.Kiota.Abstractions;
@@ -205,6 +207,75 @@ public class SomethingEndpointTests : IntegrationTestBase
             () => Client.Api.Somethings[created.Id].DeleteAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
+    }
+
+    // --- POST /api/somethings validation ---
+
+    [Fact]
+    public async Task CreateSomething_WithEmptyName_Returns400()
+    {
+        var response = await HttpClient.PostAsJsonAsync("/api/somethings", new { name = "" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSomething_WithWhitespaceName_Returns400()
+    {
+        var response = await HttpClient.PostAsJsonAsync("/api/somethings", new { name = "   " });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSomething_WithNameExceeding200Chars_Returns400()
+    {
+        var longName = new string('a', 201);
+        var response = await HttpClient.PostAsJsonAsync("/api/somethings", new { name = longName });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSomething_WithNameAt200Chars_Succeeds()
+    {
+        var maxName = new string('a', 200);
+        var response = await HttpClient.PostAsJsonAsync("/api/somethings", new { name = maxName });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    // --- PUT /api/somethings/{id} validation ---
+
+    [Fact]
+    public async Task UpdateSomething_WithEmptyName_Returns400()
+    {
+        var created = await CreateSomethingViaClient("Valid Name");
+
+        var response = await HttpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSomething_WithWhitespaceName_Returns400()
+    {
+        var created = await CreateSomethingViaClient("Valid Name");
+
+        var response = await HttpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "   " });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSomething_WithNameExceeding200Chars_Returns400()
+    {
+        var created = await CreateSomethingViaClient("Valid Name");
+        var longName = new string('a', 201);
+
+        var response = await HttpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = longName });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     // --- Helper ---

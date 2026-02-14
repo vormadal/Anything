@@ -15,6 +15,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         ?? throw new InvalidOperationException("Factory not initialized. Call InitializeAsync first.");
 
     protected AnythingApiClient Client { get; private set; } = null!;
+    protected HttpClient HttpClient { get; private set; } = null!;
 
     protected IntegrationTestBase(PostgresContainerFixture postgres)
     {
@@ -28,6 +29,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         await _factory.ResetDatabaseAsync();
 
         var httpClient = _factory.CreateClient();
+        HttpClient = _factory.CreateClient();
         var adapter = new HttpClientRequestAdapter(
             new AnonymousAuthenticationProvider(),
             httpClient: httpClient)
