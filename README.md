@@ -1,5 +1,11 @@
 # Anything
 
+[![Backend CI](https://github.com/vormadal/Anything/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/vormadal/Anything/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/vormadal/Anything/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/vormadal/Anything/actions/workflows/frontend-ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything&metric=coverage)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything)
+
 Create "Something", it can be anything: checklist, grocery shopping list, inventory in your storage room or keep track on subscriptions and other expenses.
 
 ## Project Structure
@@ -138,6 +144,17 @@ The frontend is organized as:
 - `src/hooks/`: Custom React hooks
 - `src/context/`: React context providers
 - `src/lib/`: Utility functions and API clients
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment. The pipeline includes:
+
+- **Backend CI**: Build, test, and SonarCloud analysis for .NET code
+- **Frontend CI**: Lint, build, and SonarCloud analysis for Next.js code
+- **Code Coverage**: Automated coverage reports for both backend and frontend
+- **Quality Gates**: SonarCloud quality gates ensure code quality standards
+
+For detailed CI/CD documentation, setup instructions, and best practices, see [CI-CD.md](CI-CD.md).
 
 ## Contributing
 
