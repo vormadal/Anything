@@ -75,11 +75,11 @@ public static class SomethingEndpoints
 }
 
 public record CreateSomethingRequest(
-    [Required(ErrorMessage = "Name is required and cannot be empty or whitespace.")]
-    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name cannot exceed 200 characters.")]
+    [Required(ErrorMessage = "Name is required.")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name);
 
 public record UpdateSomethingRequest(
-    [Required(ErrorMessage = "Name is required and cannot be empty or whitespace.")]
-    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name cannot exceed 200 characters.")]
+    [Required(ErrorMessage = "Name is required.")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name);
