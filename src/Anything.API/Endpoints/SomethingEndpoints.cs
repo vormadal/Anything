@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Anything.API.Data;
 using Microsoft.EntityFrameworkCore;
-using MiniValidation;
+using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
 
@@ -29,9 +29,6 @@ public static class SomethingEndpoints
 
         group.MapPost("/", async (CreateSomethingRequest request, ApplicationDbContext db) =>
         {
-            if (!MiniValidator.TryValidate(request, out var errors))
-                return Results.ValidationProblem(errors);
-
             var something = new Something
             {
                 Name = request.Name
@@ -41,13 +38,11 @@ public static class SomethingEndpoints
             await db.SaveChangesAsync();
             return Results.Created($"/api/somethings/{something.Id}", something);
         })
-        .WithName("CreateSomething");
+        .WithName("CreateSomething")
+        .WithParameterValidation();
 
         group.MapPut("/{id}", async (int id, UpdateSomethingRequest request, ApplicationDbContext db) =>
         {
-            if (!MiniValidator.TryValidate(request, out var errors))
-                return Results.ValidationProblem(errors);
-
             var something = await db.Somethings.FindAsync(id);
             if (something is null || something.DeletedOn != null)
                 return Results.NotFound();
@@ -58,7 +53,8 @@ public static class SomethingEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         })
-        .WithName("UpdateSomething");
+        .WithName("UpdateSomething")
+        .WithParameterValidation();
 
         group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
         {
