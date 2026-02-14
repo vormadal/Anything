@@ -209,7 +209,11 @@ Add this to your workflow file (after the job):
 
 ### 7.3 Configure Exclusions (if needed)
 
-Already configured in `sonar-project.properties`, but you can also set in UI:
+For the **frontend**, exclusions are configured in `anything-frontend/sonar-project.properties`.
+
+For the **backend**, exclusions are configured directly in `.github/workflows/backend-ci.yml` via command-line parameters. The backend uses SonarScanner for .NET which does not support `sonar-project.properties` files.
+
+You can also set exclusions in the SonarCloud UI:
 
 1. **Administration** → **Analysis Scope** → **Files**
 2. Add any additional exclusions
@@ -236,7 +240,8 @@ Already configured in `sonar-project.properties`, but you can also set in UI:
 
 **Issue**: Coverage not showing up
 - **Solution**: 
-  - Verify coverage report paths in `sonar-project.properties`
+  - For backend: Verify coverage report paths in `.github/workflows/backend-ci.yml`
+  - For frontend: Verify coverage report paths in `anything-frontend/sonar-project.properties`
   - Ensure `coverlet.collector` is installed in test projects
   - Check that tests actually run before SonarCloud analysis
 
