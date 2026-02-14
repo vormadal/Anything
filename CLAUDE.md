@@ -51,6 +51,9 @@ npm install          # Install dependencies
 npm run dev          # Dev server at http://localhost:3000
 npm run build        # Production build
 npm run lint         # Run ESLint
+npm run test         # Run tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
 npm run generate:api # Generate API client from Swagger (API must be running)
 ```
 
@@ -71,6 +74,8 @@ npm run generate:api # Generate API client from Swagger (API must be running)
 - **API base URL:** Configured via `NEXT_PUBLIC_API_URL` env var, defaults to `http://localhost:5000`.
 - **Components:** Use Shadcn UI components in `src/components/ui/`. Add new ones manually from the Shadcn docs.
 - **Client components:** Hook files are marked `"use client"`.
+- **Testing:** Use Jest and React Testing Library for integration tests. Test files use `.test.tsx` or `.test.ts` extension and are colocated with source files. Run `npm test` for tests, `npm run test:coverage` for coverage reports.
+- **Test utilities:** Use `renderWithClient` from `@/__tests__/utils/test-utils` to render components with React Query provider.
 
 ## API Endpoints
 
@@ -89,3 +94,21 @@ Swagger UI available at `https://localhost:7000/swagger` in development.
 - PostgreSQL connection is managed by Aspire when using AppHost, or via `appsettings.Development.json` when running standalone.
 - No migrations have been committed yet — run `dotnet ef migrations add` to initialize.
 - The solution file is `.slnx` format (new XML-based solution format).
+
+## Testing
+
+### Frontend Tests
+
+The frontend uses **Jest** and **React Testing Library** for integration tests:
+
+- **Test Location:** Tests are colocated with source files using `.test.tsx` or `.test.ts` extensions.
+- **Running Tests:**
+  - `npm test` — Run all tests once
+  - `npm run test:watch` — Run tests in watch mode
+  - `npm run test:coverage` — Run tests with coverage report
+- **Test Structure:**
+  - Hook tests mock `fetch` globally to test API interactions
+  - Component tests use `renderWithClient` utility to provide React Query context
+  - Integration tests verify full user workflows (create, update, delete)
+- **Coverage:** Coverage reports are generated in `coverage/` directory and include LCOV format for SonarCloud integration.
+- **CI Integration:** Tests run automatically in GitHub Actions on every PR and push to main/develop branches.
