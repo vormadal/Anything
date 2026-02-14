@@ -19,16 +19,16 @@ export default function Home() {
         name: newSomethingName,
       });
       setNewSomethingName("");
-    } catch (error) {
-      console.error("Failed to create something:", error);
+    } catch (err) {
+      console.error("Failed to create something:", err);
     }
   };
 
   const handleDeleteSomething = async (id: number) => {
     try {
       await deleteSomething.mutateAsync(id);
-    } catch (error) {
-      console.error("Failed to delete something:", error);
+    } catch (err) {
+      console.error("Failed to delete something:", err);
     }
   };
 

@@ -66,6 +66,7 @@ npm run generate:api # Generate API client from Swagger (API must be running)
 - **Timestamps:** Entities use `CreatedOn` (set on creation), `ModifiedOn` (set on update), `DeletedOn` (set on soft delete). All use `DateTime.UtcNow`.
 - **Request/response records:** Use C# `record` types for request DTOs (e.g., `CreateSomethingRequest(string Name)`), defined in the same file as endpoints.
 - **Route grouping:** Endpoints use `MapGroup("/api/<entity>")` for consistent prefixing.
+- **Validation:** Extract shared validation logic into private helper methods within endpoint classes. Use constants for repeated string literals (field names, error messages) to avoid duplication (SonarCloud S1192).
 
 ### Frontend
 
@@ -87,6 +88,36 @@ All endpoints are under `/api/somethings`:
 - `DELETE /{id}` — Soft delete
 
 Swagger UI available at `https://localhost:7000/swagger` in development.
+
+## Code Quality (SonarCloud)
+
+This project uses SonarCloud for static analysis. Both backend (`vormadal_Anything`) and frontend (`vormadal_Anything-frontend`) are analyzed on every push to main/develop.
+
+### Rules to Follow
+
+**General (all languages):**
+- Do not leave unused variables or imports (S1481, S1128).
+- Do not shadow variables from an outer scope — use distinct names (S1117). E.g., use `err` in catch blocks when `error` is already in scope.
+- Do not duplicate string literals — extract repeated strings into constants (S1192).
+- Do not duplicate logic — extract shared code into helper methods.
+- Keep functions and methods focused; avoid high cognitive complexity (S3776).
+- Remove dead code and commented-out code blocks (S1854, S125).
+
+**Backend (C#):**
+- Use `private const` fields for repeated string literals in endpoint classes.
+- Extract shared validation into `private static` helper methods rather than duplicating across endpoints.
+- Avoid unused local variables — discard return values with `_` if intentionally unused, or remove the assignment entirely.
+
+**Frontend (TypeScript/React):**
+- Avoid variable shadowing — use `err` (not `error`) in catch blocks when a component already has an `error` variable in scope.
+- Prefer structured error handling over `console.error` in production code when possible.
+- Ensure all declared variables and imports are used.
+
+### SonarCloud Configuration
+
+- **Backend CI:** `.github/workflows/backend-ci.yml` — scans `src/`, excludes `**/Program.cs`, `**/Migrations/**`, `**/bin/**`, `**/obj/**`
+- **Frontend CI:** `.github/workflows/frontend-ci.yml` — scans `anything-frontend/src/`, excludes test files, `node_modules`, `.next`, `public`, `lib/api-client`
+- **Frontend sonar config:** `anything-frontend/sonar-project.properties`
 
 ## Development Notes
 

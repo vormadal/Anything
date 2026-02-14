@@ -5,6 +5,11 @@ namespace Anything.API.Endpoints;
 
 public static class SomethingEndpoints
 {
+    private const string NameField = "Name";
+    private const string NameRequiredMessage = "Name is required and cannot be empty or whitespace.";
+    private const string NameMaxLengthMessage = "Name cannot exceed 200 characters.";
+    private const int NameMaxLength = 200;
+
     public static void MapSomethingEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/somethings");
@@ -27,17 +32,9 @@ public static class SomethingEndpoints
 
         group.MapPost("/", async (CreateSomethingRequest request, ApplicationDbContext db) =>
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    { "Name", ["Name is required and cannot be empty or whitespace."] }
-                });
-
-            if (request.Name.Length > 200)
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    { "Name", ["Name cannot exceed 200 characters."] }
-                });
+            var validationResult = ValidateName(request.Name);
+            if (validationResult is not null)
+                return validationResult;
 
             var something = new Something
             {
@@ -52,17 +49,9 @@ public static class SomethingEndpoints
 
         group.MapPut("/{id}", async (int id, UpdateSomethingRequest request, ApplicationDbContext db) =>
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    { "Name", ["Name is required and cannot be empty or whitespace."] }
-                });
-
-            if (request.Name.Length > 200)
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    { "Name", ["Name cannot exceed 200 characters."] }
-                });
+            var validationResult = ValidateName(request.Name);
+            if (validationResult is not null)
+                return validationResult;
 
             var something = await db.Somethings.FindAsync(id);
             if (something is null || something.DeletedOn != null)
@@ -87,6 +76,23 @@ public static class SomethingEndpoints
             return Results.NoContent();
         })
         .WithName("DeleteSomething");
+    }
+
+    private static IResult? ValidateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                { NameField, [NameRequiredMessage] }
+            });
+
+        if (name.Length > NameMaxLength)
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                { NameField, [NameMaxLengthMessage] }
+            });
+
+        return null;
     }
 }
 
