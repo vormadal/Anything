@@ -1,15 +1,12 @@
+using System.ComponentModel.DataAnnotations;
 using Anything.API.Data;
 using Microsoft.EntityFrameworkCore;
+using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
 
 public static class SomethingEndpoints
 {
-    private const string NameField = "Name";
-    private const string NameRequiredMessage = "Name is required and cannot be empty or whitespace.";
-    private const string NameMaxLengthMessage = "Name cannot exceed 200 characters.";
-    private const int NameMaxLength = 200;
-
     public static void MapSomethingEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/somethings");
@@ -32,10 +29,6 @@ public static class SomethingEndpoints
 
         group.MapPost("/", async (CreateSomethingRequest request, ApplicationDbContext db) =>
         {
-            var validationResult = ValidateName(request.Name);
-            if (validationResult is not null)
-                return validationResult;
-
             var something = new Something
             {
                 Name = request.Name
@@ -45,14 +38,11 @@ public static class SomethingEndpoints
             await db.SaveChangesAsync();
             return Results.Created($"/api/somethings/{something.Id}", something);
         })
-        .WithName("CreateSomething");
+        .WithName("CreateSomething")
+        .WithParameterValidation();
 
         group.MapPut("/{id}", async (int id, UpdateSomethingRequest request, ApplicationDbContext db) =>
         {
-            var validationResult = ValidateName(request.Name);
-            if (validationResult is not null)
-                return validationResult;
-
             var something = await db.Somethings.FindAsync(id);
             if (something is null || something.DeletedOn != null)
                 return Results.NotFound();
@@ -63,7 +53,8 @@ public static class SomethingEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         })
-        .WithName("UpdateSomething");
+        .WithName("UpdateSomething")
+        .WithParameterValidation();
 
         group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
         {
@@ -77,24 +68,14 @@ public static class SomethingEndpoints
         })
         .WithName("DeleteSomething");
     }
-
-    private static IResult? ValidateName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                { NameField, [NameRequiredMessage] }
-            });
-
-        if (name.Length > NameMaxLength)
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                { NameField, [NameMaxLengthMessage] }
-            });
-
-        return null;
-    }
 }
 
-public record CreateSomethingRequest(string Name);
-public record UpdateSomethingRequest(string Name);
+public record CreateSomethingRequest(
+    [Required(ErrorMessage = "Name is required.")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
+    string Name);
+
+public record UpdateSomethingRequest(
+    [Required(ErrorMessage = "Name is required.")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
+    string Name);
