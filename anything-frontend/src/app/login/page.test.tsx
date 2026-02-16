@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import LoginPage from "./page";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithClient } from "@/__tests__/utils/test-utils";
+import LoginPage from "./page";
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -20,7 +20,7 @@ describe("LoginPage", () => {
   });
 
   it("should render login form", () => {
-    render(<LoginPage />, { wrapper: renderWithClient });
+    renderWithClient(<LoginPage />);
 
     expect(screen.getByText("Welcome to Anything")).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe("LoginPage", () => {
       json: async () => mockLoginResponse,
     });
 
-    render(<LoginPage />, { wrapper: renderWithClient });
+    renderWithClient(<LoginPage />);
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
@@ -65,7 +65,7 @@ describe("LoginPage", () => {
       status: 401,
     });
 
-    render(<LoginPage />, { wrapper: renderWithClient });
+    renderWithClient(<LoginPage />);
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
