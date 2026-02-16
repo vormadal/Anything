@@ -2,14 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 import { useSomethings, useCreateSomething, useDeleteSomething } from "@/hooks/useSomethings";
+import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [newSomethingName, setNewSomethingName] = useState("");
   const { data: somethings, isLoading, error } = useSomethings();
   const createSomething = useCreateSomething();
   const deleteSomething = useDeleteSomething();
+  const { data: user } = useCurrentUser();
+  const logout = useLogout();
+  const router = useRouter();
 
   const handleCreateSomething = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,16 +40,54 @@ export default function Home() {
     }
   };
 
+  const handleLogout = async () => {
+    await logout.mutateAsync();
+    toast.success("Logged out successfully");
+    router.push("/login");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Anything
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-8">
-            Create anything you want - lists, inventory, and more
-          </p>
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                Anything
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                Create anything you want - lists, inventory, and more
+              </p>
+            </div>
+            <div className="text-right">
+              {user && (
+                <>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    {user.name} ({user.role})
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    {user.role === "Admin" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push("/admin")}
+                      >
+                        Admin Panel
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLogout}
+                      disabled={logout.isPending}
+                    >
+                      {logout.isPending ? "Logging out..." : "Logout"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
 
           <form onSubmit={handleCreateSomething} className="mb-8">
             <div className="flex gap-2">
