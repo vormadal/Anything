@@ -109,8 +109,9 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task GetSomethingById_WhenNotFound_Returns404()
     {
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[99999].GetAsync());
+            () => client.Api.Somethings[99999].GetAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
     }
@@ -121,8 +122,9 @@ public class SomethingEndpointTests : IntegrationTestBase
         var created = await CreateSomethingViaClient("Deleted Item");
         await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
 
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[created.Id].GetAsync());
+            () => client.Api.Somethings[created.Id].GetAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
     }
@@ -187,8 +189,9 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task UpdateSomething_WhenNotFound_Returns404()
     {
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[99999].PutAsync(
+            () => client.Api.Somethings[99999].PutAsync(
                 new KiotaModels.UpdateSomethingRequest { Name = "Nope" }));
 
         Assert.Equal(404, exception.ResponseStatusCode);
@@ -200,8 +203,9 @@ public class SomethingEndpointTests : IntegrationTestBase
         var created = await CreateSomethingViaClient("Will Delete");
         await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
 
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[created.Id].PutAsync(
+            () => client.Api.Somethings[created.Id].PutAsync(
                 new KiotaModels.UpdateSomethingRequest { Name = "Too Late" }));
 
         Assert.Equal(404, exception.ResponseStatusCode);
@@ -224,8 +228,9 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task DeleteSomething_WhenNotFound_Returns404()
     {
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[99999].DeleteAsync());
+            () => client.Api.Somethings[99999].DeleteAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
     }
@@ -236,8 +241,9 @@ public class SomethingEndpointTests : IntegrationTestBase
         var created = await CreateSomethingViaClient("Double Delete");
         await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
 
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[created.Id].DeleteAsync());
+            () => client.Api.Somethings[created.Id].DeleteAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
     }

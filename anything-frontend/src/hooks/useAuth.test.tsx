@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
 import { useLogin, useLogout, setTokens, clearTokens, getAccessToken, getRefreshToken } from "@/hooks/useAuth";
 
 // Mock fetch globally
@@ -18,9 +19,13 @@ const createWrapper = () => {
     },
   });
 
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  
+  Wrapper.displayName = 'QueryClientWrapper';
+  
+  return Wrapper;
 };
 
 describe("useAuth hooks", () => {

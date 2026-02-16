@@ -23,7 +23,7 @@ export default function AdminPage() {
             Access Denied
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mb-4">
-            You don't have permission to access this page.
+            You don&apos;t have permission to access this page.
           </p>
           <Button onClick={() => router.push("/")}>
             Go to Home

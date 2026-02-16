@@ -32,6 +32,8 @@ public class TokenService : ITokenService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        var now = _timeProvider.GetUtcNow();
+        
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -44,7 +46,8 @@ public class TokenService : ITokenService
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
             claims: claims,
-            expires: _timeProvider.GetUtcNow().AddMinutes(_jwtSettings.AccessTokenExpirationMinutes).UtcDateTime,
+            notBefore: now.UtcDateTime,
+            expires: now.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes).UtcDateTime,
             signingCredentials: credentials
         );
 

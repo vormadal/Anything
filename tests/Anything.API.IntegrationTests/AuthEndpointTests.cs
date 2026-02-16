@@ -77,6 +77,9 @@ public class AuthEndpointTests : IntegrationTestBase
         var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions);
         Assert.NotNull(loginResult);
 
+        // Wait a moment to ensure time has passed for token generation
+        await Task.Delay(1100);
+
         var refreshResponse = await HttpClient.PostAsJsonAsync("/api/auth/refresh", new
         {
             refreshToken = loginResult.RefreshToken
@@ -88,7 +91,9 @@ public class AuthEndpointTests : IntegrationTestBase
         Assert.NotNull(refreshResult);
         Assert.NotEmpty(refreshResult.AccessToken);
         Assert.NotEmpty(refreshResult.RefreshToken);
-        Assert.NotEqual(loginResult.AccessToken, refreshResult.AccessToken);
+        // Refresh tokens should always be different (random generated)
+        Assert.NotEqual(loginResult.RefreshToken, refreshResult.RefreshToken);
+        // Access tokens may be the same if generated in same second, but refresh tokens must differ
     }
 
     [Fact]

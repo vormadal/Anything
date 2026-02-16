@@ -23,6 +23,16 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         // Set connection string using UseSetting - this is processed before Program.cs runs
         builder.UseSetting("ConnectionStrings:postgres", _connectionString);
         
+        // Configure admin credentials for testing
+        builder.UseSetting("Admin:Email", "admin@anything.local");
+        builder.UseSetting("Admin:Password", "Admin123!");
+        
+        // Configure JWT settings for testing
+        builder.UseSetting("Jwt:SecretKey", "test-secret-key-for-integration-tests-minimum-32-chars");
+        builder.UseSetting("Jwt:Issuer", "Anything.API.Tests");
+        builder.UseSetting("Jwt:Audience", "Anything.Frontend.Tests");
+        builder.UseSetting("Jwt:AccessTokenExpirationMinutes", "15");
+        
         builder.ConfigureServices(services =>
         {
             // Remove all Aspire/Npgsql DbContext registrations
@@ -59,6 +69,9 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         db.Somethings.RemoveRange(db.Somethings);
+        db.RefreshTokens.RemoveRange(db.RefreshTokens);
+        db.UserInvites.RemoveRange(db.UserInvites);
+        // Don't remove users - the admin user is seeded and needed for auth
         await db.SaveChangesAsync();
     }
 }
