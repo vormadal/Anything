@@ -46,7 +46,7 @@ jobs:
         NEXT_PUBLIC_API_URL: http://localhost:5000
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: nextjs-build
         path: anything-frontend/.next
@@ -79,7 +79,7 @@ jobs:
       run: npm run test:coverage
     
     - name: Upload coverage artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: coverage
         path: anything-frontend/coverage
