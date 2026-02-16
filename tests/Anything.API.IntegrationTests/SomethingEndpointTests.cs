@@ -43,10 +43,7 @@ public class SomethingEndpointTests : IntegrationTestBase
             var httpClient = GetAuthenticatedHttpClient(token);
             var adapter = new HttpClientRequestAdapter(
                 new AnonymousAuthenticationProvider(),
-                httpClient: httpClient)
-            {
-                BaseUrl = httpClient.BaseAddress?.ToString().TrimEnd('/') ?? ""
-            };
+                httpClient: httpClient);
             adapter.BaseUrl = httpClient.BaseAddress?.ToString().TrimEnd('/') ?? "";
             _authenticatedClient = new AnythingApiClient(adapter);
         }
