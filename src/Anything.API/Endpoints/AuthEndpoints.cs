@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Anything.API.Constants;
 using Anything.API.Data;
 using Anything.API.Services;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,8 @@ public static class AuthEndpoints
             LoginRequest request,
             ApplicationDbContext db,
             IPasswordService passwordService,
-            ITokenService tokenService) =>
+            ITokenService tokenService,
+            TimeProvider timeProvider) =>
         {
             var user = await db.Users
                 .Where(u => u.Email == request.Email && u.DeletedOn == null)
@@ -35,7 +37,7 @@ public static class AuthEndpoints
             {
                 UserId = user.Id,
                 Token = refreshToken,
-                ExpiresAt = DateTime.UtcNow.AddDays(7)
+                ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime
             };
 
             db.RefreshTokens.Add(refreshTokenEntity);
@@ -56,13 +58,14 @@ public static class AuthEndpoints
         group.MapPost("/refresh", async (
             RefreshTokenRequest request,
             ApplicationDbContext db,
-            ITokenService tokenService) =>
+            ITokenService tokenService,
+            TimeProvider timeProvider) =>
         {
             var refreshToken = await db.RefreshTokens
                 .Where(rt => rt.Token == request.RefreshToken && !rt.IsRevoked)
                 .FirstOrDefaultAsync();
 
-            if (refreshToken == null || refreshToken.ExpiresAt < DateTime.UtcNow)
+            if (refreshToken == null || refreshToken.ExpiresAt < timeProvider.GetUtcNow().UtcDateTime)
             {
                 return Results.Unauthorized();
             }
@@ -81,7 +84,7 @@ public static class AuthEndpoints
             {
                 UserId = user.Id,
                 Token = newRefreshToken,
-                ExpiresAt = DateTime.UtcNow.AddDays(7)
+                ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime
             };
 
             db.RefreshTokens.Add(newRefreshTokenEntity);
@@ -96,13 +99,14 @@ public static class AuthEndpoints
         group.MapPost("/register", async (
             RegisterRequest request,
             ApplicationDbContext db,
-            IPasswordService passwordService) =>
+            IPasswordService passwordService,
+            TimeProvider timeProvider) =>
         {
             var invite = await db.UserInvites
                 .Where(i => i.Token == request.InviteToken && !i.IsUsed)
                 .FirstOrDefaultAsync();
 
-            if (invite == null || invite.ExpiresAt < DateTime.UtcNow || invite.Email != request.Email)
+            if (invite == null || invite.ExpiresAt < timeProvider.GetUtcNow().UtcDateTime || invite.Email != request.Email)
             {
                 return Results.BadRequest("Invalid or expired invite token.");
             }
@@ -121,7 +125,7 @@ public static class AuthEndpoints
                 Email = request.Email,
                 PasswordHash = passwordService.HashPassword(request.Password),
                 Name = request.Name,
-                Role = "User"
+                Role = UserRoles.User
             };
 
             invite.IsUsed = true;
@@ -137,12 +141,13 @@ public static class AuthEndpoints
         group.MapPost("/invites", async (
             CreateInviteRequest request,
             ApplicationDbContext db,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            TimeProvider timeProvider) =>
         {
             var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
 
-            if (userRole != "Admin")
+            if (userRole != UserRoles.Admin)
             {
                 return Results.Forbid();
             }
@@ -161,7 +166,7 @@ public static class AuthEndpoints
             {
                 Email = request.Email,
                 Token = token,
-                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime,
                 CreatedByUserId = userId
             };
 
@@ -177,7 +182,8 @@ public static class AuthEndpoints
         group.MapPut("/profile", async (
             UpdateProfileRequest request,
             ApplicationDbContext db,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            TimeProvider timeProvider) =>
         {
             var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             
@@ -188,7 +194,7 @@ public static class AuthEndpoints
             }
 
             userEntity.Name = request.Name;
-            userEntity.ModifiedOn = DateTime.UtcNow;
+            userEntity.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
             await db.SaveChangesAsync();
             return Results.NoContent();

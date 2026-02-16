@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useSomethings, useCreateSomething, useDeleteSomething } from "@/hooks/useSomethings";
 import { useCurrentUser, useLogout } from "@/hooks/useAuth";
+import { isAdmin } from "@/lib/roles";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -66,7 +67,7 @@ export default function Home() {
                     {user.name} ({user.role})
                   </p>
                   <div className="flex gap-2 justify-end">
-                    {user.role === "Admin" && (
+                    {isAdmin(user.role) && (
                       <Button
                         variant="outline"
                         size="sm"

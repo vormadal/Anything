@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useCreateInvite, useCurrentUser } from "@/hooks/useAuth";
+import { isAdmin } from "@/lib/roles";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -14,7 +15,7 @@ export default function AdminPage() {
   const router = useRouter();
 
   // Check if user is admin
-  if (user && user.role !== "Admin") {
+  if (user && !isAdmin(user.role)) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md text-center">

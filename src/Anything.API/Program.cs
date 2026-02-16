@@ -1,9 +1,12 @@
 using System.Text;
+using Anything.API.Configuration;
+using Anything.API.Constants;
 using Anything.API.Data;
 using Anything.API.Endpoints;
 using Anything.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,11 +17,26 @@ builder.AddServiceDefaults();
 // Add PostgreSQL with Entity Framework
 builder.AddNpgsqlDbContext<ApplicationDbContext>("postgres");
 
+// Configure settings with validation
+builder.Services.AddOptions<JwtSettings>()
+    .Bind(builder.Configuration.GetSection(JwtSettings.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<AdminSettings>()
+    .Bind(builder.Configuration.GetSection(AdminSettings.SectionName));
+
+// Add TimeProvider
+builder.Services.AddSingleton(TimeProvider.System);
+
 // Add authentication services
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
 // Configure JWT authentication
+var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
+    ?? throw new InvalidOperationException("JWT settings not configured");
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -32,11 +50,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"] 
-                ?? throw new InvalidOperationException("JWT SecretKey not configured")))
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
     };
 });
 
@@ -93,22 +109,26 @@ static async Task SeedAdminUserAsync(WebApplication app)
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
-    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    var adminSettings = scope.ServiceProvider.GetRequiredService<IOptions<AdminSettings>>().Value;
 
     await db.Database.EnsureCreatedAsync();
 
-    var adminEmail = config["Admin:Email"] ?? "admin@anything.local";
-    var adminExists = await db.Users.AnyAsync(u => u.Email == adminEmail);
+    // Skip admin creation if email or password is not configured
+    if (string.IsNullOrWhiteSpace(adminSettings.Email) || string.IsNullOrWhiteSpace(adminSettings.Password))
+    {
+        return;
+    }
+
+    var adminExists = await db.Users.AnyAsync(u => u.Email == adminSettings.Email);
 
     if (!adminExists)
     {
-        var adminPassword = config["Admin:Password"] ?? "Admin123!";
         var admin = new User
         {
-            Email = adminEmail,
-            PasswordHash = passwordService.HashPassword(adminPassword),
+            Email = adminSettings.Email,
+            PasswordHash = passwordService.HashPassword(adminSettings.Password),
             Name = "Administrator",
-            Role = "Admin"
+            Role = UserRoles.Admin
         };
 
         db.Users.Add(admin);

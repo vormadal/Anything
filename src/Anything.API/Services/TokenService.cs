@@ -2,7 +2,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Anything.API.Configuration;
 using Anything.API.Data;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Anything.API.Services;
@@ -16,17 +18,18 @@ public interface ITokenService
 
 public class TokenService : ITokenService
 {
-    private readonly IConfiguration _configuration;
+    private readonly JwtSettings _jwtSettings;
+    private readonly TimeProvider _timeProvider;
 
-    public TokenService(IConfiguration configuration)
+    public TokenService(IOptions<JwtSettings> jwtSettings, TimeProvider timeProvider)
     {
-        _configuration = configuration;
+        _jwtSettings = jwtSettings.Value;
+        _timeProvider = timeProvider;
     }
 
     public string GenerateAccessToken(User user)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            _configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured")));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
@@ -38,10 +41,10 @@ public class TokenService : ITokenService
         };
 
         var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(int.Parse(_configuration["Jwt:AccessTokenExpirationMinutes"] ?? "15")),
+            expires: _timeProvider.GetUtcNow().AddMinutes(_jwtSettings.AccessTokenExpirationMinutes).UtcDateTime,
             signingCredentials: credentials
         );
 
@@ -58,8 +61,7 @@ public class TokenService : ITokenService
 
     public ClaimsPrincipal? GetPrincipalFromToken(string token)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            _configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured")));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
 
         var tokenValidationParameters = new TokenValidationParameters
         {
@@ -67,8 +69,8 @@ public class TokenService : ITokenService
             ValidateAudience = true,
             ValidateLifetime = false, // We'll check expiration manually
             ValidateIssuerSigningKey = true,
-            ValidIssuer = _configuration["Jwt:Issuer"],
-            ValidAudience = _configuration["Jwt:Audience"],
+            ValidIssuer = _jwtSettings.Issuer,
+            ValidAudience = _jwtSettings.Audience,
             IssuerSigningKey = key
         };
 
