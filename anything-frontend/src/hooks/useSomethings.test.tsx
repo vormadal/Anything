@@ -56,7 +56,12 @@ describe('useSomethings hooks', () => {
 
       expect(result.current.data).toEqual(mockData)
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/somethings'
+        'http://localhost:5000/api/somethings',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Content-Type": "application/json"
+          })
+        })
       )
     })
 

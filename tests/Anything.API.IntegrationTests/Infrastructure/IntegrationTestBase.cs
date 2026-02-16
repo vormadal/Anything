@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Text.Json;
 using Anything.API.IntegrationTests.ApiClient;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
@@ -44,4 +46,27 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         if (_factory != null)
             await _factory.DisposeAsync();
     }
+
+    // Helper method for authentication
+    protected async Task<string> GetAdminTokenAsync()
+    {
+        var response = await HttpClient.PostAsJsonAsync("/api/auth/login", new
+        {
+            email = "admin@anything.local",
+            password = "Admin123!"
+        });
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var result = await response.Content.ReadFromJsonAsync<LoginResponse>(options);
+        return result?.AccessToken ?? throw new InvalidOperationException("Failed to get admin token");
+    }
+
+    protected HttpClient GetAuthenticatedHttpClient(string token)
+    {
+        var client = _factory!.CreateClient();
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+        return client;
+    }
+
+    private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
 }

@@ -7,6 +7,14 @@ import { toast } from 'sonner'
 // Mock fetch globally
 global.fetch = jest.fn()
 
+// Mock next/navigation
+const mockPush = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
 // Mock toast
 jest.mock('sonner', () => ({
   toast: {
@@ -19,6 +27,13 @@ jest.mock('sonner', () => ({
 describe('Home Page Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // Set up localStorage with a mock user
+    localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
+    localStorage.setItem('accessToken', 'test-token')
+  })
+
+  afterEach(() => {
+    localStorage.clear()
   })
 
   it('should render the page with title and description', () => {
@@ -145,9 +160,6 @@ describe('Home Page Integration Tests', () => {
         'http://localhost:5000/api/somethings',
         expect.objectContaining({
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({ name: 'New Item' }),
         })
       )

@@ -38,6 +38,39 @@ This is a monorepo containing:
 - Node.js 18+ and npm
 - PostgreSQL (or use Docker with Aspire)
 
+### Authentication Setup
+
+The application uses JWT bearer token authentication. On first run, a default administrator account is automatically created.
+
+**Default Admin Credentials:**
+- Email: `admin@anything.local`
+- Password: `Admin123!`
+
+**IMPORTANT:** Change these default credentials in production by updating the `appsettings.json` file:
+
+```json
+{
+  "Admin": {
+    "Email": "your-admin@example.com",
+    "Password": "YourSecurePassword!"
+  },
+  "Jwt": {
+    "SecretKey": "your-secret-key-min-32-characters-long-change-in-production",
+    "Issuer": "Anything.API",
+    "Audience": "Anything.Frontend",
+    "AccessTokenExpirationMinutes": "15"
+  }
+}
+```
+
+**User Invitations:**
+- Only administrators can invite new users
+- Navigate to the Admin Panel after logging in as admin
+- Enter the new user's email address to generate an invite link
+- Copy and send the invite link to the user manually
+- Invite links expire after 7 days
+- The invited user must use the same email address when registering
+
 ### Running the Backend
 
 ```bash
@@ -116,6 +149,17 @@ kiota generate \
 - **Aspire**: Cloud-native orchestration and observability
 - **OpenAPI/Swagger**: API documentation and client generation
 - **PostgreSQL**: Relational database
+- **JWT Authentication**: Secure token-based authentication with refresh tokens
+- **BCrypt**: Password hashing for secure credential storage
+
+### Authentication Flow
+
+1. **Login**: Users authenticate with email/password to receive access and refresh tokens
+2. **Access Token**: Short-lived JWT (15 minutes) for API authorization
+3. **Refresh Token**: Long-lived token (7 days) for obtaining new access tokens
+4. **Protected Endpoints**: All API endpoints require valid JWT bearer token
+5. **User Roles**: Admin and User roles with role-based access control
+6. **Invite System**: Admin-only invite creation with email-linked tokens
 
 ### Frontend Stack
 

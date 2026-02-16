@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAccessToken } from "./useAuth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -12,12 +13,23 @@ interface Something {
   deletedOn?: string;
 }
 
+// Helper to get auth headers
+function getAuthHeaders() {
+  const token = getAccessToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 // Custom hook for fetching somethings
 export function useSomethings() {
   return useQuery({
     queryKey: ["somethings"],
     queryFn: async (): Promise<Something[]> => {
-      const response = await fetch(`${API_BASE_URL}/api/somethings`);
+      const response = await fetch(`${API_BASE_URL}/api/somethings`, {
+        headers: getAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch somethings");
       }
@@ -34,9 +46,7 @@ export function useCreateSomething() {
     mutationFn: async (something: { name: string }) => {
       const response = await fetch(`${API_BASE_URL}/api/somethings`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(something),
       });
       if (!response.ok) {
@@ -58,9 +68,7 @@ export function useUpdateSomething() {
     mutationFn: async ({ id, name }: { id: number; name: string }) => {
       const response = await fetch(`${API_BASE_URL}/api/somethings/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ name }),
       });
       if (!response.ok) {
@@ -81,6 +89,7 @@ export function useDeleteSomething() {
     mutationFn: async (id: number) => {
       const response = await fetch(`${API_BASE_URL}/api/somethings/${id}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error("Failed to delete something");

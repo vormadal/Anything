@@ -1,8 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Anything.API.IntegrationTests.ApiClient;
 using Anything.API.IntegrationTests.Infrastructure;
 using Microsoft.Kiota.Abstractions;
+using Microsoft.Kiota.Abstractions.Authentication;
+using Microsoft.Kiota.Http.HttpClientLibrary;
 using Xunit;
 using KiotaModels = Anything.API.IntegrationTests.ApiClient.Models;
 
@@ -15,8 +18,36 @@ public class SomethingEndpointTests : IntegrationTestBase
         PropertyNameCaseInsensitive = true
     };
 
+    private HttpClient? _authenticatedHttpClient;
+    private AnythingApiClient? _authenticatedClient;
+
     public SomethingEndpointTests(PostgresContainerFixture postgres) : base(postgres)
     {
+    }
+
+    private async Task<HttpClient> GetAuthenticatedHttpClientAsync()
+    {
+        if (_authenticatedHttpClient == null)
+        {
+            var token = await GetAdminTokenAsync();
+            _authenticatedHttpClient = GetAuthenticatedHttpClient(token);
+        }
+        return _authenticatedHttpClient;
+    }
+
+    private async Task<AnythingApiClient> GetAuthenticatedClientAsync()
+    {
+        if (_authenticatedClient == null)
+        {
+            var token = await GetAdminTokenAsync();
+            var httpClient = GetAuthenticatedHttpClient(token);
+            var adapter = new HttpClientRequestAdapter(
+                new AnonymousAuthenticationProvider(),
+                httpClient: httpClient);
+            adapter.BaseUrl = httpClient.BaseAddress?.ToString().TrimEnd('/') ?? "";
+            _authenticatedClient = new AnythingApiClient(adapter);
+        }
+        return _authenticatedClient;
     }
 
     // --- GET /api/somethings ---
@@ -24,7 +55,8 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task GetSomethings_WhenEmpty_ReturnsEmptyList()
     {
-        var result = await Client.Api.Somethings.GetAsync();
+        var client = await GetAuthenticatedClientAsync();
+        var result = await client.Api.Somethings.GetAsync();
 
         Assert.NotNull(result);
         Assert.Empty(result);
@@ -36,7 +68,8 @@ public class SomethingEndpointTests : IntegrationTestBase
         await CreateSomethingViaClient("Item A");
         await CreateSomethingViaClient("Item B");
 
-        var result = await Client.Api.Somethings.GetAsync();
+        var client = await GetAuthenticatedClientAsync();
+        var result = await client.Api.Somethings.GetAsync();
 
         Assert.NotNull(result);
         Assert.Equal(2, result.Count);
@@ -48,9 +81,9 @@ public class SomethingEndpointTests : IntegrationTestBase
     public async Task GetSomethings_DoesNotReturnDeletedItems()
     {
         var created = await CreateSomethingViaClient("To Delete");
-        await Client.Api.Somethings[created.Id].DeleteAsync();
+        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
 
-        var result = await Client.Api.Somethings.GetAsync();
+        var result = await (await GetAuthenticatedClientAsync()).Api.Somethings.GetAsync();
 
         Assert.NotNull(result);
         Assert.Empty(result);
@@ -63,7 +96,7 @@ public class SomethingEndpointTests : IntegrationTestBase
     {
         var created = await CreateSomethingViaClient("Test Item");
 
-        var stream = await Client.Api.Somethings[created.Id].GetAsync();
+        var stream = await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].GetAsync();
 
         Assert.NotNull(stream);
         var result = await JsonSerializer.DeserializeAsync<SomethingResponse>(stream, JsonOptions);
@@ -76,8 +109,9 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task GetSomethingById_WhenNotFound_Returns404()
     {
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[99999].GetAsync());
+            () => client.Api.Somethings[99999].GetAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
     }
@@ -86,10 +120,11 @@ public class SomethingEndpointTests : IntegrationTestBase
     public async Task GetSomethingById_WhenDeleted_Returns404()
     {
         var created = await CreateSomethingViaClient("Deleted Item");
-        await Client.Api.Somethings[created.Id].DeleteAsync();
+        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
 
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[created.Id].GetAsync());
+            () => client.Api.Somethings[created.Id].GetAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
     }
@@ -112,7 +147,7 @@ public class SomethingEndpointTests : IntegrationTestBase
     {
         var created = await CreateSomethingViaClient("Retrievable");
 
-        var result = await Client.Api.Somethings.GetAsync();
+        var result = await (await GetAuthenticatedClientAsync()).Api.Somethings.GetAsync();
 
         Assert.NotNull(result);
         Assert.Single(result);
@@ -127,10 +162,10 @@ public class SomethingEndpointTests : IntegrationTestBase
     {
         var created = await CreateSomethingViaClient("Original");
 
-        await Client.Api.Somethings[created.Id].PutAsync(
+        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].PutAsync(
             new KiotaModels.UpdateSomethingRequest { Name = "Updated" });
 
-        var result = await Client.Api.Somethings.GetAsync();
+        var result = await (await GetAuthenticatedClientAsync()).Api.Somethings.GetAsync();
         Assert.NotNull(result);
         Assert.Single(result);
         Assert.Equal("Updated", result[0].Name);
@@ -141,10 +176,10 @@ public class SomethingEndpointTests : IntegrationTestBase
     {
         var created = await CreateSomethingViaClient("Before Update");
 
-        await Client.Api.Somethings[created.Id].PutAsync(
+        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].PutAsync(
             new KiotaModels.UpdateSomethingRequest { Name = "After Update" });
 
-        var stream = await Client.Api.Somethings[created.Id].GetAsync();
+        var stream = await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].GetAsync();
         Assert.NotNull(stream);
         var result = await JsonSerializer.DeserializeAsync<SomethingResponse>(stream, JsonOptions);
         Assert.NotNull(result);
@@ -154,8 +189,9 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task UpdateSomething_WhenNotFound_Returns404()
     {
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[99999].PutAsync(
+            () => client.Api.Somethings[99999].PutAsync(
                 new KiotaModels.UpdateSomethingRequest { Name = "Nope" }));
 
         Assert.Equal(404, exception.ResponseStatusCode);
@@ -165,10 +201,11 @@ public class SomethingEndpointTests : IntegrationTestBase
     public async Task UpdateSomething_WhenDeleted_Returns404()
     {
         var created = await CreateSomethingViaClient("Will Delete");
-        await Client.Api.Somethings[created.Id].DeleteAsync();
+        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
 
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[created.Id].PutAsync(
+            () => client.Api.Somethings[created.Id].PutAsync(
                 new KiotaModels.UpdateSomethingRequest { Name = "Too Late" }));
 
         Assert.Equal(404, exception.ResponseStatusCode);
@@ -181,9 +218,9 @@ public class SomethingEndpointTests : IntegrationTestBase
     {
         var created = await CreateSomethingViaClient("Delete Me");
 
-        await Client.Api.Somethings[created.Id].DeleteAsync();
+        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
 
-        var result = await Client.Api.Somethings.GetAsync();
+        var result = await (await GetAuthenticatedClientAsync()).Api.Somethings.GetAsync();
         Assert.NotNull(result);
         Assert.Empty(result);
     }
@@ -191,8 +228,9 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task DeleteSomething_WhenNotFound_Returns404()
     {
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[99999].DeleteAsync());
+            () => client.Api.Somethings[99999].DeleteAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
     }
@@ -201,10 +239,11 @@ public class SomethingEndpointTests : IntegrationTestBase
     public async Task DeleteSomething_WhenAlreadyDeleted_Returns404()
     {
         var created = await CreateSomethingViaClient("Double Delete");
-        await Client.Api.Somethings[created.Id].DeleteAsync();
+        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
 
+        var client = await GetAuthenticatedClientAsync();
         var exception = await Assert.ThrowsAsync<ApiException>(
-            () => Client.Api.Somethings[created.Id].DeleteAsync());
+            () => client.Api.Somethings[created.Id].DeleteAsync());
 
         Assert.Equal(404, exception.ResponseStatusCode);
     }
@@ -214,7 +253,8 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task CreateSomething_WithEmptyName_Returns400()
     {
-        var response = await HttpClient.PostAsJsonAsync("/api/somethings", new { name = "" });
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var response = await httpClient.PostAsJsonAsync("/api/somethings", new { name = "" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -222,7 +262,8 @@ public class SomethingEndpointTests : IntegrationTestBase
     [Fact]
     public async Task CreateSomething_WithWhitespaceName_Returns400()
     {
-        var response = await HttpClient.PostAsJsonAsync("/api/somethings", new { name = "   " });
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var response = await httpClient.PostAsJsonAsync("/api/somethings", new { name = "   " });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -231,7 +272,8 @@ public class SomethingEndpointTests : IntegrationTestBase
     public async Task CreateSomething_WithNameExceeding200Chars_Returns400()
     {
         var longName = new string('a', 201);
-        var response = await HttpClient.PostAsJsonAsync("/api/somethings", new { name = longName });
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var response = await httpClient.PostAsJsonAsync("/api/somethings", new { name = longName });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -240,7 +282,8 @@ public class SomethingEndpointTests : IntegrationTestBase
     public async Task CreateSomething_WithNameAt200Chars_Succeeds()
     {
         var maxName = new string('a', 200);
-        var response = await HttpClient.PostAsJsonAsync("/api/somethings", new { name = maxName });
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var response = await httpClient.PostAsJsonAsync("/api/somethings", new { name = maxName });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
@@ -252,7 +295,8 @@ public class SomethingEndpointTests : IntegrationTestBase
     {
         var created = await CreateSomethingViaClient("Valid Name");
 
-        var response = await HttpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "" });
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var response = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -262,7 +306,8 @@ public class SomethingEndpointTests : IntegrationTestBase
     {
         var created = await CreateSomethingViaClient("Valid Name");
 
-        var response = await HttpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "   " });
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var response = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "   " });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -273,7 +318,8 @@ public class SomethingEndpointTests : IntegrationTestBase
         var created = await CreateSomethingViaClient("Valid Name");
         var longName = new string('a', 201);
 
-        var response = await HttpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = longName });
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var response = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = longName });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -282,7 +328,7 @@ public class SomethingEndpointTests : IntegrationTestBase
 
     private async Task<SomethingResponse> CreateSomethingViaClient(string name)
     {
-        var stream = await Client.Api.Somethings.PostAsync(
+        var stream = await (await GetAuthenticatedClientAsync()).Api.Somethings.PostAsync(
             new KiotaModels.CreateSomethingRequest { Name = name });
 
         Assert.NotNull(stream);
