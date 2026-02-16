@@ -17,7 +17,8 @@ public static class SomethingEndpoints
                 .Where(s => s.DeletedOn == null)
                 .ToListAsync();
         })
-        .WithName("GetSomethings");
+        .WithName("GetSomethings")
+        .RequireAuthorization();
 
         group.MapGet("/{id}", async (int id, ApplicationDbContext db) =>
         {
@@ -25,7 +26,8 @@ public static class SomethingEndpoints
                 ? Results.Ok(something)
                 : Results.NotFound();
         })
-        .WithName("GetSomethingById");
+        .WithName("GetSomethingById")
+        .RequireAuthorization();
 
         group.MapPost("/", async (CreateSomethingRequest request, ApplicationDbContext db) =>
         {
@@ -39,7 +41,8 @@ public static class SomethingEndpoints
             return Results.Created($"/api/somethings/{something.Id}", something);
         })
         .WithName("CreateSomething")
-        .WithParameterValidation();
+        .WithParameterValidation()
+        .RequireAuthorization();
 
         group.MapPut("/{id}", async (int id, UpdateSomethingRequest request, ApplicationDbContext db) =>
         {
@@ -54,7 +57,8 @@ public static class SomethingEndpoints
             return Results.NoContent();
         })
         .WithName("UpdateSomething")
-        .WithParameterValidation();
+        .WithParameterValidation()
+        .RequireAuthorization();
 
         group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
         {
@@ -66,7 +70,8 @@ public static class SomethingEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         })
-        .WithName("DeleteSomething");
+        .WithName("DeleteSomething")
+        .RequireAuthorization();
     }
 }
 
