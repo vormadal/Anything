@@ -2,9 +2,22 @@
 
 [![Backend CI](https://github.com/vormadal/Anything/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/vormadal/Anything/actions/workflows/backend-ci.yml)
 [![Frontend CI](https://github.com/vormadal/Anything/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/vormadal/Anything/actions/workflows/frontend-ci.yml)
+
+## Backend Quality Metrics
+
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything&metric=coverage)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything)
+
+## Frontend Quality Metrics
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything-frontend&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything-frontend)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything-frontend&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything-frontend)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything-frontend&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything-frontend)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything-frontend&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything-frontend)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=vormadal_Anything-frontend&metric=coverage)](https://sonarcloud.io/summary/new_code?id=vormadal_Anything-frontend)
 
 Create "Something", it can be anything: checklist, grocery shopping list, inventory in your storage room or keep track on subscriptions and other expenses.
 
