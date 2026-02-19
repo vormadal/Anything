@@ -14,9 +14,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UserInvite> UserInvites => Set<UserInvite>();
-    public DbSet<StorageUnit> StorageUnits => Set<StorageUnit>();
-    public DbSet<Box> Boxes => Set<Box>();
-    public DbSet<Item> Items => Set<Item>();
+    public DbSet<InventoryStorageUnit> InventoryStorageUnits => Set<InventoryStorageUnit>();
+    public DbSet<InventoryBox> InventoryBoxes => Set<InventoryBox>();
+    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,35 +63,35 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<StorageUnit>(entity =>
+        modelBuilder.Entity<InventoryStorageUnit>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Type).HasMaxLength(100);
         });
 
-        modelBuilder.Entity<Box>(entity =>
+        modelBuilder.Entity<InventoryBox>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Number).IsRequired();
-            entity.HasOne<StorageUnit>()
+            entity.HasOne<InventoryStorageUnit>()
                 .WithMany()
                 .HasForeignKey(e => e.StorageUnitId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired(false);
         });
 
-        modelBuilder.Entity<Item>(entity =>
+        modelBuilder.Entity<InventoryItem>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.HasOne<Box>()
+            entity.HasOne<InventoryBox>()
                 .WithMany()
                 .HasForeignKey(e => e.BoxId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .IsRequired(false);
-            entity.HasOne<StorageUnit>()
+            entity.HasOne<InventoryStorageUnit>()
                 .WithMany()
                 .HasForeignKey(e => e.StorageUnitId)
                 .OnDelete(DeleteBehavior.Cascade)
@@ -142,7 +142,7 @@ public class UserInvite
     public bool IsUsed { get; set; }
 }
 
-public class StorageUnit
+public class InventoryStorageUnit
 {
     public int Id { get; set; }
     public required string Name { get; set; }
@@ -152,7 +152,7 @@ public class StorageUnit
     public DateTime? DeletedOn { get; set; }
 }
 
-public class Box
+public class InventoryBox
 {
     public int Id { get; set; }
     public int Number { get; set; }
@@ -162,7 +162,7 @@ public class Box
     public DateTime? DeletedOn { get; set; }
 }
 
-public class Item
+public class InventoryItem
 {
     public int Id { get; set; }
     public required string Name { get; set; }

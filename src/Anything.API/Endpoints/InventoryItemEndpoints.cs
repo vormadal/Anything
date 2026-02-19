@@ -5,33 +5,33 @@ using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
 
-public static class ItemEndpoints
+public static class InventoryItemEndpoints
 {
-    public static void MapItemEndpoints(this IEndpointRouteBuilder app)
+    public static void MapInventoryItemEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/items");
+        var group = app.MapGroup("/api/inventory-items");
 
         group.MapGet("/", async (ApplicationDbContext db) =>
         {
-            return await db.Items
+            return await db.InventoryItems
                 .Where(i => i.DeletedOn == null)
                 .ToListAsync();
         })
-        .WithName("GetItems")
+        .WithName("GetInventoryItems")
         .RequireAuthorization();
 
         group.MapGet("/{id}", async (int id, ApplicationDbContext db) =>
         {
-            return await db.Items.FindAsync(id) is Item item && item.DeletedOn == null
+            return await db.InventoryItems.FindAsync(id) is InventoryItem item && item.DeletedOn == null
                 ? Results.Ok(item)
                 : Results.NotFound();
         })
-        .WithName("GetItemById")
+        .WithName("GetInventoryItemById")
         .RequireAuthorization();
 
-        group.MapPost("/", async (CreateItemRequest request, ApplicationDbContext db) =>
+        group.MapPost("/", async (CreateInventoryItemRequest request, ApplicationDbContext db) =>
         {
-            var item = new Item
+            var item = new InventoryItem
             {
                 Name = request.Name,
                 Description = request.Description,
@@ -39,17 +39,17 @@ public static class ItemEndpoints
                 StorageUnitId = request.StorageUnitId
             };
 
-            db.Items.Add(item);
+            db.InventoryItems.Add(item);
             await db.SaveChangesAsync();
-            return Results.Created($"/api/items/{item.Id}", item);
+            return Results.Created($"/api/inventory-items/{item.Id}", item);
         })
-        .WithName("CreateItem")
+        .WithName("CreateInventoryItem")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapPut("/{id}", async (int id, UpdateItemRequest request, ApplicationDbContext db) =>
+        group.MapPut("/{id}", async (int id, UpdateInventoryItemRequest request, ApplicationDbContext db) =>
         {
-            var item = await db.Items.FindAsync(id);
+            var item = await db.InventoryItems.FindAsync(id);
             if (item is null || item.DeletedOn != null)
                 return Results.NotFound();
 
@@ -62,13 +62,13 @@ public static class ItemEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         })
-        .WithName("UpdateItem")
+        .WithName("UpdateInventoryItem")
         .WithParameterValidation()
         .RequireAuthorization();
 
         group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
         {
-            var item = await db.Items.FindAsync(id);
+            var item = await db.InventoryItems.FindAsync(id);
             if (item is null || item.DeletedOn != null)
                 return Results.NotFound();
 
@@ -76,12 +76,12 @@ public static class ItemEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         })
-        .WithName("DeleteItem")
+        .WithName("DeleteInventoryItem")
         .RequireAuthorization();
     }
 }
 
-public record CreateItemRequest(
+public record CreateInventoryItemRequest(
     [Required(ErrorMessage = "Name is required.")]
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name,
@@ -90,7 +90,7 @@ public record CreateItemRequest(
     int? BoxId,
     int? StorageUnitId);
 
-public record UpdateItemRequest(
+public record UpdateInventoryItemRequest(
     [Required(ErrorMessage = "Name is required.")]
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name,

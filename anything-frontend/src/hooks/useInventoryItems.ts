@@ -5,7 +5,7 @@ import { getAccessToken } from "./useAuth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-interface Item {
+interface InventoryItem {
   id: number;
   name: string;
   description?: string;
@@ -25,24 +25,24 @@ function getAuthHeaders() {
   };
 }
 
-// Custom hook for fetching items
-export function useItems() {
+// Custom hook for fetching inventory items
+export function useInventoryItems() {
   return useQuery({
-    queryKey: ["items"],
-    queryFn: async (): Promise<Item[]> => {
-      const response = await fetch(`${API_BASE_URL}/api/items`, {
+    queryKey: ["inventoryItems"],
+    queryFn: async (): Promise<InventoryItem[]> => {
+      const response = await fetch(`${API_BASE_URL}/api/inventory-items`, {
         headers: getAuthHeaders(),
       });
       if (!response.ok) {
-        throw new Error("Failed to fetch items");
+        throw new Error("Failed to fetch inventory items");
       }
       return response.json();
     },
   });
 }
 
-// Custom hook for creating an item
-export function useCreateItem() {
+// Custom hook for creating an inventory item
+export function useCreateInventoryItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -52,24 +52,24 @@ export function useCreateItem() {
       boxId?: number;
       storageUnitId?: number;
     }) => {
-      const response = await fetch(`${API_BASE_URL}/api/items`, {
+      const response = await fetch(`${API_BASE_URL}/api/inventory-items`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(item),
       });
       if (!response.ok) {
-        throw new Error("Failed to create item");
+        throw new Error("Failed to create inventory item");
       }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["items"] });
+      queryClient.invalidateQueries({ queryKey: ["inventoryItems"] });
     },
   });
 }
 
-// Custom hook for updating an item
-export function useUpdateItem() {
+// Custom hook for updating an inventory item
+export function useUpdateInventoryItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -86,37 +86,37 @@ export function useUpdateItem() {
       boxId?: number;
       storageUnitId?: number;
     }) => {
-      const response = await fetch(`${API_BASE_URL}/api/items/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/inventory-items/${id}`, {
         method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify({ name, description, boxId, storageUnitId }),
       });
       if (!response.ok) {
-        throw new Error("Failed to update item");
+        throw new Error("Failed to update inventory item");
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["items"] });
+      queryClient.invalidateQueries({ queryKey: ["inventoryItems"] });
     },
   });
 }
 
-// Custom hook for deleting an item
-export function useDeleteItem() {
+// Custom hook for deleting an inventory item
+export function useDeleteInventoryItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`${API_BASE_URL}/api/items/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/inventory-items/${id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
       if (!response.ok) {
-        throw new Error("Failed to delete item");
+        throw new Error("Failed to delete inventory item");
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["items"] });
+      queryClient.invalidateQueries({ queryKey: ["inventoryItems"] });
     },
   });
 }

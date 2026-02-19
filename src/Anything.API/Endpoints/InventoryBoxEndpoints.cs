@@ -5,49 +5,49 @@ using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
 
-public static class BoxEndpoints
+public static class InventoryBoxEndpoints
 {
-    public static void MapBoxEndpoints(this IEndpointRouteBuilder app)
+    public static void MapInventoryBoxEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/boxes");
+        var group = app.MapGroup("/api/inventory-boxes");
 
         group.MapGet("/", async (ApplicationDbContext db) =>
         {
-            return await db.Boxes
+            return await db.InventoryBoxes
                 .Where(b => b.DeletedOn == null)
                 .ToListAsync();
         })
-        .WithName("GetBoxes")
+        .WithName("GetInventoryBoxes")
         .RequireAuthorization();
 
         group.MapGet("/{id}", async (int id, ApplicationDbContext db) =>
         {
-            return await db.Boxes.FindAsync(id) is Box box && box.DeletedOn == null
+            return await db.InventoryBoxes.FindAsync(id) is InventoryBox box && box.DeletedOn == null
                 ? Results.Ok(box)
                 : Results.NotFound();
         })
-        .WithName("GetBoxById")
+        .WithName("GetInventoryBoxById")
         .RequireAuthorization();
 
-        group.MapPost("/", async (CreateBoxRequest request, ApplicationDbContext db) =>
+        group.MapPost("/", async (CreateInventoryBoxRequest request, ApplicationDbContext db) =>
         {
-            var box = new Box
+            var box = new InventoryBox
             {
                 Number = request.Number,
                 StorageUnitId = request.StorageUnitId
             };
 
-            db.Boxes.Add(box);
+            db.InventoryBoxes.Add(box);
             await db.SaveChangesAsync();
-            return Results.Created($"/api/boxes/{box.Id}", box);
+            return Results.Created($"/api/inventory-boxes/{box.Id}", box);
         })
-        .WithName("CreateBox")
+        .WithName("CreateInventoryBox")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapPut("/{id}", async (int id, UpdateBoxRequest request, ApplicationDbContext db) =>
+        group.MapPut("/{id}", async (int id, UpdateInventoryBoxRequest request, ApplicationDbContext db) =>
         {
-            var box = await db.Boxes.FindAsync(id);
+            var box = await db.InventoryBoxes.FindAsync(id);
             if (box is null || box.DeletedOn != null)
                 return Results.NotFound();
 
@@ -58,13 +58,13 @@ public static class BoxEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         })
-        .WithName("UpdateBox")
+        .WithName("UpdateInventoryBox")
         .WithParameterValidation()
         .RequireAuthorization();
 
         group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
         {
-            var box = await db.Boxes.FindAsync(id);
+            var box = await db.InventoryBoxes.FindAsync(id);
             if (box is null || box.DeletedOn != null)
                 return Results.NotFound();
 
@@ -72,18 +72,18 @@ public static class BoxEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         })
-        .WithName("DeleteBox")
+        .WithName("DeleteInventoryBox")
         .RequireAuthorization();
     }
 }
 
-public record CreateBoxRequest(
+public record CreateInventoryBoxRequest(
     [Required(ErrorMessage = "Number is required.")]
     [Range(1, int.MaxValue, ErrorMessage = "Number must be a positive integer.")]
     int Number,
     int? StorageUnitId);
 
-public record UpdateBoxRequest(
+public record UpdateInventoryBoxRequest(
     [Required(ErrorMessage = "Number is required.")]
     [Range(1, int.MaxValue, ErrorMessage = "Number must be a positive integer.")]
     int Number,
