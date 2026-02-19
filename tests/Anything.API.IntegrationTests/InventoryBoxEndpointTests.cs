@@ -50,7 +50,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         return _authenticatedClient;
     }
 
-    // --- GET /api/inventoryboxes ---
+    // --- GET /api/inventory-boxes ---
 
     [Fact]
     public async Task GetInventoryBoxes_WhenEmpty_ReturnsEmptyList()
@@ -89,7 +89,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         Assert.Empty(result);
     }
 
-    // --- GET /api/inventoryboxes/{id} ---
+    // --- GET /api/inventory-boxes/{id} ---
 
     [Fact]
     public async Task GetInventoryBoxById_ReturnsBox()
@@ -131,7 +131,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         Assert.Equal(404, exception.ResponseStatusCode);
     }
 
-    // --- POST /api/inventoryboxes ---
+    // --- POST /api/inventory-boxes ---
 
     [Fact]
     public async Task CreateInventoryBox_ReturnsCreatedItem()
@@ -170,7 +170,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         Assert.Equal(created.Id, result[0].Id);
     }
 
-    // --- PUT /api/inventoryboxes/{id} ---
+    // --- PUT /api/inventory-boxes/{id} ---
 
     [Fact]
     public async Task UpdateInventoryBox_UpdatesNumberAndStorageUnitId()
@@ -228,7 +228,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         Assert.Equal(404, exception.ResponseStatusCode);
     }
 
-    // --- DELETE /api/inventoryboxes/{id} ---
+    // --- DELETE /api/inventory-boxes/{id} ---
 
     [Fact]
     public async Task DeleteInventoryBox_SoftDeletes()
@@ -295,13 +295,13 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         Assert.All(items, item => Assert.Null(item.BoxId));
     }
 
-    // --- POST /api/inventoryboxes validation ---
+    // --- POST /api/inventory-boxes validation ---
 
     [Fact]
     public async Task CreateInventoryBox_WithInvalidStorageUnitId_Returns400()
     {
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventoryboxes", new { number = 1, storageUnitId = 99999 });
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-boxes", new { number = 1, storageUnitId = 99999 });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -313,12 +313,12 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits[unit.Id].DeleteAsync();
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventoryboxes", new { number = 1, storageUnitId = unit.Id });
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-boxes", new { number = 1, storageUnitId = unit.Id });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    // --- PUT /api/inventoryboxes/{id} validation ---
+    // --- PUT /api/inventory-boxes/{id} validation ---
 
     [Fact]
     public async Task UpdateInventoryBox_WithInvalidStorageUnitId_Returns400()
@@ -326,7 +326,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         var created = await CreateBoxViaClient(1, null);
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventoryboxes/{created.Id}", new { number = 1, storageUnitId = 99999 });
+        var response = await httpClient.PutAsJsonAsync($"/api/inventory-boxes/{created.Id}", new { number = 1, storageUnitId = 99999 });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -339,7 +339,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         var created = await CreateBoxViaClient(1, null);
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventoryboxes/{created.Id}", new { number = 1, storageUnitId = unit.Id });
+        var response = await httpClient.PutAsJsonAsync($"/api/inventory-boxes/{created.Id}", new { number = 1, storageUnitId = unit.Id });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }

@@ -80,9 +80,9 @@ The tests use Testcontainers to automatically spin up a PostgreSQL instance in D
 
 - `AuthEndpointTests.cs` - Tests for authentication endpoints (login, register, refresh)
 - `SomethingEndpointTests.cs` - Tests for the Something entity CRUD operations
-- `StorageUnitEndpointTests.cs` - Tests for the StorageUnit entity CRUD operations
-- `BoxEndpointTests.cs` - Tests for the Box entity CRUD operations
-- `ItemEndpointTests.cs` - Tests for the Item entity CRUD operations
+- `InventoryStorageUnitEndpointTests.cs` - Tests for the InventoryStorageUnit entity CRUD operations
+- `InventoryBoxEndpointTests.cs` - Tests for the InventoryBox entity CRUD operations
+- `InventoryItemEndpointTests.cs` - Tests for the InventoryItem entity CRUD operations
 - `Infrastructure/` - Test infrastructure (test base class, fixtures, API factory)
 - `ApiClient/` - Auto-generated Kiota API client (do not manually edit)
 

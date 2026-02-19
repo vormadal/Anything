@@ -50,7 +50,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         return _authenticatedClient;
     }
 
-    // --- GET /api/inventorystorageunits ---
+    // --- GET /api/inventory-storage-units ---
 
     [Fact]
     public async Task GetInventoryStorageUnits_WhenEmpty_ReturnsEmptyList()
@@ -89,7 +89,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         Assert.Empty(result);
     }
 
-    // --- GET /api/inventorystorageunits/{id} ---
+    // --- GET /api/inventory-storage-units/{id} ---
 
     [Fact]
     public async Task GetInventoryStorageUnitById_ReturnsStorageUnit()
@@ -130,7 +130,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         Assert.Equal(404, exception.ResponseStatusCode);
     }
 
-    // --- POST /api/inventorystorageunits ---
+    // --- POST /api/inventory-storage-units ---
 
     [Fact]
     public async Task CreateInventoryStorageUnit_ReturnsCreatedItem()
@@ -169,7 +169,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         Assert.Equal(created.Id, result[0].Id);
     }
 
-    // --- PUT /api/inventorystorageunits/{id} ---
+    // --- PUT /api/inventory-storage-units/{id} ---
 
     [Fact]
     public async Task UpdateInventoryStorageUnit_UpdatesNameAndType()
@@ -226,7 +226,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         Assert.Equal(404, exception.ResponseStatusCode);
     }
 
-    // --- DELETE /api/inventorystorageunits/{id} ---
+    // --- DELETE /api/inventory-storage-units/{id} ---
 
     [Fact]
     public async Task DeleteInventoryStorageUnit_SoftDeletes()
@@ -270,7 +270,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         await CreateBoxViaClient(1, unit.Id);
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.DeleteAsync($"/api/inventorystorageunits/{unit.Id}");
+        var response = await httpClient.DeleteAsync($"/api/inventory-storage-units/{unit.Id}");
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
@@ -282,7 +282,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         await CreateItemViaClient("Item", null, unit.Id);
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.DeleteAsync($"/api/inventorystorageunits/{unit.Id}");
+        var response = await httpClient.DeleteAsync($"/api/inventory-storage-units/{unit.Id}");
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
@@ -301,13 +301,13 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         Assert.Empty(result);
     }
 
-    // --- POST /api/inventorystorageunits validation ---
+    // --- POST /api/inventory-storage-units validation ---
 
     [Fact]
     public async Task CreateInventoryStorageUnit_WithEmptyName_Returns400()
     {
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventorystorageunits", new { name = "", type = (string?)null });
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-storage-units", new { name = "", type = (string?)null });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -316,7 +316,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
     public async Task CreateInventoryStorageUnit_WithWhitespaceName_Returns400()
     {
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventorystorageunits", new { name = "   ", type = (string?)null });
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-storage-units", new { name = "   ", type = (string?)null });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -326,7 +326,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
     {
         var longName = new string('a', 201);
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventorystorageunits", new { name = longName, type = (string?)null });
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-storage-units", new { name = longName, type = (string?)null });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -336,7 +336,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
     {
         var maxName = new string('a', 200);
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventorystorageunits", new { name = maxName, type = (string?)null });
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-storage-units", new { name = maxName, type = (string?)null });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
@@ -346,7 +346,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
     {
         var longType = new string('b', 101);
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventorystorageunits", new { name = "Valid Name", type = longType });
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-storage-units", new { name = "Valid Name", type = longType });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -356,12 +356,12 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
     {
         var maxType = new string('b', 100);
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventorystorageunits", new { name = "Valid Name", type = maxType });
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-storage-units", new { name = "Valid Name", type = maxType });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
-    // --- PUT /api/inventorystorageunits/{id} validation ---
+    // --- PUT /api/inventory-storage-units/{id} validation ---
 
     [Fact]
     public async Task UpdateInventoryStorageUnit_WithEmptyName_Returns400()
@@ -369,7 +369,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         var created = await CreateStorageUnitViaClient("Valid Name", null);
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventorystorageunits/{created.Id}", new { name = "", type = (string?)null });
+        var response = await httpClient.PutAsJsonAsync($"/api/inventory-storage-units/{created.Id}", new { name = "", type = (string?)null });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -380,7 +380,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         var created = await CreateStorageUnitViaClient("Valid Name", null);
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventorystorageunits/{created.Id}", new { name = "   ", type = (string?)null });
+        var response = await httpClient.PutAsJsonAsync($"/api/inventory-storage-units/{created.Id}", new { name = "   ", type = (string?)null });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -392,7 +392,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         var longName = new string('a', 201);
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventorystorageunits/{created.Id}", new { name = longName, type = (string?)null });
+        var response = await httpClient.PutAsJsonAsync($"/api/inventory-storage-units/{created.Id}", new { name = longName, type = (string?)null });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -404,7 +404,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         var longType = new string('b', 101);
 
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventorystorageunits/{created.Id}", new { name = "Valid Name", type = longType });
+        var response = await httpClient.PutAsJsonAsync($"/api/inventory-storage-units/{created.Id}", new { name = "Valid Name", type = longType });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
