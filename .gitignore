@@ -83,3 +83,7 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated API artifacts
+swagger.json
+.kiota.log
