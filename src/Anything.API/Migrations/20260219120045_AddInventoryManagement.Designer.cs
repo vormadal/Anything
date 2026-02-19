@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anything.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260219112250_RenameToInventoryEntities")]
-    partial class RenameToInventoryEntities
+    [Migration("20260219120045_AddInventoryManagement")]
+    partial class AddInventoryManagement
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

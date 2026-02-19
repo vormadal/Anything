@@ -68,6 +68,14 @@ public static class InventoryStorageUnitEndpoints
             if (storageUnit is null || storageUnit.DeletedOn != null)
                 return Results.NotFound();
 
+            var hasActiveBoxes = await db.InventoryBoxes
+                .AnyAsync(b => b.StorageUnitId == id && b.DeletedOn == null);
+            var hasActiveItems = await db.InventoryItems
+                .AnyAsync(i => i.StorageUnitId == id && i.DeletedOn == null);
+
+            if (hasActiveBoxes || hasActiveItems)
+                return Results.Conflict("Cannot delete storage unit while active boxes or items are associated with it.");
+
             storageUnit.DeletedOn = DateTime.UtcNow;
             await db.SaveChangesAsync();
             return Results.NoContent();

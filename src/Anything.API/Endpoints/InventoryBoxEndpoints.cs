@@ -31,6 +31,13 @@ public static class InventoryBoxEndpoints
 
         group.MapPost("/", async (CreateInventoryBoxRequest request, ApplicationDbContext db) =>
         {
+            if (request.StorageUnitId.HasValue)
+            {
+                var storageUnit = await db.InventoryStorageUnits.FindAsync(request.StorageUnitId.Value);
+                if (storageUnit is null || storageUnit.DeletedOn != null)
+                    return Results.BadRequest("Invalid storage unit ID.");
+            }
+
             var box = new InventoryBox
             {
                 Number = request.Number,
@@ -51,6 +58,13 @@ public static class InventoryBoxEndpoints
             if (box is null || box.DeletedOn != null)
                 return Results.NotFound();
 
+            if (request.StorageUnitId.HasValue)
+            {
+                var storageUnit = await db.InventoryStorageUnits.FindAsync(request.StorageUnitId.Value);
+                if (storageUnit is null || storageUnit.DeletedOn != null)
+                    return Results.BadRequest("Invalid storage unit ID.");
+            }
+
             box.Number = request.Number;
             box.StorageUnitId = request.StorageUnitId;
             box.ModifiedOn = DateTime.UtcNow;
@@ -69,6 +83,17 @@ public static class InventoryBoxEndpoints
                 return Results.NotFound();
 
             box.DeletedOn = DateTime.UtcNow;
+
+            var itemsInBox = await db.InventoryItems
+                .Where(i => i.BoxId == id && i.DeletedOn == null)
+                .ToListAsync();
+
+            foreach (var item in itemsInBox)
+            {
+                item.BoxId = null;
+                item.ModifiedOn = DateTime.UtcNow;
+            }
+
             await db.SaveChangesAsync();
             return Results.NoContent();
         })

@@ -31,6 +31,20 @@ public static class InventoryItemEndpoints
 
         group.MapPost("/", async (CreateInventoryItemRequest request, ApplicationDbContext db) =>
         {
+            if (request.BoxId.HasValue)
+            {
+                var box = await db.InventoryBoxes.FindAsync(request.BoxId.Value);
+                if (box is null || box.DeletedOn != null)
+                    return Results.BadRequest("Invalid box ID.");
+            }
+
+            if (request.StorageUnitId.HasValue)
+            {
+                var storageUnit = await db.InventoryStorageUnits.FindAsync(request.StorageUnitId.Value);
+                if (storageUnit is null || storageUnit.DeletedOn != null)
+                    return Results.BadRequest("Invalid storage unit ID.");
+            }
+
             var item = new InventoryItem
             {
                 Name = request.Name,
@@ -52,6 +66,20 @@ public static class InventoryItemEndpoints
             var item = await db.InventoryItems.FindAsync(id);
             if (item is null || item.DeletedOn != null)
                 return Results.NotFound();
+
+            if (request.BoxId.HasValue)
+            {
+                var box = await db.InventoryBoxes.FindAsync(request.BoxId.Value);
+                if (box is null || box.DeletedOn != null)
+                    return Results.BadRequest("Invalid box ID.");
+            }
+
+            if (request.StorageUnitId.HasValue)
+            {
+                var storageUnit = await db.InventoryStorageUnits.FindAsync(request.StorageUnitId.Value);
+                if (storageUnit is null || storageUnit.DeletedOn != null)
+                    return Results.BadRequest("Invalid storage unit ID.");
+            }
 
             item.Name = request.Name;
             item.Description = request.Description;
