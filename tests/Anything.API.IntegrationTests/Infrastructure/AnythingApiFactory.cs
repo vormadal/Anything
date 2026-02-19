@@ -69,6 +69,9 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         db.Somethings.RemoveRange(db.Somethings);
+        db.Items.RemoveRange(db.Items);
+        db.Boxes.RemoveRange(db.Boxes);
+        db.StorageUnits.RemoveRange(db.StorageUnits);
         db.RefreshTokens.RemoveRange(db.RefreshTokens);
         db.UserInvites.RemoveRange(db.UserInvites);
         // Don't remove users - the admin user is seeded and needed for auth
