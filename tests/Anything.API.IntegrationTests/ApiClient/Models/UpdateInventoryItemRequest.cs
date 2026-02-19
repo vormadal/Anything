@@ -9,15 +9,11 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class Item : IParsable
+    public partial class UpdateInventoryItemRequest : IParsable
     #pragma warning restore CS1591
     {
         /// <summary>The boxId property</summary>
         public int? BoxId { get; set; }
-        /// <summary>The createdOn property</summary>
-        public DateTimeOffset? CreatedOn { get; set; }
-        /// <summary>The deletedOn property</summary>
-        public DateTimeOffset? DeletedOn { get; set; }
         /// <summary>The description property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -26,10 +22,6 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
 #else
         public string Description { get; set; }
 #endif
-        /// <summary>The id property</summary>
-        public int? Id { get; set; }
-        /// <summary>The modifiedOn property</summary>
-        public DateTimeOffset? ModifiedOn { get; set; }
         /// <summary>The name property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -43,12 +35,12 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.Item"/></returns>
+        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryItemRequest"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Anything.API.IntegrationTests.ApiClient.Models.Item CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryItemRequest CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Anything.API.IntegrationTests.ApiClient.Models.Item();
+            return new global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryItemRequest();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -59,11 +51,7 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
             return new Dictionary<string, Action<IParseNode>>
             {
                 { "boxId", n => { BoxId = n.GetIntValue(); } },
-                { "createdOn", n => { CreatedOn = n.GetDateTimeOffsetValue(); } },
-                { "deletedOn", n => { DeletedOn = n.GetDateTimeOffsetValue(); } },
                 { "description", n => { Description = n.GetStringValue(); } },
-                { "id", n => { Id = n.GetIntValue(); } },
-                { "modifiedOn", n => { ModifiedOn = n.GetDateTimeOffsetValue(); } },
                 { "name", n => { Name = n.GetStringValue(); } },
                 { "storageUnitId", n => { StorageUnitId = n.GetIntValue(); } },
             };
@@ -76,11 +64,7 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteIntValue("boxId", BoxId);
-            writer.WriteDateTimeOffsetValue("createdOn", CreatedOn);
-            writer.WriteDateTimeOffsetValue("deletedOn", DeletedOn);
             writer.WriteStringValue("description", Description);
-            writer.WriteIntValue("id", Id);
-            writer.WriteDateTimeOffsetValue("modifiedOn", ModifiedOn);
             writer.WriteStringValue("name", Name);
             writer.WriteIntValue("storageUnitId", StorageUnitId);
         }

@@ -9,19 +9,9 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class CreateItemRequest : IParsable
+    public partial class UpdateInventoryStorageUnitRequest : IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>The boxId property</summary>
-        public int? BoxId { get; set; }
-        /// <summary>The description property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public string? Description { get; set; }
-#nullable restore
-#else
-        public string Description { get; set; }
-#endif
         /// <summary>The name property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -30,17 +20,23 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
 #else
         public string Name { get; set; }
 #endif
-        /// <summary>The storageUnitId property</summary>
-        public int? StorageUnitId { get; set; }
+        /// <summary>The type property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Type { get; set; }
+#nullable restore
+#else
+        public string Type { get; set; }
+#endif
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.CreateItemRequest"/></returns>
+        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryStorageUnitRequest"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Anything.API.IntegrationTests.ApiClient.Models.CreateItemRequest CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryStorageUnitRequest CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Anything.API.IntegrationTests.ApiClient.Models.CreateItemRequest();
+            return new global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryStorageUnitRequest();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -50,10 +46,8 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "boxId", n => { BoxId = n.GetIntValue(); } },
-                { "description", n => { Description = n.GetStringValue(); } },
                 { "name", n => { Name = n.GetStringValue(); } },
-                { "storageUnitId", n => { StorageUnitId = n.GetIntValue(); } },
+                { "type", n => { Type = n.GetStringValue(); } },
             };
         }
         /// <summary>
@@ -63,10 +57,8 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteIntValue("boxId", BoxId);
-            writer.WriteStringValue("description", Description);
             writer.WriteStringValue("name", Name);
-            writer.WriteIntValue("storageUnitId", StorageUnitId);
+            writer.WriteStringValue("type", Type);
         }
     }
 }

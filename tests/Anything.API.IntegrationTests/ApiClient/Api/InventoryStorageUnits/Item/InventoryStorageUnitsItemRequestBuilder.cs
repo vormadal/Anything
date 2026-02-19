@@ -9,28 +9,28 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
-namespace Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item
+namespace Anything.API.IntegrationTests.ApiClient.Api.InventoryStorageUnits.Item
 {
     /// <summary>
-    /// Builds and executes requests for operations under \api\boxes\{id}
+    /// Builds and executes requests for operations under \api\inventory-storage-units\{id}
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class BoxesItemRequestBuilder : BaseRequestBuilder
+    public partial class InventoryStorageUnitsItemRequestBuilder : BaseRequestBuilder
     {
         /// <summary>
-        /// Instantiates a new <see cref="global::Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item.BoxesItemRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::Anything.API.IntegrationTests.ApiClient.Api.InventoryStorageUnits.Item.InventoryStorageUnitsItemRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public BoxesItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/boxes/{id}", pathParameters)
+        public InventoryStorageUnitsItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/inventory-storage-units/{id}", pathParameters)
         {
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item.BoxesItemRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::Anything.API.IntegrationTests.ApiClient.Api.InventoryStorageUnits.Item.InventoryStorageUnitsItemRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public BoxesItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/boxes/{id}", rawUrl)
+        public InventoryStorageUnitsItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/inventory-storage-units/{id}", rawUrl)
         {
         }
         /// <returns>A <see cref="Stream"/></returns>
@@ -70,11 +70,11 @@ namespace Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item
         /// <exception cref="global::Anything.API.IntegrationTests.ApiClient.Models.HttpValidationProblemDetails">When receiving a 400 status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<Stream?> PutAsync(global::Anything.API.IntegrationTests.ApiClient.Models.UpdateBoxRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<Stream?> PutAsync(global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryStorageUnitRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<Stream> PutAsync(global::Anything.API.IntegrationTests.ApiClient.Models.UpdateBoxRequest body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<Stream> PutAsync(global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryStorageUnitRequest body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));
@@ -120,11 +120,11 @@ namespace Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public RequestInformation ToPutRequestInformation(global::Anything.API.IntegrationTests.ApiClient.Models.UpdateBoxRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default)
+        public RequestInformation ToPutRequestInformation(global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryStorageUnitRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default)
         {
 #nullable restore
 #else
-        public RequestInformation ToPutRequestInformation(global::Anything.API.IntegrationTests.ApiClient.Models.UpdateBoxRequest body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default)
+        public RequestInformation ToPutRequestInformation(global::Anything.API.IntegrationTests.ApiClient.Models.UpdateInventoryStorageUnitRequest body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default)
         {
 #endif
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));
@@ -137,26 +137,18 @@ namespace Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item
         /// <summary>
         /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
         /// </summary>
-        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item.BoxesItemRequestBuilder"/></returns>
+        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Api.InventoryStorageUnits.Item.InventoryStorageUnitsItemRequestBuilder"/></returns>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
-        public global::Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item.BoxesItemRequestBuilder WithUrl(string rawUrl)
+        public global::Anything.API.IntegrationTests.ApiClient.Api.InventoryStorageUnits.Item.InventoryStorageUnitsItemRequestBuilder WithUrl(string rawUrl)
         {
-            return new global::Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item.BoxesItemRequestBuilder(rawUrl, RequestAdapter);
+            return new global::Anything.API.IntegrationTests.ApiClient.Api.InventoryStorageUnits.Item.InventoryStorageUnitsItemRequestBuilder(rawUrl, RequestAdapter);
         }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.
         /// </summary>
         [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class BoxesItemRequestBuilderDeleteRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
-        {
-        }
-        /// <summary>
-        /// Configuration for the request such as headers, query parameters, and middleware options.
-        /// </summary>
-        [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
-        [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class BoxesItemRequestBuilderGetRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
+        public partial class InventoryStorageUnitsItemRequestBuilderDeleteRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
         {
         }
         /// <summary>
@@ -164,7 +156,15 @@ namespace Anything.API.IntegrationTests.ApiClient.Api.Boxes.Item
         /// </summary>
         [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class BoxesItemRequestBuilderPutRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
+        public partial class InventoryStorageUnitsItemRequestBuilderGetRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
+        {
+        }
+        /// <summary>
+        /// Configuration for the request such as headers, query parameters, and middleware options.
+        /// </summary>
+        [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
+        [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
+        public partial class InventoryStorageUnitsItemRequestBuilderPutRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
         {
         }
     }

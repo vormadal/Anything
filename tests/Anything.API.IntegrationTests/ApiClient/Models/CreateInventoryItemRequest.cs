@@ -9,22 +9,38 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class CreateBoxRequest : IParsable
+    public partial class CreateInventoryItemRequest : IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>The number property</summary>
-        public int? Number { get; set; }
+        /// <summary>The boxId property</summary>
+        public int? BoxId { get; set; }
+        /// <summary>The description property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Description { get; set; }
+#nullable restore
+#else
+        public string Description { get; set; }
+#endif
+        /// <summary>The name property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Name { get; set; }
+#nullable restore
+#else
+        public string Name { get; set; }
+#endif
         /// <summary>The storageUnitId property</summary>
         public int? StorageUnitId { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.CreateBoxRequest"/></returns>
+        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.CreateInventoryItemRequest"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Anything.API.IntegrationTests.ApiClient.Models.CreateBoxRequest CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Anything.API.IntegrationTests.ApiClient.Models.CreateInventoryItemRequest CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Anything.API.IntegrationTests.ApiClient.Models.CreateBoxRequest();
+            return new global::Anything.API.IntegrationTests.ApiClient.Models.CreateInventoryItemRequest();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -34,7 +50,9 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "number", n => { Number = n.GetIntValue(); } },
+                { "boxId", n => { BoxId = n.GetIntValue(); } },
+                { "description", n => { Description = n.GetStringValue(); } },
+                { "name", n => { Name = n.GetStringValue(); } },
                 { "storageUnitId", n => { StorageUnitId = n.GetIntValue(); } },
             };
         }
@@ -45,7 +63,9 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteIntValue("number", Number);
+            writer.WriteIntValue("boxId", BoxId);
+            writer.WriteStringValue("description", Description);
+            writer.WriteStringValue("name", Name);
             writer.WriteIntValue("storageUnitId", StorageUnitId);
         }
     }

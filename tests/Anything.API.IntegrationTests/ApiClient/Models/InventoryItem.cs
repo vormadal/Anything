@@ -9,13 +9,23 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class StorageUnit : IParsable
+    public partial class InventoryItem : IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The boxId property</summary>
+        public int? BoxId { get; set; }
         /// <summary>The createdOn property</summary>
         public DateTimeOffset? CreatedOn { get; set; }
         /// <summary>The deletedOn property</summary>
         public DateTimeOffset? DeletedOn { get; set; }
+        /// <summary>The description property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Description { get; set; }
+#nullable restore
+#else
+        public string Description { get; set; }
+#endif
         /// <summary>The id property</summary>
         public int? Id { get; set; }
         /// <summary>The modifiedOn property</summary>
@@ -28,23 +38,17 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
 #else
         public string Name { get; set; }
 #endif
-        /// <summary>The type property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public string? Type { get; set; }
-#nullable restore
-#else
-        public string Type { get; set; }
-#endif
+        /// <summary>The storageUnitId property</summary>
+        public int? StorageUnitId { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.StorageUnit"/></returns>
+        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.InventoryItem"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Anything.API.IntegrationTests.ApiClient.Models.StorageUnit CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Anything.API.IntegrationTests.ApiClient.Models.InventoryItem CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Anything.API.IntegrationTests.ApiClient.Models.StorageUnit();
+            return new global::Anything.API.IntegrationTests.ApiClient.Models.InventoryItem();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -54,12 +58,14 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "boxId", n => { BoxId = n.GetIntValue(); } },
                 { "createdOn", n => { CreatedOn = n.GetDateTimeOffsetValue(); } },
                 { "deletedOn", n => { DeletedOn = n.GetDateTimeOffsetValue(); } },
+                { "description", n => { Description = n.GetStringValue(); } },
                 { "id", n => { Id = n.GetIntValue(); } },
                 { "modifiedOn", n => { ModifiedOn = n.GetDateTimeOffsetValue(); } },
                 { "name", n => { Name = n.GetStringValue(); } },
-                { "type", n => { Type = n.GetStringValue(); } },
+                { "storageUnitId", n => { StorageUnitId = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -69,12 +75,14 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteIntValue("boxId", BoxId);
             writer.WriteDateTimeOffsetValue("createdOn", CreatedOn);
             writer.WriteDateTimeOffsetValue("deletedOn", DeletedOn);
+            writer.WriteStringValue("description", Description);
             writer.WriteIntValue("id", Id);
             writer.WriteDateTimeOffsetValue("modifiedOn", ModifiedOn);
             writer.WriteStringValue("name", Name);
-            writer.WriteStringValue("type", Type);
+            writer.WriteIntValue("storageUnitId", StorageUnitId);
         }
     }
 }

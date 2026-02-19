@@ -9,9 +9,17 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class UpdateBoxRequest : IParsable
+    public partial class InventoryBox : IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The createdOn property</summary>
+        public DateTimeOffset? CreatedOn { get; set; }
+        /// <summary>The deletedOn property</summary>
+        public DateTimeOffset? DeletedOn { get; set; }
+        /// <summary>The id property</summary>
+        public int? Id { get; set; }
+        /// <summary>The modifiedOn property</summary>
+        public DateTimeOffset? ModifiedOn { get; set; }
         /// <summary>The number property</summary>
         public int? Number { get; set; }
         /// <summary>The storageUnitId property</summary>
@@ -19,12 +27,12 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.UpdateBoxRequest"/></returns>
+        /// <returns>A <see cref="global::Anything.API.IntegrationTests.ApiClient.Models.InventoryBox"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Anything.API.IntegrationTests.ApiClient.Models.UpdateBoxRequest CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Anything.API.IntegrationTests.ApiClient.Models.InventoryBox CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Anything.API.IntegrationTests.ApiClient.Models.UpdateBoxRequest();
+            return new global::Anything.API.IntegrationTests.ApiClient.Models.InventoryBox();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -34,6 +42,10 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "createdOn", n => { CreatedOn = n.GetDateTimeOffsetValue(); } },
+                { "deletedOn", n => { DeletedOn = n.GetDateTimeOffsetValue(); } },
+                { "id", n => { Id = n.GetIntValue(); } },
+                { "modifiedOn", n => { ModifiedOn = n.GetDateTimeOffsetValue(); } },
                 { "number", n => { Number = n.GetIntValue(); } },
                 { "storageUnitId", n => { StorageUnitId = n.GetIntValue(); } },
             };
@@ -45,6 +57,10 @@ namespace Anything.API.IntegrationTests.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteDateTimeOffsetValue("createdOn", CreatedOn);
+            writer.WriteDateTimeOffsetValue("deletedOn", DeletedOn);
+            writer.WriteIntValue("id", Id);
+            writer.WriteDateTimeOffsetValue("modifiedOn", ModifiedOn);
             writer.WriteIntValue("number", Number);
             writer.WriteIntValue("storageUnitId", StorageUnitId);
         }
