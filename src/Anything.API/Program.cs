@@ -101,6 +101,9 @@ app.UseAuthorization();
 // Map endpoints
 app.MapAuthEndpoints();
 app.MapSomethingEndpoints();
+app.MapInventoryStorageUnitEndpoints();
+app.MapInventoryBoxEndpoints();
+app.MapInventoryItemEndpoints();
 
 app.Run();
 

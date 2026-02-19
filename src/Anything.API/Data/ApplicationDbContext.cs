@@ -14,6 +14,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UserInvite> UserInvites => Set<UserInvite>();
+    public DbSet<InventoryStorageUnit> InventoryStorageUnits => Set<InventoryStorageUnit>();
+    public DbSet<InventoryBox> InventoryBoxes => Set<InventoryBox>();
+    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,6 +62,41 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.Entity<InventoryStorageUnit>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Type).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<InventoryBox>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Number).IsRequired();
+            entity.HasOne<InventoryStorageUnit>()
+                .WithMany()
+                .HasForeignKey(e => e.StorageUnitId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+        });
+
+        modelBuilder.Entity<InventoryItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.HasOne<InventoryBox>()
+                .WithMany()
+                .HasForeignKey(e => e.BoxId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+            entity.HasOne<InventoryStorageUnit>()
+                .WithMany()
+                .HasForeignKey(e => e.StorageUnitId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+        });
     }
 }
 
@@ -102,4 +140,36 @@ public class UserInvite
     public int CreatedByUserId { get; set; }
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     public bool IsUsed { get; set; }
+}
+
+public class InventoryStorageUnit
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public string? Type { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class InventoryBox
+{
+    public int Id { get; set; }
+    public int Number { get; set; }
+    public int? StorageUnitId { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class InventoryItem
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public int? BoxId { get; set; }
+    public int? StorageUnitId { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
 }
