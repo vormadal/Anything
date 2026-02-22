@@ -71,8 +71,8 @@ npm run generate:api # Generate API client from Swagger (API must be running)
 ### Frontend
 
 - **Path alias:** `@/*` maps to `./src/*` in imports.
+- **API client:** Use `apiClient` from `@/lib/apiClient` for all API calls. It automatically handles the base URL (`NEXT_PUBLIC_API_URL`, defaults to `http://localhost:5000`), `Content-Type: application/json`, and `Authorization: Bearer <token>` headers. Use `apiClient.get<T>`, `apiClient.post<T>`, `apiClient.put`, and `apiClient.delete`. For auth-specific error handling, catch `ApiError` (also exported from `@/lib/apiClient`) and inspect `err.status` and `err.body`. Never use raw `fetch` for API calls.
 - **React Query hooks:** Each entity gets a dedicated hook file in `src/hooks/` exporting `useQuery`/`useMutation` hooks (e.g., `useSomethings`, `useCreateSomething`). Mutations invalidate related query keys on success.
-- **API base URL:** Configured via `NEXT_PUBLIC_API_URL` env var, defaults to `http://localhost:5000`.
 - **Components:** Use Shadcn UI components in `src/components/ui/`. Add new ones manually from the Shadcn docs.
 - **Client components:** Hook files are marked `"use client"`.
 - **Testing:** Use Jest and React Testing Library for integration tests. Test files use `.test.tsx` or `.test.ts` extension and are colocated with source files. Run `npm test` for tests, `npm run test:coverage` for coverage reports.

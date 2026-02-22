@@ -47,9 +47,8 @@ export default function AdminPage() {
       setInviteUrl(fullUrl);
       toast.success("Invite created successfully!");
       setEmail("");
-    } catch (err) {
-      const error = err as Error;
-      toast.error(error.message || "Failed to create invite");
+    } catch {
+      toast.error("Failed to create invite");
     }
   };
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { apiClient, ApiError } from "@/lib/apiClient";
 
 interface LoginRequest {
   email: string;
@@ -92,22 +91,14 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (credentials: LoginRequest): Promise<LoginResponse> => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
+      try {
+        return await apiClient.post<LoginResponse>("/api/auth/login", credentials);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
           throw new Error("Invalid email or password");
         }
         throw new Error("Login failed");
       }
-
-      return response.json();
     },
     onSuccess: (data) => {
       setTokens(data.accessToken, data.refreshToken);
@@ -136,20 +127,14 @@ export function useLogout() {
 export function useRegister() {
   return useMutation({
     mutationFn: async (data: RegisterRequest) => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Registration failed");
+      try {
+        return await apiClient.post("/api/auth/register", data);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          throw new Error(err.body || "Registration failed");
+        }
+        throw err;
       }
-
-      return response.json();
     },
   });
 }
@@ -162,20 +147,10 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!response.ok) {
-      clearTokens();
-      return null;
-    }
-
-    const data = await response.json();
+    const data = await apiClient.post<{
+      accessToken: string;
+      refreshToken: string;
+    }>("/api/auth/refresh", { refreshToken });
     setTokens(data.accessToken, data.refreshToken);
     return data.accessToken;
   } catch {
@@ -187,23 +162,8 @@ export async function refreshAccessToken(): Promise<string | null> {
 // Create invite (admin only)
 export function useCreateInvite() {
   return useMutation({
-    mutationFn: async (data: CreateInviteRequest): Promise<CreateInviteResponse> => {
-      const token = getAccessToken();
-      const response = await fetch(`${API_BASE_URL}/api/auth/invites`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create invite");
-      }
-
-      return response.json();
-    },
+    mutationFn: (data: CreateInviteRequest): Promise<CreateInviteResponse> =>
+      apiClient.post<CreateInviteResponse>("/api/auth/invites", data),
   });
 }
 
@@ -212,21 +172,8 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: UpdateProfileRequest) => {
-      const token = getAccessToken();
-      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update profile");
-      }
-    },
+    mutationFn: (data: UpdateProfileRequest) =>
+      apiClient.put("/api/auth/profile", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
     },

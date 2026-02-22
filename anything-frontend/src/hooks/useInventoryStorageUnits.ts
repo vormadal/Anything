@@ -1,9 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAccessToken } from "./useAuth";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { apiClient } from "@/lib/apiClient";
 
 interface InventoryStorageUnit {
   id: number;
@@ -14,28 +12,12 @@ interface InventoryStorageUnit {
   deletedOn?: string;
 }
 
-// Helper to get auth headers
-function getAuthHeaders() {
-  const token = getAccessToken();
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
 // Custom hook for fetching inventory storage units
 export function useInventoryStorageUnits() {
   return useQuery({
     queryKey: ["inventoryStorageUnits"],
-    queryFn: async (): Promise<InventoryStorageUnit[]> => {
-      const response = await fetch(`${API_BASE_URL}/api/inventory-storage-units`, {
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch inventory storage units");
-      }
-      return response.json();
-    },
+    queryFn: () =>
+      apiClient.get<InventoryStorageUnit[]>("/api/inventory-storage-units"),
   });
 }
 
@@ -44,17 +26,11 @@ export function useCreateInventoryStorageUnit() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (storageUnit: { name: string; type?: string }) => {
-      const response = await fetch(`${API_BASE_URL}/api/inventory-storage-units`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(storageUnit),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to create inventory storage unit");
-      }
-      return response.json();
-    },
+    mutationFn: (storageUnit: { name: string; type?: string }) =>
+      apiClient.post<InventoryStorageUnit>(
+        "/api/inventory-storage-units",
+        storageUnit
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryStorageUnits"] });
     },
@@ -66,7 +42,7 @@ export function useUpdateInventoryStorageUnit() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       id,
       name,
       type,
@@ -74,16 +50,8 @@ export function useUpdateInventoryStorageUnit() {
       id: number;
       name: string;
       type?: string;
-    }) => {
-      const response = await fetch(`${API_BASE_URL}/api/inventory-storage-units/${id}`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ name, type }),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to update inventory storage unit");
-      }
-    },
+    }) =>
+      apiClient.put(`/api/inventory-storage-units/${id}`, { name, type }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryStorageUnits"] });
     },
@@ -95,15 +63,8 @@ export function useDeleteInventoryStorageUnit() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`${API_BASE_URL}/api/inventory-storage-units/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to delete inventory storage unit");
-      }
-    },
+    mutationFn: (id: number) =>
+      apiClient.delete(`/api/inventory-storage-units/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryStorageUnits"] });
     },
