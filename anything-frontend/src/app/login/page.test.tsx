@@ -2,6 +2,30 @@ import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithClient } from "@/__tests__/utils/test-utils";
 import LoginPage from "./page";
 
+// Mock the apiClient module
+const mockLoginPost = jest.fn()
+
+jest.mock('@/lib/apiClient', () => {
+  class ApiError extends Error {
+    responseStatusCode: number | undefined;
+    responseHeaders: Record<string, string[]> | undefined;
+    constructor(message?: string) {
+      super(message)
+      this.name = 'DefaultApiError'
+    }
+  }
+  return {
+    apiClient: {
+      api: {
+        auth: {
+          login: { post: (...args: unknown[]) => mockLoginPost(...args) },
+        },
+      },
+    },
+    ApiError,
+  }
+})
+
 // Mock next/navigation
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
@@ -9,9 +33,6 @@ jest.mock("next/navigation", () => ({
     push: mockPush,
   }),
 }));
-
-// Mock fetch
-global.fetch = jest.fn();
 
 describe("LoginPage", () => {
   beforeEach(() => {
@@ -37,10 +58,7 @@ describe("LoginPage", () => {
       role: "Admin",
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockLoginResponse,
-    });
+    mockLoginPost.mockResolvedValueOnce(mockLoginResponse);
 
     renderWithClient(<LoginPage />);
 
@@ -60,10 +78,10 @@ describe("LoginPage", () => {
   });
 
   it("should display error on failed login", async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-    });
+    const { ApiError } = jest.requireMock('@/lib/apiClient')
+    const error = new ApiError("Unauthorized");
+    error.responseStatusCode = 401;
+    mockLoginPost.mockRejectedValueOnce(error);
 
     renderWithClient(<LoginPage />);
 
@@ -76,7 +94,7 @@ describe("LoginPage", () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled();
+      expect(mockLoginPost).toHaveBeenCalled();
     });
 
     expect(mockPush).not.toHaveBeenCalled();

@@ -1,8 +1,31 @@
-import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithClient } from "@/__tests__/utils/test-utils";
 import RegisterPage from "./page";
 import { toast } from "sonner";
+
+// Mock the apiClient module
+const mockRegisterPost = jest.fn()
+
+jest.mock('@/lib/apiClient', () => {
+  class ApiError extends Error {
+    responseStatusCode: number | undefined;
+    constructor(message?: string) {
+      super(message)
+      this.name = 'DefaultApiError'
+    }
+  }
+  return {
+    apiClient: {
+      api: {
+        auth: {
+          register: { post: (...args: unknown[]) => mockRegisterPost(...args) },
+        },
+      },
+    },
+    ApiError,
+  }
+})
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -23,9 +46,6 @@ jest.mock("sonner", () => ({
   },
   Toaster: () => null,
 }));
-
-// Mock fetch
-global.fetch = jest.fn();
 
 describe("RegisterPage", () => {
   beforeEach(() => {
@@ -75,10 +95,7 @@ describe("RegisterPage", () => {
     it("should successfully register a new user", async () => {
       const user = userEvent.setup();
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
+      mockRegisterPost.mockResolvedValueOnce(undefined);
 
       renderWithClient(<RegisterPage />);
 
@@ -94,21 +111,12 @@ describe("RegisterPage", () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:5000/api/auth/register",
-          expect.objectContaining({
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: "john@test.com",
-              password: "Password123",
-              name: "John Doe",
-              inviteToken: "valid-token",
-            }),
-          })
-        );
+        expect(mockRegisterPost).toHaveBeenCalledWith({
+          email: "john@test.com",
+          password: "Password123",
+          name: "John Doe",
+          inviteToken: "valid-token",
+        });
       });
 
       expect(toast.success).toHaveBeenCalledWith("Registration successful! Please login.");
@@ -124,8 +132,7 @@ describe("RegisterPage", () => {
       await user.click(submitButton);
 
       // Form should not submit since inputs have 'required' attribute
-      // Browser's built-in validation will prevent submission
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockRegisterPost).not.toHaveBeenCalled();
     });
 
     it("should show error when name is missing", async () => {
@@ -142,8 +149,7 @@ describe("RegisterPage", () => {
       const submitButton = screen.getByRole("button", { name: "Create Account" });
       await user.click(submitButton);
 
-      // Form should not submit since name input has 'required' attribute
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockRegisterPost).not.toHaveBeenCalled();
     });
 
     it("should show error when email is missing", async () => {
@@ -160,8 +166,7 @@ describe("RegisterPage", () => {
       const submitButton = screen.getByRole("button", { name: "Create Account" });
       await user.click(submitButton);
 
-      // Form should not submit since email input has 'required' attribute
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockRegisterPost).not.toHaveBeenCalled();
     });
 
     it("should show error when password is missing", async () => {
@@ -178,8 +183,7 @@ describe("RegisterPage", () => {
       const submitButton = screen.getByRole("button", { name: "Create Account" });
       await user.click(submitButton);
 
-      // Form should not submit since password input has 'required' attribute
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockRegisterPost).not.toHaveBeenCalled();
     });
 
     it("should show error when password is too short", async () => {
@@ -199,16 +203,13 @@ describe("RegisterPage", () => {
       await user.click(submitButton);
 
       expect(toast.error).toHaveBeenCalledWith("Password must be at least 8 characters");
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockRegisterPost).not.toHaveBeenCalled();
     });
 
     it("should handle registration failure", async () => {
       const user = userEvent.setup();
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        text: async () => "Email already exists",
-      });
+      mockRegisterPost.mockRejectedValueOnce(new Error("Email already exists"));
 
       renderWithClient(<RegisterPage />);
 
@@ -233,10 +234,7 @@ describe("RegisterPage", () => {
     it("should show generic error when registration fails without message", async () => {
       const user = userEvent.setup();
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        text: async () => "",
-      });
+      mockRegisterPost.mockRejectedValueOnce(new Error("Registration failed"));
 
       renderWithClient(<RegisterPage />);
 
@@ -259,18 +257,8 @@ describe("RegisterPage", () => {
     it("should show loading state while registering", async () => {
       const user = userEvent.setup();
 
-      (global.fetch as jest.Mock).mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: async () => ({ success: true }),
-                }),
-              100
-            );
-          })
+      mockRegisterPost.mockImplementation(
+        () => new Promise((resolve) => { setTimeout(() => resolve(undefined), 100); })
       );
 
       renderWithClient(<RegisterPage />);

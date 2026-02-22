@@ -4,8 +4,23 @@ import { render } from '@/__tests__/utils/test-utils'
 import Home from './page'
 import { toast } from 'sonner'
 
-// Mock fetch globally
-global.fetch = jest.fn()
+// Mock the apiClient module
+const mockSomethingsGet = jest.fn()
+const mockSomethingsPost = jest.fn()
+const mockSomethingsByIdDelete = jest.fn()
+const mockSomethingsById = jest.fn(() => ({ delete: mockSomethingsByIdDelete }))
+
+jest.mock('@/lib/apiClient', () => ({
+  apiClient: {
+    api: {
+      somethings: {
+        get: (...args: unknown[]) => mockSomethingsGet(...args),
+        post: (...args: unknown[]) => mockSomethingsPost(...args),
+        byId: (...args: unknown[]) => mockSomethingsById(...args),
+      },
+    },
+  },
+}))
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -37,10 +52,7 @@ describe('Home Page Integration Tests', () => {
   })
 
   it('should render the page with title and description', () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => [],
-    })
+    mockSomethingsGet.mockResolvedValue([])
 
     render(<Home />)
 
@@ -51,11 +63,8 @@ describe('Home Page Integration Tests', () => {
   })
 
   it('should display loading state initially', () => {
-    ;(global.fetch as jest.Mock).mockImplementation(
-      () =>
-        new Promise(() => {
-          // Never resolves to keep loading state
-        })
+    mockSomethingsGet.mockImplementation(
+      () => new Promise(() => { /* Never resolves to keep loading state */ })
     )
 
     render(<Home />)
@@ -64,9 +73,7 @@ describe('Home Page Integration Tests', () => {
   })
 
   it('should display error message when API fails', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-    })
+    mockSomethingsGet.mockRejectedValue(new Error('API error'))
 
     render(<Home />)
 
@@ -78,10 +85,7 @@ describe('Home Page Integration Tests', () => {
   })
 
   it('should display empty state when no items exist', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => [],
-    })
+    mockSomethingsGet.mockResolvedValue([])
 
     render(<Home />)
 
@@ -98,10 +102,7 @@ describe('Home Page Integration Tests', () => {
       { id: 2, name: 'Test Item 2', createdOn: '2024-01-02T00:00:00Z' },
     ]
 
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => mockData,
-    })
+    mockSomethingsGet.mockResolvedValue(mockData)
 
     render(<Home />)
 
@@ -122,22 +123,10 @@ describe('Home Page Integration Tests', () => {
       createdOn: '2024-01-02T00:00:00Z',
     }
 
-    ;(global.fetch as jest.Mock)
-      // Initial fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockExistingData,
-      })
-      // Create POST
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNewItem,
-      })
-      // Refetch after creation
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [...mockExistingData, mockNewItem],
-      })
+    mockSomethingsGet
+      .mockResolvedValueOnce(mockExistingData)
+      .mockResolvedValueOnce([...mockExistingData, mockNewItem])
+    mockSomethingsPost.mockResolvedValueOnce(mockNewItem)
 
     render(<Home />)
 
@@ -154,15 +143,9 @@ describe('Home Page Integration Tests', () => {
     const addButton = screen.getByRole('button', { name: 'Add' })
     await user.click(addButton)
 
-    // Verify POST request was made
+    // Verify POST was made via apiClient
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/somethings',
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ name: 'New Item' }),
-        })
-      )
+      expect(mockSomethingsPost).toHaveBeenCalledWith({ name: 'New Item' })
     })
 
     // Verify success toast was called
@@ -175,10 +158,7 @@ describe('Home Page Integration Tests', () => {
   it('should not submit form when input is empty', async () => {
     const user = userEvent.setup()
 
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => [],
-    })
+    mockSomethingsGet.mockResolvedValue([])
 
     render(<Home />)
 
@@ -189,8 +169,8 @@ describe('Home Page Integration Tests', () => {
     const addButton = screen.getByRole('button', { name: 'Add' })
     await user.click(addButton)
 
-    // Verify no POST request was made (only the initial GET)
-    expect(global.fetch).toHaveBeenCalledTimes(1)
+    // Verify no POST was made (only the initial GET)
+    expect(mockSomethingsPost).not.toHaveBeenCalled()
   })
 
   it('should delete a something when delete button is clicked', async () => {
@@ -199,21 +179,10 @@ describe('Home Page Integration Tests', () => {
       { id: 1, name: 'Item to Delete', createdOn: '2024-01-01T00:00:00Z' },
     ]
 
-    ;(global.fetch as jest.Mock)
-      // Initial fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      })
-      // Delete request
-      .mockResolvedValueOnce({
-        ok: true,
-      })
-      // Refetch after deletion
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
-      })
+    mockSomethingsGet
+      .mockResolvedValueOnce(mockData)
+      .mockResolvedValueOnce([])
+    mockSomethingsByIdDelete.mockResolvedValueOnce(undefined)
 
     render(<Home />)
 
@@ -226,14 +195,10 @@ describe('Home Page Integration Tests', () => {
     const deleteButton = screen.getByRole('button', { name: 'Delete' })
     await user.click(deleteButton)
 
-    // Verify DELETE request was made
+    // Verify DELETE was made via apiClient
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/somethings/1',
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      )
+      expect(mockSomethingsById).toHaveBeenCalledWith(1)
+      expect(mockSomethingsByIdDelete).toHaveBeenCalled()
     })
 
     // Verify success toast was called
@@ -243,24 +208,12 @@ describe('Home Page Integration Tests', () => {
   it('should show loading state on add button when creating', async () => {
     const user = userEvent.setup()
 
-    ;(global.fetch as jest.Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
+    mockSomethingsGet.mockResolvedValueOnce([])
+    mockSomethingsPost.mockImplementation(
+      () => new Promise((resolve) => {
+        setTimeout(() => resolve({ id: 1, name: 'Test', createdOn: '2024-01-01T00:00:00Z' }), 100)
       })
-      .mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: async () => ({ id: 1, name: 'Test', createdOn: '2024-01-01T00:00:00Z' }),
-                }),
-              100
-            )
-          })
-      )
+    )
 
     render(<Home />)
 
@@ -281,16 +234,8 @@ describe('Home Page Integration Tests', () => {
   it('should preserve form input when create fails', async () => {
     const user = userEvent.setup()
 
-    ;(global.fetch as jest.Mock)
-      // Initial fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
-      })
-      // Create POST fails
-      .mockResolvedValueOnce({
-        ok: false,
-      })
+    mockSomethingsGet.mockResolvedValueOnce([])
+    mockSomethingsPost.mockRejectedValueOnce(new Error('Server error'))
 
     render(<Home />)
 
@@ -322,21 +267,10 @@ describe('Home Page Integration Tests', () => {
       { id: 1, name: 'Persistent Item', createdOn: '2024-01-01T00:00:00Z' },
     ]
 
-    ;(global.fetch as jest.Mock)
-      // Initial fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      })
-      // Delete request fails
-      .mockResolvedValueOnce({
-        ok: false,
-      })
-      // Refetch after failed deletion returns same data
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      })
+    mockSomethingsGet
+      .mockResolvedValueOnce(mockData)
+      .mockResolvedValueOnce(mockData)
+    mockSomethingsByIdDelete.mockRejectedValueOnce(new Error('Server error'))
 
     render(<Home />)
 

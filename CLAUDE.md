@@ -71,8 +71,8 @@ npm run generate:api # Generate API client from Swagger (API must be running)
 ### Frontend
 
 - **Path alias:** `@/*` maps to `./src/*` in imports.
+- **API client:** Use `apiClient` from `@/lib/apiClient` for all API calls. It is a Kiota-generated typed client backed by `DefaultRequestAdapter` with `BaseBearerTokenAuthenticationProvider` — it automatically handles the base URL (`NEXT_PUBLIC_API_URL`, defaults to `http://localhost:5000`), `Content-Type: application/json`, and `Authorization: Bearer <token>` headers. All types (request/response models) come from the Kiota-generated models in `@/lib/api-client/models/index`. Use the fluent builder API: `apiClient.api.somethings.get()`, `apiClient.api.somethings.post(body)`, `apiClient.api.somethings.byId(id).put(body)`, etc. For auth-specific error handling, catch `ApiError` (exported from `@/lib/apiClient`, which re-exports Kiota's `DefaultApiError`) and inspect `err.responseStatusCode`. Never use raw `fetch` for API calls.
 - **React Query hooks:** Each entity gets a dedicated hook file in `src/hooks/` exporting `useQuery`/`useMutation` hooks (e.g., `useSomethings`, `useCreateSomething`). Mutations invalidate related query keys on success.
-- **API base URL:** Configured via `NEXT_PUBLIC_API_URL` env var, defaults to `http://localhost:5000`.
 - **Components:** Use Shadcn UI components in `src/components/ui/`. Add new ones manually from the Shadcn docs.
 - **Client components:** Hook files are marked `"use client"`.
 - **Testing:** Use Jest and React Testing Library for integration tests. Test files use `.test.tsx` or `.test.ts` extension and are colocated with source files. Run `npm test` for tests, `npm run test:coverage` for coverage reports.
@@ -138,7 +138,7 @@ The frontend uses **Jest** and **React Testing Library** for integration tests:
   - `npm run test:watch` — Run tests in watch mode
   - `npm run test:coverage` — Run tests with coverage report
 - **Test Structure:**
-  - Hook tests mock `fetch` globally to test API interactions
+  - Hook tests mock `@/lib/apiClient` module to test API interactions
   - Component tests use `renderWithClient` utility to provide React Query context
   - Integration tests verify full user workflows (create, update, delete)
 - **Coverage:** Coverage reports are generated in `coverage/` directory and include LCOV format for SonarCloud integration.

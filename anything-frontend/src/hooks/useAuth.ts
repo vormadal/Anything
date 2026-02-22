@@ -1,41 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  email: string;
-  name: string;
-  role: string;
-}
-
-interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-  inviteToken: string;
-}
-
-interface CreateInviteRequest {
-  email: string;
-}
-
-interface CreateInviteResponse {
-  inviteUrl: string;
-  token: string;
-}
-
-interface UpdateProfileRequest {
-  name: string;
-}
+import { apiClient, ApiError } from "@/lib/apiClient";
 
 // Storage keys
 const ACCESS_TOKEN_KEY = "accessToken";
@@ -91,27 +57,31 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (credentials: LoginRequest): Promise<LoginResponse> => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
+    mutationFn: async (credentials: {
+      email: string;
+      password: string;
+    }) => {
+      try {
+        const data = await apiClient.api.auth.login.post({
+          email: credentials.email,
+          password: credentials.password,
+        });
+        if (!data) throw new Error("Login failed");
+        return data;
+      } catch (err) {
+        if (err instanceof ApiError && err.responseStatusCode === 401) {
           throw new Error("Invalid email or password");
         }
         throw new Error("Login failed");
       }
-
-      return response.json();
     },
     onSuccess: (data) => {
-      setTokens(data.accessToken, data.refreshToken);
-      setUser({ email: data.email, name: data.name, role: data.role });
+      setTokens(data.accessToken ?? "", data.refreshToken ?? "");
+      setUser({
+        email: data.email ?? "",
+        name: data.name ?? "",
+        role: data.role ?? "",
+      });
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
     },
   });
@@ -135,21 +105,25 @@ export function useLogout() {
 // Register with invite
 export function useRegister() {
   return useMutation({
-    mutationFn: async (data: RegisterRequest) => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Registration failed");
+    mutationFn: async (data: {
+      email: string;
+      password: string;
+      name: string;
+      inviteToken: string;
+    }) => {
+      try {
+        await apiClient.api.auth.register.post({
+          email: data.email,
+          password: data.password,
+          name: data.name,
+          inviteToken: data.inviteToken,
+        });
+      } catch (err) {
+        if (err instanceof ApiError) {
+          throw new Error(err.message || "Registration failed");
+        }
+        throw err;
       }
-
-      return response.json();
     },
   });
 }
@@ -162,22 +136,13 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!response.ok) {
+    const data = await apiClient.api.auth.refresh.post({ refreshToken });
+    if (!data) {
       clearTokens();
       return null;
     }
-
-    const data = await response.json();
-    setTokens(data.accessToken, data.refreshToken);
-    return data.accessToken;
+    setTokens(data.accessToken ?? "", data.refreshToken ?? "");
+    return data.accessToken ?? null;
   } catch {
     clearTokens();
     return null;
@@ -187,23 +152,8 @@ export async function refreshAccessToken(): Promise<string | null> {
 // Create invite (admin only)
 export function useCreateInvite() {
   return useMutation({
-    mutationFn: async (data: CreateInviteRequest): Promise<CreateInviteResponse> => {
-      const token = getAccessToken();
-      const response = await fetch(`${API_BASE_URL}/api/auth/invites`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create invite");
-      }
-
-      return response.json();
-    },
+    mutationFn: (data: { email: string }) =>
+      apiClient.api.auth.invites.post({ email: data.email }),
   });
 }
 
@@ -212,21 +162,8 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: UpdateProfileRequest) => {
-      const token = getAccessToken();
-      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update profile");
-      }
-    },
+    mutationFn: (data: { name: string }) =>
+      apiClient.api.auth.profile.put({ name: data.name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
     },
