@@ -237,11 +237,19 @@ export default function ShoppingListDetailPage() {
                     </div>
                   ) : (
                     <span
+                      role={isEditMode ? "button" : undefined}
+                      tabIndex={isEditMode ? 0 : undefined}
                       className={`flex-1 text-gray-900 dark:text-white ${
                         item.isChecked ? "line-through text-gray-400 dark:text-gray-600" : ""
                       } ${isEditMode ? "cursor-pointer hover:text-blue-600" : ""}`}
                       onClick={() => {
                         if (isEditMode) {
+                          setEditingItem({ id: item.id!, name: item.name! });
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (isEditMode && (e.key === "Enter" || e.key === " ")) {
+                          e.preventDefault();
                           setEditingItem({ id: item.id!, name: item.name! });
                         }
                       }}

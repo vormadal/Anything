@@ -136,8 +136,16 @@ export default function ShoppingListsPage() {
               {lists.map((list) => (
                 <div
                   key={list.id}
+                  role="button"
+                  tabIndex={0}
                   className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
                   onClick={() => router.push(`/shopping-lists/${list.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/shopping-lists/${list.id}`);
+                    }
+                  }}
                 >
                   <span className="flex-1 text-gray-900 dark:text-white font-medium">
                     {list.name}
