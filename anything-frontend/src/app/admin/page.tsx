@@ -43,7 +43,7 @@ export default function AdminPage() {
 
     try {
       const result = await createInvite.mutateAsync({ email });
-      const fullUrl = `${window.location.origin}${result.inviteUrl}`;
+      const fullUrl = `${window.location.origin}${result?.inviteUrl ?? ""}`;
       setInviteUrl(fullUrl);
       toast.success("Invite created successfully!");
       setEmail("");

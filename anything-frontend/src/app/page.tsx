@@ -134,12 +134,12 @@ export default function Home() {
                     {something.name}
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(something.createdOn).toLocaleDateString()}
+                    {something.createdOn ? new Date(something.createdOn).toLocaleDateString() : ""}
                   </span>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDeleteSomething(something.id)}
+                    onClick={() => handleDeleteSomething(something.id!)}
                     disabled={deleteSomething.isPending}
                   >
                     Delete
