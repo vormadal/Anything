@@ -23,6 +23,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+# Artifact paths with Windows-style backslash separators (created by dotnet tools on Linux)
+src/Anything.API/bin\Debug/
 
 # .NET Core
 project.lock.json
