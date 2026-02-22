@@ -2,22 +2,16 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-
-interface InventoryStorageUnit {
-  id: number;
-  name: string;
-  type?: string;
-  createdOn: string;
-  modifiedOn?: string;
-  deletedOn?: string;
-}
+import type { InventoryStorageUnit } from "@/lib/api-client/models/index";
 
 // Custom hook for fetching inventory storage units
 export function useInventoryStorageUnits() {
   return useQuery({
     queryKey: ["inventoryStorageUnits"],
     queryFn: () =>
-      apiClient.get<InventoryStorageUnit[]>("/api/inventory-storage-units"),
+      apiClient.api.inventoryStorageUnits.get() as Promise<
+        InventoryStorageUnit[]
+      >,
   });
 }
 
@@ -27,10 +21,10 @@ export function useCreateInventoryStorageUnit() {
 
   return useMutation({
     mutationFn: (storageUnit: { name: string; type?: string }) =>
-      apiClient.post<InventoryStorageUnit>(
-        "/api/inventory-storage-units",
-        storageUnit
-      ),
+      apiClient.api.inventoryStorageUnits.post({
+        name: storageUnit.name,
+        type: storageUnit.type ?? null,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryStorageUnits"] });
     },
@@ -51,7 +45,9 @@ export function useUpdateInventoryStorageUnit() {
       name: string;
       type?: string;
     }) =>
-      apiClient.put(`/api/inventory-storage-units/${id}`, { name, type }),
+      apiClient.api.inventoryStorageUnits
+        .byId(id)
+        .put({ name, type: type ?? null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryStorageUnits"] });
     },
@@ -64,7 +60,7 @@ export function useDeleteInventoryStorageUnit() {
 
   return useMutation({
     mutationFn: (id: number) =>
-      apiClient.delete(`/api/inventory-storage-units/${id}`),
+      apiClient.api.inventoryStorageUnits.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryStorageUnits"] });
     },

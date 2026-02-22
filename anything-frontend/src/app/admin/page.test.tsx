@@ -1,8 +1,21 @@
-import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithClient } from "@/__tests__/utils/test-utils";
 import AdminPage from "./page";
 import { toast } from "sonner";
+
+// Mock the apiClient module
+const mockInvitesPost = jest.fn()
+
+jest.mock('@/lib/apiClient', () => ({
+  apiClient: {
+    api: {
+      auth: {
+        invites: { post: (...args: unknown[]) => mockInvitesPost(...args) },
+      },
+    },
+  },
+}))
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -20,9 +33,6 @@ jest.mock("sonner", () => ({
   },
   Toaster: () => null,
 }));
-
-// Mock fetch
-global.fetch = jest.fn();
 
 // Mock clipboard API
 const writeTextMock = jest.fn(() => Promise.resolve());
@@ -127,10 +137,7 @@ describe("AdminPage", () => {
         token: "test-token",
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockInviteResponse,
-      });
+      mockInvitesPost.mockResolvedValueOnce(mockInviteResponse);
 
       renderWithClient(<AdminPage />);
 
@@ -145,22 +152,11 @@ describe("AdminPage", () => {
       await user.click(createButton);
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:5000/api/auth/invites",
-          expect.objectContaining({
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer test-token",
-            },
-            body: JSON.stringify({ email: "newuser@test.com" }),
-          })
-        );
+        expect(mockInvitesPost).toHaveBeenCalledWith({ email: "newuser@test.com" });
       });
 
       expect(toast.success).toHaveBeenCalledWith("Invite created successfully!");
       expect(screen.getByText("Invite Created!")).toBeInTheDocument();
-      // Check that the invite URL is displayed (it uses window.location.origin which is http://localhost in jsdom)
       expect(screen.getByDisplayValue(/register\?token=test-token/)).toBeInTheDocument();
       expect(emailInput).toHaveValue("");
     });
@@ -178,16 +174,13 @@ describe("AdminPage", () => {
       await user.click(createButton);
 
       // Form should not submit since the email input has the 'required' attribute
-      // The browser's built-in validation will prevent submission
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockInvitesPost).not.toHaveBeenCalled();
     });
 
     it("should handle invite creation failure", async () => {
       const user = userEvent.setup();
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      });
+      mockInvitesPost.mockRejectedValueOnce(new Error("Server error"));
 
       renderWithClient(<AdminPage />);
 
@@ -205,18 +198,10 @@ describe("AdminPage", () => {
     it("should show loading state while creating invite", async () => {
       const user = userEvent.setup();
 
-      (global.fetch as jest.Mock).mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: async () => ({ inviteUrl: "/register?token=test", token: "test" }),
-                }),
-              100
-            );
-          })
+      mockInvitesPost.mockImplementation(
+        () => new Promise((resolve) => {
+          setTimeout(() => resolve({ inviteUrl: "/register?token=test", token: "test" }), 100);
+        })
       );
 
       renderWithClient(<AdminPage />);
@@ -248,10 +233,7 @@ describe("AdminPage", () => {
         token: "test-token",
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockInviteResponse,
-      });
+      mockInvitesPost.mockResolvedValueOnce(mockInviteResponse);
 
       renderWithClient(<AdminPage />);
 
@@ -272,7 +254,6 @@ describe("AdminPage", () => {
       const copyButton = screen.getByRole("button", { name: "Copy" });
       await user.click(copyButton);
 
-      // Verify the toast is shown (clipboard.writeText is called synchronously, so toast.success should be immediate)
       expect(toast.success).toHaveBeenCalledWith("Invite URL copied to clipboard!");
     });
   });
@@ -305,10 +286,7 @@ describe("AdminPage", () => {
         token: "test-token",
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockInviteResponse,
-      });
+      mockInvitesPost.mockResolvedValueOnce(mockInviteResponse);
 
       renderWithClient(<AdminPage />);
 
@@ -328,3 +306,4 @@ describe("AdminPage", () => {
     });
   });
 });
+

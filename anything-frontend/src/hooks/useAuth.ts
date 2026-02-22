@@ -3,39 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/apiClient";
 
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  email: string;
-  name: string;
-  role: string;
-}
-
-interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-  inviteToken: string;
-}
-
-interface CreateInviteRequest {
-  email: string;
-}
-
-interface CreateInviteResponse {
-  inviteUrl: string;
-  token: string;
-}
-
-interface UpdateProfileRequest {
-  name: string;
-}
-
 // Storage keys
 const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
@@ -90,19 +57,31 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (credentials: LoginRequest): Promise<LoginResponse> => {
+    mutationFn: async (credentials: {
+      email: string;
+      password: string;
+    }) => {
       try {
-        return await apiClient.post<LoginResponse>("/api/auth/login", credentials);
+        const data = await apiClient.api.auth.login.post({
+          email: credentials.email,
+          password: credentials.password,
+        });
+        if (!data) throw new Error("Login failed");
+        return data;
       } catch (err) {
-        if (err instanceof ApiError && err.status === 401) {
+        if (err instanceof ApiError && err.responseStatusCode === 401) {
           throw new Error("Invalid email or password");
         }
         throw new Error("Login failed");
       }
     },
     onSuccess: (data) => {
-      setTokens(data.accessToken, data.refreshToken);
-      setUser({ email: data.email, name: data.name, role: data.role });
+      setTokens(data.accessToken ?? "", data.refreshToken ?? "");
+      setUser({
+        email: data.email ?? "",
+        name: data.name ?? "",
+        role: data.role ?? "",
+      });
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
     },
   });
@@ -126,12 +105,22 @@ export function useLogout() {
 // Register with invite
 export function useRegister() {
   return useMutation({
-    mutationFn: async (data: RegisterRequest) => {
+    mutationFn: async (data: {
+      email: string;
+      password: string;
+      name: string;
+      inviteToken: string;
+    }) => {
       try {
-        return await apiClient.post("/api/auth/register", data);
+        await apiClient.api.auth.register.post({
+          email: data.email,
+          password: data.password,
+          name: data.name,
+          inviteToken: data.inviteToken,
+        });
       } catch (err) {
         if (err instanceof ApiError) {
-          throw new Error(err.body || "Registration failed");
+          throw new Error(err.message || "Registration failed");
         }
         throw err;
       }
@@ -147,12 +136,13 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const data = await apiClient.post<{
-      accessToken: string;
-      refreshToken: string;
-    }>("/api/auth/refresh", { refreshToken });
-    setTokens(data.accessToken, data.refreshToken);
-    return data.accessToken;
+    const data = await apiClient.api.auth.refresh.post({ refreshToken });
+    if (!data) {
+      clearTokens();
+      return null;
+    }
+    setTokens(data.accessToken ?? "", data.refreshToken ?? "");
+    return data.accessToken ?? null;
   } catch {
     clearTokens();
     return null;
@@ -162,8 +152,8 @@ export async function refreshAccessToken(): Promise<string | null> {
 // Create invite (admin only)
 export function useCreateInvite() {
   return useMutation({
-    mutationFn: (data: CreateInviteRequest): Promise<CreateInviteResponse> =>
-      apiClient.post<CreateInviteResponse>("/api/auth/invites", data),
+    mutationFn: (data: { email: string }) =>
+      apiClient.api.auth.invites.post({ email: data.email }),
   });
 }
 
@@ -172,8 +162,8 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: UpdateProfileRequest) =>
-      apiClient.put("/api/auth/profile", data),
+    mutationFn: (data: { name: string }) =>
+      apiClient.api.auth.profile.put({ name: data.name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
     },

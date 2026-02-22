@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
 import {
@@ -8,26 +8,36 @@ import {
   useDeleteSomething,
 } from '@/hooks/useSomethings'
 
-// Mock fetch globally
-global.fetch = jest.fn()
+// Mock the apiClient module
+const mockGet = jest.fn()
+const mockPost = jest.fn()
+const mockByIdPut = jest.fn()
+const mockByIdDelete = jest.fn()
+const mockById = jest.fn(() => ({ put: mockByIdPut, delete: mockByIdDelete }))
+
+jest.mock('@/lib/apiClient', () => ({
+  apiClient: {
+    api: {
+      somethings: {
+        get: (...args: unknown[]) => mockGet(...args),
+        post: (...args: unknown[]) => mockPost(...args),
+        byId: (...args: unknown[]) => mockById(...args),
+      },
+    },
+  },
+}))
 
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: {
-        retry: false,
-      },
-      mutations: {
-        retry: false,
-      },
+      queries: { retry: false },
+      mutations: { retry: false },
     },
   })
-  
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
   Wrapper.displayName = 'TestQueryClientWrapper'
-  
   return Wrapper
 }
 
@@ -42,11 +52,7 @@ describe('useSomethings hooks', () => {
         { id: 1, name: 'Test Something', createdOn: '2024-01-01T00:00:00Z' },
         { id: 2, name: 'Another Something', createdOn: '2024-01-02T00:00:00Z' },
       ]
-
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      })
+      mockGet.mockResolvedValueOnce(mockData)
 
       const { result } = renderHook(() => useSomethings(), {
         wrapper: createWrapper(),
@@ -55,20 +61,11 @@ describe('useSomethings hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockData)
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/somethings',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            "Content-Type": "application/json"
-          })
-        })
-      )
+      expect(mockGet).toHaveBeenCalledTimes(1)
     })
 
     it('should handle fetch error', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      })
+      mockGet.mockRejectedValueOnce(new Error('Network error'))
 
       const { result } = renderHook(() => useSomethings(), {
         wrapper: createWrapper(),
@@ -87,36 +84,23 @@ describe('useSomethings hooks', () => {
         name: 'New Something',
         createdOn: '2024-01-01T00:00:00Z',
       }
-
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      })
+      mockPost.mockResolvedValueOnce(mockResponse)
 
       const { result } = renderHook(() => useCreateSomething(), {
         wrapper: createWrapper(),
       })
 
-      result.current.mutate({ name: 'New Something' })
+      await act(async () => {
+        result.current.mutate({ name: 'New Something' })
+      })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/somethings',
-        expect.objectContaining({
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name: 'New Something' }),
-        })
-      )
+      expect(mockPost).toHaveBeenCalledWith({ name: 'New Something' })
     })
 
     it('should handle create error', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      })
+      mockPost.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useCreateSomething(), {
         wrapper: createWrapper(),
@@ -132,34 +116,24 @@ describe('useSomethings hooks', () => {
 
   describe('useUpdateSomething', () => {
     it('should update a something successfully', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-      })
+      mockByIdPut.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useUpdateSomething(), {
         wrapper: createWrapper(),
       })
 
-      result.current.mutate({ id: 1, name: 'Updated Something' })
+      await act(async () => {
+        result.current.mutate({ id: 1, name: 'Updated Something' })
+      })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/somethings/1',
-        expect.objectContaining({
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name: 'Updated Something' }),
-        })
-      )
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockByIdPut).toHaveBeenCalledWith({ name: 'Updated Something' })
     })
 
     it('should handle update error', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      })
+      mockByIdPut.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useUpdateSomething(), {
         wrapper: createWrapper(),
@@ -175,30 +149,24 @@ describe('useSomethings hooks', () => {
 
   describe('useDeleteSomething', () => {
     it('should delete a something successfully', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-      })
+      mockByIdDelete.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useDeleteSomething(), {
         wrapper: createWrapper(),
       })
 
-      result.current.mutate(1)
+      await act(async () => {
+        result.current.mutate(1)
+      })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/somethings/1',
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      )
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockByIdDelete).toHaveBeenCalled()
     })
 
     it('should handle delete error', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      })
+      mockByIdDelete.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useDeleteSomething(), {
         wrapper: createWrapper(),

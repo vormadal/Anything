@@ -3,19 +3,41 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { useLogin, useLogout, setTokens, clearTokens, getAccessToken, getRefreshToken } from "@/hooks/useAuth";
 
-// Mock fetch globally
-global.fetch = jest.fn();
+// Mock the apiClient module
+const mockLoginPost = jest.fn()
+
+jest.mock('@/lib/apiClient', () => {
+  class ApiError extends Error {
+    responseStatusCode: number | undefined;
+    responseHeaders: Record<string, string[]> | undefined;
+    constructor(message?: string) {
+      super(message)
+      this.name = 'DefaultApiError'
+    }
+  }
+  return {
+    apiClient: {
+      api: {
+        auth: {
+          login: { post: (...args: unknown[]) => mockLoginPost(...args) },
+          logout: { post: jest.fn() },
+          refresh: { post: jest.fn() },
+          register: { post: jest.fn() },
+          invites: { post: jest.fn() },
+          profile: { put: jest.fn() },
+        },
+      },
+    },
+    ApiError,
+  }
+})
 
 // Create a wrapper component for React Query
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: {
-        retry: false,
-      },
-      mutations: {
-        retry: false,
-      },
+      queries: { retry: false },
+      mutations: { retry: false },
     },
   });
 
@@ -45,10 +67,7 @@ describe("useAuth hooks", () => {
         role: "User",
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockLoginResponse,
-      });
+      mockLoginPost.mockResolvedValueOnce(mockLoginResponse);
 
       const { result } = renderHook(() => useLogin(), {
         wrapper: createWrapper(),
@@ -61,29 +80,20 @@ describe("useAuth hooks", () => {
         });
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        "http://localhost:5000/api/auth/login",
-        expect.objectContaining({
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: "test@example.com",
-            password: "password123",
-          }),
-        })
-      );
+      expect(mockLoginPost).toHaveBeenCalledWith({
+        email: "test@example.com",
+        password: "password123",
+      });
 
       expect(getAccessToken()).toBe("test-access-token");
       expect(getRefreshToken()).toBe("test-refresh-token");
     });
 
     it("should throw error on invalid credentials", async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-      });
+      const { ApiError } = jest.requireMock('@/lib/apiClient')
+      const error = new ApiError("Unauthorized");
+      error.responseStatusCode = 401;
+      mockLoginPost.mockRejectedValueOnce(error);
 
       const { result } = renderHook(() => useLogin(), {
         wrapper: createWrapper(),

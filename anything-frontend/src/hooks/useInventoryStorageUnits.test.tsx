@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
 import {
@@ -8,31 +8,36 @@ import {
   useDeleteInventoryStorageUnit,
 } from '@/hooks/useInventoryStorageUnits'
 
-// Mock fetch globally
-global.fetch = jest.fn()
+// Mock the apiClient module
+const mockGet = jest.fn()
+const mockPost = jest.fn()
+const mockByIdPut = jest.fn()
+const mockByIdDelete = jest.fn()
+const mockById = jest.fn(() => ({ put: mockByIdPut, delete: mockByIdDelete }))
 
-// Mock getAccessToken to return null (unauthenticated)
-jest.mock('@/hooks/useAuth', () => ({
-  getAccessToken: jest.fn(() => null),
+jest.mock('@/lib/apiClient', () => ({
+  apiClient: {
+    api: {
+      inventoryStorageUnits: {
+        get: (...args: unknown[]) => mockGet(...args),
+        post: (...args: unknown[]) => mockPost(...args),
+        byId: (...args: unknown[]) => mockById(...args),
+      },
+    },
+  },
 }))
 
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: {
-        retry: false,
-      },
-      mutations: {
-        retry: false,
-      },
+      queries: { retry: false },
+      mutations: { retry: false },
     },
   })
-  
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
   Wrapper.displayName = 'TestQueryClientWrapper'
-  
   return Wrapper
 }
 
@@ -47,11 +52,7 @@ describe('useInventoryStorageUnits hooks', () => {
         { id: 1, name: 'Garage', type: 'Garage', createdOn: '2024-01-01T00:00:00Z' },
         { id: 2, name: 'Basement', type: 'Basement', createdOn: '2024-01-02T00:00:00Z' },
       ]
-
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      })
+      mockGet.mockResolvedValueOnce(mockData)
 
       const { result } = renderHook(() => useInventoryStorageUnits(), {
         wrapper: createWrapper(),
@@ -60,20 +61,11 @@ describe('useInventoryStorageUnits hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockData)
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/inventory-storage-units',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            "Content-Type": "application/json"
-          })
-        })
-      )
+      expect(mockGet).toHaveBeenCalledTimes(1)
     })
 
     it('should handle fetch error', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      })
+      mockGet.mockRejectedValueOnce(new Error('Network error'))
 
       const { result } = renderHook(() => useInventoryStorageUnits(), {
         wrapper: createWrapper(),
@@ -87,42 +79,24 @@ describe('useInventoryStorageUnits hooks', () => {
 
   describe('useCreateInventoryStorageUnit', () => {
     it('should create an inventory storage unit successfully', async () => {
-      const mockResponse = {
-        id: 1,
-        name: 'New Storage',
-        type: 'Closet',
-        createdOn: '2024-01-01T00:00:00Z',
-      }
-
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      })
+      const mockResponse = { id: 1, name: 'New Storage', type: 'Closet', createdOn: '2024-01-01T00:00:00Z' }
+      mockPost.mockResolvedValueOnce(mockResponse)
 
       const { result } = renderHook(() => useCreateInventoryStorageUnit(), {
         wrapper: createWrapper(),
       })
 
-      result.current.mutate({ name: 'New Storage', type: 'Closet' })
+      await act(async () => {
+        result.current.mutate({ name: 'New Storage', type: 'Closet' })
+      })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/inventory-storage-units',
-        expect.objectContaining({
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name: 'New Storage', type: 'Closet' }),
-        })
-      )
+      expect(mockPost).toHaveBeenCalledWith({ name: 'New Storage', type: 'Closet' })
     })
 
     it('should handle create error', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      })
+      mockPost.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useCreateInventoryStorageUnit(), {
         wrapper: createWrapper(),
@@ -138,34 +112,24 @@ describe('useInventoryStorageUnits hooks', () => {
 
   describe('useUpdateInventoryStorageUnit', () => {
     it('should update an inventory storage unit successfully', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-      })
+      mockByIdPut.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useUpdateInventoryStorageUnit(), {
         wrapper: createWrapper(),
       })
 
-      result.current.mutate({ id: 1, name: 'Updated Storage', type: 'Attic' })
+      await act(async () => {
+        result.current.mutate({ id: 1, name: 'Updated Storage', type: 'Attic' })
+      })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/inventory-storage-units/1',
-        expect.objectContaining({
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name: 'Updated Storage', type: 'Attic' }),
-        })
-      )
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockByIdPut).toHaveBeenCalledWith({ name: 'Updated Storage', type: 'Attic' })
     })
 
     it('should handle update error', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      })
+      mockByIdPut.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useUpdateInventoryStorageUnit(), {
         wrapper: createWrapper(),
@@ -181,30 +145,24 @@ describe('useInventoryStorageUnits hooks', () => {
 
   describe('useDeleteInventoryStorageUnit', () => {
     it('should delete an inventory storage unit successfully', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-      })
+      mockByIdDelete.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useDeleteInventoryStorageUnit(), {
         wrapper: createWrapper(),
       })
 
-      result.current.mutate(1)
+      await act(async () => {
+        result.current.mutate(1)
+      })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/inventory-storage-units/1',
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      )
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockByIdDelete).toHaveBeenCalled()
     })
 
     it('should handle delete error', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      })
+      mockByIdDelete.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useDeleteInventoryStorageUnit(), {
         wrapper: createWrapper(),

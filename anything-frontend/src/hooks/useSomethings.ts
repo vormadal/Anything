@@ -2,20 +2,13 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-
-interface Something {
-  id: number;
-  name: string;
-  createdOn: string;
-  modifiedOn?: string;
-  deletedOn?: string;
-}
+import type { Something } from "@/lib/api-client/models/index";
 
 // Custom hook for fetching somethings
 export function useSomethings() {
   return useQuery({
     queryKey: ["somethings"],
-    queryFn: () => apiClient.get<Something[]>("/api/somethings"),
+    queryFn: () => apiClient.api.somethings.get() as Promise<Something[]>,
   });
 }
 
@@ -25,7 +18,7 @@ export function useCreateSomething() {
 
   return useMutation({
     mutationFn: (something: { name: string }) =>
-      apiClient.post<Something>("/api/somethings", something),
+      apiClient.api.somethings.post({ name: something.name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["somethings"] });
     },
@@ -38,7 +31,7 @@ export function useUpdateSomething() {
 
   return useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) =>
-      apiClient.put(`/api/somethings/${id}`, { name }),
+      apiClient.api.somethings.byId(id).put({ name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["somethings"] });
     },
@@ -50,7 +43,7 @@ export function useDeleteSomething() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/api/somethings/${id}`),
+    mutationFn: (id: number) => apiClient.api.somethings.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["somethings"] });
     },

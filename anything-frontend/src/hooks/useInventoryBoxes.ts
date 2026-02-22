@@ -2,21 +2,14 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-
-interface InventoryBox {
-  id: number;
-  number: number;
-  storageUnitId?: number;
-  createdOn: string;
-  modifiedOn?: string;
-  deletedOn?: string;
-}
+import type { InventoryBox } from "@/lib/api-client/models/index";
 
 // Custom hook for fetching inventory boxes
 export function useInventoryBoxes() {
   return useQuery({
     queryKey: ["inventoryBoxes"],
-    queryFn: () => apiClient.get<InventoryBox[]>("/api/inventory-boxes"),
+    queryFn: () =>
+      apiClient.api.inventoryBoxes.get() as Promise<InventoryBox[]>,
   });
 }
 
@@ -26,7 +19,10 @@ export function useCreateInventoryBox() {
 
   return useMutation({
     mutationFn: (box: { number: number; storageUnitId?: number }) =>
-      apiClient.post<InventoryBox>("/api/inventory-boxes", box),
+      apiClient.api.inventoryBoxes.post({
+        number: box.number,
+        storageUnitId: box.storageUnitId ?? null,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryBoxes"] });
     },
@@ -46,7 +42,10 @@ export function useUpdateInventoryBox() {
       id: number;
       number: number;
       storageUnitId?: number;
-    }) => apiClient.put(`/api/inventory-boxes/${id}`, { number, storageUnitId }),
+    }) =>
+      apiClient.api.inventoryBoxes
+        .byId(id)
+        .put({ number, storageUnitId: storageUnitId ?? null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryBoxes"] });
     },
@@ -58,7 +57,8 @@ export function useDeleteInventoryBox() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/api/inventory-boxes/${id}`),
+    mutationFn: (id: number) =>
+      apiClient.api.inventoryBoxes.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryBoxes"] });
     },
