@@ -1,43 +1,44 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useSomethings, useCreateSomething, useDeleteSomething } from "@/hooks/useSomethings";
+import { useRecipes, useCreateRecipe, useDeleteRecipe } from "@/hooks/useRecipes";
 import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { isAdmin } from "@/lib/roles";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export default function Home() {
-  const [newSomethingName, setNewSomethingName] = useState("");
-  const { data: somethings, isLoading, error } = useSomethings();
-  const createSomething = useCreateSomething();
-  const deleteSomething = useDeleteSomething();
+export default function RecipesPage() {
+  const [newRecipeName, setNewRecipeName] = useState("");
+  const { data: recipes, isLoading, error } = useRecipes();
+  const createRecipe = useCreateRecipe();
+  const deleteRecipe = useDeleteRecipe();
   const { data: user } = useCurrentUser();
   const logout = useLogout();
   const router = useRouter();
 
-  const handleCreateSomething = async (e: React.FormEvent) => {
+  const handleCreateRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSomethingName.trim()) return;
+    if (!newRecipeName.trim()) return;
 
     try {
-      await createSomething.mutateAsync({
-        name: newSomethingName,
-      });
-      setNewSomethingName("");
-      toast.success("Item created successfully");
+      const newRecipe = await createRecipe.mutateAsync({ name: newRecipeName });
+      setNewRecipeName("");
+      toast.success("Recipe created");
+      if (newRecipe?.id) {
+        router.push(`/recipes/${newRecipe.id}`);
+      }
     } catch {
-      toast.error("Failed to create item. Please try again.");
+      toast.error("Failed to create recipe. Please try again.");
     }
   };
 
-  const handleDeleteSomething = async (id: number) => {
+  const handleDeleteRecipe = async (id: number) => {
     try {
-      await deleteSomething.mutateAsync(id);
-      toast.success("Item deleted successfully");
+      await deleteRecipe.mutateAsync(id);
+      toast.success("Recipe deleted");
     } catch {
-      toast.error("Failed to delete item. Please try again.");
+      toast.error("Failed to delete recipe. Please try again.");
     }
   };
 
@@ -54,10 +55,10 @@ export default function Home() {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                Anything
+                Recipes
               </h1>
               <p className="text-gray-600 dark:text-gray-300">
-                Create anything you want - lists, inventory, and more
+                Manage your recipes
               </p>
             </div>
             <div className="text-right">
@@ -67,6 +68,13 @@ export default function Home() {
                     {user.name} ({user.role})
                   </p>
                   <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push("/")}
+                    >
+                      Home
+                    </Button>
                     {isAdmin(user.role) && (
                       <Button
                         variant="outline"
@@ -76,20 +84,6 @@ export default function Home() {
                         Admin Panel
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push("/shopping-lists")}
-                    >
-                      Shopping Lists
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push("/recipes")}
-                    >
-                      Recipes
-                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -104,17 +98,17 @@ export default function Home() {
             </div>
           </div>
 
-          <form onSubmit={handleCreateSomething} className="mb-8">
+          <form onSubmit={handleCreateRecipe} className="mb-8">
             <div className="flex gap-2">
               <input
                 type="text"
-                value={newSomethingName}
-                onChange={(e) => setNewSomethingName(e.target.value)}
-                placeholder="What do you want to create?"
+                value={newRecipeName}
+                onChange={(e) => setNewRecipeName(e.target.value)}
+                placeholder="New recipe name..."
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
-              <Button type="submit" disabled={createSomething.isPending}>
-                {createSomething.isPending ? "Adding..." : "Add"}
+              <Button type="submit" disabled={createRecipe.isPending}>
+                {createRecipe.isPending ? "Creating..." : "Create Recipe"}
               </Button>
             </div>
           </form>
@@ -127,34 +121,56 @@ export default function Home() {
 
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-              Failed to load items. Make sure the API is running on port 5000.
+              Failed to load recipes. Make sure the API is running on port 5000.
             </div>
           )}
 
-          {somethings && somethings.length === 0 && (
+          {recipes && recipes.length === 0 && (
             <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-              No items yet. Create your first one above!
+              No recipes yet. Create your first one above!
             </div>
           )}
 
-          {somethings && somethings.length > 0 && (
+          {recipes && recipes.length > 0 && (
             <div className="space-y-2">
-              {somethings.map((something) => (
+              {recipes.map((recipe) => (
                 <div
-                  key={something.id}
-                  className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  key={recipe.id}
+                  role="button"
+                  tabIndex={0}
+                  className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                  onClick={() => router.push(`/recipes/${recipe.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/recipes/${recipe.id}`);
+                    }
+                  }}
                 >
-                  <span className="flex-1 text-gray-900 dark:text-white">
-                    {something.name}
+                  <span className="flex-1 text-gray-900 dark:text-white font-medium">
+                    {recipe.name}
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {something.createdOn ? new Date(something.createdOn).toLocaleDateString() : ""}
+                    {recipe.createdOn ? new Date(recipe.createdOn).toLocaleDateString() : ""}
                   </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/recipes/${recipe.id}`);
+                    }}
+                  >
+                    Open
+                  </Button>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDeleteSomething(something.id!)}
-                    disabled={deleteSomething.isPending}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteRecipe(recipe.id!);
+                    }}
+                    disabled={deleteRecipe.isPending}
                   >
                     Delete
                   </Button>
@@ -167,4 +183,3 @@ export default function Home() {
     </div>
   );
 }
-
