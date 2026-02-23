@@ -69,6 +69,9 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         db.Somethings.RemoveRange(db.Somethings);
+        db.ShoppingListItems.RemoveRange(db.ShoppingListItems);
+        db.ShoppingLists.RemoveRange(db.ShoppingLists);
+        db.ShoppingListRecommendations.RemoveRange(db.ShoppingListRecommendations);
         db.InventoryItems.RemoveRange(db.InventoryItems);
         db.InventoryBoxes.RemoveRange(db.InventoryBoxes);
         db.InventoryStorageUnits.RemoveRange(db.InventoryStorageUnits);

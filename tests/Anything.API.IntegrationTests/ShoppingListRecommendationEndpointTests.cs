@@ -36,19 +36,16 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         {
             // Register a regular user and log in
             var adminClient = await GetAuthenticatedHttpClientAsync();
-            await adminClient.PostAsJsonAsync("/api/auth/invites", new { email = "user@test.com" });
-
-            var invitesResponse = await adminClient.GetAsync("/api/auth/invites");
-            var invitesJson = await invitesResponse.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(invitesJson);
-            var token = doc.RootElement[0].GetProperty("token").GetString()!;
+            var inviteResponse = await adminClient.PostAsJsonAsync("/api/auth/invites", new { email = "user@test.com" });
+            var inviteResult = await inviteResponse.Content.ReadFromJsonAsync<InviteResponse>(JsonOptions);
+            var inviteToken = inviteResult!.Token;
 
             await HttpClient.PostAsJsonAsync("/api/auth/register", new
             {
                 email = "user@test.com",
                 password = "User123!",
                 name = "Test User",
-                inviteToken = token
+                inviteToken
             });
 
             var loginResponse = await HttpClient.PostAsJsonAsync("/api/auth/login", new
@@ -264,6 +261,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
+    private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);
     private record RecommendationDto(int Id, string? Name, bool IsApproved);
 }
