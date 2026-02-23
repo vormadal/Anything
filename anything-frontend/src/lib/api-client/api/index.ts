@@ -12,6 +12,8 @@ import { InventoryStorageUnitsRequestBuilderNavigationMetadata, InventoryStorage
 // @ts-ignore
 import { ShoppingListsRequestBuilderNavigationMetadata, ShoppingListsRequestBuilderRequestsMetadata, type ShoppingListsRequestBuilder } from './shoppingLists/index';
 // @ts-ignore
+import { ShoppingListRecommendationsRequestBuilderNavigationMetadata, ShoppingListRecommendationsRequestBuilderRequestsMetadata, type ShoppingListRecommendationsRequestBuilder } from './shoppingListRecommendations/index';
+// @ts-ignore
 import { SomethingsRequestBuilderNavigationMetadata, SomethingsRequestBuilderRequestsMetadata, type SomethingsRequestBuilder } from './somethings/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata } from '@microsoft/kiota-abstractions';
@@ -40,6 +42,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The shoppingLists property
      */
     get shoppingLists(): ShoppingListsRequestBuilder;
+    /**
+     * The shoppingListRecommendations property
+     */
+    get shoppingListRecommendations(): ShoppingListRecommendationsRequestBuilder;
     /**
      * The somethings property
      */
@@ -71,6 +77,10 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     shoppingLists: {
         requestsMetadata: ShoppingListsRequestBuilderRequestsMetadata,
         navigationMetadata: ShoppingListsRequestBuilderNavigationMetadata,
+    },
+    shoppingListRecommendations: {
+        requestsMetadata: ShoppingListRecommendationsRequestBuilderRequestsMetadata,
+        navigationMetadata: ShoppingListRecommendationsRequestBuilderNavigationMetadata,
     },
     somethings: {
         requestsMetadata: SomethingsRequestBuilderRequestsMetadata,

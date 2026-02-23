@@ -86,6 +86,19 @@ public static class ShoppingListEndpoints
             };
 
             db.ShoppingListItems.Add(item);
+
+            var nameNormalized = request.Name.Trim();
+            var exists = await db.ShoppingListRecommendations
+                .AnyAsync(r => r.Name.ToLower() == nameNormalized.ToLower() && r.DeletedOn == null);
+            if (!exists)
+            {
+                db.ShoppingListRecommendations.Add(new ShoppingListRecommendation
+                {
+                    Name = nameNormalized,
+                    IsApproved = false
+                });
+            }
+
             await db.SaveChangesAsync();
             return Results.Created($"/api/shopping-lists/{id}/items/{item.Id}", item);
         })

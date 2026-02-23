@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useCreateInvite, useCurrentUser } from "@/hooks/useAuth";
+import { usePendingRecommendations, useApproveRecommendation, useDeleteRecommendation } from "@/hooks/useRecommendations";
 import { isAdmin } from "@/lib/roles";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,6 +14,9 @@ export default function AdminPage() {
   const createInvite = useCreateInvite();
   const { data: user } = useCurrentUser();
   const router = useRouter();
+  const { data: pendingRecommendations } = usePendingRecommendations();
+  const approveRecommendation = useApproveRecommendation();
+  const deleteRecommendation = useDeleteRecommendation();
 
   // Check if user is admin
   if (user && !isAdmin(user.role)) {
@@ -55,6 +59,24 @@ export default function AdminPage() {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(inviteUrl);
     toast.success("Invite URL copied to clipboard!");
+  };
+
+  const handleApproveRecommendation = async (id: number) => {
+    try {
+      await approveRecommendation.mutateAsync(id);
+      toast.success("Recommendation approved!");
+    } catch {
+      toast.error("Failed to approve recommendation.");
+    }
+  };
+
+  const handleDeleteRecommendation = async (id: number) => {
+    try {
+      await deleteRecommendation.mutateAsync(id);
+      toast.success("Recommendation rejected.");
+    } catch {
+      toast.error("Failed to reject recommendation.");
+    }
   };
 
   return (
@@ -137,6 +159,52 @@ export default function AdminPage() {
               <li>The user can register using the link (valid for 7 days)</li>
             </ul>
           </div>
+        </div>
+
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Shopping List Recommendations
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            Review and approve item recommendations added by users. Approved items will appear as autocomplete suggestions.
+          </p>
+
+          {pendingRecommendations && pendingRecommendations.length === 0 && (
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              No pending recommendations.
+            </p>
+          )}
+
+          {pendingRecommendations && pendingRecommendations.length > 0 && (
+            <ul className="space-y-2">
+              {pendingRecommendations.map((rec) => (
+                <li
+                  key={rec.id}
+                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                >
+                  <span className="text-gray-900 dark:text-white">{rec.name}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproveRecommendation(rec.id!)}
+                      disabled={approveRecommendation.isPending}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteRecommendation(rec.id!)}
+                      disabled={deleteRecommendation.isPending}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </main>
     </div>

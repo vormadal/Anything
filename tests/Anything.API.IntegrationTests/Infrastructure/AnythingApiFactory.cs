@@ -2,7 +2,6 @@ using Anything.API.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anything.API.IntegrationTests.Infrastructure;
@@ -64,17 +63,23 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         await db.Database.EnsureCreatedAsync();
     }
 
+    private const string AdminEmail = "admin@anything.local";
+
     public async Task ResetDatabaseAsync()
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         db.Somethings.RemoveRange(db.Somethings);
+        db.ShoppingListItems.RemoveRange(db.ShoppingListItems);
+        db.ShoppingLists.RemoveRange(db.ShoppingLists);
+        db.ShoppingListRecommendations.RemoveRange(db.ShoppingListRecommendations);
         db.InventoryItems.RemoveRange(db.InventoryItems);
         db.InventoryBoxes.RemoveRange(db.InventoryBoxes);
         db.InventoryStorageUnits.RemoveRange(db.InventoryStorageUnits);
         db.RefreshTokens.RemoveRange(db.RefreshTokens);
         db.UserInvites.RemoveRange(db.UserInvites);
-        // Don't remove users - the admin user is seeded and needed for auth
+        // Remove all non-admin users to avoid conflicts between tests
+        db.Users.RemoveRange(db.Users.Where(u => u.Email != AdminEmail));
         await db.SaveChangesAsync();
     }
 }
