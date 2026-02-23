@@ -1321,5 +1321,342 @@ export interface ShoppingListRecommendation extends AdditionalDataHolder, Parsab
      */
     name?: string | null;
 }
+// Recipe models
+// @ts-ignore
+export function createRecipeFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRecipe;
+}
+// @ts-ignore
+export function createRecipeIngredientFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRecipeIngredient;
+}
+// @ts-ignore
+export function createRecipeStepFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRecipeStep;
+}
+// @ts-ignore
+export function createRecipeImageFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRecipeImage;
+}
+// @ts-ignore
+export function createCreateRecipeRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRecipeRequest;
+}
+// @ts-ignore
+export function createUpdateRecipeRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateRecipeRequest;
+}
+// @ts-ignore
+export function createCreateRecipeIngredientRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRecipeIngredientRequest;
+}
+// @ts-ignore
+export function createUpdateRecipeIngredientRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateRecipeIngredientRequest;
+}
+// @ts-ignore
+export function createCreateRecipeStepRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRecipeStepRequest;
+}
+// @ts-ignore
+export function createUpdateRecipeStepRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateRecipeStepRequest;
+}
+// @ts-ignore
+export function createCreateRecipeImageRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRecipeImageRequest;
+}
+// @ts-ignore
+export function createAddIngredientsToShoppingListRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoAddIngredientsToShoppingListRequest;
+}
+export interface Recipe extends AdditionalDataHolder, Parsable {
+    id?: number | null;
+    name?: string | null;
+    link?: string | null;
+    notes?: string | null;
+    createdOn?: string | null;
+    modifiedOn?: string | null;
+    deletedOn?: string | null;
+}
+export interface RecipeIngredient extends AdditionalDataHolder, Parsable {
+    id?: number | null;
+    recipeId?: number | null;
+    name?: string | null;
+    amount?: number | null;
+    unit?: string | null;
+    group?: string | null;
+    createdOn?: string | null;
+    modifiedOn?: string | null;
+    deletedOn?: string | null;
+}
+export interface RecipeStep extends AdditionalDataHolder, Parsable {
+    id?: number | null;
+    recipeId?: number | null;
+    order?: number | null;
+    text?: string | null;
+    createdOn?: string | null;
+    modifiedOn?: string | null;
+    deletedOn?: string | null;
+}
+export interface RecipeImage extends AdditionalDataHolder, Parsable {
+    id?: number | null;
+    recipeId?: number | null;
+    url?: string | null;
+    createdOn?: string | null;
+    deletedOn?: string | null;
+}
+export interface CreateRecipeRequest extends AdditionalDataHolder, Parsable {
+    name?: string | null;
+    link?: string | null;
+    notes?: string | null;
+}
+export interface UpdateRecipeRequest extends AdditionalDataHolder, Parsable {
+    name?: string | null;
+    link?: string | null;
+    notes?: string | null;
+}
+export interface CreateRecipeIngredientRequest extends AdditionalDataHolder, Parsable {
+    name?: string | null;
+    amount?: number | null;
+    unit?: string | null;
+    group?: string | null;
+}
+export interface UpdateRecipeIngredientRequest extends AdditionalDataHolder, Parsable {
+    name?: string | null;
+    amount?: number | null;
+    unit?: string | null;
+    group?: string | null;
+}
+export interface CreateRecipeStepRequest extends AdditionalDataHolder, Parsable {
+    text?: string | null;
+    order?: number | null;
+}
+export interface UpdateRecipeStepRequest extends AdditionalDataHolder, Parsable {
+    text?: string | null;
+    order?: number | null;
+}
+export interface CreateRecipeImageRequest extends AdditionalDataHolder, Parsable {
+    url?: string | null;
+}
+export interface AddIngredientsToShoppingListRequest extends AdditionalDataHolder, Parsable {
+    shoppingListId?: number | null;
+}
+// @ts-ignore
+export function deserializeIntoRecipe(recipe: Partial<Recipe> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "id": n => { recipe.id = n.getNumberValue(); },
+        "name": n => { recipe.name = n.getStringValue(); },
+        "link": n => { recipe.link = n.getStringValue(); },
+        "notes": n => { recipe.notes = n.getStringValue(); },
+        "createdOn": n => { recipe.createdOn = n.getStringValue(); },
+        "modifiedOn": n => { recipe.modifiedOn = n.getStringValue(); },
+        "deletedOn": n => { recipe.deletedOn = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoRecipeIngredient(recipeIngredient: Partial<RecipeIngredient> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "id": n => { recipeIngredient.id = n.getNumberValue(); },
+        "recipeId": n => { recipeIngredient.recipeId = n.getNumberValue(); },
+        "name": n => { recipeIngredient.name = n.getStringValue(); },
+        "amount": n => { recipeIngredient.amount = n.getNumberValue(); },
+        "unit": n => { recipeIngredient.unit = n.getStringValue(); },
+        "group": n => { recipeIngredient.group = n.getStringValue(); },
+        "createdOn": n => { recipeIngredient.createdOn = n.getStringValue(); },
+        "modifiedOn": n => { recipeIngredient.modifiedOn = n.getStringValue(); },
+        "deletedOn": n => { recipeIngredient.deletedOn = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoRecipeStep(recipeStep: Partial<RecipeStep> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "id": n => { recipeStep.id = n.getNumberValue(); },
+        "recipeId": n => { recipeStep.recipeId = n.getNumberValue(); },
+        "order": n => { recipeStep.order = n.getNumberValue(); },
+        "text": n => { recipeStep.text = n.getStringValue(); },
+        "createdOn": n => { recipeStep.createdOn = n.getStringValue(); },
+        "modifiedOn": n => { recipeStep.modifiedOn = n.getStringValue(); },
+        "deletedOn": n => { recipeStep.deletedOn = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoRecipeImage(recipeImage: Partial<RecipeImage> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "id": n => { recipeImage.id = n.getNumberValue(); },
+        "recipeId": n => { recipeImage.recipeId = n.getNumberValue(); },
+        "url": n => { recipeImage.url = n.getStringValue(); },
+        "createdOn": n => { recipeImage.createdOn = n.getStringValue(); },
+        "deletedOn": n => { recipeImage.deletedOn = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoCreateRecipeRequest(createRecipeRequest: Partial<CreateRecipeRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { createRecipeRequest.name = n.getStringValue(); },
+        "link": n => { createRecipeRequest.link = n.getStringValue(); },
+        "notes": n => { createRecipeRequest.notes = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoUpdateRecipeRequest(updateRecipeRequest: Partial<UpdateRecipeRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { updateRecipeRequest.name = n.getStringValue(); },
+        "link": n => { updateRecipeRequest.link = n.getStringValue(); },
+        "notes": n => { updateRecipeRequest.notes = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoCreateRecipeIngredientRequest(createRecipeIngredientRequest: Partial<CreateRecipeIngredientRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { createRecipeIngredientRequest.name = n.getStringValue(); },
+        "amount": n => { createRecipeIngredientRequest.amount = n.getNumberValue(); },
+        "unit": n => { createRecipeIngredientRequest.unit = n.getStringValue(); },
+        "group": n => { createRecipeIngredientRequest.group = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoUpdateRecipeIngredientRequest(updateRecipeIngredientRequest: Partial<UpdateRecipeIngredientRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { updateRecipeIngredientRequest.name = n.getStringValue(); },
+        "amount": n => { updateRecipeIngredientRequest.amount = n.getNumberValue(); },
+        "unit": n => { updateRecipeIngredientRequest.unit = n.getStringValue(); },
+        "group": n => { updateRecipeIngredientRequest.group = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoCreateRecipeStepRequest(createRecipeStepRequest: Partial<CreateRecipeStepRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "text": n => { createRecipeStepRequest.text = n.getStringValue(); },
+        "order": n => { createRecipeStepRequest.order = n.getNumberValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoUpdateRecipeStepRequest(updateRecipeStepRequest: Partial<UpdateRecipeStepRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "text": n => { updateRecipeStepRequest.text = n.getStringValue(); },
+        "order": n => { updateRecipeStepRequest.order = n.getNumberValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoCreateRecipeImageRequest(createRecipeImageRequest: Partial<CreateRecipeImageRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "url": n => { createRecipeImageRequest.url = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoAddIngredientsToShoppingListRequest(addIngredientsToShoppingListRequest: Partial<AddIngredientsToShoppingListRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "shoppingListId": n => { addIngredientsToShoppingListRequest.shoppingListId = n.getNumberValue(); },
+    }
+}
+// @ts-ignore
+export function serializeRecipe(writer: SerializationWriter, recipe: Partial<Recipe> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!recipe || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("id", recipe.id);
+    writer.writeStringValue("name", recipe.name);
+    writer.writeStringValue("link", recipe.link);
+    writer.writeStringValue("notes", recipe.notes);
+    writer.writeStringValue("createdOn", recipe.createdOn);
+    writer.writeStringValue("modifiedOn", recipe.modifiedOn);
+    writer.writeStringValue("deletedOn", recipe.deletedOn);
+    writer.writeAdditionalData(recipe.additionalData);
+}
+// @ts-ignore
+export function serializeRecipeIngredient(writer: SerializationWriter, recipeIngredient: Partial<RecipeIngredient> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!recipeIngredient || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("id", recipeIngredient.id);
+    writer.writeNumberValue("recipeId", recipeIngredient.recipeId);
+    writer.writeStringValue("name", recipeIngredient.name);
+    writer.writeNumberValue("amount", recipeIngredient.amount);
+    writer.writeStringValue("unit", recipeIngredient.unit);
+    writer.writeStringValue("group", recipeIngredient.group);
+    writer.writeStringValue("createdOn", recipeIngredient.createdOn);
+    writer.writeStringValue("modifiedOn", recipeIngredient.modifiedOn);
+    writer.writeStringValue("deletedOn", recipeIngredient.deletedOn);
+    writer.writeAdditionalData(recipeIngredient.additionalData);
+}
+// @ts-ignore
+export function serializeRecipeStep(writer: SerializationWriter, recipeStep: Partial<RecipeStep> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!recipeStep || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("id", recipeStep.id);
+    writer.writeNumberValue("recipeId", recipeStep.recipeId);
+    writer.writeNumberValue("order", recipeStep.order);
+    writer.writeStringValue("text", recipeStep.text);
+    writer.writeStringValue("createdOn", recipeStep.createdOn);
+    writer.writeStringValue("modifiedOn", recipeStep.modifiedOn);
+    writer.writeStringValue("deletedOn", recipeStep.deletedOn);
+    writer.writeAdditionalData(recipeStep.additionalData);
+}
+// @ts-ignore
+export function serializeRecipeImage(writer: SerializationWriter, recipeImage: Partial<RecipeImage> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!recipeImage || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("id", recipeImage.id);
+    writer.writeNumberValue("recipeId", recipeImage.recipeId);
+    writer.writeStringValue("url", recipeImage.url);
+    writer.writeStringValue("createdOn", recipeImage.createdOn);
+    writer.writeStringValue("deletedOn", recipeImage.deletedOn);
+    writer.writeAdditionalData(recipeImage.additionalData);
+}
+// @ts-ignore
+export function serializeCreateRecipeRequest(writer: SerializationWriter, createRecipeRequest: Partial<CreateRecipeRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRecipeRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", createRecipeRequest.name);
+    writer.writeStringValue("link", createRecipeRequest.link);
+    writer.writeStringValue("notes", createRecipeRequest.notes);
+    writer.writeAdditionalData(createRecipeRequest.additionalData);
+}
+// @ts-ignore
+export function serializeUpdateRecipeRequest(writer: SerializationWriter, updateRecipeRequest: Partial<UpdateRecipeRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateRecipeRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", updateRecipeRequest.name);
+    writer.writeStringValue("link", updateRecipeRequest.link);
+    writer.writeStringValue("notes", updateRecipeRequest.notes);
+    writer.writeAdditionalData(updateRecipeRequest.additionalData);
+}
+// @ts-ignore
+export function serializeCreateRecipeIngredientRequest(writer: SerializationWriter, createRecipeIngredientRequest: Partial<CreateRecipeIngredientRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRecipeIngredientRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", createRecipeIngredientRequest.name);
+    writer.writeNumberValue("amount", createRecipeIngredientRequest.amount);
+    writer.writeStringValue("unit", createRecipeIngredientRequest.unit);
+    writer.writeStringValue("group", createRecipeIngredientRequest.group);
+    writer.writeAdditionalData(createRecipeIngredientRequest.additionalData);
+}
+// @ts-ignore
+export function serializeUpdateRecipeIngredientRequest(writer: SerializationWriter, updateRecipeIngredientRequest: Partial<UpdateRecipeIngredientRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateRecipeIngredientRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", updateRecipeIngredientRequest.name);
+    writer.writeNumberValue("amount", updateRecipeIngredientRequest.amount);
+    writer.writeStringValue("unit", updateRecipeIngredientRequest.unit);
+    writer.writeStringValue("group", updateRecipeIngredientRequest.group);
+    writer.writeAdditionalData(updateRecipeIngredientRequest.additionalData);
+}
+// @ts-ignore
+export function serializeCreateRecipeStepRequest(writer: SerializationWriter, createRecipeStepRequest: Partial<CreateRecipeStepRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRecipeStepRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("text", createRecipeStepRequest.text);
+    writer.writeNumberValue("order", createRecipeStepRequest.order);
+    writer.writeAdditionalData(createRecipeStepRequest.additionalData);
+}
+// @ts-ignore
+export function serializeUpdateRecipeStepRequest(writer: SerializationWriter, updateRecipeStepRequest: Partial<UpdateRecipeStepRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateRecipeStepRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("text", updateRecipeStepRequest.text);
+    writer.writeNumberValue("order", updateRecipeStepRequest.order);
+    writer.writeAdditionalData(updateRecipeStepRequest.additionalData);
+}
+// @ts-ignore
+export function serializeCreateRecipeImageRequest(writer: SerializationWriter, createRecipeImageRequest: Partial<CreateRecipeImageRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRecipeImageRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("url", createRecipeImageRequest.url);
+    writer.writeAdditionalData(createRecipeImageRequest.additionalData);
+}
+// @ts-ignore
+export function serializeAddIngredientsToShoppingListRequest(writer: SerializationWriter, addIngredientsToShoppingListRequest: Partial<AddIngredientsToShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!addIngredientsToShoppingListRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("shoppingListId", addIngredientsToShoppingListRequest.shoppingListId);
+    writer.writeAdditionalData(addIngredientsToShoppingListRequest.additionalData);
+}
 /* tslint:enable */
 /* eslint-enable */
