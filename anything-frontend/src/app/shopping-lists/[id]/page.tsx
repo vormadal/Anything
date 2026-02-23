@@ -8,8 +8,9 @@ import {
   useRemoveShoppingListItem,
   useCompleteShoppingList,
 } from "@/hooks/useShoppingLists";
+import { useApprovedRecommendations } from "@/hooks/useRecommendations";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 import { apiClient } from "@/lib/apiClient";
@@ -17,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ShoppingList } from "@/lib/api-client/models/index";
 
 export default function ShoppingListDetailPage() {
+  const SUGGESTION_CLOSE_DELAY_MS = 150;
   const params = useParams();
   const router = useRouter();
   const listId = Number(params.id);
@@ -24,6 +26,8 @@ export default function ShoppingListDetailPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [editingItem, setEditingItem] = useState<{ id: number; name: string } | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: list } = useQuery({
     queryKey: ["shoppingList", listId],
@@ -37,6 +41,15 @@ export default function ShoppingListDetailPage() {
   const updateItem = useUpdateShoppingListItem(listId);
   const removeItem = useRemoveShoppingListItem(listId);
   const completeList = useCompleteShoppingList();
+  const { data: recommendations } = useApprovedRecommendations();
+
+  const filteredSuggestions = recommendations?.filter(
+    (r) =>
+      r.name &&
+      newItemName.trim().length > 0 &&
+      r.name.toLowerCase().includes(newItemName.toLowerCase()) &&
+      !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase() && !i.isChecked)
+  ) ?? [];
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
   const showCompleteButton = uncheckedItems.length > 0 && uncheckedItems.length < 3;
@@ -60,6 +73,18 @@ export default function ShoppingListDetailPage() {
 
     try {
       await addItem.mutateAsync(newItemName);
+      setNewItemName("");
+      setShowSuggestions(false);
+      toast.success("Item added");
+    } catch {
+      toast.error("Failed to add item. Please try again.");
+    }
+  };
+
+  const handleSelectSuggestion = async (name: string) => {
+    setShowSuggestions(false);
+    try {
+      await addItem.mutateAsync(name);
       setNewItemName("");
       toast.success("Item added");
     } catch {
@@ -150,15 +175,39 @@ export default function ShoppingListDetailPage() {
 
           {isEditMode && (
             <form onSubmit={handleAddItem} className="mb-6">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
-                  placeholder="Add an item..."
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  autoFocus
-                />
+              <div className="relative flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={newItemName}
+                    onChange={(e) => {
+                      setNewItemName(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), SUGGESTION_CLOSE_DELAY_MS)}
+                    placeholder="Add an item..."
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    autoFocus
+                    autoComplete="off"
+                  />
+                  {showSuggestions && filteredSuggestions.length > 0 && (
+                    <ul className="absolute z-10 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {filteredSuggestions.map((suggestion) => (
+                        <li key={suggestion.id}>
+                          <button
+                            type="button"
+                            onMouseDown={() => handleSelectSuggestion(suggestion.name!)}
+                            className="w-full text-left px-4 py-2 hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
+                          >
+                            {suggestion.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <Button type="submit" disabled={addItem.isPending}>
                   {addItem.isPending ? "Adding..." : "Add"}
                 </Button>
@@ -292,3 +341,4 @@ export default function ShoppingListDetailPage() {
     </div>
   );
 }
+

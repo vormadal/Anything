@@ -1,0 +1,39 @@
+/* tslint:disable */
+/* eslint-disable */
+// @ts-ignore
+import { createShoppingListRecommendationFromDiscriminatorValue, type ShoppingListRecommendation } from '../../../models/index';
+// @ts-ignore
+import { type BaseRequestBuilder, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
+
+/**
+ * Builds and executes requests for operations under /api/shopping-list-recommendations/pending
+ */
+export interface PendingRequestBuilder extends BaseRequestBuilder<PendingRequestBuilder> {
+    /**
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<ShoppingListRecommendation[]>}
+     */
+     get(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ShoppingListRecommendation[] | undefined>;
+    /**
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+     toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined) : RequestInformation;
+}
+/**
+ * Uri template for the request builder.
+ */
+export const PendingRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/pending";
+/**
+ * Metadata for all the requests in the request builder.
+ */
+export const PendingRequestBuilderRequestsMetadata: RequestsMetadata = {
+    get: {
+        uriTemplate: PendingRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        adapterMethodName: "sendCollection",
+        responseBodyFactory: createShoppingListRecommendationFromDiscriminatorValue,
+    },
+};
+/* tslint:enable */
+/* eslint-enable */

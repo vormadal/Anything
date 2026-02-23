@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<ShoppingList> ShoppingLists => Set<ShoppingList>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
+    public DbSet<ShoppingListRecommendation> ShoppingListRecommendations => Set<ShoppingListRecommendation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -115,6 +116,13 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.ShoppingListId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.Entity<ShoppingListRecommendation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
     }
 }
 
@@ -207,6 +215,16 @@ public class ShoppingListItem
     public int ShoppingListId { get; set; }
     public required string Name { get; set; }
     public bool IsChecked { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class ShoppingListRecommendation
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public bool IsApproved { get; set; }
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }

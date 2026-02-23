@@ -56,7 +56,10 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(UserRoles.Admin, policy => policy.RequireRole(UserRoles.Admin));
+});
 
 // Add OpenAPI/Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -105,6 +108,7 @@ app.MapInventoryStorageUnitEndpoints();
 app.MapInventoryBoxEndpoints();
 app.MapInventoryItemEndpoints();
 app.MapShoppingListEndpoints();
+app.MapRecommendationEndpoints();
 
 app.Run();
 

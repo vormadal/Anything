@@ -289,6 +289,9 @@ export function createCreateShoppingListItemRequestFromDiscriminatorValue(parseN
 export function createUpdateShoppingListItemRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoUpdateShoppingListItemRequest;
 }
+export function createShoppingListRecommendationFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoShoppingListRecommendation;
+}
 /**
  * The deserialization information for the current model
  * @param CreateInventoryBoxRequest The instance to deserialize into.
@@ -614,6 +617,17 @@ export function deserializeIntoUpdateShoppingListItemRequest(updateShoppingListI
     return {
         "isChecked": n => { updateShoppingListItemRequest.isChecked = n.getBooleanValue(); },
         "name": n => { updateShoppingListItemRequest.name = n.getStringValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoShoppingListRecommendation(shoppingListRecommendation: Partial<ShoppingListRecommendation> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { shoppingListRecommendation.createdOn = n.getDateValue(); },
+        "deletedOn": n => { shoppingListRecommendation.deletedOn = n.getDateValue(); },
+        "id": n => { shoppingListRecommendation.id = n.getNumberValue(); },
+        "isApproved": n => { shoppingListRecommendation.isApproved = n.getBooleanValue(); },
+        "modifiedOn": n => { shoppingListRecommendation.modifiedOn = n.getDateValue(); },
+        "name": n => { shoppingListRecommendation.name = n.getStringValue(); },
     }
 }
 export interface InventoryBox extends AdditionalDataHolder, Parsable {
@@ -1120,6 +1134,17 @@ export function serializeUpdateShoppingListItemRequest(writer: SerializationWrit
     writer.writeStringValue("name", updateShoppingListItemRequest.name);
     writer.writeAdditionalData(updateShoppingListItemRequest.additionalData);
 }
+// @ts-ignore
+export function serializeShoppingListRecommendation(writer: SerializationWriter, shoppingListRecommendation: Partial<ShoppingListRecommendation> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!shoppingListRecommendation || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", shoppingListRecommendation.createdOn);
+    writer.writeDateValue("deletedOn", shoppingListRecommendation.deletedOn);
+    writer.writeNumberValue("id", shoppingListRecommendation.id);
+    writer.writeBooleanValue("isApproved", shoppingListRecommendation.isApproved);
+    writer.writeDateValue("modifiedOn", shoppingListRecommendation.modifiedOn);
+    writer.writeStringValue("name", shoppingListRecommendation.name);
+    writer.writeAdditionalData(shoppingListRecommendation.additionalData);
+}
 export interface Something extends AdditionalDataHolder, Parsable {
     /**
      * The createdOn property
@@ -1261,6 +1286,36 @@ export interface UpdateShoppingListItemRequest extends AdditionalDataHolder, Par
      * The isChecked property
      */
     isChecked?: boolean | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
+export interface ShoppingListRecommendation extends AdditionalDataHolder, Parsable {
+    /**
+     * The additionalData property
+     */
+    additionalData?: Record<string, unknown>;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The deletedOn property
+     */
+    deletedOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The isApproved property
+     */
+    isApproved?: boolean | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
     /**
      * The name property
      */
