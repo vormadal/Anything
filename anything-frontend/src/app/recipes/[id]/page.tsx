@@ -25,6 +25,9 @@ export default function RecipeDetailPage() {
   const router = useRouter();
   const recipeId = Number(params.id);
 
+  const isSafeUrl = (url: string) =>
+    url.startsWith("http://") || url.startsWith("https://");
+
   const [isEditMode, setIsEditMode] = useState(false);
   const [isEditingRecipe, setIsEditingRecipe] = useState(false);
   const [editName, setEditName] = useState("");
@@ -217,7 +220,7 @@ export default function RecipeDetailPage() {
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     {recipe?.name ?? "Recipe"}
                   </h1>
-                  {recipe?.link && (
+                  {recipe?.link && isSafeUrl(recipe.link) && (
                     <a
                       href={recipe.link}
                       target="_blank"
@@ -463,11 +466,15 @@ export default function RecipeDetailPage() {
 
             {images && images.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {images.map((image) => (
+                {images.map((image) => {
+                  const imageUrl = image.url ?? "";
+                  const safeSrc = isSafeUrl(imageUrl) ? imageUrl : "";
+                  const safeHref = isSafeUrl(imageUrl) ? imageUrl : "#";
+                  return (
                   <div key={image.id} className="relative group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={image.url ?? ""}
+                      src={safeSrc}
                       alt="Recipe image"
                       className="w-full h-40 object-cover rounded-md border border-gray-200 dark:border-gray-700"
                       onError={(e) => {
@@ -478,7 +485,7 @@ export default function RecipeDetailPage() {
                       }}
                     />
                     <a
-                      href={image.url ?? ""}
+                      href={safeHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hidden text-blue-600 dark:text-blue-400 hover:underline text-sm break-all p-2"
@@ -497,7 +504,8 @@ export default function RecipeDetailPage() {
                       </Button>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

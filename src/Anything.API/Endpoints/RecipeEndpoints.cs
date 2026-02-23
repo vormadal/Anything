@@ -283,8 +283,8 @@ public static class RecipeEndpoints
                 .ToListAsync();
 
             var itemNames = ingredients.Select(ingredient => string.IsNullOrWhiteSpace(ingredient.Unit)
-                ? $"{ingredient.Amount:G29} {ingredient.Name}"
-                : $"{ingredient.Amount:G29} {ingredient.Unit} {ingredient.Name}").ToList();
+                ? $"{ingredient.Amount:0.##} {ingredient.Name}"
+                : $"{ingredient.Amount:0.##} {ingredient.Unit} {ingredient.Name}").ToList();
 
             var itemNamesLower = itemNames.Select(n => n.ToLower()).ToHashSet();
             var existingRecommendations = await db.ShoppingListRecommendations
@@ -312,7 +312,14 @@ public static class RecipeEndpoints
                 }
             }
 
-            await db.SaveChangesAsync();
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return Results.Problem("A database error occurred while saving the shopping list items.");
+            }
             return Results.NoContent();
         })
         .WithName("AddRecipeIngredientsToShoppingList")
@@ -326,6 +333,7 @@ public record CreateRecipeRequest(
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name,
     [StringLength(500, ErrorMessage = "Link must be at most 500 characters.")]
+    [Url(ErrorMessage = "Link must be a valid URL.")]
     string? Link,
     [StringLength(5000, ErrorMessage = "Notes must be at most 5000 characters.")]
     string? Notes);
@@ -335,6 +343,7 @@ public record UpdateRecipeRequest(
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name,
     [StringLength(500, ErrorMessage = "Link must be at most 500 characters.")]
+    [Url(ErrorMessage = "Link must be a valid URL.")]
     string? Link,
     [StringLength(5000, ErrorMessage = "Notes must be at most 5000 characters.")]
     string? Notes);
@@ -343,7 +352,7 @@ public record CreateRecipeIngredientRequest(
     [Required(ErrorMessage = "Name is required.")]
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name,
-    [Range(0, double.MaxValue, ErrorMessage = "Amount must be a non-negative number.")]
+    [Range(0.001, double.MaxValue, ErrorMessage = "Amount must be greater than 0.")]
     decimal Amount,
     [StringLength(100, ErrorMessage = "Unit must be at most 100 characters.")]
     string? Unit,
@@ -354,7 +363,7 @@ public record UpdateRecipeIngredientRequest(
     [Required(ErrorMessage = "Name is required.")]
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name,
-    [Range(0, double.MaxValue, ErrorMessage = "Amount must be a non-negative number.")]
+    [Range(0.001, double.MaxValue, ErrorMessage = "Amount must be greater than 0.")]
     decimal Amount,
     [StringLength(100, ErrorMessage = "Unit must be at most 100 characters.")]
     string? Unit,
@@ -376,6 +385,7 @@ public record UpdateRecipeStepRequest(
 public record CreateRecipeImageRequest(
     [Required(ErrorMessage = "Url is required.")]
     [StringLength(1000, MinimumLength = 1, ErrorMessage = "Url must be between 1 and 1000 characters.")]
+    [Url(ErrorMessage = "Url must be a valid URL.")]
     string Url);
 
 public record AddToShoppingListRequest(
