@@ -3,11 +3,19 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
 import {
   useRecipes,
+  useRecipe,
   useCreateRecipe,
+  useUpdateRecipe,
   useDeleteRecipe,
   useRecipeIngredients,
   useAddRecipeIngredient,
+  useUpdateRecipeIngredient,
+  useDeleteRecipeIngredient,
   useAddRecipeStep,
+  useUpdateRecipeStep,
+  useDeleteRecipeStep,
+  useAddRecipeImage,
+  useDeleteRecipeImage,
   useAddIngredientsToShoppingList,
 } from '@/hooks/useRecipes'
 
@@ -243,6 +251,166 @@ describe('useRecipes hooks', () => {
 
       expect(mockById).toHaveBeenCalledWith(1)
       expect(mockAddToShoppingListPost).toHaveBeenCalledWith({ shoppingListId: 5 })
+    })
+  })
+
+  describe('useRecipe', () => {
+    it('should fetch a single recipe successfully', async () => {
+      const mockData = { id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' }
+      mockGet.mockResolvedValueOnce(mockData)
+
+      const { result } = renderHook(() => useRecipe(1), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual(mockData)
+      expect(mockById).toHaveBeenCalledWith(1)
+    })
+
+    it('should not fetch when id is 0', () => {
+      const { result } = renderHook(() => useRecipe(0), {
+        wrapper: createWrapper(),
+      })
+
+      expect(result.current.fetchStatus).toBe('idle')
+      expect(mockGet).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useUpdateRecipe', () => {
+    it('should update a recipe successfully', async () => {
+      mockPut.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useUpdateRecipe(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ id: 1, name: 'Updated Pasta', link: null, notes: null })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockPut).toHaveBeenCalledWith({ name: 'Updated Pasta', link: null, notes: null })
+    })
+  })
+
+  describe('useUpdateRecipeIngredient', () => {
+    it('should update an ingredient successfully', async () => {
+      mockIngredientsItemPut.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useUpdateRecipeIngredient(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ ingredientId: 2, name: 'Sugar', amount: 1, unit: 'cup', group: null })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockIngredientsItemById).toHaveBeenCalledWith(2)
+      expect(mockIngredientsItemPut).toHaveBeenCalledWith({ name: 'Sugar', amount: 1, unit: 'cup', group: null })
+    })
+  })
+
+  describe('useDeleteRecipeIngredient', () => {
+    it('should delete an ingredient successfully', async () => {
+      mockIngredientsItemDelete.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useDeleteRecipeIngredient(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate(2)
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockIngredientsItemById).toHaveBeenCalledWith(2)
+      expect(mockIngredientsItemDelete).toHaveBeenCalled()
+    })
+  })
+
+  describe('useUpdateRecipeStep', () => {
+    it('should update a step successfully', async () => {
+      const mockStepPut = jest.fn().mockResolvedValueOnce(undefined)
+      mockStepsItemById.mockReturnValueOnce({ put: mockStepPut, delete: jest.fn() })
+
+      const { result } = renderHook(() => useUpdateRecipeStep(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ stepId: 2, text: 'Updated step', order: 1 })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockStepsItemById).toHaveBeenCalledWith(2)
+      expect(mockStepPut).toHaveBeenCalledWith({ text: 'Updated step', order: 1 })
+    })
+  })
+
+  describe('useDeleteRecipeStep', () => {
+    it('should delete a step successfully', async () => {
+      const mockStepDelete = jest.fn().mockResolvedValueOnce(undefined)
+      mockStepsItemById.mockReturnValueOnce({ put: jest.fn(), delete: mockStepDelete })
+
+      const { result } = renderHook(() => useDeleteRecipeStep(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate(2)
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockStepsItemById).toHaveBeenCalledWith(2)
+      expect(mockStepDelete).toHaveBeenCalled()
+    })
+  })
+
+  describe('useAddRecipeImage', () => {
+    it('should add an image successfully', async () => {
+      mockImagesPost.mockResolvedValueOnce({ id: 1, url: 'https://example.com/img.jpg', recipeId: 1 })
+
+      const { result } = renderHook(() => useAddRecipeImage(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate('https://example.com/img.jpg')
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockImagesPost).toHaveBeenCalledWith({ url: 'https://example.com/img.jpg' })
+    })
+  })
+
+  describe('useDeleteRecipeImage', () => {
+    it('should delete an image successfully', async () => {
+      const mockImageDelete = jest.fn().mockResolvedValueOnce(undefined)
+      mockImagesItemById.mockReturnValueOnce({ delete: mockImageDelete })
+
+      const { result } = renderHook(() => useDeleteRecipeImage(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate(2)
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockImagesItemById).toHaveBeenCalledWith(2)
+      expect(mockImageDelete).toHaveBeenCalled()
     })
   })
 })
