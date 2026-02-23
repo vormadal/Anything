@@ -104,6 +104,7 @@ app.MapSomethingEndpoints();
 app.MapInventoryStorageUnitEndpoints();
 app.MapInventoryBoxEndpoints();
 app.MapInventoryItemEndpoints();
+app.MapShoppingListEndpoints();
 
 app.Run();
 

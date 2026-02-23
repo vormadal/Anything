@@ -245,6 +245,51 @@ export function createUpdateSomethingRequestFromDiscriminatorValue(parseNode: Pa
     return deserializeIntoUpdateSomethingRequest;
 }
 /**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ShoppingList}
+ */
+// @ts-ignore
+export function createShoppingListFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoShoppingList;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ShoppingListItem}
+ */
+// @ts-ignore
+export function createShoppingListItemFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoShoppingListItem;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateShoppingListRequest}
+ */
+// @ts-ignore
+export function createCreateShoppingListRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateShoppingListRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateShoppingListItemRequest}
+ */
+// @ts-ignore
+export function createCreateShoppingListItemRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateShoppingListItemRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateShoppingListItemRequest}
+ */
+// @ts-ignore
+export function createUpdateShoppingListItemRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateShoppingListItemRequest;
+}
+/**
  * The deserialization information for the current model
  * @param CreateInventoryBoxRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
@@ -503,6 +548,72 @@ export function deserializeIntoUpdateProfileRequest(updateProfileRequest: Partia
 export function deserializeIntoUpdateSomethingRequest(updateSomethingRequest: Partial<UpdateSomethingRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { updateSomethingRequest.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param ShoppingList The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoShoppingList(shoppingList: Partial<ShoppingList> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { shoppingList.createdOn = n.getDateValue(); },
+        "deletedOn": n => { shoppingList.deletedOn = n.getDateValue(); },
+        "id": n => { shoppingList.id = n.getNumberValue(); },
+        "modifiedOn": n => { shoppingList.modifiedOn = n.getDateValue(); },
+        "name": n => { shoppingList.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param ShoppingListItem The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoShoppingListItem(shoppingListItem: Partial<ShoppingListItem> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { shoppingListItem.createdOn = n.getDateValue(); },
+        "deletedOn": n => { shoppingListItem.deletedOn = n.getDateValue(); },
+        "id": n => { shoppingListItem.id = n.getNumberValue(); },
+        "isChecked": n => { shoppingListItem.isChecked = n.getBooleanValue(); },
+        "modifiedOn": n => { shoppingListItem.modifiedOn = n.getDateValue(); },
+        "name": n => { shoppingListItem.name = n.getStringValue(); },
+        "shoppingListId": n => { shoppingListItem.shoppingListId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateShoppingListRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateShoppingListRequest(createShoppingListRequest: Partial<CreateShoppingListRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { createShoppingListRequest.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateShoppingListItemRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateShoppingListItemRequest(createShoppingListItemRequest: Partial<CreateShoppingListItemRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { createShoppingListItemRequest.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param UpdateShoppingListItemRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateShoppingListItemRequest(updateShoppingListItemRequest: Partial<UpdateShoppingListItemRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "isChecked": n => { updateShoppingListItemRequest.isChecked = n.getBooleanValue(); },
+        "name": n => { updateShoppingListItemRequest.name = n.getStringValue(); },
     }
 }
 export interface InventoryBox extends AdditionalDataHolder, Parsable {
@@ -938,6 +1049,77 @@ export function serializeUpdateSomethingRequest(writer: SerializationWriter, upd
     writer.writeStringValue("name", updateSomethingRequest.name);
     writer.writeAdditionalData(updateSomethingRequest.additionalData);
 }
+/**
+ * Serializes information the current object
+ * @param ShoppingList The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeShoppingList(writer: SerializationWriter, shoppingList: Partial<ShoppingList> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!shoppingList || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", shoppingList.createdOn);
+    writer.writeDateValue("deletedOn", shoppingList.deletedOn);
+    writer.writeNumberValue("id", shoppingList.id);
+    writer.writeDateValue("modifiedOn", shoppingList.modifiedOn);
+    writer.writeStringValue("name", shoppingList.name);
+    writer.writeAdditionalData(shoppingList.additionalData);
+}
+/**
+ * Serializes information the current object
+ * @param ShoppingListItem The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeShoppingListItem(writer: SerializationWriter, shoppingListItem: Partial<ShoppingListItem> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!shoppingListItem || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", shoppingListItem.createdOn);
+    writer.writeDateValue("deletedOn", shoppingListItem.deletedOn);
+    writer.writeNumberValue("id", shoppingListItem.id);
+    writer.writeBooleanValue("isChecked", shoppingListItem.isChecked);
+    writer.writeDateValue("modifiedOn", shoppingListItem.modifiedOn);
+    writer.writeStringValue("name", shoppingListItem.name);
+    writer.writeNumberValue("shoppingListId", shoppingListItem.shoppingListId);
+    writer.writeAdditionalData(shoppingListItem.additionalData);
+}
+/**
+ * Serializes information the current object
+ * @param CreateShoppingListRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateShoppingListRequest(writer: SerializationWriter, createShoppingListRequest: Partial<CreateShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createShoppingListRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", createShoppingListRequest.name);
+    writer.writeAdditionalData(createShoppingListRequest.additionalData);
+}
+/**
+ * Serializes information the current object
+ * @param CreateShoppingListItemRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateShoppingListItemRequest(writer: SerializationWriter, createShoppingListItemRequest: Partial<CreateShoppingListItemRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createShoppingListItemRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", createShoppingListItemRequest.name);
+    writer.writeAdditionalData(createShoppingListItemRequest.additionalData);
+}
+/**
+ * Serializes information the current object
+ * @param UpdateShoppingListItemRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateShoppingListItemRequest(writer: SerializationWriter, updateShoppingListItemRequest: Partial<UpdateShoppingListItemRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateShoppingListItemRequest || isSerializingDerivedType) { return; }
+    writer.writeBooleanValue("isChecked", updateShoppingListItemRequest.isChecked);
+    writer.writeStringValue("name", updateShoppingListItemRequest.name);
+    writer.writeAdditionalData(updateShoppingListItemRequest.additionalData);
+}
 export interface Something extends AdditionalDataHolder, Parsable {
     /**
      * The createdOn property
@@ -1005,6 +1187,80 @@ export interface UpdateProfileRequest extends AdditionalDataHolder, Parsable {
     name?: string | null;
 }
 export interface UpdateSomethingRequest extends AdditionalDataHolder, Parsable {
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
+export interface ShoppingList extends AdditionalDataHolder, Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The deletedOn property
+     */
+    deletedOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
+export interface ShoppingListItem extends AdditionalDataHolder, Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The deletedOn property
+     */
+    deletedOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The isChecked property
+     */
+    isChecked?: boolean | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The shoppingListId property
+     */
+    shoppingListId?: number | null;
+}
+export interface CreateShoppingListRequest extends AdditionalDataHolder, Parsable {
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
+export interface CreateShoppingListItemRequest extends AdditionalDataHolder, Parsable {
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
+export interface UpdateShoppingListItemRequest extends AdditionalDataHolder, Parsable {
+    /**
+     * The isChecked property
+     */
+    isChecked?: boolean | null;
     /**
      * The name property
      */

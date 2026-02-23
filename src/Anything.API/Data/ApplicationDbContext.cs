@@ -17,6 +17,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<InventoryStorageUnit> InventoryStorageUnits => Set<InventoryStorageUnit>();
     public DbSet<InventoryBox> InventoryBoxes => Set<InventoryBox>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<ShoppingList> ShoppingLists => Set<ShoppingList>();
+    public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,6 +99,22 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired(false);
         });
+
+        modelBuilder.Entity<ShoppingList>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<ShoppingListItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.HasOne<ShoppingList>()
+                .WithMany()
+                .HasForeignKey(e => e.ShoppingListId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
 
@@ -169,6 +187,26 @@ public class InventoryItem
     public string? Description { get; set; }
     public int? BoxId { get; set; }
     public int? StorageUnitId { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class ShoppingList
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class ShoppingListItem
+{
+    public int Id { get; set; }
+    public int ShoppingListId { get; set; }
+    public required string Name { get; set; }
+    public bool IsChecked { get; set; }
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }
