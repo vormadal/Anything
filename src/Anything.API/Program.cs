@@ -108,6 +108,7 @@ app.MapInventoryStorageUnitEndpoints();
 app.MapInventoryBoxEndpoints();
 app.MapInventoryItemEndpoints();
 app.MapShoppingListEndpoints();
+app.MapRecipeEndpoints();
 app.MapRecommendationEndpoints();
 
 app.Run();
