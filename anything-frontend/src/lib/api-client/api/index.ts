@@ -10,6 +10,8 @@ import { InventoryItemsRequestBuilderNavigationMetadata, InventoryItemsRequestBu
 // @ts-ignore
 import { InventoryStorageUnitsRequestBuilderNavigationMetadata, InventoryStorageUnitsRequestBuilderRequestsMetadata, type InventoryStorageUnitsRequestBuilder } from './inventoryStorageUnits/index';
 // @ts-ignore
+import { RecipesRequestBuilderNavigationMetadata, RecipesRequestBuilderRequestsMetadata, type RecipesRequestBuilder } from './recipes/index';
+// @ts-ignore
 import { ShoppingListsRequestBuilderNavigationMetadata, ShoppingListsRequestBuilderRequestsMetadata, type ShoppingListsRequestBuilder } from './shoppingLists/index';
 // @ts-ignore
 import { ShoppingListRecommendationsRequestBuilderNavigationMetadata, ShoppingListRecommendationsRequestBuilderRequestsMetadata, type ShoppingListRecommendationsRequestBuilder } from './shoppingListRecommendations/index';
@@ -38,6 +40,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The inventoryStorageUnits property
      */
     get inventoryStorageUnits(): InventoryStorageUnitsRequestBuilder;
+    /**
+     * The recipes property
+     */
+    get recipes(): RecipesRequestBuilder;
     /**
      * The shoppingLists property
      */
@@ -73,6 +79,10 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     inventoryStorageUnits: {
         requestsMetadata: InventoryStorageUnitsRequestBuilderRequestsMetadata,
         navigationMetadata: InventoryStorageUnitsRequestBuilderNavigationMetadata,
+    },
+    recipes: {
+        requestsMetadata: RecipesRequestBuilderRequestsMetadata,
+        navigationMetadata: RecipesRequestBuilderNavigationMetadata,
     },
     shoppingLists: {
         requestsMetadata: ShoppingListsRequestBuilderRequestsMetadata,

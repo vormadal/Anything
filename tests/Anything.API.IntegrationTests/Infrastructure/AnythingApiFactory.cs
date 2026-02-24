@@ -76,6 +76,10 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         db.InventoryItems.RemoveRange(db.InventoryItems);
         db.InventoryBoxes.RemoveRange(db.InventoryBoxes);
         db.InventoryStorageUnits.RemoveRange(db.InventoryStorageUnits);
+        db.RecipeImages.RemoveRange(db.RecipeImages);
+        db.RecipeIngredients.RemoveRange(db.RecipeIngredients);
+        db.RecipeSteps.RemoveRange(db.RecipeSteps);
+        db.Recipes.RemoveRange(db.Recipes);
         db.RefreshTokens.RemoveRange(db.RefreshTokens);
         db.UserInvites.RemoveRange(db.UserInvites);
         // Remove all non-admin users to avoid conflicts between tests

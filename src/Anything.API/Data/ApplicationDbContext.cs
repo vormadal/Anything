@@ -20,6 +20,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<ShoppingList> ShoppingLists => Set<ShoppingList>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
     public DbSet<ShoppingListRecommendation> ShoppingListRecommendations => Set<ShoppingListRecommendation>();
+    public DbSet<Recipe> Recipes => Set<Recipe>();
+    public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
+    public DbSet<RecipeStep> RecipeSteps => Set<RecipeStep>();
+    public DbSet<RecipeImage> RecipeImages => Set<RecipeImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -122,6 +126,46 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<Recipe>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Link).HasMaxLength(500);
+            entity.Property(e => e.Notes).HasMaxLength(5000);
+        });
+
+        modelBuilder.Entity<RecipeIngredient>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Unit).HasMaxLength(100);
+            entity.Property(e => e.Group).HasMaxLength(200);
+            entity.HasOne<Recipe>()
+                .WithMany()
+                .HasForeignKey(e => e.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RecipeStep>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Text).IsRequired().HasMaxLength(5000);
+            entity.HasOne<Recipe>()
+                .WithMany()
+                .HasForeignKey(e => e.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RecipeImage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Url).IsRequired().HasMaxLength(1000);
+            entity.HasOne<Recipe>()
+                .WithMany()
+                .HasForeignKey(e => e.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
@@ -227,5 +271,49 @@ public class ShoppingListRecommendation
     public bool IsApproved { get; set; }
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class Recipe
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public string? Link { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class RecipeIngredient
+{
+    public int Id { get; set; }
+    public int RecipeId { get; set; }
+    public required string Name { get; set; }
+    public decimal Amount { get; set; }
+    public string? Unit { get; set; }
+    public string? Group { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class RecipeStep
+{
+    public int Id { get; set; }
+    public int RecipeId { get; set; }
+    public int Order { get; set; }
+    public required string Text { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? ModifiedOn { get; set; }
+    public DateTime? DeletedOn { get; set; }
+}
+
+public class RecipeImage
+{
+    public int Id { get; set; }
+    public int RecipeId { get; set; }
+    public required string Url { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedOn { get; set; }
 }
