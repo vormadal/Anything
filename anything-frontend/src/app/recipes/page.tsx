@@ -1,123 +1,196 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useRecipes, useCreateRecipe, useDeleteRecipe } from "@/hooks/useRecipes";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useRecipes, useRecipeImages } from "@/hooks/useRecipes";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useHeaderActions } from "@/context/PageActionsContext";
+import { Search, X, CookingPot, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { Recipe } from "@/lib/api-client/models/index";
 
-export default function RecipesPage() {
-  const [newRecipeName, setNewRecipeName] = useState("");
-  const { data: recipes, isLoading, error } = useRecipes();
-  const createRecipe = useCreateRecipe();
-  const deleteRecipe = useDeleteRecipe();
-  const router = useRouter();
-
-  const handleCreateRecipe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRecipeName.trim()) return;
-
-    try {
-      const newRecipe = await createRecipe.mutateAsync({ name: newRecipeName });
-      setNewRecipeName("");
-      toast.success("Recipe created");
-      if (newRecipe?.id) {
-        router.push(`/recipes/${newRecipe.id}`);
-      }
-    } catch {
-      toast.error("Failed to create recipe. Please try again.");
-    }
-  };
-
-  const handleDeleteRecipe = async (id: number) => {
-    try {
-      await deleteRecipe.mutateAsync(id);
-      toast.success("Recipe deleted");
-    } catch {
-      toast.error("Failed to delete recipe. Please try again.");
-    }
-  };
+function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }) {
+  const { data: images } = useRecipeImages(recipe.id!);
+  const firstImage = images?.[0];
+  const isSafeUrl = (url: string) =>
+    url.startsWith("http://") || url.startsWith("https://");
+  const imageUrl = firstImage?.url && isSafeUrl(firstImage.url) ? firstImage.url : null;
+  const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-4xl">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
-        <div className="mb-6">
-          <p className="text-gray-600 dark:text-gray-300">
-            Manage your recipes
-          </p>
-        </div>
-
-        <form onSubmit={handleCreateRecipe} className="mb-8">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newRecipeName}
-              onChange={(e) => setNewRecipeName(e.target.value)}
-              placeholder="New recipe name..."
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-            <Button type="submit" disabled={createRecipe.isPending}>
-              {createRecipe.isPending ? "Creating..." : "Create Recipe"}
-            </Button>
-          </div>
-        </form>
-
-        {isLoading && (
-          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-            Loading...
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-            Failed to load recipes. Make sure the API is running on port 5238.
-          </div>
-        )}
-
-        {recipes?.length === 0 && (
-          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-            No recipes yet. Create your first one above!
-          </div>
-        )}
-
-        {recipes && recipes.length > 0 && (
-          <div className="space-y-2">
-            {recipes.map((recipe) => (
-              <div
-                key={recipe.id}
-                role="button"
-                tabIndex={0}
-                className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
-                onClick={() => router.push(`/recipes/${recipe.id}`)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    router.push(`/recipes/${recipe.id}`);
-                  }
-                }}
-              >
-                <span className="flex-1 text-gray-900 dark:text-white font-medium">
-                  {recipe.name}
-                </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {recipe.createdOn ? new Date(recipe.createdOn).toLocaleDateString() : ""}
-                </span>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteRecipe(recipe.id!);
-                  }}
-                  disabled={deleteRecipe.isPending}
-                >
-                  Delete
-                </Button>
-              </div>
-            ))}
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-col overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 active:scale-[0.98]"
+    >
+      <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
+        {imageUrl && !imgError ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={imageUrl}
+            alt={recipe.name ?? "Recipe"}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <CookingPot className="h-10 w-10 text-gray-300 dark:text-gray-500" />
           </div>
         )}
       </div>
+      <div className="p-3">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 leading-snug">
+          {recipe.name}
+        </h3>
+      </div>
+    </button>
+  );
+}
+
+export default function RecipesPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { data: recipes, isLoading, error } = useRecipes();
+  const router = useRouter();
+  const { setHeaderActions } = useHeaderActions();
+
+  // TODO: Replace client-side filtering with API search when backend supports it
+  //       e.g. apiClient.api.recipes.get({ queryParameters: { search: searchQuery } })
+  const filteredRecipes = useMemo(() => {
+    if (!recipes) return undefined;
+    if (!searchQuery.trim()) return recipes;
+    const query = searchQuery.toLowerCase();
+    return recipes.filter((r) => r.name?.toLowerCase().includes(query));
+  }, [recipes, searchQuery]);
+
+  const handleCloseSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery("");
+  };
+
+  useEffect(() => {
+    if (searchOpen) {
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    }
+  }, [searchOpen]);
+
+  useEffect(() => {
+    setHeaderActions(
+      <div className="flex items-center justify-end flex-1 ml-2">
+        {/* Search input — grows to fill when open */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            searchOpen
+              ? "grow opacity-100"
+              : "grow-0 basis-0 opacity-0"
+          }`}
+        >
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search recipes..."
+            className="w-full min-w-0 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder:text-gray-400"
+          />
+        </div>
+
+        {/* Close search button */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            searchOpen
+              ? "w-9 opacity-100 ml-1"
+              : "w-0 opacity-0 ml-0"
+          }`}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleCloseSearch}
+            aria-label="Close search"
+            className="shrink-0"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Search button */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            !searchOpen
+              ? "w-9 opacity-100"
+              : "w-0 opacity-0"
+          }`}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Search recipes"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Create recipe button */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            !searchOpen
+              ? "w-9 opacity-100"
+              : "w-0 opacity-0"
+          }`}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/recipes/new")}
+            aria-label="Create recipe"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>,
+      searchOpen,
+    );
+
+    return () => setHeaderActions(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchOpen, searchQuery, setHeaderActions]);
+
+  return (
+    <div className="container mx-auto px-4 py-4 max-w-4xl">
+      {isLoading && (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          Loading...
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4">
+          Failed to load recipes. Make sure the API is running on port 5238.
+        </div>
+      )}
+
+      {filteredRecipes?.length === 0 && !isLoading && !error && (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          {searchQuery
+            ? "No recipes match your search."
+            : "No recipes yet. Tap + to create your first one!"}
+        </div>
+      )}
+
+      {filteredRecipes && filteredRecipes.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {filteredRecipes.map((recipe) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              onClick={() => router.push(`/recipes/${recipe.id}`)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

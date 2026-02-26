@@ -1,9 +1,11 @@
 using System.Text;
-using Anything.API.Configuration;
-using Anything.API.Constants;
-using Anything.API.Data;
+using Anything.Application;
+using Anything.Application.Configuration;
+using Anything.Core.Constants;
+using Anything.Core.Entities;
+using Anything.Core.Services;
+using Anything.Database;
 using Anything.API.Endpoints;
-using Anything.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -15,23 +17,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Add PostgreSQL with Entity Framework
-builder.AddNpgsqlDbContext<ApplicationDbContext>("anything");
+builder.AddDatabase();
+builder.Services.AddRepositories();
 
-// Configure settings with validation
-builder.Services.AddOptions<JwtSettings>()
-    .Bind(builder.Configuration.GetSection(JwtSettings.SectionName))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-
-builder.Services.AddOptions<AdminSettings>()
-    .Bind(builder.Configuration.GetSection(AdminSettings.SectionName));
+// Add application services (mediator, handlers, services, configuration)
+builder.Services.AddApplication(builder.Configuration);
 
 // Add TimeProvider
 builder.Services.AddSingleton(TimeProvider.System);
-
-// Add authentication services
-builder.Services.AddScoped<IPasswordService, PasswordService>();
-builder.Services.AddScoped<ITokenService, TokenService>();
 
 // Configure JWT authentication
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
@@ -82,7 +75,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Seed admin user
-await SeedAdminUserAsync(app);
+await SeedAdminUser(app);
 
 app.MapDefaultEndpoints();
 
@@ -113,7 +106,7 @@ app.MapRecommendationEndpoints();
 
 await app.RunAsync();
 
-static async Task SeedAdminUserAsync(WebApplication app)
+static async Task SeedAdminUser(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

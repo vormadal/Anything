@@ -21,6 +21,10 @@ import {
   Shield,
   LogOut,
 } from "lucide-react";
+import {
+  PageActionsProvider,
+  useHeaderActions,
+} from "@/context/PageActionsContext";
 
 const PUBLIC_PATHS = ["/login", "/register"];
 
@@ -35,23 +39,34 @@ function getPageTitle(pathname: string): string {
   if (pathname === "/shopping-lists") return "Shopping Lists";
   if (pathname.startsWith("/shopping-lists/")) return "Shopping List";
   if (pathname === "/recipes") return "Recipes";
+  if (pathname === "/recipes/new") return "New Recipe";
   if (pathname.startsWith("/recipes/")) return "Recipe";
   if (pathname === "/admin") return "Admin";
   return "Anything";
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const { data: user } = useCurrentUser();
-  const logout = useLogout();
-  const router = useRouter();
   const pathname = usePathname();
-
   const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (isPublicPath) {
     return <>{children}</>;
   }
+
+  return (
+    <PageActionsProvider>
+      <AppLayoutInner>{children}</AppLayoutInner>
+    </PageActionsProvider>
+  );
+}
+
+function AppLayoutInner({ children }: { children: React.ReactNode }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { data: user } = useCurrentUser();
+  const logout = useLogout();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { headerActions, hideTitle } = useHeaderActions();
 
   const navigate = (path: string) => {
     setDrawerOpen(false);
@@ -80,9 +95,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white truncate">
-            {getPageTitle(pathname)}
-          </h1>
+          {!hideTitle && (
+            <h1 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white truncate flex-1">
+              {getPageTitle(pathname)}
+            </h1>
+          )}
+          {headerActions}
         </div>
       </header>
 

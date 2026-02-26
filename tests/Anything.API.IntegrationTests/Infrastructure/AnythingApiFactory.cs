@@ -1,4 +1,4 @@
-using Anything.API.Data;
+using Anything.Database;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -18,20 +18,20 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        
+
         // Set connection string using UseSetting - this is processed before Program.cs runs
         builder.UseSetting("ConnectionStrings:postgres", _connectionString);
-        
+
         // Configure admin credentials for testing
         builder.UseSetting("Admin:Email", "admin@anything.local");
         builder.UseSetting("Admin:Password", "Admin123!");
-        
+
         // Configure JWT settings for testing
         builder.UseSetting("Jwt:SecretKey", "test-secret-key-for-integration-tests-minimum-32-chars");
         builder.UseSetting("Jwt:Issuer", "Anything.API.Tests");
         builder.UseSetting("Jwt:Audience", "Anything.Frontend.Tests");
         builder.UseSetting("Jwt:AccessTokenExpirationMinutes", "15");
-        
+
         builder.ConfigureServices(services =>
         {
             // Remove all Aspire/Npgsql DbContext registrations

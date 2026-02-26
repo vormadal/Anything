@@ -9,13 +9,37 @@
 ```
 Anything/
 ├── src/                              # Backend (.NET)
-│   ├── Anything.API/                 # Minimal API (main backend)
-│   │   ├── Program.cs                # App entry point, service config, middleware
-│   │   ├── Endpoints/                # API endpoint groups (extension methods)
-│   │   ├── Data/                     # EF Core DbContext and entity models
+│   ├── Anything.API/                 # Minimal API — thin endpoint dispatchers
+│   │   ├── Program.cs                # App entry point, JWT, CORS, Swagger, admin seeding
+│   │   ├── Endpoints/                # Thin endpoint groups (dispatch to mediator)
 │   │   └── Properties/              # Launch settings
+│   ├── Anything.Application/         # Application layer — commands, queries, handlers, services
+│   │   ├── Configuration/            # JwtSettings, AdminSettings
+│   │   ├── Services/                 # PasswordService, TokenService implementations
+│   │   ├── Features/                 # Command/query handlers organized by feature
+│   │   └── DependencyInjection.cs    # AddApplication() extension method
+│   ├── Anything.Core/                # Domain layer — entities, interfaces (no dependencies)
+│   │   ├── Constants/                # UserRoles
+│   │   ├── Entities/                 # 14 entity POCOs
+│   │   ├── Repositories/             # IRepository<T>, IUnitOfWork
+│   │   └── Services/                 # IPasswordService, ITokenService
+│   ├── Anything.Contracts/           # API contracts — request/response DTOs with validation
+│   │   ├── Auth/                     # Auth DTOs
+│   │   ├── Somethings/               # Something DTOs
+│   │   ├── Inventory/                # Inventory DTOs
+│   │   ├── ShoppingLists/            # Shopping list DTOs
+│   │   └── Recipes/                  # Recipe DTOs
+│   ├── Anything.Database/            # Infrastructure — EF Core DbContext, repositories, migrations
+│   │   ├── ApplicationDbContext.cs    # DbContext with ApplyConfigurationsFromAssembly
+│   │   ├── Configurations/           # 14 IEntityTypeConfiguration<T> classes
+│   │   ├── Repositories/             # Repository<T>, UnitOfWork implementations
+│   │   ├── Migrations/               # EF Core migrations
+│   │   └── DependencyInjection.cs    # AddDatabase(), AddRepositories() extension methods
+│   ├── Anything.Mediator/            # Simple mediator pattern (IRequest, IRequestHandler, IMediator)
 │   ├── Anything.AppHost/            # Aspire orchestrator (manages PostgreSQL)
 │   └── Anything.ServiceDefaults/    # Shared service config (telemetry, health checks)
+├── tests/
+│   └── Anything.API.IntegrationTests/ # Integration tests (xUnit, Testcontainers, Kiota client)
 ├── anything-frontend/               # Frontend (Next.js)
 │   └── src/
 │       ├── app/                     # Next.js App Router pages and layouts
@@ -26,9 +50,38 @@ Anything/
 └── Anything.slnx                    # .NET solution file
 ```
 
+## Architecture
+
+### Clean Architecture Layers
+
+```
+Anything.Mediator  (standalone — IRequest, IRequestHandler, IMediator)
+Anything.Core      (standalone — entities, repository/service interfaces)
+Anything.Contracts (standalone — request/response DTOs with validation)
+Anything.Application → Core, Contracts, Mediator (handlers, services, configuration)
+Anything.Database    → Core (DbContext, repositories, migrations)
+Anything.API         → Application, Database, Contracts, ServiceDefaults (thin endpoints)
+```
+
+### Mediator Pattern
+
+Each API operation follows: **Endpoint → Command/Query → Handler → Repository → Database**
+
+- Endpoints are thin dispatchers that create a command/query and call `mediator.Send()`
+- Commands/queries implement `IRequest<TResponse>` from `Anything.Mediator`
+- Handlers implement `IRequestHandler<TRequest, TResponse>` and contain all business logic
+- Handlers are colocated with their command/query in a single `.cs` file under `Features/`
+- Handlers are auto-registered via Scrutor assembly scanning
+
+### Repository Pattern
+
+- `IRepository<T>` — generic interface with `GetById`, `GetAll`, `Query()` (IQueryable), `Add`, `Update`, `Remove`
+- `IUnitOfWork` — wraps `DbContext.SaveChangesAsync`
+- Open generic registration: `typeof(IRepository<>)` → `typeof(Repository<>)` — no per-entity registration needed
+
 ## Tech Stack
 
-**Backend:** .NET 10, Minimal API, Entity Framework Core, PostgreSQL, Aspire, Swashbuckle (Swagger)
+**Backend:** .NET 10, Minimal API, Entity Framework Core, PostgreSQL, Aspire, Swashbuckle (Swagger), Scrutor (DI scanning)
 **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Shadcn UI, React Query (TanStack), Kiota (API client generation)
 
 ## Common Commands
@@ -39,9 +92,9 @@ aspire run              # Run with Aspire (starts PostgreSQL, Anything.API and a
 ### Backend
 
 ```bash
-dotnet build                                          # Build solution
-dotnet ef migrations add <Name> --project src/Anything.API   # Create migration
-dotnet ef database update --project src/Anything.API         # Apply migrations
+dotnet build                                                                                # Build solution
+dotnet ef migrations add <Name> --project src/Anything.Database --startup-project src/Anything.API  # Create migration
+dotnet ef database update --project src/Anything.Database --startup-project src/Anything.API        # Apply migrations
 ```
 
 ### Frontend
@@ -61,12 +114,18 @@ npm run generate:api # Generate API client from Swagger (API must be running)
 
 ### Backend
 
-- **Endpoints as extension methods:** Each entity gets its own static class in `Endpoints/` with a `Map*Endpoints()` extension method registered in `Program.cs`.
+- **Clean architecture:** Domain (Core), Application, Infrastructure (Database), API layers with strict dependency rules.
+- **Mediator pattern:** Endpoints dispatch to command/query handlers via `IMediator.Send()`. Each handler is a single class in `Features/<Area>/Commands/` or `Features/<Area>/Queries/`.
+- **Thin endpoints:** Each entity gets its own static class in `Endpoints/` with a `Map*Endpoints()` extension method. Endpoints only extract request data and dispatch to the mediator.
+- **Repository + Unit of Work:** All data access goes through `IRepository<T>` and `IUnitOfWork`. Complex queries use `repository.Query()` which returns `IQueryable<T>`.
 - **Soft deletes:** Entities use a `DeletedOn` nullable DateTime field. All queries filter `WHERE DeletedOn == null`.
 - **Timestamps:** Entities use `CreatedOn` (set on creation), `ModifiedOn` (set on update), `DeletedOn` (set on soft delete). All use `DateTime.UtcNow`.
-- **Request/response records:** Use C# `record` types for request DTOs (e.g., `CreateSomethingRequest(string Name)`), defined in the same file as endpoints.
+- **Request/response records:** Use C# `record` types for request DTOs in `Anything.Contracts`, organized by feature area.
 - **Route grouping:** Endpoints use `MapGroup("/api/<entity>")` for consistent prefixing.
-- **Validation:** Extract shared validation logic into private helper methods within endpoint classes. Use constants for repeated string literals (field names, error messages) to avoid duplication (SonarCloud S1192).
+- **Validation:** Data annotations on DTOs in Contracts. `WithParameterValidation()` from MinimalApis.Extensions.
+- **DI registration:** `builder.AddDatabase()` + `builder.Services.AddRepositories()` + `builder.Services.AddApplication(configuration)` in Program.cs.
+- **Entity configurations:** Each entity has a separate `IEntityTypeConfiguration<T>` class in `Anything.Database/Configurations/`.
+- **Handler return types:** Handlers that return entities use the entity type directly (endpoint wraps in `Results.Created()`). Handlers that need HTTP semantics (update, delete, validation) return `IResult`.
 
 ### Frontend
 
@@ -104,8 +163,8 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 - Remove dead code and commented-out code blocks (S1854, S125).
 
 **Backend (C#):**
-- Use `private const` fields for repeated string literals in endpoint classes.
-- Extract shared validation into `private static` helper methods rather than duplicating across endpoints.
+- Use `private const` fields for repeated string literals in handler classes.
+- Extract shared validation into `private static` helper methods rather than duplicating across handlers.
 - Avoid unused local variables — discard return values with `_` if intentionally unused, or remove the assignment entirely.
 
 **Frontend (TypeScript/React):**
@@ -121,10 +180,10 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 
 ## Development Notes
 
-- CORS is configured for `localhost:3000` (frontend dev server).
+- CORS is configured for `localhost:3001` (frontend dev server).
 - PostgreSQL connection is managed by Aspire when using AppHost, or via `appsettings.Development.json` when running standalone.
-- No migrations have been committed yet — run `dotnet ef migrations add` to initialize.
 - The solution file is `.slnx` format (new XML-based solution format).
+- Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
 
 ## Testing
 

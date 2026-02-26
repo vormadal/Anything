@@ -1,6 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-using Anything.API.Data;
-using Microsoft.EntityFrameworkCore;
+using Anything.Application.Features.Inventory.Commands;
+using Anything.Application.Features.Inventory.Queries;
+using Anything.Contracts.Inventory;
+using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
@@ -11,118 +12,41 @@ public static class InventoryItemEndpoints
     {
         var group = app.MapGroup("/api/inventory-items");
 
-        group.MapGet("/", async (ApplicationDbContext db) =>
+        group.MapGet("/", async (IMediator mediator) =>
         {
-            return await db.InventoryItems
-                .Where(i => i.DeletedOn == null)
-                .ToListAsync();
+            return await mediator.Send(new GetInventoryItemsQuery());
         })
         .WithName("GetInventoryItems")
         .RequireAuthorization();
 
-        group.MapGet("/{id}", async (int id, ApplicationDbContext db) =>
+        group.MapGet("/{id}", async (int id, IMediator mediator) =>
         {
-            return await db.InventoryItems.FindAsync(id) is InventoryItem item && item.DeletedOn == null
-                ? Results.Ok(item)
-                : Results.NotFound();
+            return await mediator.Send(new GetInventoryItemByIdQuery(id));
         })
         .WithName("GetInventoryItemById")
         .RequireAuthorization();
 
-        group.MapPost("/", async (CreateInventoryItemRequest request, ApplicationDbContext db) =>
+        group.MapPost("/", async (CreateInventoryItemRequest request, IMediator mediator) =>
         {
-            if (request.BoxId.HasValue)
-            {
-                var box = await db.InventoryBoxes.FindAsync(request.BoxId.Value);
-                if (box is null || box.DeletedOn != null)
-                    return Results.BadRequest("Invalid box ID.");
-            }
-
-            if (request.StorageUnitId.HasValue)
-            {
-                var storageUnit = await db.InventoryStorageUnits.FindAsync(request.StorageUnitId.Value);
-                if (storageUnit is null || storageUnit.DeletedOn != null)
-                    return Results.BadRequest("Invalid storage unit ID.");
-            }
-
-            var item = new InventoryItem
-            {
-                Name = request.Name,
-                Description = request.Description,
-                BoxId = request.BoxId,
-                StorageUnitId = request.StorageUnitId
-            };
-
-            db.InventoryItems.Add(item);
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/inventory-items/{item.Id}", item);
+            return await mediator.Send(new CreateInventoryItemCommand(request.Name, request.Description, request.BoxId, request.StorageUnitId));
         })
         .WithName("CreateInventoryItem")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapPut("/{id}", async (int id, UpdateInventoryItemRequest request, ApplicationDbContext db) =>
+        group.MapPut("/{id}", async (int id, UpdateInventoryItemRequest request, IMediator mediator) =>
         {
-            var item = await db.InventoryItems.FindAsync(id);
-            if (item is null || item.DeletedOn != null)
-                return Results.NotFound();
-
-            if (request.BoxId.HasValue)
-            {
-                var box = await db.InventoryBoxes.FindAsync(request.BoxId.Value);
-                if (box is null || box.DeletedOn != null)
-                    return Results.BadRequest("Invalid box ID.");
-            }
-
-            if (request.StorageUnitId.HasValue)
-            {
-                var storageUnit = await db.InventoryStorageUnits.FindAsync(request.StorageUnitId.Value);
-                if (storageUnit is null || storageUnit.DeletedOn != null)
-                    return Results.BadRequest("Invalid storage unit ID.");
-            }
-
-            item.Name = request.Name;
-            item.Description = request.Description;
-            item.BoxId = request.BoxId;
-            item.StorageUnitId = request.StorageUnitId;
-            item.ModifiedOn = DateTime.UtcNow;
-
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return await mediator.Send(new UpdateInventoryItemCommand(id, request.Name, request.Description, request.BoxId, request.StorageUnitId));
         })
         .WithName("UpdateInventoryItem")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
+        group.MapDelete("/{id}", async (int id, IMediator mediator) =>
         {
-            var item = await db.InventoryItems.FindAsync(id);
-            if (item is null || item.DeletedOn != null)
-                return Results.NotFound();
-
-            item.DeletedOn = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return await mediator.Send(new DeleteInventoryItemCommand(id));
         })
         .WithName("DeleteInventoryItem")
         .RequireAuthorization();
     }
 }
-
-public record CreateInventoryItemRequest(
-    [Required(ErrorMessage = "Name is required.")]
-    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
-    string Name,
-    [StringLength(1000, ErrorMessage = "Description must be 1000 characters or less.")]
-    string? Description,
-    int? BoxId,
-    int? StorageUnitId);
-
-public record UpdateInventoryItemRequest(
-    [Required(ErrorMessage = "Name is required.")]
-    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
-    string Name,
-    [StringLength(1000, ErrorMessage = "Description must be 1000 characters or less.")]
-    string? Description,
-    int? BoxId,
-    int? StorageUnitId);

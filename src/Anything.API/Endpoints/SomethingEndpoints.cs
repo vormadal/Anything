@@ -1,6 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-using Anything.API.Data;
-using Microsoft.EntityFrameworkCore;
+using Anything.Application.Features.Somethings.Commands;
+using Anything.Application.Features.Somethings.Queries;
+using Anything.Contracts.Somethings;
+using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
@@ -11,76 +12,42 @@ public static class SomethingEndpoints
     {
         var group = app.MapGroup("/api/somethings");
 
-        group.MapGet("/", async (ApplicationDbContext db) =>
+        group.MapGet("/", async (IMediator mediator) =>
         {
-            return await db.Somethings
-                .Where(s => s.DeletedOn == null)
-                .ToListAsync();
+            return await mediator.Send(new GetSomethingsQuery());
         })
         .WithName("GetSomethings")
         .RequireAuthorization();
 
-        group.MapGet("/{id}", async (int id, ApplicationDbContext db) =>
+        group.MapGet("/{id}", async (int id, IMediator mediator) =>
         {
-            return await db.Somethings.FindAsync(id) is Something something && something.DeletedOn == null
-                ? Results.Ok(something)
-                : Results.NotFound();
+            return await mediator.Send(new GetSomethingByIdQuery(id));
         })
         .WithName("GetSomethingById")
         .RequireAuthorization();
 
-        group.MapPost("/", async (CreateSomethingRequest request, ApplicationDbContext db) =>
+        group.MapPost("/", async (CreateSomethingRequest request, IMediator mediator) =>
         {
-            var something = new Something
-            {
-                Name = request.Name
-            };
-
-            db.Somethings.Add(something);
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/somethings/{something.Id}", something);
+            var result = await mediator.Send(new CreateSomethingCommand(request.Name));
+            return Results.Created($"/api/somethings/{result.Id}", result);
         })
         .WithName("CreateSomething")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapPut("/{id}", async (int id, UpdateSomethingRequest request, ApplicationDbContext db) =>
+        group.MapPut("/{id}", async (int id, UpdateSomethingRequest request, IMediator mediator) =>
         {
-            var something = await db.Somethings.FindAsync(id);
-            if (something is null || something.DeletedOn != null)
-                return Results.NotFound();
-
-            something.Name = request.Name;
-            something.ModifiedOn = DateTime.UtcNow;
-
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return await mediator.Send(new UpdateSomethingCommand(id, request.Name));
         })
         .WithName("UpdateSomething")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
+        group.MapDelete("/{id}", async (int id, IMediator mediator) =>
         {
-            var something = await db.Somethings.FindAsync(id);
-            if (something is null || something.DeletedOn != null)
-                return Results.NotFound();
-
-            something.DeletedOn = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return await mediator.Send(new DeleteSomethingCommand(id));
         })
         .WithName("DeleteSomething")
         .RequireAuthorization();
     }
 }
-
-public record CreateSomethingRequest(
-    [Required(ErrorMessage = "Name is required.")]
-    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
-    string Name);
-
-public record UpdateSomethingRequest(
-    [Required(ErrorMessage = "Name is required.")]
-    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
-    string Name);

@@ -3,6 +3,11 @@
     <Project Path="src/Anything.API/Anything.API.csproj" />
     <Project Path="src/Anything.AppHost/Anything.AppHost.csproj" />
     <Project Path="src/Anything.ServiceDefaults/Anything.ServiceDefaults.csproj" />
+    <Project Path="src/Anything.Mediator/Anything.Mediator.csproj" />
+    <Project Path="src/Anything.Core/Anything.Core.csproj" />
+    <Project Path="src/Anything.Contracts/Anything.Contracts.csproj" />
+    <Project Path="src/Anything.Application/Anything.Application.csproj" />
+    <Project Path="src/Anything.Database/Anything.Database.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj" />

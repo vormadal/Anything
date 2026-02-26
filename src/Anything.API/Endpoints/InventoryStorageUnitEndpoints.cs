@@ -1,6 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-using Anything.API.Data;
-using Microsoft.EntityFrameworkCore;
+using Anything.Application.Features.Inventory.Commands;
+using Anything.Application.Features.Inventory.Queries;
+using Anything.Contracts.Inventory;
+using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
@@ -11,90 +12,42 @@ public static class InventoryStorageUnitEndpoints
     {
         var group = app.MapGroup("/api/inventory-storage-units");
 
-        group.MapGet("/", async (ApplicationDbContext db) =>
+        group.MapGet("/", async (IMediator mediator) =>
         {
-            return await db.InventoryStorageUnits
-                .Where(s => s.DeletedOn == null)
-                .ToListAsync();
+            return await mediator.Send(new GetInventoryStorageUnitsQuery());
         })
         .WithName("GetInventoryStorageUnits")
         .RequireAuthorization();
 
-        group.MapGet("/{id}", async (int id, ApplicationDbContext db) =>
+        group.MapGet("/{id}", async (int id, IMediator mediator) =>
         {
-            return await db.InventoryStorageUnits.FindAsync(id) is InventoryStorageUnit storageUnit && storageUnit.DeletedOn == null
-                ? Results.Ok(storageUnit)
-                : Results.NotFound();
+            return await mediator.Send(new GetInventoryStorageUnitByIdQuery(id));
         })
         .WithName("GetInventoryStorageUnitById")
         .RequireAuthorization();
 
-        group.MapPost("/", async (CreateInventoryStorageUnitRequest request, ApplicationDbContext db) =>
+        group.MapPost("/", async (CreateInventoryStorageUnitRequest request, IMediator mediator) =>
         {
-            var storageUnit = new InventoryStorageUnit
-            {
-                Name = request.Name,
-                Type = request.Type
-            };
-
-            db.InventoryStorageUnits.Add(storageUnit);
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/inventory-storage-units/{storageUnit.Id}", storageUnit);
+            var result = await mediator.Send(new CreateInventoryStorageUnitCommand(request.Name, request.Type));
+            return Results.Created($"/api/inventory-storage-units/{result.Id}", result);
         })
         .WithName("CreateInventoryStorageUnit")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapPut("/{id}", async (int id, UpdateInventoryStorageUnitRequest request, ApplicationDbContext db) =>
+        group.MapPut("/{id}", async (int id, UpdateInventoryStorageUnitRequest request, IMediator mediator) =>
         {
-            var storageUnit = await db.InventoryStorageUnits.FindAsync(id);
-            if (storageUnit is null || storageUnit.DeletedOn != null)
-                return Results.NotFound();
-
-            storageUnit.Name = request.Name;
-            storageUnit.Type = request.Type;
-            storageUnit.ModifiedOn = DateTime.UtcNow;
-
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return await mediator.Send(new UpdateInventoryStorageUnitCommand(id, request.Name, request.Type));
         })
         .WithName("UpdateInventoryStorageUnit")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
+        group.MapDelete("/{id}", async (int id, IMediator mediator) =>
         {
-            var storageUnit = await db.InventoryStorageUnits.FindAsync(id);
-            if (storageUnit is null || storageUnit.DeletedOn != null)
-                return Results.NotFound();
-
-            var hasActiveBoxes = await db.InventoryBoxes
-                .AnyAsync(b => b.StorageUnitId == id && b.DeletedOn == null);
-            var hasActiveItems = await db.InventoryItems
-                .AnyAsync(i => i.StorageUnitId == id && i.DeletedOn == null);
-
-            if (hasActiveBoxes || hasActiveItems)
-                return Results.Conflict("Cannot delete storage unit while active boxes or items are associated with it.");
-
-            storageUnit.DeletedOn = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return await mediator.Send(new DeleteInventoryStorageUnitCommand(id));
         })
         .WithName("DeleteInventoryStorageUnit")
         .RequireAuthorization();
     }
 }
-
-public record CreateInventoryStorageUnitRequest(
-    [Required(ErrorMessage = "Name is required.")]
-    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
-    string Name,
-    [StringLength(100, ErrorMessage = "Type must be 100 characters or less.")]
-    string? Type);
-
-public record UpdateInventoryStorageUnitRequest(
-    [Required(ErrorMessage = "Name is required.")]
-    [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
-    string Name,
-    [StringLength(100, ErrorMessage = "Type must be 100 characters or less.")]
-    string? Type);

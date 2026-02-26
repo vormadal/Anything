@@ -1,61 +1,40 @@
-using System.ComponentModel.DataAnnotations;
-using Anything.API.Constants;
-using Anything.API.Data;
-using Microsoft.EntityFrameworkCore;
+using Anything.Application.Features.Recommendations.Commands;
+using Anything.Application.Features.Recommendations.Queries;
+using Anything.Core.Constants;
+using Anything.Mediator;
 
 namespace Anything.API.Endpoints;
 
 public static class RecommendationEndpoints
 {
-    private const string RecommendationNotFound = "Recommendation not found.";
-
     public static void MapRecommendationEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/shopping-list-recommendations");
 
-        group.MapGet("/", async (ApplicationDbContext db) =>
+        group.MapGet("/", async (IMediator mediator) =>
         {
-            return await db.ShoppingListRecommendations
-                .Where(r => r.IsApproved && r.DeletedOn == null)
-                .OrderBy(r => r.Name)
-                .ToListAsync();
+            return await mediator.Send(new GetApprovedRecommendationsQuery());
         })
         .WithName("GetApprovedRecommendations")
         .RequireAuthorization();
 
-        group.MapGet("/pending", async (ApplicationDbContext db) =>
+        group.MapGet("/pending", async (IMediator mediator) =>
         {
-            return await db.ShoppingListRecommendations
-                .Where(r => !r.IsApproved && r.DeletedOn == null)
-                .OrderBy(r => r.Name)
-                .ToListAsync();
+            return await mediator.Send(new GetPendingRecommendationsQuery());
         })
         .WithName("GetPendingRecommendations")
         .RequireAuthorization(UserRoles.Admin);
 
-        group.MapPost("/{id}/approve", async (int id, ApplicationDbContext db) =>
+        group.MapPost("/{id}/approve", async (int id, IMediator mediator) =>
         {
-            var recommendation = await db.ShoppingListRecommendations.FindAsync(id);
-            if (recommendation is null || recommendation.DeletedOn != null)
-                return Results.NotFound(RecommendationNotFound);
-
-            recommendation.IsApproved = true;
-            recommendation.ModifiedOn = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return await mediator.Send(new ApproveRecommendationCommand(id));
         })
         .WithName("ApproveRecommendation")
         .RequireAuthorization(UserRoles.Admin);
 
-        group.MapDelete("/{id}", async (int id, ApplicationDbContext db) =>
+        group.MapDelete("/{id}", async (int id, IMediator mediator) =>
         {
-            var recommendation = await db.ShoppingListRecommendations.FindAsync(id);
-            if (recommendation is null || recommendation.DeletedOn != null)
-                return Results.NotFound(RecommendationNotFound);
-
-            recommendation.DeletedOn = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return await mediator.Send(new DeleteRecommendationCommand(id));
         })
         .WithName("DeleteRecommendation")
         .RequireAuthorization(UserRoles.Admin);
