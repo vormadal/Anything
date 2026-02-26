@@ -21,3 +21,8 @@ jobs:
           -h https://captain.caprover.vormadal.com
           -a anything
           --appToken ${{ secrets.CAPROVER_APP_TOKEN }}
+      - name: Verify deploy
+        env:
+          APP_NAME: anything
+          CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
+        run: node .github/scripts/verify-deploy.js
