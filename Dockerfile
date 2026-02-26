@@ -22,7 +22,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl gnupg \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs nginx \
+    && apt-get install -y --no-install-recommends nodejs nginx libgssapi-krb5-2 \
     && apt-get purge -y curl gnupg \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
@@ -43,6 +43,7 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENV ASPNETCORE_HTTP_PORTS=5000
+ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 ENV ASPNETCORE_ENVIRONMENT=Production
 
