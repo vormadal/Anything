@@ -184,5 +184,7 @@ export function useCurrentUser() {
 // Check if user is authenticated
 export function useIsAuthenticated() {
   const { data: user } = useCurrentUser();
-  return !!user && !!getAccessToken();
+  // Fall back to localStorage directly when React Query hasn't resolved yet
+  // (e.g., after a page refresh when the in-memory cache is empty)
+  return (!!user || !!getUser()) && !!getAccessToken();
 }

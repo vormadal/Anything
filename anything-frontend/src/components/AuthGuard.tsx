@@ -2,25 +2,35 @@
 
 import { useIsAuthenticated } from "@/hooks/useAuth";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
+  const [isHydrated, setIsHydrated] = useState(false);
   const isAuthenticated = useIsAuthenticated();
   const router = useRouter();
   const pathname = usePathname();
 
+  // Wait for client-side hydration before making auth decisions.
+  // During SSR, localStorage is unavailable so auth state can't be determined.
   useEffect(() => {
-    // Public paths that don't require authentication
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
     const publicPaths = ["/login", "/register"];
     const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
     if (!isAuthenticated && !isPublicPath) {
       router.push("/login");
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [isHydrated, isAuthenticated, pathname, router]);
 
-  // Show loading or nothing while redirecting
-  if (!isAuthenticated && pathname !== "/login" && !pathname.startsWith("/register")) {
+  const isPublicPath = pathname === "/login" || pathname.startsWith("/register");
+
+  // Show loading while hydrating or while redirecting unauthenticated users
+  if (!isHydrated || (!isAuthenticated && !isPublicPath)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
