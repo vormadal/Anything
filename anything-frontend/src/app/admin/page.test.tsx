@@ -62,7 +62,7 @@ describe("AdminPage", () => {
       renderWithClient(<AdminPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("Admin Panel")).toBeInTheDocument();
+        expect(screen.getByText("Create invite links for new users")).toBeInTheDocument();
       });
       expect(screen.getByText("Create invite links for new users")).toBeInTheDocument();
       expect(screen.getByLabelText("Email Address")).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe("AdminPage", () => {
         expect(screen.getByText("Access Denied")).toBeInTheDocument();
       });
       expect(screen.getByText("You don't have permission to access this page.")).toBeInTheDocument();
-      expect(screen.queryByText("Admin Panel")).not.toBeInTheDocument();
+      expect(screen.queryByText("Create invite links for new users")).not.toBeInTheDocument();
     });
 
     it("should navigate to home when clicking 'Go to Home' button as non-admin", async () => {
@@ -104,21 +104,6 @@ describe("AdminPage", () => {
       expect(mockPush).toHaveBeenCalledWith("/");
     });
 
-    it("should navigate back to home when clicking back button as admin", async () => {
-      const user = userEvent.setup();
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" })
-      );
-      localStorage.setItem("accessToken", "test-token");
-
-      renderWithClient(<AdminPage />);
-
-      const backButton = screen.getByRole("button", { name: "← Back to Home" });
-      await user.click(backButton);
-
-      expect(mockPush).toHaveBeenCalledWith("/");
-    });
   });
 
   describe("Invite Creation", () => {
@@ -142,7 +127,7 @@ describe("AdminPage", () => {
       renderWithClient(<AdminPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("Admin Panel")).toBeInTheDocument();
+        expect(screen.getByText("Create invite links for new users")).toBeInTheDocument();
       });
 
       const emailInput = screen.getByLabelText("Email Address");
@@ -167,7 +152,7 @@ describe("AdminPage", () => {
       renderWithClient(<AdminPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("Admin Panel")).toBeInTheDocument();
+        expect(screen.getByText("Create invite links for new users")).toBeInTheDocument();
       });
 
       const createButton = screen.getByRole("button", { name: "Create Invite" });
@@ -238,7 +223,7 @@ describe("AdminPage", () => {
       renderWithClient(<AdminPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("Admin Panel")).toBeInTheDocument();
+        expect(screen.getByText("Create invite links for new users")).toBeInTheDocument();
       });
 
       const emailInput = screen.getByLabelText("Email Address");
@@ -271,7 +256,7 @@ describe("AdminPage", () => {
       renderWithClient(<AdminPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("Admin Panel")).toBeInTheDocument();
+        expect(screen.getByText("Create invite links for new users")).toBeInTheDocument();
       });
 
       expect(screen.getByText("How it works")).toBeInTheDocument();
@@ -291,7 +276,7 @@ describe("AdminPage", () => {
       renderWithClient(<AdminPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("Admin Panel")).toBeInTheDocument();
+        expect(screen.getByText("Create invite links for new users")).toBeInTheDocument();
       });
 
       const emailInput = screen.getByLabelText("Email Address");

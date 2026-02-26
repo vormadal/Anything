@@ -71,12 +71,11 @@ describe('RecipesPage', () => {
     mockUseLogout.mockReturnValue({ mutateAsync: jest.fn().mockResolvedValue(undefined), isPending: false })
   })
 
-  it('should render the page title and description', () => {
+  it('should render the page description', () => {
     mockRecipesGet.mockResolvedValue([])
 
     render(<RecipesPage />)
 
-    expect(screen.getByText('Recipes')).toBeInTheDocument()
     expect(screen.getByText('Manage your recipes')).toBeInTheDocument()
   })
 
@@ -232,23 +231,6 @@ describe('RecipesPage', () => {
     })
   })
 
-  it('should navigate to recipe via Open button', async () => {
-    const user = userEvent.setup()
-    const mockData = [{ id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' }]
-    mockRecipesGet.mockResolvedValue(mockData)
-
-    render(<RecipesPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Pasta')).toBeInTheDocument()
-    })
-
-    const openButton = screen.getByRole('button', { name: 'Open' })
-    await user.click(openButton)
-
-    expect(mockPush).toHaveBeenCalledWith('/recipes/1')
-  })
-
   it('should navigate to recipe when row is clicked', async () => {
     const user = userEvent.setup()
     const mockData = [{ id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' }]
@@ -264,17 +246,6 @@ describe('RecipesPage', () => {
     await user.click(row)
 
     expect(mockPush).toHaveBeenCalledWith('/recipes/1')
-  })
-
-  it('should show Admin Panel button for admin users', async () => {
-    mockUseCurrentUser.mockReturnValue({ data: { name: 'Admin User', role: 'Admin' } })
-    mockRecipesGet.mockResolvedValue([])
-
-    render(<RecipesPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Admin Panel' })).toBeInTheDocument()
-    })
   })
 
   it('should show loading state on create button while creating', async () => {

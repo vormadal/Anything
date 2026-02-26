@@ -3,6 +3,7 @@ import "./globals.css";
 import { QueryProvider } from "@/context/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthGuard } from "@/components/AuthGuard";
+import { AppLayout } from "@/components/AppLayout";
 
 export const metadata: Metadata = {
   title: "Anything App",
@@ -18,7 +19,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <QueryProvider>
-          <AuthGuard>{children}</AuthGuard>
+          <AuthGuard>
+            <AppLayout>{children}</AppLayout>
+          </AuthGuard>
         </QueryProvider>
         <Toaster />
       </body>

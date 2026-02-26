@@ -443,7 +443,7 @@ describe('ShoppingListDetailPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Almost done! 1 item remaining.')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Mark Rest as Complete' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument()
     })
   })
 
@@ -461,7 +461,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    expect(screen.queryByRole('button', { name: 'Mark Rest as Complete' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument()
   })
 
   it('should show all-checked banner when all items are checked', async () => {
@@ -492,10 +492,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Mark Rest as Complete' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Mark Rest as Complete' }))
+    await user.click(screen.getByRole('button', { name: 'Complete' }))
 
     await waitFor(() => {
       expect(mockCompletePost).toHaveBeenCalled()
@@ -514,10 +514,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Mark Rest as Complete' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Mark Rest as Complete' }))
+    await user.click(screen.getByRole('button', { name: 'Complete' }))
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/shopping-lists')
@@ -533,10 +533,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Mark Rest as Complete' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Mark Rest as Complete' }))
+    await user.click(screen.getByRole('button', { name: 'Complete' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to complete list. Please try again.')

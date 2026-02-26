@@ -50,12 +50,11 @@ describe('ShoppingListsPage', () => {
     localStorage.clear()
   })
 
-  it('should render the page title and description', () => {
+  it('should render the page description', () => {
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<ShoppingListsPage />)
 
-    expect(screen.getByText('Shopping Lists')).toBeInTheDocument()
     expect(screen.getByText('Manage your shopping lists')).toBeInTheDocument()
   })
 
@@ -210,23 +209,6 @@ describe('ShoppingListsPage', () => {
     })
   })
 
-  it('should navigate to list via Open button', async () => {
-    const user = userEvent.setup()
-    const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
-    mockShoppingListsGet.mockResolvedValue(mockData)
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Groceries')).toBeInTheDocument()
-    })
-
-    const openButton = screen.getByRole('button', { name: 'Open' })
-    await user.click(openButton)
-
-    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/1')
-  })
-
   it('should navigate to list when row is clicked', async () => {
     const user = userEvent.setup()
     const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
@@ -260,39 +242,6 @@ describe('ShoppingListsPage', () => {
     await user.keyboard('{Enter}')
 
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists/1')
-  })
-
-  it('should navigate to home when Home button is clicked', async () => {
-    const user = userEvent.setup()
-    mockShoppingListsGet.mockResolvedValue([])
-
-    render(<ShoppingListsPage />)
-
-    const homeButton = await screen.findByRole('button', { name: 'Home' })
-    await user.click(homeButton)
-
-    expect(mockPush).toHaveBeenCalledWith('/')
-  })
-
-  it('should show Admin Panel button for admin users', async () => {
-    localStorage.setItem('user', JSON.stringify({ email: 'admin@test.com', name: 'Admin', role: 'Admin' }))
-    mockShoppingListsGet.mockResolvedValue([])
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Admin Panel' })).toBeInTheDocument()
-    })
-  })
-
-  it('should not show Admin Panel button for regular users', async () => {
-    mockShoppingListsGet.mockResolvedValue([])
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'Admin Panel' })).not.toBeInTheDocument()
-    })
   })
 
   it('should show loading state on create button while creating', async () => {

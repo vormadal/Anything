@@ -172,345 +172,343 @@ export default function RecipeDetailPage() {
   const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <button
-                onClick={() => router.push("/recipes")}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-2 block"
-              >
-                ← Back to Recipes
-              </button>
-              {isEditingRecipe ? (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Recipe name"
-                    className="w-full px-3 py-2 text-2xl font-bold border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <input
-                    type="url"
-                    value={editLink}
-                    onChange={(e) => setEditLink(e.target.value)}
-                    placeholder="Recipe link (optional)"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <textarea
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                    placeholder="Notes (optional)"
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleSaveRecipe} disabled={updateRecipe.isPending}>
-                      {updateRecipe.isPending ? "Saving..." : "Save"}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setIsEditingRecipe(false)}>
-                      Cancel
-                    </Button>
-                  </div>
+    <div className="container mx-auto px-4 py-4 max-w-4xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <button
+              onClick={() => router.push("/recipes")}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-2 block"
+            >
+              &larr; Back to Recipes
+            </button>
+            {isEditingRecipe ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Recipe name"
+                  className="w-full px-3 py-2 text-xl font-bold border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <input
+                  type="url"
+                  value={editLink}
+                  onChange={(e) => setEditLink(e.target.value)}
+                  placeholder="Recipe link (optional)"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Notes (optional)"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSaveRecipe} disabled={updateRecipe.isPending}>
+                    {updateRecipe.isPending ? "Saving..." : "Save"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditingRecipe(false)}>
+                    Cancel
+                  </Button>
                 </div>
-              ) : (
-                <>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {recipe?.name ?? "Recipe"}
-                  </h1>
-                  {recipe?.link && isSafeUrl(recipe.link) && (
-                    <a
-                      href={recipe.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline text-sm mt-1 block"
-                    >
-                      {recipe.link}
-                    </a>
-                  )}
-                  {recipe?.notes && (
-                    <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm whitespace-pre-wrap">
-                      {recipe.notes}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {isEditMode && !isEditingRecipe && (
-                <Button variant="outline" size="sm" onClick={handleStartEditRecipe}>
-                  Edit Details
-                </Button>
-              )}
-              <Button
-                variant={isEditMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setIsEditMode(!isEditMode);
-                  setIsEditingRecipe(false);
-                }}
-              >
-                {isEditMode ? "Done" : "Edit"}
+              </div>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {recipe?.name ?? "Recipe"}
+                </h2>
+                {recipe?.link && isSafeUrl(recipe.link) && (
+                  <a
+                    href={recipe.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline text-sm mt-1 block"
+                  >
+                    {recipe.link}
+                  </a>
+                )}
+                {recipe?.notes && (
+                  <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm whitespace-pre-wrap">
+                    {recipe.notes}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {isEditMode && !isEditingRecipe && (
+              <Button variant="outline" size="sm" onClick={handleStartEditRecipe}>
+                Edit Details
               </Button>
-            </div>
-          </div>
-
-          {isLoading && (
-            <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-              Loading...
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-              Failed to load recipe. Make sure the API is running on port 5238.
-            </div>
-          )}
-
-          {/* Ingredients Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Ingredients
-            </h2>
-
-            {isEditMode && (
-              <form onSubmit={handleAddIngredient} className="mb-4">
-                <div className="flex gap-2 flex-wrap">
-                  <input
-                    type="text"
-                    value={newIngredientName}
-                    onChange={(e) => setNewIngredientName(e.target.value)}
-                    placeholder="Ingredient name"
-                    className="flex-1 min-w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <input
-                    type="number"
-                    value={newIngredientAmount}
-                    onChange={(e) => setNewIngredientAmount(e.target.value)}
-                    placeholder="Amount"
-                    className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    step="any"
-                  />
-                  <input
-                    type="text"
-                    value={newIngredientUnit}
-                    onChange={(e) => setNewIngredientUnit(e.target.value)}
-                    placeholder="Unit (optional)"
-                    className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <input
-                    type="text"
-                    value={newIngredientGroup}
-                    onChange={(e) => setNewIngredientGroup(e.target.value)}
-                    placeholder="Group (optional)"
-                    className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <Button type="submit" disabled={addIngredient.isPending}>
-                    {addIngredient.isPending ? "Adding..." : "Add"}
-                  </Button>
-                </div>
-              </form>
             )}
-
-            {ingredients && ingredients.length === 0 && (
-              <div className="text-center py-4 text-gray-600 dark:text-gray-400">
-                {isEditMode ? "No ingredients yet. Add some above!" : "No ingredients yet."}
-              </div>
-            )}
-
-            {ingredients && ingredients.length > 0 && (
-              <ul className="space-y-2">
-                {ingredients.map((ingredient) => (
-                  <li
-                    key={ingredient.id}
-                    className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                  >
-                    <span className="flex-1 text-gray-900 dark:text-white">
-                      {ingredient.amount} {ingredient.unit && `${ingredient.unit} `}{ingredient.name}
-                      {ingredient.group && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-                          ({ingredient.group})
-                        </span>
-                      )}
-                    </span>
-                    {isEditMode && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteIngredient(ingredient.id!)}
-                        disabled={deleteIngredient.isPending}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {/* Add to Shopping List */}
-            {ingredients && ingredients.length > 0 && shoppingLists && shoppingLists.length > 0 && (
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700 rounded-md">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Add to Shopping List
-                </h3>
-                <div className="flex gap-2 items-center">
-                  <select
-                    value={selectedShoppingListId}
-                    onChange={(e) => setSelectedShoppingListId(Number(e.target.value))}
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value={0}>Select a shopping list...</option>
-                    {shoppingLists.map((list) => (
-                      <option key={list.id} value={list.id ?? 0}>
-                        {list.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    onClick={handleAddToShoppingList}
-                    disabled={!selectedShoppingListId || addToShoppingList.isPending}
-                  >
-                    {addToShoppingList.isPending ? "Adding..." : "Add Ingredients"}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Steps Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Steps
-            </h2>
-
-            {isEditMode && (
-              <form onSubmit={handleAddStep} className="mb-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newStepText}
-                    onChange={(e) => setNewStepText(e.target.value)}
-                    placeholder="Step description..."
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <Button type="submit" disabled={addStep.isPending}>
-                    {addStep.isPending ? "Adding..." : "Add Step"}
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {sortedSteps.length === 0 && (
-              <div className="text-center py-4 text-gray-600 dark:text-gray-400">
-                {isEditMode ? "No steps yet. Add some above!" : "No steps yet."}
-              </div>
-            )}
-
-            {sortedSteps.length > 0 && (
-              <ol className="space-y-2 list-decimal list-inside">
-                {sortedSteps.map((step) => (
-                  <li
-                    key={step.id}
-                    className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                  >
-                    <span className="flex-1 text-gray-900 dark:text-white">
-                      {step.text}
-                    </span>
-                    {isEditMode && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteStep(step.id!)}
-                        disabled={deleteStep.isPending}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-
-          {/* Images Section */}
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Images
-            </h2>
-
-            {isEditMode && (
-              <form onSubmit={handleAddImage} className="mb-4">
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                    placeholder="Image URL..."
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <Button type="submit" disabled={addImage.isPending}>
-                    {addImage.isPending ? "Adding..." : "Add Image"}
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {images && images.length === 0 && (
-              <div className="text-center py-4 text-gray-600 dark:text-gray-400">
-                {isEditMode ? "No images yet. Add some above!" : "No images yet."}
-              </div>
-            )}
-
-            {images && images.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {images.map((image) => {
-                  const imageUrl = image.url ?? "";
-                  const safeSrc = isSafeUrl(imageUrl) ? imageUrl : "";
-                  const safeHref = isSafeUrl(imageUrl) ? imageUrl : "#";
-                  return (
-                  <div key={image.id} className="relative group">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={safeSrc}
-                      alt="Recipe image"
-                      className="w-full h-40 object-cover rounded-md border border-gray-200 dark:border-gray-700"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        target.style.display = "none";
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = "block";
-                      }}
-                    />
-                    <a
-                      href={safeHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hidden text-blue-600 dark:text-blue-400 hover:underline text-sm break-all p-2"
-                    >
-                      {image.url}
-                    </a>
-                    {isEditMode && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="mt-1 w-full"
-                        onClick={() => handleDeleteImage(image.id!)}
-                        disabled={deleteImage.isPending}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                  );
-                })}
-              </div>
-            )}
+            <Button
+              variant={isEditMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setIsEditMode(!isEditMode);
+                setIsEditingRecipe(false);
+              }}
+            >
+              {isEditMode ? "Done" : "Edit"}
+            </Button>
           </div>
         </div>
-      </main>
+
+        {isLoading && (
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+            Loading...
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
+            Failed to load recipe. Make sure the API is running on port 5238.
+          </div>
+        )}
+
+        {/* Ingredients Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Ingredients
+          </h3>
+
+          {isEditMode && (
+            <form onSubmit={handleAddIngredient} className="mb-4">
+              <div className="flex gap-2 flex-wrap">
+                <input
+                  type="text"
+                  value={newIngredientName}
+                  onChange={(e) => setNewIngredientName(e.target.value)}
+                  placeholder="Ingredient name"
+                  className="flex-1 min-w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <input
+                  type="number"
+                  value={newIngredientAmount}
+                  onChange={(e) => setNewIngredientAmount(e.target.value)}
+                  placeholder="Amount"
+                  className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  step="any"
+                />
+                <input
+                  type="text"
+                  value={newIngredientUnit}
+                  onChange={(e) => setNewIngredientUnit(e.target.value)}
+                  placeholder="Unit (optional)"
+                  className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <input
+                  type="text"
+                  value={newIngredientGroup}
+                  onChange={(e) => setNewIngredientGroup(e.target.value)}
+                  placeholder="Group (optional)"
+                  className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <Button type="submit" disabled={addIngredient.isPending}>
+                  {addIngredient.isPending ? "Adding..." : "Add"}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {ingredients && ingredients.length === 0 && (
+            <div className="text-center py-4 text-gray-600 dark:text-gray-400">
+              {isEditMode ? "No ingredients yet. Add some above!" : "No ingredients yet."}
+            </div>
+          )}
+
+          {ingredients && ingredients.length > 0 && (
+            <ul className="space-y-2">
+              {ingredients.map((ingredient) => (
+                <li
+                  key={ingredient.id}
+                  className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                >
+                  <span className="flex-1 text-gray-900 dark:text-white">
+                    {ingredient.amount} {ingredient.unit && `${ingredient.unit} `}{ingredient.name}
+                    {ingredient.group && (
+                      <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                        ({ingredient.group})
+                      </span>
+                    )}
+                  </span>
+                  {isEditMode && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteIngredient(ingredient.id!)}
+                      disabled={deleteIngredient.isPending}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Add to Shopping List */}
+          {ingredients && ingredients.length > 0 && shoppingLists && shoppingLists.length > 0 && (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700 rounded-md">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                Add to Shopping List
+              </h4>
+              <div className="flex gap-2 items-center">
+                <select
+                  value={selectedShoppingListId}
+                  onChange={(e) => setSelectedShoppingListId(Number(e.target.value))}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value={0}>Select a shopping list...</option>
+                  {shoppingLists.map((list) => (
+                    <option key={list.id} value={list.id ?? 0}>
+                      {list.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={handleAddToShoppingList}
+                  disabled={!selectedShoppingListId || addToShoppingList.isPending}
+                >
+                  {addToShoppingList.isPending ? "Adding..." : "Add Ingredients"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Steps Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Steps
+          </h3>
+
+          {isEditMode && (
+            <form onSubmit={handleAddStep} className="mb-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newStepText}
+                  onChange={(e) => setNewStepText(e.target.value)}
+                  placeholder="Step description..."
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <Button type="submit" disabled={addStep.isPending}>
+                  {addStep.isPending ? "Adding..." : "Add Step"}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {sortedSteps.length === 0 && (
+            <div className="text-center py-4 text-gray-600 dark:text-gray-400">
+              {isEditMode ? "No steps yet. Add some above!" : "No steps yet."}
+            </div>
+          )}
+
+          {sortedSteps.length > 0 && (
+            <ol className="space-y-2 list-decimal list-inside">
+              {sortedSteps.map((step) => (
+                <li
+                  key={step.id}
+                  className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                >
+                  <span className="flex-1 text-gray-900 dark:text-white">
+                    {step.text}
+                  </span>
+                  {isEditMode && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteStep(step.id!)}
+                      disabled={deleteStep.isPending}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
+        {/* Images Section */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Images
+          </h3>
+
+          {isEditMode && (
+            <form onSubmit={handleAddImage} className="mb-4">
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  placeholder="Image URL..."
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <Button type="submit" disabled={addImage.isPending}>
+                  {addImage.isPending ? "Adding..." : "Add Image"}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {images && images.length === 0 && (
+            <div className="text-center py-4 text-gray-600 dark:text-gray-400">
+              {isEditMode ? "No images yet. Add some above!" : "No images yet."}
+            </div>
+          )}
+
+          {images && images.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {images.map((image) => {
+                const imageUrl = image.url ?? "";
+                const safeSrc = isSafeUrl(imageUrl) ? imageUrl : "";
+                const safeHref = isSafeUrl(imageUrl) ? imageUrl : "#";
+                return (
+                <div key={image.id} className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={safeSrc}
+                    alt="Recipe image"
+                    className="w-full h-40 object-cover rounded-md border border-gray-200 dark:border-gray-700"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = "none";
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = "block";
+                    }}
+                  />
+                  <a
+                    href={safeHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hidden text-blue-600 dark:text-blue-400 hover:underline text-sm break-all p-2"
+                  >
+                    {image.url}
+                  </a>
+                  {isEditMode && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="mt-1 w-full"
+                      onClick={() => handleDeleteImage(image.id!)}
+                      disabled={deleteImage.isPending}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -21,7 +21,7 @@ export default function AdminPage() {
   // Check if user is admin
   if (user && !isAdmin(user.role)) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="flex items-center justify-center p-4 mt-20">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Access Denied
@@ -80,133 +80,122 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-4">
-          <Button variant="outline" onClick={() => router.push("/")}>
-            ← Back to Home
-          </Button>
-        </div>
+    <div className="container mx-auto px-4 py-4 max-w-4xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+        <p className="text-gray-600 dark:text-gray-300 mb-8">
+          Create invite links for new users
+        </p>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Admin Panel
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-8">
-            Create invite links for new users
-          </p>
-
-          <form onSubmit={handleSubmit} className="mb-8">
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Email Address
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="user@example.com"
-                    required
-                  />
-                  <Button type="submit" disabled={createInvite.isPending}>
-                    {createInvite.isPending ? "Creating..." : "Create Invite"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </form>
-
-          {inviteUrl && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4">
-              <h3 className="font-semibold text-green-800 dark:text-green-200 mb-2">
-                Invite Created!
-              </h3>
-              <p className="text-sm text-green-700 dark:text-green-300 mb-3">
-                Share this link with the invited user:
-              </p>
+        <form onSubmit={handleSubmit} className="mb-8">
+          <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Email Address
+              </label>
               <div className="flex gap-2">
                 <input
-                  type="text"
-                  readOnly
-                  value={inviteUrl}
-                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded text-sm"
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="user@example.com"
+                  required
                 />
-                <Button onClick={copyToClipboard} variant="outline" size="sm">
-                  Copy
+                <Button type="submit" disabled={createInvite.isPending}>
+                  {createInvite.isPending ? "Creating..." : "Create Invite"}
                 </Button>
               </div>
-              <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                This link will expire in 7 days.
-              </p>
             </div>
-          )}
-
-          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-            <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-              How it works
-            </h3>
-            <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
-              <li>Enter the email address of the person you want to invite</li>
-              <li>An invite link will be generated for that specific email</li>
-              <li>Copy and send the link to the user manually</li>
-              <li>The user can register using the link (valid for 7 days)</li>
-            </ul>
           </div>
-        </div>
+        </form>
 
-        <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Shopping List Recommendations
-          </h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            Review and approve item recommendations added by users. Approved items will appear as autocomplete suggestions.
-          </p>
-
-          {pendingRecommendations && pendingRecommendations.length === 0 && (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              No pending recommendations.
+        {inviteUrl && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4">
+            <h3 className="font-semibold text-green-800 dark:text-green-200 mb-2">
+              Invite Created!
+            </h3>
+            <p className="text-sm text-green-700 dark:text-green-300 mb-3">
+              Share this link with the invited user:
             </p>
-          )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={inviteUrl}
+                className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded text-sm"
+              />
+              <Button onClick={copyToClipboard} variant="outline" size="sm">
+                Copy
+              </Button>
+            </div>
+            <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+              This link will expire in 7 days.
+            </p>
+          </div>
+        )}
 
-          {pendingRecommendations && pendingRecommendations.length > 0 && (
-            <ul className="space-y-2">
-              {pendingRecommendations.map((rec) => (
-                <li
-                  key={rec.id}
-                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                >
-                  <span className="text-gray-900 dark:text-white">{rec.name}</span>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleApproveRecommendation(rec.id!)}
-                      disabled={approveRecommendation.isPending}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteRecommendation(rec.id!)}
-                      disabled={deleteRecommendation.isPending}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+          <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+            How it works
+          </h3>
+          <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+            <li>Enter the email address of the person you want to invite</li>
+            <li>An invite link will be generated for that specific email</li>
+            <li>Copy and send the link to the user manually</li>
+            <li>The user can register using the link (valid for 7 days)</li>
+          </ul>
         </div>
-      </main>
+      </div>
+
+      <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          Shopping List Recommendations
+        </h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
+          Review and approve item recommendations added by users. Approved items will appear as autocomplete suggestions.
+        </p>
+
+        {pendingRecommendations && pendingRecommendations.length === 0 && (
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            No pending recommendations.
+          </p>
+        )}
+
+        {pendingRecommendations && pendingRecommendations.length > 0 && (
+          <ul className="space-y-2">
+            {pendingRecommendations.map((rec) => (
+              <li
+                key={rec.id}
+                className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+              >
+                <span className="text-gray-900 dark:text-white">{rec.name}</span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleApproveRecommendation(rec.id!)}
+                    disabled={approveRecommendation.isPending}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteRecommendation(rec.id!)}
+                    disabled={deleteRecommendation.isPending}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

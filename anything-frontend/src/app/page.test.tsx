@@ -51,12 +51,11 @@ describe('Home Page Integration Tests', () => {
     localStorage.clear()
   })
 
-  it('should render the page with title and description', () => {
+  it('should render the page with description', () => {
     mockSomethingsGet.mockResolvedValue([])
 
     render(<Home />)
 
-    expect(screen.getByText('Anything')).toBeInTheDocument()
     expect(
       screen.getByText('Create anything you want - lists, inventory, and more')
     ).toBeInTheDocument()
