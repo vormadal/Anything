@@ -121,11 +121,11 @@ export default function RecipesPage() {
 
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-              Failed to load recipes. Make sure the API is running on port 5000.
+              Failed to load recipes. Make sure the API is running on port 5238.
             </div>
           )}
 
-          {recipes && recipes.length === 0 && (
+          {recipes?.length === 0 && (
             <div className="text-center py-8 text-gray-600 dark:text-gray-400">
               No recipes yet. Create your first one above!
             </div>

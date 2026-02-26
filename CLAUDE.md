@@ -33,12 +33,13 @@ Anything/
 
 ## Common Commands
 
+```bash
+aspire run              # Run with Aspire (starts PostgreSQL, Anything.API and anything-frontend)
+```
 ### Backend
 
 ```bash
 dotnet build                                          # Build solution
-dotnet run --project src/Anything.AppHost              # Run with Aspire (starts PostgreSQL)
-dotnet run --project src/Anything.API                  # Run API standalone
 dotnet ef migrations add <Name> --project src/Anything.API   # Create migration
 dotnet ef database update --project src/Anything.API         # Apply migrations
 ```
@@ -48,7 +49,6 @@ dotnet ef database update --project src/Anything.API         # Apply migrations
 ```bash
 cd anything-frontend
 npm install          # Install dependencies
-npm run dev          # Dev server at http://localhost:3000
 npm run build        # Production build
 npm run lint         # Run ESLint
 npm run test         # Run tests
@@ -71,7 +71,7 @@ npm run generate:api # Generate API client from Swagger (API must be running)
 ### Frontend
 
 - **Path alias:** `@/*` maps to `./src/*` in imports.
-- **API client:** Use `apiClient` from `@/lib/apiClient` for all API calls. It is a Kiota-generated typed client backed by `DefaultRequestAdapter` with `BaseBearerTokenAuthenticationProvider` — it automatically handles the base URL (`NEXT_PUBLIC_API_URL`, defaults to `http://localhost:5000`), `Content-Type: application/json`, and `Authorization: Bearer <token>` headers. All types (request/response models) come from the Kiota-generated models in `@/lib/api-client/models/index`. Use the fluent builder API: `apiClient.api.somethings.get()`, `apiClient.api.somethings.post(body)`, `apiClient.api.somethings.byId(id).put(body)`, etc. For auth-specific error handling, catch `ApiError` (exported from `@/lib/apiClient`, which re-exports Kiota's `DefaultApiError`) and inspect `err.responseStatusCode`. Never use raw `fetch` for API calls.
+- **API client:** Use `apiClient` from `@/lib/apiClient` for all API calls. It is a Kiota-generated typed client backed by `DefaultRequestAdapter` with `BaseBearerTokenAuthenticationProvider` — it automatically handles the base URL (`NEXT_PUBLIC_API_URL`, defaults to `http://localhost:5238`), `Content-Type: application/json`, and `Authorization: Bearer <token>` headers. All types (request/response models) come from the Kiota-generated models in `@/lib/api-client/models/index`. Use the fluent builder API: `apiClient.api.somethings.get()`, `apiClient.api.somethings.post(body)`, `apiClient.api.somethings.byId(id).put(body)`, etc. For auth-specific error handling, catch `ApiError` (exported from `@/lib/apiClient`, which re-exports Kiota's `DefaultApiError`) and inspect `err.responseStatusCode`. Never use raw `fetch` for API calls.
 - **React Query hooks:** Each entity gets a dedicated hook file in `src/hooks/` exporting `useQuery`/`useMutation` hooks (e.g., `useSomethings`, `useCreateSomething`). Mutations invalidate related query keys on success.
 - **Components:** Use Shadcn UI components in `src/components/ui/`. Add new ones manually from the Shadcn docs.
 - **Client components:** Hook files are marked `"use client"`.

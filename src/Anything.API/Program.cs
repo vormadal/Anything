@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Add PostgreSQL with Entity Framework
-builder.AddNpgsqlDbContext<ApplicationDbContext>("postgres");
+builder.AddNpgsqlDbContext<ApplicationDbContext>("anything");
 
 // Configure settings with validation
 builder.Services.AddOptions<JwtSettings>()
@@ -73,7 +73,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://localhost:3000")
+        policy.WithOrigins("http://localhost:3001", "https://localhost:3001")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -111,7 +111,7 @@ app.MapShoppingListEndpoints();
 app.MapRecipeEndpoints();
 app.MapRecommendationEndpoints();
 
-app.Run();
+await app.RunAsync();
 
 static async Task SeedAdminUserAsync(WebApplication app)
 {
@@ -120,7 +120,7 @@ static async Task SeedAdminUserAsync(WebApplication app)
     var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
     var adminSettings = scope.ServiceProvider.GetRequiredService<IOptions<AdminSettings>>().Value;
 
-    await db.Database.EnsureCreatedAsync();
+    await db.Database.MigrateAsync();
 
     // Skip admin creation if email or password is not configured
     if (string.IsNullOrWhiteSpace(adminSettings.Email) || string.IsNullOrWhiteSpace(adminSettings.Password))

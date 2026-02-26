@@ -46,7 +46,7 @@ dotnet run
 Once the API is running, fetch the swagger specification:
 
 ```bash
-curl http://localhost:5000/swagger/v1/swagger.json -o ../../swagger.json
+curl http://localhost:5238/swagger/v1/swagger.json -o ../../swagger.json
 ```
 
 ### Step 4: Regenerate the Kiota Client

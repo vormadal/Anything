@@ -7,7 +7,7 @@ import {
 import { DefaultRequestAdapter } from "@microsoft/kiota-bundle";
 import { createApiClient } from "@/lib/api-client/apiClient";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5238";
 const ACCESS_TOKEN_KEY = "accessToken";
 
 // Re-export Kiota's error class so hooks can catch it for status-specific handling

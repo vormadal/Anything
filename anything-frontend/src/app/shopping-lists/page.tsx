@@ -121,7 +121,7 @@ export default function ShoppingListsPage() {
 
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-              Failed to load shopping lists. Make sure the API is running on port 5000.
+              Failed to load shopping lists. Make sure the API is running on port 5238.
             </div>
           )}
 
@@ -134,18 +134,11 @@ export default function ShoppingListsPage() {
           {lists && lists.length > 0 && (
             <div className="space-y-2">
               {lists.map((list) => (
-                <div
+                <button
                   key={list.id}
-                  role="button"
-                  tabIndex={0}
-                  className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                  type="button"
+                  className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={() => router.push(`/shopping-lists/${list.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      router.push(`/shopping-lists/${list.id}`);
-                    }
-                  }}
                 >
                   <span className="flex-1 text-gray-900 dark:text-white font-medium">
                     {list.name}
@@ -174,7 +167,7 @@ export default function ShoppingListsPage() {
                   >
                     Delete
                   </Button>
-                </div>
+                </button>
               ))}
             </div>
           )}

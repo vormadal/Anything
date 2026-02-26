@@ -49,7 +49,7 @@ This is a monorepo containing:
 
 - .NET 10 SDK
 - Node.js 18+ and npm
-- PostgreSQL (or use Docker with Aspire)
+- Aspire
 
 ### Authentication Setup
 
@@ -84,42 +84,17 @@ The application uses JWT bearer token authentication. On first run, a default ad
 - Invite links expire after 7 days
 - The invited user must use the same email address when registering
 
-### Running the Backend
-
+### Running the app
+On first run, ensure you have setup a persistent password for the database.
+Otherwise the app will not start properly the second time, as passwords will no longer match.
 ```bash
-# Navigate to the solution root
-cd /path/to/Anything
-
-# Build the solution
-dotnet build
-
-# Run with Aspire (recommended)
 cd src/Anything.AppHost
-dotnet run
-
-# Or run the API directly
-cd src/Anything.API
-dotnet run
+dotnet user-secrets set Parameters:anything-postgres-password {some-strong-password}
 ```
-
-The API will be available at:
-- https://localhost:7000 (or check the console output)
-- Swagger UI: https://localhost:7000/swagger
-
-### Running the Frontend
 
 ```bash
-# Navigate to the frontend directory
-cd anything-frontend
-
-# Install dependencies
-npm install
-
-# Run the development server
-npm run dev
+aspire run
 ```
-
-The frontend will be available at http://localhost:3000
 
 ### Database Migrations
 
@@ -148,7 +123,7 @@ kiota generate \
   --language typescript \
   --class-name ApiClient \
   --namespace-name ApiClient \
-  --openapi http://localhost:5000/swagger/v1/swagger.json \
+  --openapi http://localhost:5238/swagger/v1/swagger.json \
   --output src/lib/api-client
 ```
 
