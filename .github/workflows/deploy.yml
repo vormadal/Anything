@@ -18,5 +18,5 @@ jobs:
         run: >
           caprover deploy
           -h https://captain.caprover.vormadal.com
-          -a ${{ secrets.CAPROVER_APP_NAME }}
+          -a anything
           --appToken ${{ secrets.CAPROVER_APP_TOKEN }}
