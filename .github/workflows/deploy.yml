@@ -1,0 +1,22 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g caprover
+      - name: Deploy to CapRover
+        run: >
+          caprover deploy
+          -h https://captain.caprover.vormadal.com
+          -a ${{ secrets.CAPROVER_APP_NAME }}
+          --appToken ${{ secrets.CAPROVER_APP_TOKEN }}
