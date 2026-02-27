@@ -13,8 +13,6 @@ public static class DependencyInjection
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("anything")));
 
-        builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
-
         return builder;
     }
 
