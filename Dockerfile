@@ -3,6 +3,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-api
 WORKDIR /src
 COPY Anything.slnx .
 COPY src/Anything.API/Anything.API.csproj src/Anything.API/
+COPY src/Anything.Application/Anything.Application.csproj src/Anything.Application/
+COPY src/Anything.Contracts/Anything.Contracts.csproj src/Anything.Contracts/
+COPY src/Anything.Core/Anything.Core.csproj src/Anything.Core/
+COPY src/Anything.Database/Anything.Database.csproj src/Anything.Database/
+COPY src/Anything.Mediator/Anything.Mediator.csproj src/Anything.Mediator/
 COPY src/Anything.ServiceDefaults/Anything.ServiceDefaults.csproj src/Anything.ServiceDefaults/
 RUN dotnet restore src/Anything.API/Anything.API.csproj
 COPY src/ src/
