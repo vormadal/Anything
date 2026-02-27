@@ -1,5 +1,6 @@
 using Anything.Core.Repositories;
 using Anything.Database.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -9,7 +10,11 @@ public static class DependencyInjection
 {
     public static IHostApplicationBuilder AddDatabase(this IHostApplicationBuilder builder)
     {
-        builder.AddNpgsqlDbContext<ApplicationDbContext>("anything");
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseNpgsql(builder.Configuration.GetConnectionString("anything")));
+
+        builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
+
         return builder;
     }
 
