@@ -114,29 +114,12 @@ static async Task SeedAdminUser(WebApplication app)
     var adminSettings = scope.ServiceProvider.GetRequiredService<IOptions<AdminSettings>>().Value;
     var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseMigration");
 
-    // Retry migration with exponential backoff to handle production environments
-    // where the database may not be immediately available (e.g., Docker without Aspire's WaitFor)
-    const int maxRetries = 5;
-    for (var attempt = 1; attempt <= maxRetries; attempt++)
-    {
-        try
-        {
-            var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
-            if (pending.Count > 0)
-                logger.LogInformation("Applying {Count} pending migration(s): {Migrations}", pending.Count, string.Join(", ", pending));
+    var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+    if (pending.Count > 0)
+        logger.LogInformation("Applying {Count} pending migration(s): {Migrations}", pending.Count, string.Join(", ", pending));
 
-            await db.Database.MigrateAsync();
-            logger.LogInformation("Database migration completed successfully");
-            break;
-        }
-        catch (Exception ex) when (attempt < maxRetries)
-        {
-            var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-            logger.LogWarning(ex, "Database migration attempt {Attempt}/{MaxRetries} failed. Retrying in {Delay}s...",
-                attempt, maxRetries, delay.TotalSeconds);
-            await Task.Delay(delay);
-        }
-    }
+    await db.Database.MigrateAsync();
+    logger.LogInformation("Database migration completed successfully");
 
     // Skip admin creation if email or password is not configured
     if (string.IsNullOrWhiteSpace(adminSettings.Email) || string.IsNullOrWhiteSpace(adminSettings.Password))
