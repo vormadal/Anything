@@ -41,13 +41,13 @@ jobs:
           ${{ runner.os }}-nuget-
     
     - name: Restore dependencies
-      run: dotnet restore
-    
+      run: dotnet restore tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj
+
     - name: Build solution
-      run: dotnet build --no-restore --configuration Release
-    
+      run: dotnet build tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj --no-restore --configuration Release
+
     - name: Run tests
-      run: dotnet test --no-build --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage" --results-directory ./TestResults -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+      run: dotnet test tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj --no-build --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage" --results-directory ./TestResults -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
     
     - name: Upload test results
       uses: actions/upload-artifact@v6
@@ -111,7 +111,7 @@ jobs:
           /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs,**/ServiceDefaults/**"
     
     - name: Build solution
-      run: dotnet build --configuration Release
+      run: dotnet build tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj --configuration Release
     
     - name: End SonarCloud scan
       env:

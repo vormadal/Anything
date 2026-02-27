@@ -112,8 +112,14 @@ static async Task SeedAdminUser(WebApplication app)
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
     var adminSettings = scope.ServiceProvider.GetRequiredService<IOptions<AdminSettings>>().Value;
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseMigration");
+
+    var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+    if (pending.Count > 0)
+        logger.LogInformation("Applying {Count} pending migration(s): {Migrations}", pending.Count, string.Join(", ", pending));
 
     await db.Database.MigrateAsync();
+    logger.LogInformation("Database migration completed successfully");
 
     // Skip admin creation if email or password is not configured
     if (string.IsNullOrWhiteSpace(adminSettings.Email) || string.IsNullOrWhiteSpace(adminSettings.Password))
