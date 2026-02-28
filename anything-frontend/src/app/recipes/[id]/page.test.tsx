@@ -158,11 +158,12 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    const editButton = screen.getByRole('button', { name: 'Edit' })
+    const editButton = screen.getByRole('button', { name: 'Edit recipe' })
     await user.click(editButton)
 
-    expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Edit Details' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
+    // Title/link/notes are directly editable; no separate "Edit Details" button
+    expect(screen.queryByRole('button', { name: 'Edit Details' })).not.toBeInTheDocument()
   })
 
   it('should not show Edit Details button in view mode', async () => {
@@ -181,13 +182,13 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
     expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Amount')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Qty')).toBeInTheDocument()
   })
 
   it('should add an ingredient in edit mode', async () => {
@@ -197,16 +198,16 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
     await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
-    await user.type(screen.getByPlaceholderText('Amount'), '2')
-    await user.type(screen.getByPlaceholderText('Unit (optional)'), 'cups')
+    await user.type(screen.getByPlaceholderText('Qty'), '2')
+    await user.type(screen.getByPlaceholderText('Unit'), 'cups')
 
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
 
     await waitFor(() => {
       expect(mockIngredientsPost).toHaveBeenCalledWith({
@@ -226,12 +227,12 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
-    await user.type(screen.getByPlaceholderText('Amount'), '2')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await user.type(screen.getByPlaceholderText('Qty'), '2')
+    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
 
     expect(mockIngredientsPost).not.toHaveBeenCalled()
   })
@@ -242,13 +243,13 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
     await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
     // No amount entered
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
 
     expect(mockIngredientsPost).not.toHaveBeenCalled()
   })
@@ -260,13 +261,13 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
     await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
-    await user.type(screen.getByPlaceholderText('Amount'), '2')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.type(screen.getByPlaceholderText('Qty'), '2')
+    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to add ingredient. Please try again.')
@@ -286,9 +287,9 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText(/Flour/)).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
-    const removeButton = screen.getByRole('button', { name: 'Remove' })
+    const removeButton = screen.getByRole('button', { name: 'Remove ingredient' })
     await user.click(removeButton)
 
     await waitFor(() => {
@@ -306,13 +307,13 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
     await user.type(screen.getByPlaceholderText('Step description...'), 'Mix ingredients')
-    await user.click(screen.getByRole('button', { name: 'Add Step' }))
+    await user.click(screen.getByRole('button', { name: 'Add step' }))
 
     await waitFor(() => {
       expect(mockStepsPost).toHaveBeenCalledWith({ text: 'Mix ingredients', order: 1 })
@@ -328,12 +329,12 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
     await user.type(screen.getByPlaceholderText('Step description...'), 'Mix')
-    await user.click(screen.getByRole('button', { name: 'Add Step' }))
+    await user.click(screen.getByRole('button', { name: 'Add step' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to add step. Please try again.')
@@ -353,10 +354,10 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Preheat oven')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
-    // The Remove button for steps
-    const removeButtons = screen.getAllByRole('button', { name: 'Remove' })
+    // The Remove step button
+    const removeButtons = screen.getAllByRole('button', { name: 'Remove step' })
     await user.click(removeButtons[0])
 
     await waitFor(() => {
@@ -374,12 +375,12 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
     await user.type(screen.getByPlaceholderText('Image URL...'), 'https://example.com/img.jpg')
-    await user.click(screen.getByRole('button', { name: 'Add Image' }))
+    await user.click(screen.getByRole('button', { name: 'Add image' }))
 
     await waitFor(() => {
       expect(mockImagesPost).toHaveBeenCalledWith({ url: 'https://example.com/img.jpg' })
@@ -401,9 +402,9 @@ describe('RecipeDetailPage', () => {
       expect(screen.getAllByAltText('Recipe image').length).toBeGreaterThan(0)
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
-    const removeButton = screen.getByRole('button', { name: 'Remove' })
+    const removeButton = screen.getByRole('button', { name: 'Remove image' })
     await user.click(removeButton)
 
     await waitFor(() => {
@@ -435,14 +436,15 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Add to Shopping List')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Add to Shopping List/i })).toBeInTheDocument()
     })
 
-    const select = screen.getByRole('combobox')
-    await userEvent.selectOptions(select, '1')
+    // Open the dialog
+    await user.click(screen.getByRole('button', { name: /Add to Shopping List/i }))
 
-    const addButton = screen.getByRole('button', { name: 'Add Ingredients' })
-    await user.click(addButton)
+    // Click the shopping list button in the dialog
+    const listButton = await screen.findByRole('button', { name: 'My List' })
+    await user.click(listButton)
 
     await waitFor(() => {
       expect(mockById).toHaveBeenCalledWith(1)
@@ -462,14 +464,15 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Add to Shopping List')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Add to Shopping List/i })).toBeInTheDocument()
     })
 
-    const select = screen.getByRole('combobox')
-    await userEvent.selectOptions(select, '1')
+    // Open the dialog
+    await user.click(screen.getByRole('button', { name: /Add to Shopping List/i }))
 
-    const addButton = screen.getByRole('button', { name: 'Add Ingredients' })
-    await user.click(addButton)
+    // Click the shopping list button in the dialog
+    const listButton = await screen.findByRole('button', { name: 'My List' })
+    await user.click(listButton)
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to add ingredients to shopping list. Please try again.')
