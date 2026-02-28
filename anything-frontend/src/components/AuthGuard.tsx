@@ -2,19 +2,19 @@
 
 import { useIsAuthenticated } from "@/hooks/useAuth";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [isHydrated, setIsHydrated] = useState(false);
+  // useSyncExternalStore is the recommended SSR-safe hydration check:
+  // getServerSnapshot returns false (server), getSnapshot returns true (client).
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const isAuthenticated = useIsAuthenticated();
   const router = useRouter();
   const pathname = usePathname();
-
-  // Wait for client-side hydration before making auth decisions.
-  // During SSR, localStorage is unavailable so auth state can't be determined.
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
 
   useEffect(() => {
     if (!isHydrated) return;
