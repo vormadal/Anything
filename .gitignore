@@ -24,10 +24,8 @@ bld/
 [Ll]og/
 [Ll]ogs/
 # Artifact paths with Windows-style backslash separators (created by dotnet tools on Linux)
-src/Anything.API/bin\Debug/
-src/Anything.API/bin\
-src/Anything.Database/bin\Debug/
-src/Anything.Database/bin\
+# Note: \\ matches a literal backslash in gitignore patterns
+src/**/bin\\
 
 # .NET Core
 project.lock.json
