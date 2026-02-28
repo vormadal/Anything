@@ -1,3 +1,4 @@
+import React from 'react'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
@@ -41,6 +42,7 @@ jest.mock('@/lib/apiClient', () => ({
 // Mock PageActionsContext
 const mockSetHeaderActions = jest.fn()
 jest.mock('@/context/PageActionsContext', () => ({
+  PageActionsProvider: ({ children }: { children: React.ReactNode }) => children,
   useHeaderActions: () => ({
     headerActions: null,
     hideTitle: false,

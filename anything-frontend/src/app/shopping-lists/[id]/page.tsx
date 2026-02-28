@@ -155,7 +155,6 @@ export default function ShoppingListDetailPage() {
       </div>
     );
     return () => setHeaderActions(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditMode, setHeaderActions]);
 
   return (

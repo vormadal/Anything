@@ -50,14 +50,6 @@ describe('ShoppingListsPage', () => {
     localStorage.clear()
   })
 
-  it('should render the page description', () => {
-    mockShoppingListsGet.mockResolvedValue([])
-
-    render(<ShoppingListsPage />)
-
-    expect(screen.getByText('Manage your shopping lists')).toBeInTheDocument()
-  })
-
   it('should display loading state initially', () => {
     mockShoppingListsGet.mockImplementation(() => new Promise(() => { /* never resolves */ }))
 
@@ -82,7 +74,7 @@ describe('ShoppingListsPage', () => {
     render(<ShoppingListsPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('No shopping lists yet. Create your first one above!')).toBeInTheDocument()
+      expect(screen.getByText('No shopping lists yet.')).toBeInTheDocument()
     })
   })
 
@@ -101,6 +93,18 @@ describe('ShoppingListsPage', () => {
     })
   })
 
+  it('should open create form when plus button is clicked', async () => {
+    const user = userEvent.setup()
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<ShoppingListsPage />)
+
+    const plusButton = screen.getByRole('button', { name: 'Create shopping list' })
+    await user.click(plusButton)
+
+    expect(screen.getByPlaceholderText('List name...')).toBeInTheDocument()
+  })
+
   it('should create a new list and navigate to it', async () => {
     const user = userEvent.setup()
     const mockNewList = { id: 3, name: 'Party Supplies', createdOn: '2024-01-03T00:00:00Z' }
@@ -109,15 +113,12 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await waitFor(() => {
-      expect(screen.getByText('No shopping lists yet. Create your first one above!')).toBeInTheDocument()
-    })
+    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
 
-    const input = screen.getByPlaceholderText('New shopping list name...')
+    const input = screen.getByPlaceholderText('List name...')
     await user.type(input, 'Party Supplies')
 
-    const createButton = screen.getByRole('button', { name: 'Create List' })
-    await user.click(createButton)
+    await user.click(screen.getByRole('button', { name: 'Create' }))
 
     await waitFor(() => {
       expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies' })
@@ -125,7 +126,6 @@ describe('ShoppingListsPage', () => {
 
     expect(toast.success).toHaveBeenCalledWith('Shopping list created')
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists/3')
-    expect(input).toHaveValue('')
   })
 
   it('should not submit when list name is empty', async () => {
@@ -134,12 +134,9 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await waitFor(() => {
-      expect(screen.getByText('No shopping lists yet. Create your first one above!')).toBeInTheDocument()
-    })
+    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
 
-    const createButton = screen.getByRole('button', { name: 'Create List' })
-    await user.click(createButton)
+    await user.click(screen.getByRole('button', { name: 'Create' }))
 
     expect(mockShoppingListsPost).not.toHaveBeenCalled()
   })
@@ -151,22 +148,48 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await waitFor(() => {
-      expect(screen.getByText('No shopping lists yet. Create your first one above!')).toBeInTheDocument()
-    })
+    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
 
-    const input = screen.getByPlaceholderText('New shopping list name...')
-    await user.type(input, 'Fail List')
+    await user.type(screen.getByPlaceholderText('List name...'), 'Fail List')
 
-    const createButton = screen.getByRole('button', { name: 'Create List' })
-    await user.click(createButton)
+    await user.click(screen.getByRole('button', { name: 'Create' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to create shopping list. Please try again.')
     })
   })
 
-  it('should delete a list when delete button is clicked', async () => {
+  it('should cancel create form when Cancel is clicked', async () => {
+    const user = userEvent.setup()
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<ShoppingListsPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
+    expect(screen.getByPlaceholderText('List name...')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByPlaceholderText('List name...')).not.toBeInTheDocument()
+  })
+
+  it('should enter edit mode when edit button is clicked', async () => {
+    const user = userEvent.setup()
+    const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
+    mockShoppingListsGet.mockResolvedValue(mockData)
+
+    render(<ShoppingListsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Groceries')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit lists' }))
+
+    expect(screen.getByRole('button', { name: 'Delete list' })).toBeInTheDocument()
+  })
+
+  it('should delete a list when delete button is clicked in edit mode', async () => {
     const user = userEvent.setup()
     const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
     mockShoppingListsGet.mockResolvedValueOnce(mockData).mockResolvedValueOnce([])
@@ -178,8 +201,8 @@ describe('ShoppingListsPage', () => {
       expect(screen.getByText('Groceries')).toBeInTheDocument()
     })
 
-    const deleteButton = screen.getByRole('button', { name: 'Delete' })
-    await user.click(deleteButton)
+    await user.click(screen.getByRole('button', { name: 'Edit lists' }))
+    await user.click(screen.getByRole('button', { name: 'Delete list' }))
 
     await waitFor(() => {
       expect(mockShoppingListsById).toHaveBeenCalledWith(1)
@@ -201,8 +224,8 @@ describe('ShoppingListsPage', () => {
       expect(screen.getByText('Groceries')).toBeInTheDocument()
     })
 
-    const deleteButton = screen.getByRole('button', { name: 'Delete' })
-    await user.click(deleteButton)
+    await user.click(screen.getByRole('button', { name: 'Edit lists' }))
+    await user.click(screen.getByRole('button', { name: 'Delete list' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete shopping list. Please try again.')
@@ -226,7 +249,7 @@ describe('ShoppingListsPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists/1')
   })
 
-  it('should navigate to list when Enter key pressed on row', async () => {
+  it('should not navigate when row is clicked in edit mode', async () => {
     const user = userEvent.setup()
     const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
     mockShoppingListsGet.mockResolvedValue(mockData)
@@ -237,14 +260,15 @@ describe('ShoppingListsPage', () => {
       expect(screen.getByText('Groceries')).toBeInTheDocument()
     })
 
-    const row = screen.getByRole('button', { name: /Groceries/ })
-    row.focus()
-    await user.keyboard('{Enter}')
+    await user.click(screen.getByRole('button', { name: 'Edit lists' }))
 
-    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/1')
+    const row = screen.getByRole('button', { name: /Groceries/ })
+    await user.click(row)
+
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
-  it('should show loading state on create button while creating', async () => {
+  it('should show creating state on create button while submitting', async () => {
     const user = userEvent.setup()
     mockShoppingListsGet.mockResolvedValue([])
     mockShoppingListsPost.mockImplementation(
@@ -253,15 +277,9 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await waitFor(() => {
-      expect(screen.getByText('No shopping lists yet. Create your first one above!')).toBeInTheDocument()
-    })
-
-    const input = screen.getByPlaceholderText('New shopping list name...')
-    await user.type(input, 'Test')
-
-    const createButton = screen.getByRole('button', { name: 'Create List' })
-    await user.click(createButton)
+    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
+    await user.type(screen.getByPlaceholderText('List name...'), 'Test')
+    await user.click(screen.getByRole('button', { name: 'Create' }))
 
     expect(screen.getByRole('button', { name: 'Creating...' })).toBeInTheDocument()
   })
