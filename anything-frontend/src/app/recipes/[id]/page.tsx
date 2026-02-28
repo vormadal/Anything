@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Check, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Trash2, Plus, Check, Pencil, ShoppingCart } from "lucide-react";
 import {
   useRecipe,
   useRecipeIngredients,
@@ -9,6 +16,7 @@ import {
   useRecipeImages,
   useUpdateRecipe,
   useAddRecipeIngredient,
+  useUpdateRecipeIngredient,
   useDeleteRecipeIngredient,
   useAddRecipeStep,
   useDeleteRecipeStep,
@@ -30,20 +38,27 @@ export default function RecipeDetailPage() {
     url.startsWith("http://") || url.startsWith("https://");
 
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isEditingRecipe, setIsEditingRecipe] = useState(false);
+
+  // Recipe header fields (editable directly in edit mode)
   const [editName, setEditName] = useState("");
   const [editLink, setEditLink] = useState("");
   const [editNotes, setEditNotes] = useState("");
 
+  // New ingredient form
   const [newIngredientName, setNewIngredientName] = useState("");
   const [newIngredientAmount, setNewIngredientAmount] = useState("");
   const [newIngredientUnit, setNewIngredientUnit] = useState("");
+
+  // Per-ingredient inline edit state: maps ingredientId -> {name, amount, unit}
+  const [editingIngredients, setEditingIngredients] = useState<
+    Record<number, { name: string; amount: string; unit: string }>
+  >({});
 
   const [newStepText, setNewStepText] = useState("");
 
   const [newImageUrl, setNewImageUrl] = useState("");
 
-  const [selectedShoppingListId, setSelectedShoppingListId] = useState<number>(0);
+  const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
 
   const { data: recipe, isLoading, error } = useRecipe(recipeId);
   const { data: ingredients } = useRecipeIngredients(recipeId);
@@ -53,6 +68,7 @@ export default function RecipeDetailPage() {
 
   const updateRecipe = useUpdateRecipe();
   const addIngredient = useAddRecipeIngredient(recipeId);
+  const updateIngredient = useUpdateRecipeIngredient(recipeId);
   const deleteIngredient = useDeleteRecipeIngredient(recipeId);
   const addStep = useAddRecipeStep(recipeId);
   const deleteStep = useDeleteRecipeStep(recipeId);
@@ -60,25 +76,75 @@ export default function RecipeDetailPage() {
   const deleteImage = useDeleteRecipeImage(recipeId);
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
 
-  const handleStartEditRecipe = () => {
+  const handleEnterEditMode = () => {
     setEditName(recipe?.name ?? "");
     setEditLink(recipe?.link ?? "");
     setEditNotes(recipe?.notes ?? "");
-    setIsEditingRecipe(true);
+    setEditingIngredients({});
+    setIsEditMode(true);
   };
 
-  const handleSaveRecipe = async () => {
+  const handleExitEditMode = async () => {
+    // Save recipe header changes
+    const nameChanged = editName !== (recipe?.name ?? "");
+    const linkChanged = editLink !== (recipe?.link ?? "");
+    const notesChanged = editNotes !== (recipe?.notes ?? "");
+    if (nameChanged || linkChanged || notesChanged) {
+      try {
+        await updateRecipe.mutateAsync({
+          id: recipeId,
+          name: editName,
+          link: editLink || null,
+          notes: editNotes || null,
+        });
+        toast.success("Recipe updated");
+      } catch {
+        toast.error("Failed to update recipe. Please try again.");
+      }
+    }
+    setIsEditMode(false);
+    setEditingIngredients({});
+  };
+
+  const handleIngredientFieldChange = (
+    ingredientId: number,
+    field: "name" | "amount" | "unit",
+    value: string
+  ) => {
+    setEditingIngredients((prev) => ({
+      ...prev,
+      [ingredientId]: {
+        ...(prev[ingredientId] ?? {
+          name: ingredients?.find((i) => i.id === ingredientId)?.name ?? "",
+          amount: String(ingredients?.find((i) => i.id === ingredientId)?.amount ?? ""),
+          unit: ingredients?.find((i) => i.id === ingredientId)?.unit ?? "",
+        }),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveIngredient = async (ingredientId: number) => {
+    const edits = editingIngredients[ingredientId];
+    if (!edits) return;
+    const parsedAmount = Number(edits.amount);
+    if (!edits.name.trim() || isNaN(parsedAmount) || parsedAmount <= 0) return;
+
     try {
-      await updateRecipe.mutateAsync({
-        id: recipeId,
-        name: editName,
-        link: editLink || null,
-        notes: editNotes || null,
+      await updateIngredient.mutateAsync({
+        ingredientId,
+        name: edits.name,
+        amount: parsedAmount,
+        unit: edits.unit || null,
       });
-      setIsEditingRecipe(false);
-      toast.success("Recipe updated");
+      setEditingIngredients((prev) => {
+        const next = { ...prev };
+        delete next[ingredientId];
+        return next;
+      });
+      toast.success("Ingredient updated");
     } catch {
-      toast.error("Failed to update recipe. Please try again.");
+      toast.error("Failed to update ingredient. Please try again.");
     }
   };
 
@@ -156,11 +222,10 @@ export default function RecipeDetailPage() {
     }
   };
 
-  const handleAddToShoppingList = async () => {
-    if (!selectedShoppingListId) return;
-
+  const handleAddToShoppingList = async (shoppingListId: number) => {
     try {
-      await addToShoppingList.mutateAsync(selectedShoppingListId);
+      await addToShoppingList.mutateAsync(shoppingListId);
+      setShoppingListDialogOpen(false);
       toast.success("Ingredients added to shopping list");
     } catch {
       toast.error("Failed to add ingredients to shopping list. Please try again.");
@@ -173,14 +238,14 @@ export default function RecipeDetailPage() {
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
         <div className="flex justify-between items-start mb-6">
-          <div>
+          <div className="flex-1 min-w-0 pr-4">
             <button
               onClick={() => router.push("/recipes")}
               className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-2 block"
             >
               &larr; Back to Recipes
             </button>
-            {isEditingRecipe ? (
+            {isEditMode ? (
               <div className="space-y-2">
                 <input
                   type="text"
@@ -203,14 +268,6 @@ export default function RecipeDetailPage() {
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSaveRecipe} disabled={updateRecipe.isPending}>
-                    {updateRecipe.isPending ? "Saving..." : "Save"}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setIsEditingRecipe(false)}>
-                    Cancel
-                  </Button>
-                </div>
               </div>
             ) : (
               <>
@@ -235,19 +292,12 @@ export default function RecipeDetailPage() {
               </>
             )}
           </div>
-          <div className="flex gap-2">
-            {isEditMode && !isEditingRecipe && (
-              <Button variant="outline" size="icon" onClick={handleStartEditRecipe} aria-label="Edit details">
-                <Pencil className="h-4 w-4" />
-              </Button>
-            )}
+          <div className="flex gap-2 shrink-0">
             <Button
               variant={isEditMode ? "default" : "outline"}
               size="icon"
-              onClick={() => {
-                setIsEditMode(!isEditMode);
-                setIsEditingRecipe(false);
-              }}
+              onClick={isEditMode ? handleExitEditMode : handleEnterEditMode}
+              disabled={updateRecipe.isPending}
               aria-label={isEditMode ? "Done editing" : "Edit recipe"}
             >
               {isEditMode ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
@@ -313,57 +363,107 @@ export default function RecipeDetailPage() {
 
           {ingredients && ingredients.length > 0 && (
             <ul className="space-y-2">
-              {ingredients.map((ingredient) => (
-                <li
-                  key={ingredient.id}
-                  className="flex items-center gap-2 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                >
-                  <span className="flex-1 min-w-0 text-gray-900 dark:text-white text-sm truncate">
-                    {ingredient.amount} {ingredient.unit && `${ingredient.unit} `}{ingredient.name}
-                  </span>
-                  {isEditMode && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteIngredient(ingredient.id!)}
-                      disabled={deleteIngredient.isPending}
-                      aria-label="Remove ingredient"
-                      className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </li>
-              ))}
+              {ingredients.map((ingredient) => {
+                const id = ingredient.id!;
+                const edits = editingIngredients[id];
+                return (
+                  <li
+                    key={id}
+                    className="flex items-center gap-1 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                  >
+                    {isEditMode ? (
+                      <>
+                        <input
+                          type="number"
+                          value={edits?.amount ?? String(ingredient.amount ?? "")}
+                          onChange={(e) => handleIngredientFieldChange(id, "amount", e.target.value)}
+                          placeholder="Qty"
+                          aria-label="Ingredient quantity"
+                          className="w-14 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                          step="any"
+                        />
+                        <input
+                          type="text"
+                          value={edits?.unit ?? (ingredient.unit ?? "")}
+                          onChange={(e) => handleIngredientFieldChange(id, "unit", e.target.value)}
+                          placeholder="Unit"
+                          aria-label="Ingredient unit"
+                          className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                        />
+                        <input
+                          type="text"
+                          value={edits?.name ?? (ingredient.name ?? "")}
+                          onChange={(e) => handleIngredientFieldChange(id, "name", e.target.value)}
+                          placeholder="Ingredient name"
+                          aria-label="Ingredient name"
+                          className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                        />
+                        {edits && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleSaveIngredient(id)}
+                            disabled={updateIngredient.isPending}
+                            aria-label="Save ingredient"
+                            className="shrink-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteIngredient(id)}
+                          disabled={deleteIngredient.isPending}
+                          aria-label="Remove ingredient"
+                          className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="flex-1 min-w-0 text-gray-900 dark:text-white text-sm truncate">
+                        {ingredient.amount} {ingredient.unit && `${ingredient.unit} `}{ingredient.name}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
-          {/* Add to Shopping List */}
-          {ingredients && ingredients.length > 0 && shoppingLists && shoppingLists.length > 0 && (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700 rounded-md">
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                Add to Shopping List
-              </h4>
-              <div className="flex gap-2 items-center">
-                <select
-                  value={selectedShoppingListId}
-                  onChange={(e) => setSelectedShoppingListId(Number(e.target.value))}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value={0}>Select a shopping list...</option>
-                  {shoppingLists.map((list) => (
-                    <option key={list.id} value={list.id ?? 0}>
-                      {list.name}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  onClick={handleAddToShoppingList}
-                  disabled={!selectedShoppingListId || addToShoppingList.isPending}
-                >
-                  {addToShoppingList.isPending ? "Adding..." : "Add Ingredients"}
-                </Button>
-              </div>
+          {/* Add to Shopping List - read mode only */}
+          {!isEditMode && ingredients && ingredients.length > 0 && shoppingLists && shoppingLists.length > 0 && (
+            <div className="mt-4">
+              <Dialog open={shoppingListDialogOpen} onOpenChange={setShoppingListDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    Add to Shopping List
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add ingredients to shopping list</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Select a shopping list to add all ingredients to:
+                  </p>
+                  <ul className="space-y-2">
+                    {shoppingLists.map((list) => (
+                      <li key={list.id}>
+                        <button
+                          onClick={() => handleAddToShoppingList(list.id!)}
+                          disabled={addToShoppingList.isPending}
+                          className="w-full text-left px-4 py-3 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          {list.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </div>
