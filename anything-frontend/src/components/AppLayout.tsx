@@ -20,6 +20,8 @@ import {
   CookingPot,
   Shield,
   LogOut,
+  UserPlus,
+  ListChecks,
 } from "lucide-react";
 import {
   PageActionsProvider,
@@ -41,7 +43,9 @@ function getPageTitle(pathname: string): string {
   if (pathname === "/recipes") return "Recipes";
   if (pathname === "/recipes/new") return "New Recipe";
   if (pathname.startsWith("/recipes/")) return "Recipe";
-  if (pathname === "/admin") return "Admin";
+  if (pathname === "/admin/invite") return "Invite Users";
+  if (pathname === "/admin/recommendations") return "Recommendations";
+  if (pathname.startsWith("/admin")) return "Admin";
   return "Anything";
 }
 
@@ -133,17 +137,34 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             })}
 
             {user && isAdmin(user.role) && (
-              <button
-                onClick={() => navigate("/admin")}
-                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive("/admin")
-                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                <Shield className="h-5 w-5 shrink-0" />
-                Admin
-              </button>
+              <div className="pt-3">
+                <p className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <Shield className="h-3.5 w-3.5" />
+                  Admin
+                </p>
+                <button
+                  onClick={() => navigate("/admin/invite")}
+                  className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive("/admin/invite")
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+                >
+                  <UserPlus className="h-4 w-4 shrink-0" />
+                  Invite Users
+                </button>
+                <button
+                  onClick={() => navigate("/admin/recommendations")}
+                  className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive("/admin/recommendations")
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+                >
+                  <ListChecks className="h-4 w-4 shrink-0" />
+                  Recommendations
+                </button>
+              </div>
             )}
           </nav>
 
