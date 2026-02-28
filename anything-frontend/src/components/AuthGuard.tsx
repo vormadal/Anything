@@ -2,19 +2,19 @@
 
 import { useIsAuthenticated } from "@/hooks/useAuth";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [isHydrated, setIsHydrated] = useState(false);
+  // useSyncExternalStore is the recommended SSR-safe hydration check:
+  // getServerSnapshot returns false (server), getSnapshot returns true (client).
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const isAuthenticated = useIsAuthenticated();
   const router = useRouter();
   const pathname = usePathname();
-
-  // Wait for client-side hydration before making auth decisions.
-  // During SSR, localStorage is unavailable so auth state can't be determined.
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -26,6 +26,28 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       router.push("/login");
     }
   }, [isHydrated, isAuthenticated, pathname, router]);
+
+  const isRedirecting = useRef(false);
+
+  // Redirect to login with current path when a 401 is detected (token expired)
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      if (isRedirecting.current) return;
+      const publicPaths = ["/login", "/register"];
+      const isPublicPath = publicPaths.some((path) =>
+        pathname.startsWith(path)
+      );
+      if (!isPublicPath) {
+        isRedirecting.current = true;
+        router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      }
+    };
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, [pathname, router]);
 
   const isPublicPath = pathname === "/login" || pathname.startsWith("/register");
 

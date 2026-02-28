@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useLogin } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const login = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +24,8 @@ export default function LoginPage() {
     try {
       await login.mutateAsync({ email, password });
       toast.success("Login successful");
-      router.push("/");
+      const redirect = searchParams.get("redirect");
+      router.push(redirect ?? "/");
     } catch (err) {
       const error = err as Error;
       toast.error(error.message || "Login failed");

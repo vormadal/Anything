@@ -28,9 +28,13 @@ jest.mock('@/lib/apiClient', () => {
 
 // Mock next/navigation
 const mockPush = jest.fn();
+const mockGet = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
+  }),
+  useSearchParams: () => ({
+    get: mockGet,
   }),
 }));
 
@@ -38,6 +42,7 @@ describe("LoginPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    mockGet.mockReturnValue(null);
   });
 
   it("should render login form", () => {
@@ -75,6 +80,33 @@ describe("LoginPage", () => {
     });
 
     expect(localStorage.getItem("accessToken")).toBe("test-access-token");
+  });
+
+  it("should redirect to the 'redirect' query param after successful login", async () => {
+    const mockLoginResponse = {
+      accessToken: "test-access-token",
+      refreshToken: "test-refresh-token",
+      email: "admin@anything.local",
+      name: "Administrator",
+      role: "Admin",
+    };
+
+    mockLoginPost.mockResolvedValueOnce(mockLoginResponse);
+    mockGet.mockReturnValue("/shopping-lists");
+
+    renderWithClient(<LoginPage />);
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+    const submitButton = screen.getByRole("button", { name: /sign in/i });
+
+    fireEvent.change(emailInput, { target: { value: "admin@anything.local" } });
+    fireEvent.change(passwordInput, { target: { value: "Admin123!" } });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/shopping-lists");
+    });
   });
 
   it("should display error on failed login", async () => {
