@@ -1,3 +1,4 @@
+using Anything.Core.Entities;
 using Anything.Database;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -69,19 +70,18 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.Somethings.RemoveRange(db.Somethings);
-        db.ShoppingListItems.RemoveRange(db.ShoppingListItems);
-        db.ShoppingLists.RemoveRange(db.ShoppingLists);
-        db.ShoppingListRecommendations.RemoveRange(db.ShoppingListRecommendations);
-        db.InventoryItems.RemoveRange(db.InventoryItems);
-        db.InventoryBoxes.RemoveRange(db.InventoryBoxes);
-        db.InventoryStorageUnits.RemoveRange(db.InventoryStorageUnits);
-        db.RecipeImages.RemoveRange(db.RecipeImages);
-        db.RecipeIngredients.RemoveRange(db.RecipeIngredients);
-        db.RecipeSteps.RemoveRange(db.RecipeSteps);
-        db.Recipes.RemoveRange(db.Recipes);
-        db.RefreshTokens.RemoveRange(db.RefreshTokens);
-        db.UserInvites.RemoveRange(db.UserInvites);
+
+        // Truncate all tables except Users in one shot — CASCADE handles FK ordering automatically.
+        // This way no new lines are needed when new entities are added.
+        var tableNames = db.Model.GetEntityTypes()
+            .Where(t => t.ClrType != typeof(User))
+            .Select(t => $"\"{t.GetTableName()}\"")
+            .Distinct()
+            .ToList();
+
+        await db.Database.ExecuteSqlRawAsync(
+            $"TRUNCATE {string.Join(", ", tableNames)} RESTART IDENTITY CASCADE");
+
         // Remove all non-admin users to avoid conflicts between tests
         db.Users.RemoveRange(db.Users.Where(u => u.Email != AdminEmail));
         await db.SaveChangesAsync();
