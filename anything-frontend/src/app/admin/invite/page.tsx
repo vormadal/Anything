@@ -69,6 +69,7 @@ export default function AdminInvitePage() {
 
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col sm:flex-row gap-2">
+            <label htmlFor="email" className="sr-only">Email Address</label>
             <input
               id="email"
               type="email"
@@ -102,7 +103,7 @@ export default function AdminInvitePage() {
                 value={inviteData.url}
                 className="flex-1 min-w-0 px-3 py-2 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded text-xs text-gray-700 dark:text-gray-300"
               />
-              <Button onClick={copyToClipboard} variant="outline" size="sm" className="shrink-0">
+              <Button onClick={copyToClipboard} variant="outline" size="sm" className="shrink-0" aria-label="Copy invite link">
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
