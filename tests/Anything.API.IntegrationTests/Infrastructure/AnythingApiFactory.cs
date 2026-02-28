@@ -76,6 +76,8 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         db.InventoryItems.RemoveRange(db.InventoryItems);
         db.InventoryBoxes.RemoveRange(db.InventoryBoxes);
         db.InventoryStorageUnits.RemoveRange(db.InventoryStorageUnits);
+        db.FoodPlanEntries.RemoveRange(db.FoodPlanEntries);
+        db.FoodPlans.RemoveRange(db.FoodPlans);
         db.RecipeImages.RemoveRange(db.RecipeImages);
         db.RecipeIngredients.RemoveRange(db.RecipeIngredients);
         db.RecipeSteps.RemoveRange(db.RecipeSteps);
