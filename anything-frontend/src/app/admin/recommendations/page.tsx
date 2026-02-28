@@ -66,7 +66,7 @@ export default function AdminRecommendationsPage() {
           </p>
         ) : (
           <ul className="space-y-2">
-            {pendingRecommendations.map((rec) => (
+            {pendingRecommendations.filter((rec) => rec.id !== null && rec.name !== null).map((rec) => (
               <li
                 key={rec.id}
                 className="flex items-center justify-between gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
@@ -80,6 +80,7 @@ export default function AdminRecommendationsPage() {
                     onClick={() => handleApprove(rec.id!)}
                     disabled={approveRecommendation.isPending}
                     className="bg-green-600 hover:bg-green-700 text-white px-3"
+                    aria-label="Approve"
                   >
                     <Check className="h-4 w-4 sm:mr-1" />
                     <span className="hidden sm:inline">Approve</span>
@@ -90,6 +91,7 @@ export default function AdminRecommendationsPage() {
                     onClick={() => handleReject(rec.id!)}
                     disabled={deleteRecommendation.isPending}
                     className="px-3"
+                    aria-label="Reject"
                   >
                     <X className="h-4 w-4 sm:mr-1" />
                     <span className="hidden sm:inline">Reject</span>
