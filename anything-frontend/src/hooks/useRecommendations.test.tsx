@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
 import {
   useApprovedRecommendations,
+  useAllRecommendations,
   usePendingRecommendations,
   useApproveRecommendation,
   useDeleteRecommendation,
@@ -10,6 +11,7 @@ import {
 
 const mockApprovedGet = jest.fn()
 const mockPendingGet = jest.fn()
+const mockAllGet = jest.fn()
 const mockApprovePost = jest.fn()
 const mockDeleteFn = jest.fn()
 const mockApprove = { post: mockApprovePost }
@@ -20,6 +22,7 @@ jest.mock('@/lib/apiClient', () => ({
     api: {
       shoppingListRecommendations: {
         get: (...args: unknown[]) => mockApprovedGet(...args),
+        all: { get: (...args: unknown[]) => mockAllGet(...args) },
         pending: { get: (...args: unknown[]) => mockPendingGet(...args) },
         byId: (...args: unknown[]) => mockItemById(...args),
       },
@@ -67,6 +70,35 @@ describe('useRecommendations hooks', () => {
       mockApprovedGet.mockRejectedValueOnce(new Error('Network error'))
 
       const { result } = renderHook(() => useApprovedRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+    })
+  })
+
+  describe('useAllRecommendations', () => {
+    it('fetches all recommendations ordered alphabetically', async () => {
+      const mockAll = [
+        { id: 2, name: 'Bread', isApproved: true },
+        { id: 3, name: 'Cheese', isApproved: false },
+        { id: 1, name: 'Milk', isApproved: true },
+      ]
+      mockAllGet.mockResolvedValueOnce(mockAll)
+
+      const { result } = renderHook(() => useAllRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(result.current.data).toEqual(mockAll)
+      expect(mockAllGet).toHaveBeenCalledTimes(1)
+    })
+
+    it('handles fetch error', async () => {
+      mockAllGet.mockRejectedValueOnce(new Error('Network error'))
+
+      const { result } = renderHook(() => useAllRecommendations(), {
         wrapper: createWrapper(),
       })
 

@@ -3,6 +3,8 @@
 // @ts-ignore
 import { createShoppingListRecommendationFromDiscriminatorValue, type ShoppingListRecommendation } from '../../models/index';
 // @ts-ignore
+import { AllRequestBuilderRequestsMetadata, type AllRequestBuilder } from './all/index';
+// @ts-ignore
 import { ShoppingListRecommendationsItemRequestBuilderNavigationMetadata, ShoppingListRecommendationsItemRequestBuilderRequestsMetadata, type ShoppingListRecommendationsItemRequestBuilder } from './item/index';
 // @ts-ignore
 import { PendingRequestBuilderRequestsMetadata, type PendingRequestBuilder } from './pending/index';
@@ -13,6 +15,10 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  * Builds and executes requests for operations under /api/shopping-list-recommendations
  */
 export interface ShoppingListRecommendationsRequestBuilder extends BaseRequestBuilder<ShoppingListRecommendationsRequestBuilder> {
+    /**
+     * The all property
+     */
+    get all(): AllRequestBuilder;
     /**
      * Gets an item from the ApiSdk.api.shoppingListRecommendations.item collection
      * @param id Unique identifier of the item
@@ -42,6 +48,9 @@ export const ShoppingListRecommendationsRequestBuilderUriTemplate = "{+baseurl}/
  * Metadata for all the navigation properties in the request builder.
  */
 export const ShoppingListRecommendationsRequestBuilderNavigationMetadata: Record<Exclude<keyof ShoppingListRecommendationsRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
+    all: {
+        requestsMetadata: AllRequestBuilderRequestsMetadata,
+    },
     byId: {
         requestsMetadata: ShoppingListRecommendationsItemRequestBuilderRequestsMetadata,
         navigationMetadata: ShoppingListRecommendationsItemRequestBuilderNavigationMetadata,

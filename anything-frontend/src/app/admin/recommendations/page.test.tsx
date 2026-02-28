@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 // Mock the apiClient module
 const mockPendingGet = jest.fn();
+const mockAllGet = jest.fn();
 const mockApprovePost = jest.fn();
 const mockDeleteFn = jest.fn();
 
@@ -14,6 +15,7 @@ jest.mock("@/lib/apiClient", () => ({
     api: {
       shoppingListRecommendations: {
         pending: { get: (...args: unknown[]) => mockPendingGet(...args) },
+        all: { get: (...args: unknown[]) => mockAllGet(...args) },
         get: jest.fn().mockResolvedValue([]),
         byId: (id: number) => ({
           approve: { post: (...args: unknown[]) => mockApprovePost(id, ...args) },
@@ -56,6 +58,7 @@ describe("AdminRecommendationsPage", () => {
       );
       localStorage.setItem("accessToken", "test-token");
       mockPendingGet.mockResolvedValueOnce([]);
+      mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<AdminRecommendationsPage />);
 
@@ -73,6 +76,7 @@ describe("AdminRecommendationsPage", () => {
       );
       localStorage.setItem("accessToken", "test-token");
       mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<AdminRecommendationsPage />);
 
@@ -92,6 +96,7 @@ describe("AdminRecommendationsPage", () => {
       );
       localStorage.setItem("accessToken", "test-token");
       mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<AdminRecommendationsPage />);
 
@@ -115,6 +120,7 @@ describe("AdminRecommendationsPage", () => {
 
     it("should display empty state when no pending recommendations", async () => {
       mockPendingGet.mockResolvedValueOnce([]);
+      mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<AdminRecommendationsPage />);
 
@@ -131,6 +137,7 @@ describe("AdminRecommendationsPage", () => {
         { id: 1, name: null },
         { id: 2, name: "valid item" },
       ]);
+      mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<AdminRecommendationsPage />);
 
@@ -153,6 +160,7 @@ describe("AdminRecommendationsPage", () => {
     it("should approve a recommendation successfully", async () => {
       const user = userEvent.setup();
       mockPendingGet.mockResolvedValue([{ id: 1, name: "Apple" }]);
+      mockAllGet.mockResolvedValue([]);
       mockApprovePost.mockResolvedValueOnce({});
 
       renderWithClient(<AdminRecommendationsPage />);
@@ -172,6 +180,7 @@ describe("AdminRecommendationsPage", () => {
     it("should show error toast when approval fails", async () => {
       const user = userEvent.setup();
       mockPendingGet.mockResolvedValue([{ id: 1, name: "Apple" }]);
+      mockAllGet.mockResolvedValue([]);
       mockApprovePost.mockRejectedValueOnce(new Error("Server error"));
 
       renderWithClient(<AdminRecommendationsPage />);
@@ -202,6 +211,7 @@ describe("AdminRecommendationsPage", () => {
     it("should reject a recommendation successfully", async () => {
       const user = userEvent.setup();
       mockPendingGet.mockResolvedValue([{ id: 2, name: "Banana" }]);
+      mockAllGet.mockResolvedValue([]);
       mockDeleteFn.mockResolvedValueOnce({});
 
       renderWithClient(<AdminRecommendationsPage />);
@@ -221,6 +231,7 @@ describe("AdminRecommendationsPage", () => {
     it("should show error toast when rejection fails", async () => {
       const user = userEvent.setup();
       mockPendingGet.mockResolvedValue([{ id: 2, name: "Banana" }]);
+      mockAllGet.mockResolvedValue([]);
       mockDeleteFn.mockRejectedValueOnce(new Error("Server error"));
 
       renderWithClient(<AdminRecommendationsPage />);
@@ -235,6 +246,69 @@ describe("AdminRecommendationsPage", () => {
         expect(toast.error).toHaveBeenCalledWith(
           "Failed to reject recommendation."
         );
+      });
+    });
+  });
+
+  describe("All Recommendations Tab", () => {
+    beforeEach(() => {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" })
+      );
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("should show all recommendations when clicking All tab", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([
+        { id: 2, name: "Bread", isApproved: true },
+        { id: 3, name: "Cheese", isApproved: false },
+        { id: 1, name: "Milk", isApproved: true },
+      ]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await user.click(screen.getByRole("button", { name: /^All/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Bread")).toBeInTheDocument();
+        expect(screen.getByText("Cheese")).toBeInTheDocument();
+        expect(screen.getByText("Milk")).toBeInTheDocument();
+      });
+    });
+
+    it("should show approved/pending status badges in all tab", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([
+        { id: 1, name: "Apple", isApproved: true },
+        { id: 2, name: "Banana", isApproved: false },
+      ]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await user.click(screen.getByRole("button", { name: /^All/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Approved")).toBeInTheDocument();
+        // "Pending" appears as both a tab button and a status badge
+        expect(screen.getAllByText("Pending").length).toBeGreaterThanOrEqual(2);
+      });
+    });
+
+    it("should show empty state when no recommendations exist", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await user.click(screen.getByRole("button", { name: /^All/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText("No recommendations yet.")).toBeInTheDocument();
       });
     });
   });

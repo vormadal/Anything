@@ -12,6 +12,14 @@ export function useApprovedRecommendations() {
   });
 }
 
+export function useAllRecommendations() {
+  return useQuery({
+    queryKey: ["shoppingListRecommendations", "all"],
+    queryFn: () =>
+      apiClient.api.shoppingListRecommendations.all.get() as Promise<ShoppingListRecommendation[]>,
+  });
+}
+
 export function usePendingRecommendations() {
   return useQuery({
     queryKey: ["shoppingListRecommendations", "pending"],
