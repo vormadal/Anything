@@ -51,7 +51,7 @@ public static class ShoppingListEndpoints
 
         group.MapPost("/{id}/items", async (int id, CreateShoppingListItemRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new AddShoppingListItemCommand(id, request.Name));
+            return await mediator.Send(new AddShoppingListItemCommand(id, request.Name, request.Amount, request.Unit));
         })
         .WithName("AddShoppingListItem")
         .WithParameterValidation()
@@ -59,7 +59,7 @@ public static class ShoppingListEndpoints
 
         group.MapPut("/{id}/items/{itemId}", async (int id, int itemId, UpdateShoppingListItemRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateShoppingListItemCommand(id, itemId, request.Name, request.IsChecked));
+            return await mediator.Send(new UpdateShoppingListItemCommand(id, itemId, request.Name, request.IsChecked, request.Amount, request.Unit));
         })
         .WithName("UpdateShoppingListItem")
         .WithParameterValidation()

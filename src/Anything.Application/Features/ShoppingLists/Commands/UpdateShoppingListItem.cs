@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Anything.Application.Features.ShoppingLists.Commands;
 
-public record UpdateShoppingListItemCommand(int ShoppingListId, int ItemId, string Name, bool IsChecked) : IRequest<IResult>;
+public record UpdateShoppingListItemCommand(int ShoppingListId, int ItemId, string Name, bool IsChecked, decimal? Amount, string? Unit) : IRequest<IResult>;
 
 public class UpdateShoppingListItemHandler(IRepository<ShoppingListItem> repository, IUnitOfWork unitOfWork)
     : IRequestHandler<UpdateShoppingListItemCommand, IResult>
@@ -18,6 +18,8 @@ public class UpdateShoppingListItemHandler(IRepository<ShoppingListItem> reposit
 
         item.Name = command.Name;
         item.IsChecked = command.IsChecked;
+        item.Amount = command.Amount;
+        item.Unit = command.Unit;
         item.ModifiedOn = DateTime.UtcNow;
 
         await unitOfWork.SaveChanges(ct);

@@ -29,6 +29,9 @@ jest.mock('@/lib/apiClient', () => ({
       shoppingLists: {
         byId: (...args: unknown[]) => mockById(...args),
       },
+      shoppingListRecommendations: {
+        get: jest.fn().mockResolvedValue([]),
+      },
     },
   },
 }))
@@ -128,6 +131,23 @@ describe('ShoppingListDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Uncheck item' })).toBeInTheDocument()
   })
 
+  it('should display amount and unit next to item name', async () => {
+    const mockItems = [
+      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1, amount: 2, unit: 'l' },
+      { id: 2, name: 'Eggs', isChecked: false, shoppingListId: 1, amount: 12, unit: null },
+    ]
+    mockItemsGet.mockResolvedValue(mockItems)
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Milk')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('2 l')).toBeInTheDocument()
+    expect(screen.getByText('12×')).toBeInTheDocument()
+  })
+
   it('should toggle item check when clicked with more than 3 unchecked items', async () => {
     const user = userEvent.setup()
     const mockItems = [
@@ -150,7 +170,7 @@ describe('ShoppingListDetailPage', () => {
 
     await waitFor(() => {
       expect(mockItemsItemById).toHaveBeenCalledWith(1)
-      expect(mockItemsItemPut).toHaveBeenCalledWith({ name: 'Milk', isChecked: true })
+      expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', isChecked: true }))
     })
   })
 
@@ -276,11 +296,37 @@ describe('ShoppingListDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add item' }))
 
     await waitFor(() => {
-      expect(mockItemsPost).toHaveBeenCalledWith({ name: 'Butter' })
+      expect(mockItemsPost).toHaveBeenCalledWith(expect.objectContaining({ name: 'Butter' }))
     })
 
     expect(toast.success).toHaveBeenCalledWith('Item added')
     expect(input).toHaveValue('')
+  })
+
+  it('should add an item with amount and unit', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    mockItemsPost.mockResolvedValueOnce({ id: 5, name: 'Milk', isChecked: false, shoppingListId: 1, amount: 2, unit: 'l' })
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+
+    await user.type(screen.getByPlaceholderText('Add an item...'), 'Milk')
+    await user.type(screen.getByPlaceholderText('Qty'), '2')
+    await user.type(screen.getByPlaceholderText('Unit'), 'l')
+
+    await user.click(screen.getByRole('button', { name: 'Add item' }))
+
+    await waitFor(() => {
+      expect(mockItemsPost).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', amount: 2, unit: 'l' }))
+    })
+
+    expect(toast.success).toHaveBeenCalledWith('Item added')
   })
 
   it('should not submit add item form when name is empty', async () => {
@@ -407,10 +453,36 @@ describe('ShoppingListDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save item' }))
 
     await waitFor(() => {
-      expect(mockItemsItemPut).toHaveBeenCalledWith({ name: 'Whole Milk', isChecked: false })
+      expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Whole Milk', isChecked: false }))
     })
 
     expect(toast.success).toHaveBeenCalledWith('Item updated')
+  })
+
+  it('should save item with updated amount and unit', async () => {
+    const user = userEvent.setup()
+    const mockItems = [{ id: 1, name: 'Milk', isChecked: false, shoppingListId: 1, amount: 1, unit: 'l' }]
+    mockItemsGet.mockResolvedValue(mockItems)
+    mockItemsItemPut.mockResolvedValueOnce(undefined)
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Milk')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await user.click(screen.getByRole('button', { name: /Milk/i }))
+
+    const qtyInput = screen.getByDisplayValue('1')
+    await user.clear(qtyInput)
+    await user.type(qtyInput, '2')
+
+    await user.click(screen.getByRole('button', { name: 'Save item' }))
+
+    await waitFor(() => {
+      expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', amount: 2, unit: 'l' }))
+    })
   })
 
   it('should cancel rename when Escape key is pressed', async () => {
@@ -456,7 +528,7 @@ describe('ShoppingListDetailPage', () => {
     await user.keyboard('{Enter}')
 
     await waitFor(() => {
-      expect(mockItemsItemPut).toHaveBeenCalledWith({ name: 'Skim Milk', isChecked: false })
+      expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Skim Milk', isChecked: false }))
     })
   })
 

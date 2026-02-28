@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.ShoppingLists.Commands;
 
-public record AddShoppingListItemCommand(int ShoppingListId, string Name) : IRequest<IResult>;
+public record AddShoppingListItemCommand(int ShoppingListId, string Name, decimal? Amount, string? Unit) : IRequest<IResult>;
 
 public class AddShoppingListItemHandler(
     IRepository<ShoppingList> listRepository,
@@ -23,7 +23,9 @@ public class AddShoppingListItemHandler(
         var item = new ShoppingListItem
         {
             ShoppingListId = command.ShoppingListId,
-            Name = command.Name
+            Name = command.Name,
+            Amount = command.Amount,
+            Unit = command.Unit
         };
 
         itemRepository.Add(item);
