@@ -199,12 +199,12 @@ describe('useShoppingLists hooks', () => {
       })
 
       await act(async () => {
-        result.current.mutate('Milk')
+        result.current.mutate({ name: 'Milk' })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockItemsPost).toHaveBeenCalledWith({ name: 'Milk' })
+      expect(mockItemsPost).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk' }))
     })
   })
 
@@ -223,7 +223,7 @@ describe('useShoppingLists hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(mockItemsItemById).toHaveBeenCalledWith(2)
-      expect(mockItemsItemPut).toHaveBeenCalledWith({ name: 'Milk', isChecked: true })
+      expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', isChecked: true }))
     })
   })
 
