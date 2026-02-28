@@ -83,6 +83,10 @@ The tests use Testcontainers to automatically spin up a PostgreSQL instance in D
 - `InventoryStorageUnitEndpointTests.cs` - Tests for the InventoryStorageUnit entity CRUD operations
 - `InventoryBoxEndpointTests.cs` - Tests for the InventoryBox entity CRUD operations
 - `InventoryItemEndpointTests.cs` - Tests for the InventoryItem entity CRUD operations
+- `RecipeEndpointTests.cs` - Tests for the Recipe entity CRUD operations and shopping list integration
+- `ShoppingListEndpointTests.cs` - Tests for the ShoppingList CRUD operations and item management (including Amount/Unit fields)
+- `ShoppingListRecommendationEndpointTests.cs` - Tests for the ShoppingListRecommendation approval workflow
+- `FoodPlanEndpointTests.cs` - Tests for the FoodPlan CRUD operations and shopping list integration
 - `Infrastructure/` - Test infrastructure (test base class, fixtures, API factory)
 - `ApiClient/` - Auto-generated Kiota API client (do not manually edit)
 
