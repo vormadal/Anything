@@ -18,6 +18,13 @@ public static class RecommendationEndpoints
         .WithName("GetApprovedRecommendations")
         .RequireAuthorization();
 
+        group.MapGet("/all", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new GetAllRecommendationsQuery());
+        })
+        .WithName("GetAllRecommendations")
+        .RequireAuthorization(UserRoles.Admin);
+
         group.MapGet("/pending", async (IMediator mediator) =>
         {
             return await mediator.Send(new GetPendingRecommendationsQuery());
