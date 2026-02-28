@@ -261,7 +261,7 @@ export default function ShoppingListDetailPage() {
                   </button>
                 )}
 
-                {isEditMode && editingItem?.id === item.id ? (
+                {isEditMode && editingItem !== null && editingItem.id === item.id ? (
                   <>
                     <input
                       type="text"
