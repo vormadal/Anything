@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Trash2, Plus, Check, Pencil } from "lucide-react";
 import {
   useRecipe,
   useRecipeIngredients,
@@ -37,7 +38,6 @@ export default function RecipeDetailPage() {
   const [newIngredientName, setNewIngredientName] = useState("");
   const [newIngredientAmount, setNewIngredientAmount] = useState("");
   const [newIngredientUnit, setNewIngredientUnit] = useState("");
-  const [newIngredientGroup, setNewIngredientGroup] = useState("");
 
   const [newStepText, setNewStepText] = useState("");
 
@@ -92,12 +92,10 @@ export default function RecipeDetailPage() {
         name: newIngredientName,
         amount: parsedAmount,
         unit: newIngredientUnit || undefined,
-        group: newIngredientGroup || undefined,
       });
       setNewIngredientName("");
       setNewIngredientAmount("");
       setNewIngredientUnit("");
-      setNewIngredientGroup("");
       toast.success("Ingredient added");
     } catch {
       toast.error("Failed to add ingredient. Please try again.");
@@ -239,19 +237,20 @@ export default function RecipeDetailPage() {
           </div>
           <div className="flex gap-2">
             {isEditMode && !isEditingRecipe && (
-              <Button variant="outline" size="sm" onClick={handleStartEditRecipe}>
-                Edit Details
+              <Button variant="outline" size="icon" onClick={handleStartEditRecipe} aria-label="Edit details">
+                <Pencil className="h-4 w-4" />
               </Button>
             )}
             <Button
               variant={isEditMode ? "default" : "outline"}
-              size="sm"
+              size="icon"
               onClick={() => {
                 setIsEditMode(!isEditMode);
                 setIsEditingRecipe(false);
               }}
+              aria-label={isEditMode ? "Done editing" : "Edit recipe"}
             >
-              {isEditMode ? "Done" : "Edit"}
+              {isEditMode ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -276,38 +275,31 @@ export default function RecipeDetailPage() {
 
           {isEditMode && (
             <form onSubmit={handleAddIngredient} className="mb-4">
-              <div className="flex gap-2 flex-wrap">
-                <input
-                  type="text"
-                  value={newIngredientName}
-                  onChange={(e) => setNewIngredientName(e.target.value)}
-                  placeholder="Ingredient name"
-                  className="flex-1 min-w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
+              <div className="flex gap-1 items-center">
                 <input
                   type="number"
                   value={newIngredientAmount}
                   onChange={(e) => setNewIngredientAmount(e.target.value)}
-                  placeholder="Amount"
-                  className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Qty"
+                  className="w-14 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                   step="any"
                 />
                 <input
                   type="text"
                   value={newIngredientUnit}
                   onChange={(e) => setNewIngredientUnit(e.target.value)}
-                  placeholder="Unit (optional)"
-                  className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Unit"
+                  className="w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                 />
                 <input
                   type="text"
-                  value={newIngredientGroup}
-                  onChange={(e) => setNewIngredientGroup(e.target.value)}
-                  placeholder="Group (optional)"
-                  className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  value={newIngredientName}
+                  onChange={(e) => setNewIngredientName(e.target.value)}
+                  placeholder="Ingredient name"
+                  className="flex-1 min-w-0 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                 />
-                <Button type="submit" disabled={addIngredient.isPending}>
-                  {addIngredient.isPending ? "Adding..." : "Add"}
+                <Button type="submit" size="icon" disabled={addIngredient.isPending} aria-label="Add ingredient">
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </form>
@@ -324,24 +316,21 @@ export default function RecipeDetailPage() {
               {ingredients.map((ingredient) => (
                 <li
                   key={ingredient.id}
-                  className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                  className="flex items-center gap-2 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-md"
                 >
-                  <span className="flex-1 text-gray-900 dark:text-white">
+                  <span className="flex-1 min-w-0 text-gray-900 dark:text-white text-sm truncate">
                     {ingredient.amount} {ingredient.unit && `${ingredient.unit} `}{ingredient.name}
-                    {ingredient.group && (
-                      <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-                        ({ingredient.group})
-                      </span>
-                    )}
                   </span>
                   {isEditMode && (
                     <Button
-                      variant="destructive"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDeleteIngredient(ingredient.id!)}
                       disabled={deleteIngredient.isPending}
+                      aria-label="Remove ingredient"
+                      className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
-                      Remove
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </li>
@@ -387,16 +376,16 @@ export default function RecipeDetailPage() {
 
           {isEditMode && (
             <form onSubmit={handleAddStep} className="mb-4">
-              <div className="flex gap-2">
+              <div className="flex gap-1 items-center">
                 <input
                   type="text"
                   value={newStepText}
                   onChange={(e) => setNewStepText(e.target.value)}
                   placeholder="Step description..."
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="flex-1 min-w-0 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                 />
-                <Button type="submit" disabled={addStep.isPending}>
-                  {addStep.isPending ? "Adding..." : "Add Step"}
+                <Button type="submit" size="icon" disabled={addStep.isPending} aria-label="Add step">
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </form>
@@ -409,23 +398,28 @@ export default function RecipeDetailPage() {
           )}
 
           {sortedSteps.length > 0 && (
-            <ol className="space-y-2 list-decimal list-inside">
-              {sortedSteps.map((step) => (
+            <ol className="space-y-2">
+              {sortedSteps.map((step, index) => (
                 <li
                   key={step.id}
-                  className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                  className="flex items-start gap-2 py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-md"
                 >
-                  <span className="flex-1 text-gray-900 dark:text-white">
+                  <span className="shrink-0 text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5 w-5 text-right">
+                    {index + 1}.
+                  </span>
+                  <span className="flex-1 min-w-0 text-gray-900 dark:text-white text-sm">
                     {step.text}
                   </span>
                   {isEditMode && (
                     <Button
-                      variant="destructive"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDeleteStep(step.id!)}
                       disabled={deleteStep.isPending}
+                      aria-label="Remove step"
+                      className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
-                      Remove
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </li>
@@ -442,16 +436,16 @@ export default function RecipeDetailPage() {
 
           {isEditMode && (
             <form onSubmit={handleAddImage} className="mb-4">
-              <div className="flex gap-2">
+              <div className="flex gap-1 items-center">
                 <input
                   type="url"
                   value={newImageUrl}
                   onChange={(e) => setNewImageUrl(e.target.value)}
                   placeholder="Image URL..."
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="flex-1 min-w-0 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                 />
-                <Button type="submit" disabled={addImage.isPending}>
-                  {addImage.isPending ? "Adding..." : "Add Image"}
+                <Button type="submit" size="icon" disabled={addImage.isPending} aria-label="Add image">
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </form>
@@ -493,13 +487,14 @@ export default function RecipeDetailPage() {
                   </a>
                   {isEditMode && (
                     <Button
-                      variant="destructive"
-                      size="sm"
-                      className="mt-1 w-full"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1 right-1 text-red-500 hover:text-red-600 bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
                       onClick={() => handleDeleteImage(image.id!)}
                       disabled={deleteImage.isPending}
+                      aria-label="Remove image"
                     >
-                      Remove
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
