@@ -10,12 +10,13 @@ import {
 } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import type { ShoppingListItem } from "@/lib/api-client/models/index";
+import type { ShoppingListItem, ShoppingList } from "@/lib/api-client/models/index";
 import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
-import type { ShoppingList } from "@/lib/api-client/models/index";
+import { useHeaderActions } from "@/context/PageActionsContext";
+import { Pencil, Check, Plus, Trash2 } from "lucide-react";
 
 export default function ShoppingListDetailPage() {
   const SUGGESTION_CLOSE_DELAY_MS = 150;
@@ -28,11 +29,11 @@ export default function ShoppingListDetailPage() {
   const [editingItem, setEditingItem] = useState<{ id: number; name: string } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { setHeaderActions } = useHeaderActions();
 
   const { data: list } = useQuery({
     queryKey: ["shoppingList", listId],
-    queryFn: () =>
-      apiClient.api.shoppingLists.byId(listId).get() as Promise<ShoppingList>,
+    queryFn: () => apiClient.api.shoppingLists.byId(listId).get() as Promise<ShoppingList>,
     enabled: listId > 0,
   });
 
@@ -43,19 +44,41 @@ export default function ShoppingListDetailPage() {
   const completeList = useCompleteShoppingList();
   const { data: recommendations } = useApprovedRecommendations();
 
-  const filteredSuggestions = recommendations?.filter(
-    (r) =>
-      r.name &&
-      newItemName.trim().length > 0 &&
-      r.name.toLowerCase().includes(newItemName.toLowerCase()) &&
-      !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase() && !i.isChecked)
-  ) ?? [];
-
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
-  const showCompleteButton = uncheckedItems.length > 0 && uncheckedItems.length < 3;
+  const checkedItems = items?.filter((i) => i.isChecked) ?? [];
+  const sortedItems = [...uncheckedItems, ...checkedItems];
+  const isFewItems = uncheckedItems.length > 0 && uncheckedItems.length <= 3;
+
+  const filteredSuggestions =
+    recommendations?.filter(
+      (r) =>
+        r.name &&
+        newItemName.trim().length > 0 &&
+        r.name.toLowerCase().includes(newItemName.toLowerCase()) &&
+        !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase() && !i.isChecked)
+    ) ?? [];
+
+  const handleCompleteList = async () => {
+    try {
+      const newList = await completeList.mutateAsync(listId);
+      toast.success("Shopping complete!");
+      if (newList?.id) {
+        router.push(`/shopping-lists/${newList.id}`);
+      } else {
+        router.push("/shopping-lists");
+      }
+    } catch {
+      toast.error("Failed to complete list. Please try again.");
+    }
+  };
 
   const handleToggleCheck = async (item: ShoppingListItem) => {
     if (isEditMode) return;
+    // When ≤3 unchecked items, checking any unchecked item completes the list
+    if (!item.isChecked && isFewItems) {
+      await handleCompleteList();
+      return;
+    }
     try {
       await updateItem.mutateAsync({
         itemId: item.id!,
@@ -70,7 +93,6 @@ export default function ShoppingListDetailPage() {
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
-
     try {
       await addItem.mutateAsync(newItemName);
       setNewItemName("");
@@ -116,66 +138,44 @@ export default function ShoppingListDetailPage() {
     }
   };
 
-  const handleCompleteList = async () => {
-    try {
-      const newList = await completeList.mutateAsync(listId);
-      toast.success("Shopping complete! A new list has been created.");
-      if (newList?.id) {
-        router.push(`/shopping-lists/${newList.id}`);
-      } else {
-        router.push("/shopping-lists");
-      }
-    } catch {
-      toast.error("Failed to complete list. Please try again.");
-    }
-  };
+  useEffect(() => {
+    setHeaderActions(
+      <div className="flex items-center gap-1 ml-auto">
+        <Button
+          variant={isEditMode ? "default" : "ghost"}
+          size="icon"
+          onClick={() => {
+            setIsEditMode(!isEditMode);
+            setEditingItem(null);
+          }}
+          aria-label={isEditMode ? "Done editing" : "Edit list"}
+        >
+          {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
+        </Button>
+      </div>
+    );
+    return () => setHeaderActions(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, setHeaderActions]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <button
-              onClick={() => router.push("/shopping-lists")}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-2 block"
-            >
-              &larr; Back to Shopping Lists
-            </button>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {list?.name ?? "Shopping List"}
-            </h2>
-          </div>
-          <Button
-            variant={isEditMode ? "default" : "outline"}
-            size="sm"
-            onClick={() => {
-              setIsEditMode(!isEditMode);
-              setEditingItem(null);
-            }}
+        <div className="mb-4">
+          <button
+            onClick={() => router.push("/shopping-lists")}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-1 block"
           >
-            {isEditMode ? "Done" : "Edit"}
-          </Button>
+            &larr; Back to Shopping Lists
+          </button>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {list?.name ?? "Shopping List"}
+          </h2>
         </div>
 
-        {showCompleteButton && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-between gap-3">
-            <p className="text-green-800 dark:text-green-200 font-medium text-sm">
-              Almost done! {uncheckedItems.length} item{uncheckedItems.length === 1 ? "" : "s"} remaining.
-            </p>
-            <Button
-              onClick={handleCompleteList}
-              disabled={completeList.isPending}
-              className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-              size="sm"
-            >
-              {completeList.isPending ? "Completing..." : "Complete"}
-            </Button>
-          </div>
-        )}
-
         {isEditMode && (
-          <form onSubmit={handleAddItem} className="mb-6">
-            <div className="relative flex gap-2">
+          <form onSubmit={handleAddItem} className="mb-4">
+            <div className="relative flex gap-1 items-center">
               <div className="relative flex-1">
                 <input
                   ref={inputRef}
@@ -186,9 +186,11 @@ export default function ShoppingListDetailPage() {
                     setShowSuggestions(true);
                   }}
                   onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), SUGGESTION_CLOSE_DELAY_MS)}
+                  onBlur={() =>
+                    setTimeout(() => setShowSuggestions(false), SUGGESTION_CLOSE_DELAY_MS)
+                  }
                   placeholder="Add an item..."
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   autoFocus
                   autoComplete="off"
                 />
@@ -199,7 +201,7 @@ export default function ShoppingListDetailPage() {
                         <button
                           type="button"
                           onMouseDown={() => handleSelectSuggestion(suggestion.name!)}
-                          className="w-full text-left px-4 py-2 hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
                         >
                           {suggestion.name}
                         </button>
@@ -208,17 +210,15 @@ export default function ShoppingListDetailPage() {
                   </ul>
                 )}
               </div>
-              <Button type="submit" disabled={addItem.isPending}>
-                {addItem.isPending ? "Adding..." : "Add"}
+              <Button type="submit" size="icon" disabled={addItem.isPending} aria-label="Add item">
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
           </form>
         )}
 
         {isLoading && (
-          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-            Loading...
-          </div>
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading...</div>
         )}
 
         {error && (
@@ -229,40 +229,48 @@ export default function ShoppingListDetailPage() {
 
         {items && items.length === 0 && (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-            {isEditMode
-              ? "No items yet. Add your first item above!"
-              : "No items yet. Switch to Edit mode to add items."}
+            No items yet.
           </div>
         )}
 
-        {items && items.length > 0 && (
-          <div className="space-y-2">
-            {items.map((item) => (
-              <div
+        {sortedItems.length > 0 && (
+          <ul className="space-y-1">
+            {sortedItems.map((item) => (
+              <li
                 key={item.id}
-                className={`flex items-center gap-3 p-4 border rounded-md transition-colors ${
+                className={`flex items-center gap-2 py-2 px-3 border rounded-md transition-colors ${
                   item.isChecked
                     ? "border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/30"
                     : "border-gray-200 dark:border-gray-700"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={item.isChecked ?? false}
-                  onChange={() => handleToggleCheck(item)}
-                  disabled={isEditMode || updateItem.isPending}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
+                {!isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCheck(item)}
+                    disabled={updateItem.isPending || completeList.isPending}
+                    aria-label={item.isChecked ? "Uncheck item" : "Check item"}
+                    className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      item.isChecked
+                        ? "bg-gray-300 border-gray-300 dark:bg-gray-600 dark:border-gray-600"
+                        : isFewItems
+                        ? "border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
+                        : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
+                    }`}
+                  >
+                    {item.isChecked && <Check className="h-3 w-3 text-gray-500 dark:text-gray-400" />}
+                  </button>
+                )}
 
                 {isEditMode && editingItem?.id === item.id ? (
-                  <div className="flex flex-1 gap-2">
+                  <>
                     <input
                       type="text"
-                      value={editingItem?.name ?? ""}
+                      value={editingItem.name}
                       onChange={(e) =>
                         setEditingItem(editingItem ? { ...editingItem, name: e.target.value } : null)
                       }
-                      className="flex-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleSaveEdit(item);
@@ -270,31 +278,27 @@ export default function ShoppingListDetailPage() {
                       }}
                     />
                     <Button
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleSaveEdit(item)}
                       disabled={updateItem.isPending}
+                      aria-label="Save item"
+                      className="shrink-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
                     >
-                      Save
+                      <Check className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingItem(null)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
+                  </>
                 ) : (
                   <span
                     role={isEditMode ? "button" : undefined}
                     tabIndex={isEditMode ? 0 : undefined}
-                    className={`flex-1 text-gray-900 dark:text-white ${
-                      item.isChecked ? "line-through text-gray-400 dark:text-gray-600" : ""
+                    className={`flex-1 text-sm ${
+                      item.isChecked
+                        ? "line-through text-gray-400 dark:text-gray-600"
+                        : "text-gray-900 dark:text-white"
                     } ${isEditMode ? "cursor-pointer hover:text-blue-600" : ""}`}
                     onClick={() => {
-                      if (isEditMode) {
-                        setEditingItem({ id: item.id!, name: item.name! });
-                      }
+                      if (isEditMode) setEditingItem({ id: item.id!, name: item.name! });
                     }}
                     onKeyDown={(e) => {
                       if (isEditMode && (e.key === "Enter" || e.key === " ")) {
@@ -309,28 +313,26 @@ export default function ShoppingListDetailPage() {
 
                 {isEditMode && editingItem?.id !== item.id && (
                   <Button
-                    variant="destructive"
-                    size="sm"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleRemoveItem(item.id!)}
                     disabled={removeItem.isPending}
+                    aria-label="Remove item"
+                    className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
-                    Remove
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
 
-        {items && items.length > 0 && items.every((i) => i.isChecked) && (
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between gap-3">
-            <p className="text-blue-800 dark:text-blue-200 font-medium text-sm">
-              All items checked! Ready to complete the list?
-            </p>
+        {items && items.length > 0 && items.every((i) => i.isChecked) && !isFewItems && (
+          <div className="mt-4 flex justify-end">
             <Button
               onClick={handleCompleteList}
               disabled={completeList.isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
               size="sm"
             >
               {completeList.isPending ? "Completing..." : "Complete List"}
