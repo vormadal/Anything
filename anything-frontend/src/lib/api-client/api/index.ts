@@ -4,6 +4,8 @@
 // @ts-ignore
 import { AuthRequestBuilderNavigationMetadata, type AuthRequestBuilder } from './auth/index';
 // @ts-ignore
+import { FoodPlansRequestBuilderNavigationMetadata, FoodPlansRequestBuilderRequestsMetadata, type FoodPlansRequestBuilder } from './foodPlans/index';
+// @ts-ignore
 import { InventoryBoxesRequestBuilderNavigationMetadata, InventoryBoxesRequestBuilderRequestsMetadata, type InventoryBoxesRequestBuilder } from './inventoryBoxes/index';
 // @ts-ignore
 import { InventoryItemsRequestBuilderNavigationMetadata, InventoryItemsRequestBuilderRequestsMetadata, type InventoryItemsRequestBuilder } from './inventoryItems/index';
@@ -28,6 +30,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The auth property
      */
     get auth(): AuthRequestBuilder;
+    /**
+     * The foodPlans property
+     */
+    get foodPlans(): FoodPlansRequestBuilder;
     /**
      * The inventoryBoxes property
      */
@@ -67,6 +73,10 @@ export const ApiRequestBuilderUriTemplate = "{+baseurl}/api";
 export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
     auth: {
         navigationMetadata: AuthRequestBuilderNavigationMetadata,
+    },
+    foodPlans: {
+        requestsMetadata: FoodPlansRequestBuilderRequestsMetadata,
+        navigationMetadata: FoodPlansRequestBuilderNavigationMetadata,
     },
     inventoryBoxes: {
         requestsMetadata: InventoryBoxesRequestBuilderRequestsMetadata,

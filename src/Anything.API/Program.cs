@@ -102,6 +102,7 @@ app.MapInventoryBoxEndpoints();
 app.MapInventoryItemEndpoints();
 app.MapShoppingListEndpoints();
 app.MapRecipeEndpoints();
+app.MapFoodPlanEndpoints();
 app.MapRecommendationEndpoints();
 
 await app.RunAsync();
