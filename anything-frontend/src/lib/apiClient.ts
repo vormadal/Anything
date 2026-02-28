@@ -3,7 +3,13 @@ import {
   BaseBearerTokenAuthenticationProvider,
   DefaultApiError,
   type AccessTokenProvider,
+  type RequestOption,
 } from "@microsoft/kiota-abstractions";
+import {
+  HttpClient,
+  MiddlewareFactory,
+  type Middleware,
+} from "@microsoft/kiota-http-fetchlibrary";
 import { DefaultRequestAdapter } from "@microsoft/kiota-bundle";
 import { createApiClient } from "@/lib/api-client/apiClient";
 
@@ -15,30 +21,33 @@ const USER_KEY = "user";
 // Re-export Kiota's error class so hooks can catch it for status-specific handling
 export { DefaultApiError as ApiError };
 
-// Intercept fetch responses to detect expired tokens (401 on non-auth endpoints)
-if (typeof window !== "undefined") {
-  const originalFetch = window.fetch;
-  window.fetch = async function (...args: Parameters<typeof fetch>) {
-    const response = await originalFetch(...args);
-    if (response.status === 401) {
-      const url =
-        args[0] instanceof Request
-          ? args[0].url
-          : typeof args[0] === "string"
-            ? args[0]
-            : "";
-      const isOurApiRequest = url.startsWith(API_BASE_URL);
-      const isAuthEndpoint = url.includes("/api/auth/");
-      const hasToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-      if (isOurApiRequest && !isAuthEndpoint && hasToken) {
-        localStorage.removeItem(ACCESS_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-        window.dispatchEvent(new Event("auth:unauthorized"));
-      }
+// Kiota middleware that clears tokens and fires 'auth:unauthorized' on 401 responses
+// from our API (skips auth endpoints where 401 is a valid credential-failure response).
+class UnauthorizedHandler implements Middleware {
+  next: Middleware | undefined = undefined;
+
+  async execute(
+    url: string,
+    requestInit: RequestInit,
+    requestOptions?: Record<string, RequestOption>
+  ): Promise<Response> {
+    const response = await this.next?.execute(url, requestInit, requestOptions);
+    if (!response) {
+      throw new Error("No response from next middleware");
+    }
+    if (
+      response.status === 401 &&
+      !url.includes("/api/auth/") &&
+      typeof window !== "undefined" &&
+      localStorage.getItem(ACCESS_TOKEN_KEY)
+    ) {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      window.dispatchEvent(new Event("auth:unauthorized"));
     }
     return response;
-  };
+  }
 }
 
 class LocalStorageAccessTokenProvider implements AccessTokenProvider {
@@ -56,10 +65,19 @@ class LocalStorageAccessTokenProvider implements AccessTokenProvider {
   }
 }
 
+const httpClient = new HttpClient(
+  undefined,
+  new UnauthorizedHandler(),
+  ...MiddlewareFactory.getDefaultMiddlewares()
+);
+
 const adapter = new DefaultRequestAdapter(
   new BaseBearerTokenAuthenticationProvider(
     new LocalStorageAccessTokenProvider()
-  )
+  ),
+  undefined,
+  undefined,
+  httpClient
 );
 adapter.baseUrl = API_BASE_URL;
 
