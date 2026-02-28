@@ -14,7 +14,6 @@ const mockApprovePost = jest.fn()
 const mockDeleteFn = jest.fn()
 const mockApprove = { post: mockApprovePost }
 const mockItemById = jest.fn(() => ({ approve: mockApprove, delete: mockDeleteFn }))
-const mockPending = { get: mockPendingGet }
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
