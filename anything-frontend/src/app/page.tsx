@@ -117,15 +117,10 @@ export default function Home() {
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
             {todayEntries.map((entry) => {
               const recipe = entry.recipeId ? recipes?.find((r) => r.id === entry.recipeId) : null;
-              const displayName = recipe?.name ?? entry.customName ?? "Unknown";
+              const displayName = recipe?.name ?? entry.name ?? "Unknown";
               return (
                 <div key={entry.id} className="px-4 py-2.5 flex items-center justify-between">
                   <span className="text-sm text-gray-900 dark:text-white">{displayName}</span>
-                  {entry.mealType && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                      {entry.mealType}
-                    </span>
-                  )}
                 </div>
               );
             })}
