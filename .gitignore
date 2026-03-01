@@ -20,6 +20,7 @@ x86/
 bld/
 bin/
 [Bb]in/
+**/bin\\*/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
