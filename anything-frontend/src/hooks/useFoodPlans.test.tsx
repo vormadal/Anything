@@ -125,8 +125,8 @@ describe('useFoodPlans hooks', () => {
   describe('useFoodPlanEntries', () => {
     it('should fetch entries for a food plan', async () => {
       const mockData = [
-        { id: 1, foodPlanId: 1, recipeId: 1, customName: null, dayOfWeek: 0, mealType: 'dinner' },
-        { id: 2, foodPlanId: 1, recipeId: null, customName: 'Salad', dayOfWeek: 1, mealType: 'lunch' },
+        { id: 1, foodPlanId: 1, recipeId: 1, name: 'Pasta', dayOfWeek: 0 },
+        { id: 2, foodPlanId: 1, recipeId: null, name: 'Salad', dayOfWeek: 1 },
       ]
       mockEntriesGet.mockResolvedValueOnce(mockData)
 
@@ -226,7 +226,7 @@ describe('useFoodPlans hooks', () => {
 
   describe('useAddFoodPlanEntry', () => {
     it('should add an entry with a recipe', async () => {
-      const mockEntry = { id: 1, foodPlanId: 1, recipeId: 5, customName: null, dayOfWeek: 0, mealType: 'dinner' }
+      const mockEntry = { id: 1, foodPlanId: 1, recipeId: 5, name: 'Pasta', dayOfWeek: 0 }
       mockEntriesPost.mockResolvedValueOnce(mockEntry)
 
       const { result } = renderHook(() => useAddFoodPlanEntry(1), {
@@ -234,21 +234,20 @@ describe('useFoodPlans hooks', () => {
       })
 
       await act(async () => {
-        result.current.mutate({ recipeId: 5, dayOfWeek: 0, mealType: 'dinner' })
+        result.current.mutate({ name: 'Pasta', recipeId: 5, dayOfWeek: 0 })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(mockEntriesPost).toHaveBeenCalledWith({
+        name: 'Pasta',
         recipeId: 5,
-        customName: undefined,
         dayOfWeek: 0,
-        mealType: 'dinner',
       })
     })
 
-    it('should add an entry with a custom name', async () => {
-      const mockEntry = { id: 2, foodPlanId: 1, recipeId: null, customName: 'Salad', dayOfWeek: 1, mealType: 'lunch' }
+    it('should add an entry without a recipe', async () => {
+      const mockEntry = { id: 2, foodPlanId: 1, recipeId: null, name: 'Salad', dayOfWeek: 1 }
       mockEntriesPost.mockResolvedValueOnce(mockEntry)
 
       const { result } = renderHook(() => useAddFoodPlanEntry(1), {
@@ -256,16 +255,15 @@ describe('useFoodPlans hooks', () => {
       })
 
       await act(async () => {
-        result.current.mutate({ customName: 'Salad', dayOfWeek: 1, mealType: 'lunch' })
+        result.current.mutate({ name: 'Salad', dayOfWeek: 1 })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(mockEntriesPost).toHaveBeenCalledWith({
+        name: 'Salad',
         recipeId: undefined,
-        customName: 'Salad',
         dayOfWeek: 1,
-        mealType: 'lunch',
       })
     })
   })
@@ -279,17 +277,16 @@ describe('useFoodPlans hooks', () => {
       })
 
       await act(async () => {
-        result.current.mutate({ entryId: 2, customName: 'Updated Salad', dayOfWeek: 2, mealType: 'dinner' })
+        result.current.mutate({ entryId: 2, name: 'Updated Salad', dayOfWeek: 2 })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(mockEntriesItemById).toHaveBeenCalledWith(2)
       expect(mockEntriesItemPut).toHaveBeenCalledWith({
+        name: 'Updated Salad',
         recipeId: undefined,
-        customName: 'Updated Salad',
         dayOfWeek: 2,
-        mealType: 'dinner',
       })
     })
   })
