@@ -18,14 +18,11 @@ x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
+bin/
 [Bb]in/
-[Bb]in\*/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
-# Artifact paths with Windows-style backslash separators (created by dotnet tools on Linux)
-# Note: \\ matches a literal backslash in gitignore patterns
-src/**/bin\\
 
 # .NET Core
 project.lock.json
