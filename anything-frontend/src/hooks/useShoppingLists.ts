@@ -62,8 +62,8 @@ export function useAddShoppingListItem(listId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (name: string) =>
-      apiClient.api.shoppingLists.byId(listId).items.post({ name }),
+    mutationFn: ({ name, amount, unit }: { name: string; amount?: number | null; unit?: string | null }) =>
+      apiClient.api.shoppingLists.byId(listId).items.post({ name, amount, unit }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
     },
@@ -74,8 +74,8 @@ export function useUpdateShoppingListItem(listId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ itemId, name, isChecked }: { itemId: number; name: string; isChecked: boolean }) =>
-      apiClient.api.shoppingLists.byId(listId).items.byId(itemId).put({ name, isChecked }),
+    mutationFn: ({ itemId, name, isChecked, amount, unit }: { itemId: number; name: string; isChecked: boolean; amount?: number | null; unit?: string | null }) =>
+      apiClient.api.shoppingLists.byId(listId).items.byId(itemId).put({ name, isChecked, amount, unit }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
     },

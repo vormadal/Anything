@@ -576,6 +576,7 @@ export function deserializeIntoShoppingList(shoppingList: Partial<ShoppingList> 
 // @ts-ignore
 export function deserializeIntoShoppingListItem(shoppingListItem: Partial<ShoppingListItem> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "amount": n => { shoppingListItem.amount = n.getNumberValue(); },
         "createdOn": n => { shoppingListItem.createdOn = n.getDateValue(); },
         "deletedOn": n => { shoppingListItem.deletedOn = n.getDateValue(); },
         "id": n => { shoppingListItem.id = n.getNumberValue(); },
@@ -583,6 +584,7 @@ export function deserializeIntoShoppingListItem(shoppingListItem: Partial<Shoppi
         "modifiedOn": n => { shoppingListItem.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingListItem.name = n.getStringValue(); },
         "shoppingListId": n => { shoppingListItem.shoppingListId = n.getNumberValue(); },
+        "unit": n => { shoppingListItem.unit = n.getStringValue(); },
     }
 }
 /**
@@ -604,7 +606,9 @@ export function deserializeIntoCreateShoppingListRequest(createShoppingListReque
 // @ts-ignore
 export function deserializeIntoCreateShoppingListItemRequest(createShoppingListItemRequest: Partial<CreateShoppingListItemRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "amount": n => { createShoppingListItemRequest.amount = n.getNumberValue(); },
         "name": n => { createShoppingListItemRequest.name = n.getStringValue(); },
+        "unit": n => { createShoppingListItemRequest.unit = n.getStringValue(); },
     }
 }
 /**
@@ -615,8 +619,10 @@ export function deserializeIntoCreateShoppingListItemRequest(createShoppingListI
 // @ts-ignore
 export function deserializeIntoUpdateShoppingListItemRequest(updateShoppingListItemRequest: Partial<UpdateShoppingListItemRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "amount": n => { updateShoppingListItemRequest.amount = n.getNumberValue(); },
         "isChecked": n => { updateShoppingListItemRequest.isChecked = n.getBooleanValue(); },
         "name": n => { updateShoppingListItemRequest.name = n.getStringValue(); },
+        "unit": n => { updateShoppingListItemRequest.unit = n.getStringValue(); },
     }
 }
 // @ts-ignore
@@ -1088,6 +1094,7 @@ export function serializeShoppingList(writer: SerializationWriter, shoppingList:
 // @ts-ignore
 export function serializeShoppingListItem(writer: SerializationWriter, shoppingListItem: Partial<ShoppingListItem> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!shoppingListItem || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", shoppingListItem.amount);
     writer.writeDateValue("createdOn", shoppingListItem.createdOn);
     writer.writeDateValue("deletedOn", shoppingListItem.deletedOn);
     writer.writeNumberValue("id", shoppingListItem.id);
@@ -1095,6 +1102,7 @@ export function serializeShoppingListItem(writer: SerializationWriter, shoppingL
     writer.writeDateValue("modifiedOn", shoppingListItem.modifiedOn);
     writer.writeStringValue("name", shoppingListItem.name);
     writer.writeNumberValue("shoppingListId", shoppingListItem.shoppingListId);
+    writer.writeStringValue("unit", shoppingListItem.unit);
     writer.writeAdditionalData(shoppingListItem.additionalData);
 }
 /**
@@ -1118,7 +1126,9 @@ export function serializeCreateShoppingListRequest(writer: SerializationWriter, 
 // @ts-ignore
 export function serializeCreateShoppingListItemRequest(writer: SerializationWriter, createShoppingListItemRequest: Partial<CreateShoppingListItemRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createShoppingListItemRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", createShoppingListItemRequest.amount);
     writer.writeStringValue("name", createShoppingListItemRequest.name);
+    writer.writeStringValue("unit", createShoppingListItemRequest.unit);
     writer.writeAdditionalData(createShoppingListItemRequest.additionalData);
 }
 /**
@@ -1130,8 +1140,10 @@ export function serializeCreateShoppingListItemRequest(writer: SerializationWrit
 // @ts-ignore
 export function serializeUpdateShoppingListItemRequest(writer: SerializationWriter, updateShoppingListItemRequest: Partial<UpdateShoppingListItemRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateShoppingListItemRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", updateShoppingListItemRequest.amount);
     writer.writeBooleanValue("isChecked", updateShoppingListItemRequest.isChecked);
     writer.writeStringValue("name", updateShoppingListItemRequest.name);
+    writer.writeStringValue("unit", updateShoppingListItemRequest.unit);
     writer.writeAdditionalData(updateShoppingListItemRequest.additionalData);
 }
 // @ts-ignore
@@ -1241,6 +1253,10 @@ export interface ShoppingList extends AdditionalDataHolder, Parsable {
 }
 export interface ShoppingListItem extends AdditionalDataHolder, Parsable {
     /**
+     * The amount property
+     */
+    amount?: number | null;
+    /**
      * The createdOn property
      */
     createdOn?: Date | null;
@@ -1268,6 +1284,10 @@ export interface ShoppingListItem extends AdditionalDataHolder, Parsable {
      * The shoppingListId property
      */
     shoppingListId?: number | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
 }
 export interface CreateShoppingListRequest extends AdditionalDataHolder, Parsable {
     /**
@@ -1277,11 +1297,23 @@ export interface CreateShoppingListRequest extends AdditionalDataHolder, Parsabl
 }
 export interface CreateShoppingListItemRequest extends AdditionalDataHolder, Parsable {
     /**
+     * The amount property
+     */
+    amount?: number | null;
+    /**
      * The name property
      */
     name?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
 }
 export interface UpdateShoppingListItemRequest extends AdditionalDataHolder, Parsable {
+    /**
+     * The amount property
+     */
+    amount?: number | null;
     /**
      * The isChecked property
      */
@@ -1290,6 +1322,10 @@ export interface UpdateShoppingListItemRequest extends AdditionalDataHolder, Par
      * The name property
      */
     name?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
 }
 export interface ShoppingListRecommendation extends AdditionalDataHolder, Parsable {
     /**

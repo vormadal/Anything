@@ -26,7 +26,9 @@ export default function ShoppingListDetailPage() {
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [newItemName, setNewItemName] = useState("");
-  const [editingItem, setEditingItem] = useState<{ id: number; name: string } | null>(null);
+  const [newItemAmount, setNewItemAmount] = useState("");
+  const [newItemUnit, setNewItemUnit] = useState("");
+  const [editingItem, setEditingItem] = useState<{ id: number; name: string; amount: string; unit: string } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { setHeaderActions } = useHeaderActions();
@@ -58,6 +60,16 @@ export default function ShoppingListDetailPage() {
         !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase() && !i.isChecked)
     ) ?? [];
 
+  const parseAmount = (value: string): number | null => {
+    const parsed = parseFloat(value);
+    return !isNaN(parsed) && parsed > 0 ? parsed : null;
+  };
+
+  const formatAmount = (amount: number | null | undefined): string => {
+    if (amount == null) return "";
+    return Number.isInteger(amount) ? String(amount) : String(amount);
+  };
+
   const handleCompleteList = async () => {
     try {
       const newList = await completeList.mutateAsync(listId);
@@ -74,7 +86,6 @@ export default function ShoppingListDetailPage() {
 
   const handleToggleCheck = async (item: ShoppingListItem) => {
     if (isEditMode) return;
-    // When ≤3 unchecked items, checking any unchecked item completes the list
     if (!item.isChecked && isFewItems) {
       await handleCompleteList();
       return;
@@ -84,6 +95,8 @@ export default function ShoppingListDetailPage() {
         itemId: item.id!,
         name: item.name!,
         isChecked: !item.isChecked,
+        amount: item.amount ?? null,
+        unit: item.unit ?? null,
       });
     } catch {
       toast.error("Failed to update item. Please try again.");
@@ -94,8 +107,14 @@ export default function ShoppingListDetailPage() {
     e.preventDefault();
     if (!newItemName.trim()) return;
     try {
-      await addItem.mutateAsync(newItemName);
+      await addItem.mutateAsync({
+        name: newItemName,
+        amount: parseAmount(newItemAmount),
+        unit: newItemUnit.trim() || null,
+      });
       setNewItemName("");
+      setNewItemAmount("");
+      setNewItemUnit("");
       setShowSuggestions(false);
       toast.success("Item added");
     } catch {
@@ -106,9 +125,16 @@ export default function ShoppingListDetailPage() {
   const handleSelectSuggestion = async (name: string) => {
     setShowSuggestions(false);
     try {
-      await addItem.mutateAsync(name);
+      await addItem.mutateAsync({
+        name,
+        amount: parseAmount(newItemAmount),
+        unit: newItemUnit.trim() || null,
+      });
       setNewItemName("");
+      setNewItemAmount("");
+      setNewItemUnit("");
       toast.success("Item added");
+      inputRef.current?.focus();
     } catch {
       toast.error("Failed to add item. Please try again.");
     }
@@ -121,6 +147,8 @@ export default function ShoppingListDetailPage() {
         itemId: item.id!,
         name: editingItem.name,
         isChecked: item.isChecked ?? false,
+        amount: parseAmount(editingItem.amount),
+        unit: editingItem.unit.trim() || null,
       });
       setEditingItem(null);
       toast.success("Item updated");
@@ -174,7 +202,7 @@ export default function ShoppingListDetailPage() {
 
         {isEditMode && (
           <form onSubmit={handleAddItem} className="mb-4">
-            <div className="relative flex gap-1 items-center">
+            <div className="flex gap-1 items-center">
               <div className="relative flex-1">
                 <input
                   ref={inputRef}
@@ -209,6 +237,22 @@ export default function ShoppingListDetailPage() {
                   </ul>
                 )}
               </div>
+              <input
+                type="number"
+                value={newItemAmount}
+                onChange={(e) => setNewItemAmount(e.target.value)}
+                placeholder="Qty"
+                min="0"
+                step="any"
+                className="w-16 px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+              <input
+                type="text"
+                value={newItemUnit}
+                onChange={(e) => setNewItemUnit(e.target.value)}
+                placeholder="Unit"
+                className="w-16 px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              />
               <Button type="submit" size="icon" disabled={addItem.isPending} aria-label="Add item">
                 <Plus className="h-4 w-4" />
               </Button>
@@ -276,6 +320,26 @@ export default function ShoppingListDetailPage() {
                         if (e.key === "Escape") setEditingItem(null);
                       }}
                     />
+                    <input
+                      type="number"
+                      value={editingItem.amount}
+                      onChange={(e) =>
+                        setEditingItem(editingItem ? { ...editingItem, amount: e.target.value } : null)
+                      }
+                      placeholder="Qty"
+                      min="0"
+                      step="any"
+                      className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                    <input
+                      type="text"
+                      value={editingItem.unit}
+                      onChange={(e) =>
+                        setEditingItem(editingItem ? { ...editingItem, unit: e.target.value } : null)
+                      }
+                      placeholder="Unit"
+                      className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
@@ -297,15 +361,36 @@ export default function ShoppingListDetailPage() {
                         : "text-gray-900 dark:text-white"
                     } ${isEditMode ? "cursor-pointer hover:text-blue-600" : ""}`}
                     onClick={() => {
-                      if (isEditMode) setEditingItem({ id: item.id!, name: item.name! });
+                      if (isEditMode)
+                        setEditingItem({
+                          id: item.id!,
+                          name: item.name!,
+                          amount: formatAmount(item.amount),
+                          unit: item.unit ?? "",
+                        });
                     }}
                     onKeyDown={(e) => {
                       if (isEditMode && (e.key === "Enter" || e.key === " ")) {
                         e.preventDefault();
-                        setEditingItem({ id: item.id!, name: item.name! });
+                        setEditingItem({
+                          id: item.id!,
+                          name: item.name!,
+                          amount: formatAmount(item.amount),
+                          unit: item.unit ?? "",
+                        });
                       }
                     }}
                   >
+                    {item.amount != null && item.unit && (
+                      <span className="text-gray-400 dark:text-gray-500 mr-1">
+                        {item.amount} {item.unit}
+                      </span>
+                    )}
+                    {item.amount != null && !item.unit && (
+                      <span className="text-gray-400 dark:text-gray-500 mr-1">
+                        {item.amount}×
+                      </span>
+                    )}
                     {item.name}
                   </span>
                 )}
