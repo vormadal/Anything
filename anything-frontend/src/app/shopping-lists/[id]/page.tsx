@@ -86,10 +86,6 @@ export default function ShoppingListDetailPage() {
 
   const handleToggleCheck = async (item: ShoppingListItem) => {
     if (isEditMode) return;
-    if (!item.isChecked && isFewItems) {
-      await handleCompleteList();
-      return;
-    }
     try {
       await updateItem.mutateAsync({
         itemId: item.id!,
@@ -296,8 +292,6 @@ export default function ShoppingListDetailPage() {
                     className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       item.isChecked
                         ? "bg-gray-300 border-gray-300 dark:bg-gray-600 dark:border-gray-600"
-                        : isFewItems
-                        ? "border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
                         : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
                     }`}
                   >
@@ -412,7 +406,7 @@ export default function ShoppingListDetailPage() {
           </ul>
         )}
 
-        {items && items.length > 0 && items.every((i) => i.isChecked) && !isFewItems && (
+        {items && items.length > 0 && (items.every((i) => i.isChecked) || isFewItems) && (
           <div className="mt-4 flex justify-end">
             <Button
               onClick={handleCompleteList}
