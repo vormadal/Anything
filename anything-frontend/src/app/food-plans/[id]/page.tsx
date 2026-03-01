@@ -18,26 +18,17 @@ import { useHeaderActions } from "@/context/PageActionsContext";
 import { ShoppingCart, Plus, X } from "lucide-react";
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
 function EntryBadge({
   entry,
-  recipes,
   onDelete,
 }: {
   entry: FoodPlanEntry;
-  recipes: Recipe[] | undefined;
   onDelete: () => void;
 }) {
-  const recipe = entry.recipeId ? recipes?.find((r) => r.id === entry.recipeId) : null;
-  const displayName = recipe?.name ?? entry.customName ?? "Unknown";
-
   return (
     <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded px-2 py-0.5 text-xs text-blue-800 dark:text-blue-200 group">
-      <span className="flex-1 min-w-0 truncate">{displayName}</span>
-      {entry.mealType && (
-        <span className="text-blue-500 dark:text-blue-400 shrink-0">· {entry.mealType}</span>
-      )}
+      <span className="flex-1 min-w-0 truncate">{entry.name}</span>
       <button
         onClick={onDelete}
         className="shrink-0 ml-1 text-blue-400 hover:text-red-500 transition-colors"
@@ -60,10 +51,8 @@ function AddEntryForm({
   recipes: Recipe[] | undefined;
   onClose: () => void;
 }) {
-  const [mode, setMode] = useState<"recipe" | "custom">("recipe");
+  const [name, setName] = useState("");
   const [selectedRecipeId, setSelectedRecipeId] = useState<number | "">("");
-  const [customName, setCustomName] = useState("");
-  const [mealType, setMealType] = useState<string>("");
   const [recipeSearch, setRecipeSearch] = useState("");
   const addEntry = useAddFoodPlanEntry(foodPlanId);
 
@@ -73,24 +62,25 @@ function AddEntryForm({
       r.name?.toLowerCase().includes(recipeSearch.toLowerCase())
   );
 
+  const handleRecipeSelect = (recipeId: number | "") => {
+    setSelectedRecipeId(recipeId);
+    if (recipeId) {
+      const recipe = recipes?.find((r) => r.id === recipeId);
+      if (recipe?.name) {
+        setName(recipe.name);
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) return;
     try {
-      if (mode === "recipe" && selectedRecipeId) {
-        await addEntry.mutateAsync({
-          recipeId: Number(selectedRecipeId),
-          dayOfWeek,
-          mealType: mealType || null,
-        });
-      } else if (mode === "custom" && customName.trim()) {
-        await addEntry.mutateAsync({
-          customName: customName.trim(),
-          dayOfWeek,
-          mealType: mealType || null,
-        });
-      } else {
-        return;
-      }
+      await addEntry.mutateAsync({
+        name: name.trim(),
+        recipeId: selectedRecipeId ? Number(selectedRecipeId) : null,
+        dayOfWeek,
+      });
       toast.success("Entry added");
       onClose();
     } catch {
@@ -100,79 +90,41 @@ function AddEntryForm({
 
   return (
     <form onSubmit={handleSubmit} className="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 space-y-2">
-      <div className="flex gap-1">
-        <button
-          type="button"
-          onClick={() => setMode("recipe")}
-          className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${
-            mode === "recipe"
-              ? "bg-blue-600 text-white"
-              : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50"
-          }`}
-        >
-          Recipe
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("custom")}
-          className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${
-            mode === "custom"
-              ? "bg-blue-600 text-white"
-              : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50"
-          }`}
-        >
-          Custom
-        </button>
-      </div>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Meal name..."
+        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+        autoFocus
+      />
 
-      {mode === "recipe" ? (
-        <div className="space-y-1">
-          <input
-            type="text"
-            value={recipeSearch}
-            onChange={(e) => setRecipeSearch(e.target.value)}
-            placeholder="Search recipes..."
-            className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-          />
+      <div className="space-y-1">
+        <input
+          type="text"
+          value={recipeSearch}
+          onChange={(e) => setRecipeSearch(e.target.value)}
+          placeholder="Link to recipe (optional)..."
+          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+        />
+        {(recipeSearch.trim() || selectedRecipeId) && (
           <select
             value={selectedRecipeId}
-            onChange={(e) => setSelectedRecipeId(e.target.value ? Number(e.target.value) : "")}
+            onChange={(e) => handleRecipeSelect(e.target.value ? Number(e.target.value) : "")}
             className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">Select a recipe...</option>
+            <option value="">No recipe</option>
             {filteredRecipes?.map((r) => (
               <option key={r.id} value={r.id!}>
                 {r.name}
               </option>
             ))}
           </select>
-        </div>
-      ) : (
-        <input
-          type="text"
-          value={customName}
-          onChange={(e) => setCustomName(e.target.value)}
-          placeholder="Meal name..."
-          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-          autoFocus
-        />
-      )}
-
-      <select
-        value={mealType}
-        onChange={(e) => setMealType(e.target.value)}
-        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-      >
-        <option value="">Meal type (optional)</option>
-        {MEAL_TYPES.map((type) => (
-          <option key={type} value={type}>
-            {type.charAt(0).toUpperCase() + type.slice(1)}
-          </option>
-        ))}
-      </select>
+        )}
+      </div>
 
       <div className="flex gap-1">
-        <Button type="submit" size="sm" className="flex-1 text-xs h-7" disabled={addEntry.isPending}>
+        <Button type="submit" size="sm" className="flex-1 text-xs h-7" disabled={addEntry.isPending || !name.trim()}>
           {addEntry.isPending ? "Adding..." : "Add"}
         </Button>
         <Button type="button" size="sm" variant="ghost" className="text-xs h-7" onClick={onClose}>
@@ -211,7 +163,6 @@ function DayColumn({
           <EntryBadge
             key={entry.id}
             entry={entry}
-            recipes={recipes}
             onDelete={() => onDeleteEntry(entry.id!)}
           />
         ))}

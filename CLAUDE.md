@@ -93,6 +93,7 @@ aspire run              # Run with Aspire (starts PostgreSQL, Anything.API and a
 
 ```bash
 dotnet build                                                                                # Build solution
+dotnet test tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj       # Run integration tests (requires Docker)
 dotnet ef migrations add <Name> --project src/Anything.Database --startup-project src/Anything.API  # Create migration
 dotnet ef database update --project src/Anything.Database --startup-project src/Anything.API        # Apply migrations
 ```
@@ -187,18 +188,29 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 
 ## Testing
 
+### Backend Integration Tests
+
+Located in `tests/Anything.API.IntegrationTests/`. Uses **xUnit** + **Testcontainers** (spins up a PostgreSQL 17 container automatically — Docker required).
+
+```bash
+dotnet test tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj
+```
+
+- Tests are grouped by endpoint area (e.g., `SomethingEndpointTests`, `FoodPlanEndpointTests`).
+- Each test resets the database to a clean state via `ResetDatabaseAsync()`, then re-seeds the admin user.
+- A Kiota-generated typed `AnythingApiClient` in `ApiClient/` is used for HTTP calls — regenerate it with `kiota update` when the API changes (do not edit generated files manually).
+
 ### Frontend Tests
 
-The frontend uses **Jest** and **React Testing Library** for integration tests:
+Located alongside source files (`*.test.tsx` / `*.test.ts`). Uses **Jest** and **React Testing Library**.
 
-- **Test Location:** Tests are colocated with source files using `.test.tsx` or `.test.ts` extensions.
-- **Running Tests:**
-  - `npm test` — Run all tests once
-  - `npm run test:watch` — Run tests in watch mode
-  - `npm run test:coverage` — Run tests with coverage report
-- **Test Structure:**
-  - Hook tests mock `@/lib/apiClient` module to test API interactions
-  - Component tests use `renderWithClient` utility to provide React Query context
-  - Integration tests verify full user workflows (create, update, delete)
-- **Coverage:** Coverage reports are generated in `coverage/` directory and include LCOV format for SonarCloud integration.
-- **CI Integration:** Tests run automatically in GitHub Actions on every PR and push to main/develop branches.
+```bash
+cd anything-frontend
+npm test              # Run all tests once
+npm run test:watch    # Watch mode
+npm run test:coverage # With coverage report
+```
+
+- Hook tests mock `@/lib/apiClient`; component tests use `renderWithClient` from `@/__tests__/utils/test-utils`.
+- Coverage reports are written to `coverage/` (LCOV format) and fed to SonarCloud.
+- CI runs tests automatically on every PR and push to main/develop.

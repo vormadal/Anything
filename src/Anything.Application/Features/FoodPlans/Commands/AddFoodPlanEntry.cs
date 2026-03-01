@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record AddFoodPlanEntryCommand(int FoodPlanId, int? RecipeId, string? CustomName, int DayOfWeek, string? MealType) : IRequest<IResult>;
+public record AddFoodPlanEntryCommand(int FoodPlanId, string Name, int? RecipeId, int DayOfWeek) : IRequest<IResult>;
 
 public class AddFoodPlanEntryHandler(
     IRepository<FoodPlan> foodPlanRepository,
@@ -15,16 +15,12 @@ public class AddFoodPlanEntryHandler(
 {
     private const string FoodPlanNotFound = "Food plan not found.";
     private const string RecipeNotFound = "Recipe not found.";
-    private const string EntryMissingName = "Either RecipeId or CustomName must be provided.";
 
     public async Task<IResult> Handle(AddFoodPlanEntryCommand command, CancellationToken ct = default)
     {
         var plan = await foodPlanRepository.GetById(command.FoodPlanId);
         if (plan is null || plan.DeletedOn != null)
             return Results.NotFound(FoodPlanNotFound);
-
-        if (command.RecipeId is null && string.IsNullOrWhiteSpace(command.CustomName))
-            return Results.BadRequest(EntryMissingName);
 
         if (command.RecipeId.HasValue)
         {
@@ -36,10 +32,9 @@ public class AddFoodPlanEntryHandler(
         var entry = new FoodPlanEntry
         {
             FoodPlanId = command.FoodPlanId,
+            Name = command.Name,
             RecipeId = command.RecipeId,
-            CustomName = command.CustomName,
-            DayOfWeek = command.DayOfWeek,
-            MealType = command.MealType
+            DayOfWeek = command.DayOfWeek
         };
         entryRepository.Add(entry);
         await unitOfWork.SaveChanges(ct);

@@ -110,7 +110,7 @@ describe('Home Page Integration Tests', () => {
     const mockPlan = { id: 42, name: 'Week Plan', weekStart: monday.toISOString() }
     mockFoodPlansGet.mockResolvedValue([mockPlan])
     mockFoodPlansByIdEntriesGet.mockResolvedValue([
-      { id: 1, dayOfWeek: planDayOfWeek, mealType: 'dinner', customName: 'Pasta', recipeId: null },
+      { id: 1, dayOfWeek: planDayOfWeek, name: 'Pasta', recipeId: null },
     ])
     mockShoppingListsGet.mockResolvedValue([])
 
@@ -118,7 +118,6 @@ describe('Home Page Integration Tests', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Pasta')).toBeInTheDocument()
-      expect(screen.getByText('dinner')).toBeInTheDocument()
     })
   })
 
@@ -131,7 +130,7 @@ describe('Home Page Integration Tests', () => {
       { id: 10, name: 'My Plan', weekStart: monday.toISOString() },
     ])
     mockFoodPlansByIdEntriesGet.mockResolvedValue([
-      { id: 1, dayOfWeek: planDayOfWeek, mealType: 'lunch', customName: null, recipeId: 5 },
+      { id: 1, dayOfWeek: planDayOfWeek, name: null, recipeId: 5 },
     ])
     mockRecipesGet.mockResolvedValue([{ id: 5, name: 'Lasagna' }])
     mockShoppingListsGet.mockResolvedValue([])

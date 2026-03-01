@@ -9,8 +9,7 @@ public class FoodPlanEntryConfiguration : IEntityTypeConfiguration<FoodPlanEntry
     public void Configure(EntityTypeBuilder<FoodPlanEntry> builder)
     {
         builder.HasKey(e => e.Id);
-        builder.Property(e => e.CustomName).HasMaxLength(200);
-        builder.Property(e => e.MealType).HasMaxLength(50);
+        builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.HasOne<FoodPlan>()
             .WithMany()
             .HasForeignKey(e => e.FoodPlanId)

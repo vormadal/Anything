@@ -69,16 +69,14 @@ export function useAddFoodPlanEntry(foodPlanId: number) {
 
   return useMutation({
     mutationFn: (entry: {
+      name: string;
       recipeId?: number | null;
-      customName?: string | null;
       dayOfWeek: number;
-      mealType?: string | null;
     }) =>
       apiClient.api.foodPlans.byId(foodPlanId).entries.post({
+        name: entry.name,
         recipeId: entry.recipeId,
-        customName: entry.customName,
         dayOfWeek: entry.dayOfWeek,
-        mealType: entry.mealType,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries", foodPlanId] });
@@ -92,22 +90,19 @@ export function useUpdateFoodPlanEntry(foodPlanId: number) {
   return useMutation({
     mutationFn: ({
       entryId,
+      name,
       recipeId,
-      customName,
       dayOfWeek,
-      mealType,
     }: {
       entryId: number;
+      name: string;
       recipeId?: number | null;
-      customName?: string | null;
       dayOfWeek: number;
-      mealType?: string | null;
     }) =>
       apiClient.api.foodPlans.byId(foodPlanId).entries.byId(entryId).put({
+        name,
         recipeId,
-        customName,
         dayOfWeek,
-        mealType,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries", foodPlanId] });
