@@ -13,7 +13,7 @@ public class UpdateShoppingListItemHandler(IRepository<ShoppingListItem> reposit
     public async Task<IResult> Handle(UpdateShoppingListItemCommand command, CancellationToken ct = default)
     {
         var item = await repository.GetById(command.ItemId);
-        if (item is null || item.DeletedOn != null || item.ShoppingListId != command.ShoppingListId)
+        if (item is null || item.ShoppingListId != command.ShoppingListId)
             return Results.NotFound();
 
         item.Name = command.Name;
