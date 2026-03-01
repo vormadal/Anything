@@ -2,293 +2,252 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import Home from './page'
-import { toast } from 'sonner'
 
 // Mock the apiClient module
-const mockSomethingsGet = jest.fn()
-const mockSomethingsPost = jest.fn()
-const mockSomethingsByIdDelete = jest.fn()
-const mockSomethingsById = jest.fn(() => ({ delete: mockSomethingsByIdDelete }))
+const mockFoodPlansGet = jest.fn()
+const mockFoodPlanEntriesGet = jest.fn()
+const mockFoodPlansByIdEntriesGet = jest.fn()
+const mockFoodPlansById = jest.fn(() => ({
+  get: jest.fn(),
+  entries: { get: mockFoodPlansByIdEntriesGet },
+}))
+const mockShoppingListsGet = jest.fn()
+const mockRecipesGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
-      somethings: {
-        get: (...args: unknown[]) => mockSomethingsGet(...args),
-        post: (...args: unknown[]) => mockSomethingsPost(...args),
-        byId: (...args: unknown[]) => mockSomethingsById(...args),
+      foodPlans: {
+        get: (...args: unknown[]) => mockFoodPlansGet(...args),
+        byId: (...args: unknown[]) => mockFoodPlansById(...args),
+      },
+      shoppingLists: {
+        get: (...args: unknown[]) => mockShoppingListsGet(...args),
+      },
+      recipes: {
+        get: (...args: unknown[]) => mockRecipesGet(...args),
       },
     },
   },
 }))
 
 // Mock next/navigation
-const mockPush = jest.fn();
-jest.mock("next/navigation", () => ({
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
-}));
-
-// Mock toast
-jest.mock('sonner', () => ({
-  toast: {
-    success: jest.fn(),
-    error: jest.fn(),
-  },
-  Toaster: () => null,
 }))
+
+// Helper to get a Monday date that contains "today"
+function getMondayOfCurrentWeek(): Date {
+  const now = new Date()
+  const day = now.getDay() // 0=Sunday
+  const diff = (day === 0 ? -6 : 1 - day) // adjust to Monday
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + diff)
+  monday.setHours(0, 0, 0, 0)
+  return monday
+}
+
+// Convert JS day (0=Sunday) to plan day (0=Monday)
+function jsDayToPlanDay(jsDay: number): number {
+  return (jsDay + 6) % 7
+}
 
 describe('Home Page Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    // Set up localStorage with a mock user
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockFoodPlansByIdEntriesGet.mockResolvedValue([])
+    mockRecipesGet.mockResolvedValue([])
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
   })
 
   afterEach(() => {
     localStorage.clear()
+    jest.useRealTimers()
   })
 
-  it('should render the page with description', () => {
-    mockSomethingsGet.mockResolvedValue([])
+  it('should render "Today\'s Menu" heading when hour is before 18', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
-    expect(
-      screen.getByText('Create anything you want - lists, inventory, and more')
-    ).toBeInTheDocument()
+    expect(screen.getByText("Today's Menu")).toBeInTheDocument()
   })
 
-  it('should display loading state initially', () => {
-    mockSomethingsGet.mockImplementation(
-      () => new Promise(() => { /* Never resolves to keep loading state */ })
-    )
+  it('should render "Tomorrow\'s Menu" heading when hour is 18 or later', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T18:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    expect(screen.getByText("Tomorrow's Menu")).toBeInTheDocument()
   })
 
-  it('should display error message when API fails', async () => {
-    mockSomethingsGet.mockRejectedValue(new Error('API error'))
-
-    render(<Home />)
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Failed to load items/i)
-      ).toBeInTheDocument()
-    })
-  })
-
-  it('should display empty state when no items exist', async () => {
-    mockSomethingsGet.mockResolvedValue([])
+  it('should show "no food plan" message when no plan covers today', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(
-        screen.getByText('No items yet. Create your first one above!')
-      ).toBeInTheDocument()
+      expect(screen.getByText(/No food plan for today/i)).toBeInTheDocument()
     })
   })
 
-  it('should display list of somethings', async () => {
-    const mockData = [
-      { id: 1, name: 'Test Item 1', createdOn: '2024-01-01T00:00:00Z' },
-      { id: 2, name: 'Test Item 2', createdOn: '2024-01-02T00:00:00Z' },
-    ]
+  it('should show meal entries when a plan covers today', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00')) // Monday
+    const monday = new Date('2025-06-16T00:00:00')
+    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay()) // 0 (Monday)
 
-    mockSomethingsGet.mockResolvedValue(mockData)
+    const mockPlan = { id: 42, name: 'Week Plan', weekStart: monday.toISOString() }
+    mockFoodPlansGet.mockResolvedValue([mockPlan])
+    mockFoodPlansByIdEntriesGet.mockResolvedValue([
+      { id: 1, dayOfWeek: planDayOfWeek, mealType: 'dinner', customName: 'Pasta', recipeId: null },
+    ])
+    mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByText('Test Item 1')).toBeInTheDocument()
-      expect(screen.getByText('Test Item 2')).toBeInTheDocument()
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+      expect(screen.getByText('dinner')).toBeInTheDocument()
     })
   })
 
-  it('should create a new something when form is submitted', async () => {
-    const user = userEvent.setup()
-    const mockExistingData = [
-      { id: 1, name: 'Existing Item', createdOn: '2024-01-01T00:00:00Z' },
-    ]
-    const mockNewItem = {
-      id: 2,
-      name: 'New Item',
-      createdOn: '2024-01-02T00:00:00Z',
-    }
+  it('should show recipe name for plan entry linked to a recipe', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    const monday = new Date('2025-06-16T00:00:00')
+    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay())
 
-    mockSomethingsGet
-      .mockResolvedValueOnce(mockExistingData)
-      .mockResolvedValueOnce([...mockExistingData, mockNewItem])
-    mockSomethingsPost.mockResolvedValueOnce(mockNewItem)
-
-    render(<Home />)
-
-    // Wait for initial load
-    await waitFor(() => {
-      expect(screen.getByText('Existing Item')).toBeInTheDocument()
-    })
-
-    // Fill in the form
-    const input = screen.getByPlaceholderText('What do you want to create?')
-    await user.type(input, 'New Item')
-
-    // Submit the form
-    const addButton = screen.getByRole('button', { name: 'Add' })
-    await user.click(addButton)
-
-    // Verify POST was made via apiClient
-    await waitFor(() => {
-      expect(mockSomethingsPost).toHaveBeenCalledWith({ name: 'New Item' })
-    })
-
-    // Verify success toast was called
-    expect(toast.success).toHaveBeenCalledWith('Item created successfully')
-
-    // Verify input is cleared
-    expect(input).toHaveValue('')
-  })
-
-  it('should not submit form when input is empty', async () => {
-    const user = userEvent.setup()
-
-    mockSomethingsGet.mockResolvedValue([])
+    mockFoodPlansGet.mockResolvedValue([
+      { id: 10, name: 'My Plan', weekStart: monday.toISOString() },
+    ])
+    mockFoodPlansByIdEntriesGet.mockResolvedValue([
+      { id: 1, dayOfWeek: planDayOfWeek, mealType: 'lunch', customName: null, recipeId: 5 },
+    ])
+    mockRecipesGet.mockResolvedValue([{ id: 5, name: 'Lasagna' }])
+    mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByText('No items yet. Create your first one above!')).toBeInTheDocument()
+      expect(screen.getByText('Lasagna')).toBeInTheDocument()
     })
-
-    const addButton = screen.getByRole('button', { name: 'Add' })
-    await user.click(addButton)
-
-    // Verify no POST was made (only the initial GET)
-    expect(mockSomethingsPost).not.toHaveBeenCalled()
   })
 
-  it('should delete a something when delete button is clicked', async () => {
-    const user = userEvent.setup()
-    const mockData = [
-      { id: 1, name: 'Item to Delete', createdOn: '2024-01-01T00:00:00Z' },
-    ]
+  it('should navigate to food plan detail when "Edit plan" is clicked', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    const monday = new Date('2025-06-16T00:00:00')
+    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay())
 
-    mockSomethingsGet
-      .mockResolvedValueOnce(mockData)
-      .mockResolvedValueOnce([])
-    mockSomethingsByIdDelete.mockResolvedValueOnce(undefined)
-
-    render(<Home />)
-
-    // Wait for initial load
-    await waitFor(() => {
-      expect(screen.getByText('Item to Delete')).toBeInTheDocument()
-    })
-
-    // Click delete button
-    const deleteButton = screen.getByRole('button', { name: 'Delete' })
-    await user.click(deleteButton)
-
-    // Verify DELETE was made via apiClient
-    await waitFor(() => {
-      expect(mockSomethingsById).toHaveBeenCalledWith(1)
-      expect(mockSomethingsByIdDelete).toHaveBeenCalled()
-    })
-
-    // Verify success toast was called
-    expect(toast.success).toHaveBeenCalledWith('Item deleted successfully')
-  })
-
-  it('should show loading state on add button when creating', async () => {
-    const user = userEvent.setup()
-
-    mockSomethingsGet.mockResolvedValueOnce([])
-    mockSomethingsPost.mockImplementation(
-      () => new Promise((resolve) => {
-        setTimeout(() => resolve({ id: 1, name: 'Test', createdOn: '2024-01-01T00:00:00Z' }), 100)
-      })
-    )
+    mockFoodPlansGet.mockResolvedValue([
+      { id: 7, name: 'Test Plan', weekStart: monday.toISOString() },
+    ])
+    mockFoodPlansByIdEntriesGet.mockResolvedValue([
+      { id: 1, dayOfWeek: planDayOfWeek, mealType: null, customName: 'Soup', recipeId: null },
+    ])
+    mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByText('No items yet. Create your first one above!')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit plan' })).toBeInTheDocument()
     })
 
-    const input = screen.getByPlaceholderText('What do you want to create?')
-    await user.type(input, 'Test')
-
-    const addButton = screen.getByRole('button', { name: 'Add' })
-    await user.click(addButton)
-
-    // Should show "Adding..." while pending
-    expect(screen.getByRole('button', { name: 'Adding...' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Edit plan' }))
+    expect(mockPush).toHaveBeenCalledWith('/food-plans/7')
   })
 
-  it('should preserve form input when create fails', async () => {
-    const user = userEvent.setup()
-
-    mockSomethingsGet.mockResolvedValueOnce([])
-    mockSomethingsPost.mockRejectedValueOnce(new Error('Server error'))
+  it('should navigate to all food plans when "All plans" is clicked', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByText('No items yet. Create your first one above!')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'All plans' })).toBeInTheDocument()
     })
 
-    const input = screen.getByPlaceholderText('What do you want to create?')
-    await user.type(input, 'Will Fail')
-
-    const addButton = screen.getByRole('button', { name: 'Add' })
-    await user.click(addButton)
-
-    // Wait for the mutation to settle
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Add' })).not.toBeDisabled()
-    })
-
-    // Input should still contain the text since creation failed
-    expect(input).toHaveValue('Will Fail')
-
-    // Verify error toast was called
-    expect(toast.error).toHaveBeenCalledWith('Failed to create item. Please try again.')
+    await user.click(screen.getByRole('button', { name: 'All plans' }))
+    expect(mockPush).toHaveBeenCalledWith('/food-plans')
   })
 
-  it('should keep existing items visible when delete fails', async () => {
-    const user = userEvent.setup()
-    const mockData = [
-      { id: 1, name: 'Persistent Item', createdOn: '2024-01-01T00:00:00Z' },
-    ]
-
-    mockSomethingsGet
-      .mockResolvedValueOnce(mockData)
-      .mockResolvedValueOnce(mockData)
-    mockSomethingsByIdDelete.mockRejectedValueOnce(new Error('Server error'))
+  it('should show top 2 shopping lists', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([
+      { id: 1, name: 'Grocery List' },
+      { id: 2, name: 'Party Supplies' },
+      { id: 3, name: 'Hardware Store' },
+    ])
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByText('Persistent Item')).toBeInTheDocument()
+      expect(screen.getByText('Grocery List')).toBeInTheDocument()
+      expect(screen.getByText('Party Supplies')).toBeInTheDocument()
     })
 
-    const deleteButton = screen.getByRole('button', { name: 'Delete' })
-    await user.click(deleteButton)
+    // Third list should not be shown directly
+    expect(screen.queryByText('Hardware Store')).not.toBeInTheDocument()
+    // But "View all X lists" link should be present
+    expect(screen.getByText(/View all 3 lists/i)).toBeInTheDocument()
+  })
 
-    // Wait for mutation to settle
+  it('should show empty state when no shopping lists exist', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
     await waitFor(() => {
-      expect(deleteButton).not.toBeDisabled()
+      expect(screen.getByText('No shopping lists yet.')).toBeInTheDocument()
+    })
+  })
+
+  it('should navigate to shopping list detail when a list is clicked', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([
+      { id: 3, name: 'My List' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('My List')).toBeInTheDocument()
     })
 
-    // Item should still be visible after failed delete
-    expect(screen.getByText('Persistent Item')).toBeInTheDocument()
+    await user.click(screen.getByText('My List'))
+    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/3')
+  })
 
-    // Verify error toast was called
-    expect(toast.error).toHaveBeenCalledWith('Failed to delete item. Please try again.')
+  it('should navigate to all shopping lists when "All lists" is clicked', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'All lists' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'All lists' }))
+    expect(mockPush).toHaveBeenCalledWith('/shopping-lists')
   })
 })
