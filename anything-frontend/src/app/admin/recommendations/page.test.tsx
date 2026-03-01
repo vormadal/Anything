@@ -311,5 +311,69 @@ describe("AdminRecommendationsPage", () => {
         expect(screen.getByText("No recommendations yet.")).toBeInTheDocument();
       });
     });
+
+    it("should show a Remove button for each recommendation in the All tab", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([
+        { id: 1, name: "Apple", isApproved: true },
+        { id: 2, name: "Banana", isApproved: false },
+      ]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await user.click(screen.getByRole("button", { name: /^All/ }));
+
+      await waitFor(() => {
+        expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(
+          2
+        );
+      });
+    });
+
+    it("should remove a recommendation successfully from the All tab", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([{ id: 3, name: "Carrot", isApproved: true }]);
+      mockDeleteFn.mockResolvedValueOnce({});
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await user.click(screen.getByRole("button", { name: /^All/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Carrot")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "Remove" }));
+
+      await waitFor(() => {
+        expect(mockDeleteFn).toHaveBeenCalledWith(3);
+        expect(toast.success).toHaveBeenCalledWith("Removed.");
+      });
+    });
+
+    it("should show error toast when removal fails in the All tab", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([{ id: 3, name: "Carrot", isApproved: true }]);
+      mockDeleteFn.mockRejectedValueOnce(new Error("Server error"));
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await user.click(screen.getByRole("button", { name: /^All/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Carrot")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "Remove" }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          "Failed to remove recommendation."
+        );
+      });
+    });
   });
 });

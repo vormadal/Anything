@@ -59,6 +59,15 @@ export default function AdminRecommendationsPage() {
     }
   };
 
+  const handleRemove = async (id: number) => {
+    try {
+      await deleteRecommendation.mutateAsync(id);
+      toast.success("Removed.");
+    } catch {
+      toast.error("Failed to remove recommendation.");
+    }
+  };
+
   const validPending = (pendingRecommendations ?? []).filter(
     (rec) => rec.id !== null && rec.name !== null
   );
@@ -163,15 +172,28 @@ export default function AdminRecommendationsPage() {
                     <span className="text-sm text-gray-900 dark:text-white truncate">
                       {rec.name}
                     </span>
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
-                        rec.isApproved
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                      }`}
-                    >
-                      {rec.isApproved ? "Approved" : "Pending"}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          rec.isApproved
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        }`}
+                      >
+                        {rec.isApproved ? "Approved" : "Pending"}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleRemove(rec.id!)}
+                        disabled={deleteRecommendation.isPending}
+                        className="px-3"
+                        aria-label="Remove"
+                      >
+                        <X className="h-4 w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Remove</span>
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
