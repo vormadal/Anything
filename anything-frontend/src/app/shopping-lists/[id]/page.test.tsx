@@ -568,7 +568,22 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
-  it('should not show complete list button when some items are unchecked', async () => {
+  it('should show complete list button when 3 or fewer unchecked items remain', async () => {
+    const mockItems = [
+      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
+      { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
+      { id: 3, name: 'Eggs', isChecked: true, shoppingListId: 1 },
+    ]
+    mockItemsGet.mockResolvedValue(mockItems)
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+    })
+  })
+
+  it('should not show complete list button when more than 3 items are unchecked', async () => {
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
       { id: 2, name: 'Bread', isChecked: false, shoppingListId: 1 },

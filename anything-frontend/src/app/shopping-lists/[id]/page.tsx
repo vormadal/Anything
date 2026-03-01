@@ -49,6 +49,7 @@ export default function ShoppingListDetailPage() {
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
   const checkedItems = items?.filter((i) => i.isChecked) ?? [];
   const sortedItems = [...uncheckedItems, ...checkedItems];
+  const isFewItems = uncheckedItems.length > 0 && uncheckedItems.length <= 3;
 
   const filteredSuggestions =
     recommendations?.filter(
@@ -405,7 +406,7 @@ export default function ShoppingListDetailPage() {
           </ul>
         )}
 
-        {items && items.length > 0 && items.every((i) => i.isChecked) && (
+        {items && items.length > 0 && (items.every((i) => i.isChecked) || isFewItems) && (
           <div className="mt-4 flex justify-end">
             <Button
               onClick={handleCompleteList}
