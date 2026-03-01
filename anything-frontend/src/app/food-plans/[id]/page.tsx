@@ -18,6 +18,8 @@ import { useHeaderActions } from "@/context/PageActionsContext";
 import { ShoppingCart, Plus, X } from "lucide-react";
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// Delay before closing the suggestions dropdown on blur, allowing onMouseDown on a suggestion to fire first
+const SUGGESTION_BLUR_DELAY_MS = 150;
 
 function EntryBadge({
   entry,
@@ -52,24 +54,26 @@ function AddEntryForm({
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
-  const [selectedRecipeId, setSelectedRecipeId] = useState<number | "">("");
-  const [recipeSearch, setRecipeSearch] = useState("");
+  const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const addEntry = useAddFoodPlanEntry(foodPlanId);
 
-  const filteredRecipes = recipes?.filter(
-    (r) =>
-      !recipeSearch.trim() ||
-      r.name?.toLowerCase().includes(recipeSearch.toLowerCase())
-  );
+  const suggestions = name.trim()
+    ? (recipes ?? []).filter((r) =>
+        r.name?.toLowerCase().includes(name.toLowerCase())
+      )
+    : [];
 
-  const handleRecipeSelect = (recipeId: number | "") => {
-    setSelectedRecipeId(recipeId);
-    if (recipeId) {
-      const recipe = recipes?.find((r) => r.id === recipeId);
-      if (recipe?.name) {
-        setName(recipe.name);
-      }
-    }
+  const handleSelectSuggestion = (recipe: Recipe) => {
+    setName(recipe.name ?? "");
+    setSelectedRecipeId(recipe.id ?? null);
+    setShowSuggestions(false);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+    setSelectedRecipeId(null);
+    setShowSuggestions(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,7 +82,7 @@ function AddEntryForm({
     try {
       await addEntry.mutateAsync({
         name: name.trim(),
-        recipeId: selectedRecipeId ? Number(selectedRecipeId) : null,
+        recipeId: selectedRecipeId,
         dayOfWeek,
       });
       toast.success("Entry added");
@@ -90,36 +94,31 @@ function AddEntryForm({
 
   return (
     <form onSubmit={handleSubmit} className="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 space-y-2">
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Meal name..."
-        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-        autoFocus
-      />
-
-      <div className="space-y-1">
+      <div className="relative">
         <input
           type="text"
-          value={recipeSearch}
-          onChange={(e) => setRecipeSearch(e.target.value)}
-          placeholder="Link to recipe (optional)..."
+          value={name}
+          onChange={handleNameChange}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), SUGGESTION_BLUR_DELAY_MS)}
+          placeholder="Meal name..."
           className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          autoFocus
+          autoComplete="off"
         />
-        {(recipeSearch.trim() || selectedRecipeId) && (
-          <select
-            value={selectedRecipeId}
-            onChange={(e) => handleRecipeSelect(e.target.value ? Number(e.target.value) : "")}
-            className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">No recipe</option>
-            {filteredRecipes?.map((r) => (
-              <option key={r.id} value={r.id!}>
+        {showSuggestions && suggestions.length > 0 && (
+          <ul className="absolute z-10 left-0 right-0 mt-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md max-h-36 overflow-y-auto">
+            {/* onMouseDown fires before onBlur, so the selection completes before the dropdown closes */}
+            {suggestions.map((r) => (
+              <li
+                key={r.id}
+                onMouseDown={() => handleSelectSuggestion(r)}
+                className="px-2 py-1 text-xs cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-800 dark:text-gray-200"
+              >
                 {r.name}
-              </option>
+              </li>
             ))}
-          </select>
+          </ul>
         )}
       </div>
 
@@ -197,13 +196,10 @@ function AddToShoppingListDialog({
 }) {
   const { data: shoppingLists } = useShoppingLists();
   const addToShoppingList = useAddFoodPlanToShoppingList(foodPlanId);
-  const [selectedListId, setSelectedListId] = useState<number | "">("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedListId) return;
+  const handleSelect = async (listId: number) => {
     try {
-      await addToShoppingList.mutateAsync(Number(selectedListId));
+      await addToShoppingList.mutateAsync(listId);
       toast.success("Ingredients added to shopping list");
       onClose();
     } catch {
@@ -214,35 +210,34 @@ function AddToShoppingListDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           Add to Shopping List
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          All recipe ingredients from this week&apos;s plan will be added to the selected shopping list.
+          Select a shopping list to add all recipe ingredients from this week&apos;s plan.
         </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <select
-            value={selectedListId}
-            onChange={(e) => setSelectedListId(e.target.value ? Number(e.target.value) : "")}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-            autoFocus
-          >
-            <option value="">Select a shopping list...</option>
-            {shoppingLists?.map((list) => (
-              <option key={list.id} value={list.id!}>
+        <ul className="space-y-2 mb-4">
+          {shoppingLists?.map((list) => (
+            <li key={list.id}>
+              <button
+                type="button"
+                className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-sm text-gray-800 dark:text-gray-200 disabled:opacity-50"
+                onClick={() => list.id != null && handleSelect(list.id)}
+                disabled={addToShoppingList.isPending}
+              >
                 {list.name}
-              </option>
-            ))}
-          </select>
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1" disabled={!selectedListId || addToShoppingList.isPending}>
-              {addToShoppingList.isPending ? "Adding..." : "Add Ingredients"}
-            </Button>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-          </div>
-        </form>
+              </button>
+            </li>
+          ))}
+          {(!shoppingLists || shoppingLists.length === 0) && (
+            <li className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
+              No shopping lists available.
+            </li>
+          )}
+        </ul>
+        <Button type="button" variant="ghost" className="w-full" onClick={onClose}>
+          Cancel
+        </Button>
       </div>
     </div>
   );
@@ -308,7 +303,7 @@ export default function FoodPlanDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
-      <div className="mb-4 flex items-start justify-between">
+      <div className="mb-4">
         <div>
           <button
             onClick={() => router.push("/food-plans")}
@@ -323,15 +318,6 @@ export default function FoodPlanDetailPage() {
             Week of {weekStartDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2 shrink-0"
-          onClick={() => setShowShoppingListDialog(true)}
-        >
-          <ShoppingCart className="h-4 w-4" />
-          <span className="hidden sm:inline">Add to Shopping List</span>
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2">
