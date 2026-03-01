@@ -148,7 +148,7 @@ describe('ShoppingListDetailPage', () => {
     expect(screen.getByText('12×')).toBeInTheDocument()
   })
 
-  it('should toggle item check when clicked with more than 3 unchecked items', async () => {
+  it('should toggle item check when clicked', async () => {
     const user = userEvent.setup()
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
@@ -174,15 +174,14 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
-  it('should complete the list when checking an item with 3 or fewer unchecked', async () => {
+  it('should toggle item check when checking an item with 3 or fewer unchecked', async () => {
     const user = userEvent.setup()
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
       { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
     ]
-    const mockNewList = { id: 99, name: 'Groceries', createdOn: '2024-01-02T00:00:00Z' }
     mockItemsGet.mockResolvedValue(mockItems)
-    mockCompletePost.mockResolvedValueOnce(mockNewList)
+    mockItemsItemPut.mockResolvedValueOnce(undefined)
 
     render(<ShoppingListDetailPage />)
 
@@ -193,18 +192,18 @@ describe('ShoppingListDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Check item' }))
 
     await waitFor(() => {
-      expect(mockCompletePost).toHaveBeenCalled()
+      expect(mockItemsItemById).toHaveBeenCalledWith(1)
+      expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', isChecked: true }))
     })
 
-    expect(toast.success).toHaveBeenCalledWith('Shopping complete!')
-    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/99')
+    expect(mockCompletePost).not.toHaveBeenCalled()
   })
 
-  it('should show error when check fails in few-items mode', async () => {
+  it('should show error when check fails with few unchecked items', async () => {
     const user = userEvent.setup()
     const mockItems = [{ id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 }]
     mockItemsGet.mockResolvedValue(mockItems)
-    mockCompletePost.mockRejectedValueOnce(new Error('Server error'))
+    mockItemsItemPut.mockRejectedValueOnce(new Error('Server error'))
 
     render(<ShoppingListDetailPage />)
 
@@ -215,11 +214,11 @@ describe('ShoppingListDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Check item' }))
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to complete list. Please try again.')
+      expect(toast.error).toHaveBeenCalledWith('Failed to update item. Please try again.')
     })
   })
 
-  it('should show error when toggling check fails in normal mode', async () => {
+  it('should show error when toggling check fails', async () => {
     const user = userEvent.setup()
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
