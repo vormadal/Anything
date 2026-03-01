@@ -184,35 +184,35 @@ public class FoodPlanEndpointTests : IntegrationTestBase
 
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { recipeId = recipe.Id, dayOfWeek = 0, mealType = "dinner" });
+            new { name = "Pasta Dinner", recipeId = recipe.Id, dayOfWeek = 0 });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         var entry = await response.Content.ReadFromJsonAsync<FoodPlanEntryDto>(JsonOptions);
         Assert.NotNull(entry);
         Assert.Equal(recipe.Id, entry.RecipeId);
         Assert.Equal(0, entry.DayOfWeek);
-        Assert.Equal("dinner", entry.MealType);
+        Assert.Equal("Pasta Dinner", entry.Name);
     }
 
     [Fact]
-    public async Task AddFoodPlanEntry_WithCustomName_ReturnsCreated()
+    public async Task AddFoodPlanEntry_WithName_ReturnsCreated()
     {
         var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
         var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
 
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { customName = "Homemade Salad", dayOfWeek = 1, mealType = "lunch" });
+            new { name = "Homemade Salad", dayOfWeek = 1 });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         var entry = await response.Content.ReadFromJsonAsync<FoodPlanEntryDto>(JsonOptions);
         Assert.NotNull(entry);
-        Assert.Equal("Homemade Salad", entry.CustomName);
+        Assert.Equal("Homemade Salad", entry.Name);
         Assert.Equal(1, entry.DayOfWeek);
     }
 
     [Fact]
-    public async Task AddFoodPlanEntry_WithoutRecipeOrCustomName_Returns400()
+    public async Task AddFoodPlanEntry_WithoutName_Returns400()
     {
         var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
         var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
@@ -228,7 +228,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync("/api/food-plans/99999/entries",
-            new { customName = "Test", dayOfWeek = 0 });
+            new { name = "Test", dayOfWeek = 0 });
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -243,9 +243,9 @@ public class FoodPlanEndpointTests : IntegrationTestBase
 
         var client = await GetAuthenticatedHttpClientAsync();
         await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { recipeId = recipe.Id, dayOfWeek = 0, mealType = "dinner" });
+            new { name = "Pizza Dinner", recipeId = recipe.Id, dayOfWeek = 0 });
         await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { customName = "Salad", dayOfWeek = 1, mealType = "lunch" });
+            new { name = "Salad", dayOfWeek = 1 });
 
         var response = await client.GetAsync($"/api/food-plans/{plan.Id}/entries");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -265,7 +265,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
 
         var client = await GetAuthenticatedHttpClientAsync();
         var createResponse = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { customName = "Salad", dayOfWeek = 0 });
+            new { name = "Salad", dayOfWeek = 0 });
         var entry = await createResponse.Content.ReadFromJsonAsync<FoodPlanEntryDto>(JsonOptions);
         Assert.NotNull(entry);
 
@@ -288,7 +288,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
             new { name = "Minced Beef", amount = 400, unit = "g" });
         await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { recipeId = recipe.Id, dayOfWeek = 0, mealType = "dinner" });
+            new { name = "Spaghetti Dinner", recipeId = recipe.Id, dayOfWeek = 0 });
 
         var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" });
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
@@ -340,7 +340,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     }
 
     private record FoodPlanDto(int Id, string? Name, DateTime WeekStart);
-    private record FoodPlanEntryDto(int Id, int FoodPlanId, int? RecipeId, string? CustomName, int DayOfWeek, string? MealType);
+    private record FoodPlanEntryDto(int Id, int FoodPlanId, int? RecipeId, string? Name, int DayOfWeek);
     private record RecipeDto(int Id, string? Name);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked);
