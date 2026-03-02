@@ -123,7 +123,7 @@ public static class RecipeEndpoints
         group.MapPost("/{id}/images/upload", async (int id, IFormFile file, IMediator mediator) =>
         {
             await using var stream = file.OpenReadStream();
-            return await mediator.Send(new UploadRecipeImageCommand(id, stream, file.FileName, file.ContentType));
+            return await mediator.Send(new UploadRecipeImageCommand(id, stream, file.FileName, file.ContentType, file.Length));
         })
         .WithName("UploadRecipeImage")
         .RequireAuthorization()

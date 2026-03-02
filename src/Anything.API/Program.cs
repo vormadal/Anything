@@ -83,6 +83,9 @@ var app = builder.Build();
 // Seed admin user
 await SeedAdminUser(app);
 
+// Initialize image storage (set public-read bucket policy for Imaginary access)
+await InitImageStorage(app);
+
 app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline
@@ -112,6 +115,13 @@ app.MapFoodPlanEndpoints();
 app.MapRecommendationEndpoints();
 
 await app.RunAsync();
+
+static async Task InitImageStorage(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var imageStorage = scope.ServiceProvider.GetRequiredService<IImageStorageService>();
+    await imageStorage.Initialize();
+}
 
 static async Task SeedAdminUser(WebApplication app)
 {

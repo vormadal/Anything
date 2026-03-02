@@ -1,84 +1,74 @@
-using System.Security.Cryptography;
-using System.Text;
-using Amazon.Runtime;
-using Amazon.S3;
-using Amazon.S3.Model;
 using Anything.Application.Configuration;
 using Anything.Core.Services;
 using Microsoft.Extensions.Options;
+using Minio;
+using Minio.DataModel.Args;
 
 namespace Anything.Application.Services;
 
 public class MinioStorageService : IImageStorageService
 {
+    private const string PublicReadPolicyTemplate =
+        """{{\"Version\":\"2012-10-17\",\"Statement\":[{{\"Effect\":\"Allow\",\"Principal\":{{\"AWS\":[\"*\"]}},\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::{0}/*\"]}}]}}""";
+
     private readonly ImageSettings _settings;
-    private readonly IAmazonS3 _s3;
+    private readonly IMinioClient _client;
 
     public MinioStorageService(IOptions<ImageSettings> settings)
     {
         _settings = settings.Value;
-
-        var config = new AmazonS3Config
-        {
-            ServiceURL = _settings.Endpoint,
-            ForcePathStyle = true,
-            UseHttp = !_settings.UseSSL
-        };
-
-        _s3 = new AmazonS3Client(
-            new BasicAWSCredentials(_settings.AccessKey, _settings.SecretKey),
-            config);
+        var uri = new Uri(_settings.Endpoint);
+        var builder = new MinioClient()
+            .WithEndpoint(uri.Host, uri.Port)
+            .WithCredentials(_settings.AccessKey, _settings.SecretKey);
+        if (_settings.UseSSL)
+            builder = builder.WithSSL();
+        _client = builder.Build();
     }
 
-    public async Task<string> Upload(Stream stream, string fileName,
-        string contentType, CancellationToken ct = default)
+    public async Task Initialize(CancellationToken ct = default)
+    {
+        var policy = string.Format(PublicReadPolicyTemplate, _settings.BucketName);
+        try
+        {
+            await _client.SetPolicyAsync(new SetPolicyArgs()
+                .WithBucket(_settings.BucketName)
+                .WithPolicy(policy));
+        }
+        catch
+        {
+            // Non-fatal: bucket may not exist yet (provisioned separately by Aspire/admin)
+        }
+    }
+
+    public async Task<string> Upload(Stream stream, string fileName, string contentType,
+        long contentLength, CancellationToken ct = default)
     {
         var extension = Path.GetExtension(fileName);
         var objectKey = $"recipes/{Guid.NewGuid()}{extension}";
 
-        var request = new PutObjectRequest
-        {
-            BucketName = _settings.BucketName,
-            Key = objectKey,
-            InputStream = stream,
-            ContentType = contentType,
-            DisablePayloadSigning = true
-        };
+        await _client.PutObjectAsync(new PutObjectArgs()
+            .WithBucket(_settings.BucketName)
+            .WithObject(objectKey)
+            .WithStreamData(stream)
+            .WithObjectSize(contentLength)
+            .WithContentType(contentType), ct);
 
-        await _s3.PutObjectAsync(request, ct);
         return objectKey;
     }
 
-    public string GetImageUrl(string storageKey, int width, int height,
-        string resizingType = "fill")
+    public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill")
     {
-        var processingOptions = $"rs:{resizingType}:{width}:{height}";
-        var sourcePath = $"s3://{_settings.BucketName}/{storageKey}";
-        var path = $"/{processingOptions}/plain/{sourcePath}";
-
-        var keyBytes = Convert.FromHexString(_settings.ImgproxyKey);
-        var saltBytes = Convert.FromHexString(_settings.ImgproxySalt);
-
-        using var hmac = new HMACSHA256(keyBytes);
-        var dataToSign = saltBytes.Concat(Encoding.UTF8.GetBytes(path)).ToArray();
-        var hash = hmac.ComputeHash(dataToSign);
-
-        var signature = Convert.ToBase64String(hash)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
-
-        return $"{_settings.ImgproxyBaseUrl.TrimEnd('/')}/{signature}{path}";
+        var sourceUrl = $"{_settings.MinioSourceEndpoint.TrimEnd('/')}/{_settings.BucketName}/{storageKey}";
+        var operation = resizingType == "fill" ? "crop" : "resize";
+        var encodedUrl = Uri.EscapeDataString(sourceUrl);
+        return $"{_settings.ImaginaryBaseUrl.TrimEnd('/')}/{operation}?width={width}&height={height}&type=webp&url={encodedUrl}";
     }
 
     public async Task Delete(string storageKey, CancellationToken ct = default)
     {
-        var request = new DeleteObjectRequest
-        {
-            BucketName = _settings.BucketName,
-            Key = storageKey
-        };
-
-        await _s3.DeleteObjectAsync(request, ct);
+        await _client.RemoveObjectAsync(new RemoveObjectArgs()
+            .WithBucket(_settings.BucketName)
+            .WithObject(storageKey), ct);
     }
 }

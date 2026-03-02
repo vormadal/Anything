@@ -10,7 +10,8 @@ public record UploadRecipeImageCommand(
     int RecipeId,
     Stream ImageStream,
     string FileName,
-    string ContentType) : IRequest<IResult>;
+    string ContentType,
+    long ContentLength) : IRequest<IResult>;
 
 public class UploadRecipeImageHandler(
     IRepository<Recipe> recipeRepository,
@@ -27,13 +28,14 @@ public class UploadRecipeImageHandler(
         if (recipe is null || recipe.DeletedOn != null)
             return Results.NotFound(RecipeNotFound);
 
-        if (command.ImageStream.Length == 0)
+        if (command.ContentLength == 0)
             return Results.BadRequest(InvalidFile);
 
         var storageKey = await imageStorageService.Upload(
             command.ImageStream,
             command.FileName,
             command.ContentType,
+            command.ContentLength,
             ct);
 
         var image = new RecipeImage

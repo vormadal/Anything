@@ -20,18 +20,20 @@ import {
   useDeleteRecipeIngredient,
   useAddRecipeStep,
   useDeleteRecipeStep,
-  useAddRecipeImage,
   useDeleteRecipeImage,
   useAddIngredientsToShoppingList,
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
+import { RecipeImageUpload } from "@/components/RecipeImageUpload";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function RecipeDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const recipeId = Number(params.id);
 
   const isSafeUrl = (url: string) =>
@@ -52,7 +54,6 @@ export default function RecipeDetailPage() {
   >({});
 
   const [newStepText, setNewStepText] = useState("");
-  const [newImageUrl, setNewImageUrl] = useState("");
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
 
   const { data: recipe, isLoading, error } = useRecipe(recipeId);
@@ -67,7 +68,6 @@ export default function RecipeDetailPage() {
   const deleteIngredient = useDeleteRecipeIngredient(recipeId);
   const addStep = useAddRecipeStep(recipeId);
   const deleteStep = useDeleteRecipeStep(recipeId);
-  const addImage = useAddRecipeImage(recipeId);
   const deleteImage = useDeleteRecipeImage(recipeId);
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
 
@@ -194,19 +194,6 @@ export default function RecipeDetailPage() {
     }
   };
 
-  const handleAddImage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newImageUrl.trim()) return;
-
-    try {
-      await addImage.mutateAsync(newImageUrl);
-      setNewImageUrl("");
-      toast.success("Image added");
-    } catch {
-      toast.error("Failed to add image. Please try again.");
-    }
-  };
-
   const handleDeleteImage = async (imageId: number) => {
     try {
       await deleteImage.mutateAsync(imageId);
@@ -228,8 +215,7 @@ export default function RecipeDetailPage() {
 
   const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 
-  const heroImage = images?.find((img) => img.url && isSafeUrl(img.url));
-  const heroImageUrl = heroImage?.url ?? "";
+  const heroImageUrl = images?.[0]?.originalUrl ?? "";
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -249,7 +235,7 @@ export default function RecipeDetailPage() {
           <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-gray-300 dark:text-gray-600">
             <ImageIcon className="h-20 w-20" strokeWidth={1} />
             {isEditMode ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">Add an image URL below</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">Upload a photo below</p>
             ) : (
               <p className="text-sm text-gray-400 dark:text-gray-500">No photo yet</p>
             )}
@@ -310,44 +296,33 @@ export default function RecipeDetailPage() {
       {/* ── Image management strip (edit mode only) ── */}
       {isEditMode && (
         <div className="px-4 sm:px-6 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-          <form onSubmit={handleAddImage} className="flex gap-2 items-center">
-            <input
-              type="url"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              placeholder="Image URL..."
-              className="flex-1 min-w-0 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
-            />
-            <Button type="submit" size="sm" disabled={addImage.isPending} aria-label="Add image">
-              <Plus className="h-4 w-4 mr-1" />Add image
-            </Button>
-          </form>
+          <RecipeImageUpload
+            recipeId={recipeId}
+            onSuccess={() => queryClient.invalidateQueries({ queryKey: ["recipeImages", recipeId] })}
+          />
 
           {images && images.length > 0 && (
             <div className="flex gap-2 mt-2 flex-wrap">
-              {images.map((image) => {
-                const imageUrl = image.url ?? "";
-                return (
-                  <div key={image.id} className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={isSafeUrl(imageUrl) ? imageUrl : ""}
-                      alt="Recipe image"
-                      className="h-16 w-24 object-cover rounded border border-gray-200 dark:border-gray-700"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 hover:bg-red-600 text-white rounded-full"
-                      onClick={() => handleDeleteImage(image.id!)}
-                      disabled={deleteImage.isPending}
-                      aria-label="Remove image"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                );
-              })}
+              {images.map((image) => (
+                <div key={image.id} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={image.thumbnailUrl ?? ""}
+                    alt="Recipe image"
+                    className="h-16 w-24 object-cover rounded border border-gray-200 dark:border-gray-700"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 hover:bg-red-600 text-white rounded-full"
+                    onClick={() => handleDeleteImage(image.id!)}
+                    disabled={deleteImage.isPending}
+                    aria-label="Remove image"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -595,7 +570,6 @@ export default function RecipeDetailPage() {
             </ol>
           )}
 
-          {/* Add step — at the bottom so new steps flow naturally */}
           {isEditMode && (
             <form onSubmit={handleAddStep} className="mt-4">
               <div className="flex gap-1 items-center">

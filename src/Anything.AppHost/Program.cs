@@ -13,25 +13,25 @@ var minio = builder
 
 var minioBucket = minio.AddBucket("recipe-images");
 
-var imgproxy = builder
-    .AddContainer("imgproxy", "darthsim/imgproxy", "v3")
-    .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "http")
-    .WithEnvironment("IMGPROXY_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
-    .WithEnvironment("IMGPROXY_SALT", "0000000000000000000000000000000000000000000000000000000000000000")
-    .WithEnvironment("IMGPROXY_USE_S3", "true")
-    .WithEnvironment("AWS_ACCESS_KEY_ID", "minioadmin")
-    .WithEnvironment("AWS_SECRET_ACCESS_KEY", "minioadmin")
-    .WithEnvironment("AWS_ENDPOINT", "http://minio:9000")
-    .WithEnvironment("AWS_S3_REGION", "us-east-1")
-    .WithEnvironment("AWS_S3_FORCE_PATH_STYLE", "true");
+// Imaginary: open-source image processing proxy (https://github.com/h2non/imaginary)
+// Fetches source images from MinIO via HTTP; no credentials needed since bucket is public-read.
+// Production: set MINIO_SOURCE_ENDPOINT and IMAGINARY_BASE_URL in CapRover env vars.
+var imaginary = builder
+    .AddContainer("imaginary", "h2non/imaginary", "latest")
+    .WithHttpEndpoint(targetPort: 8088, name: "http")
+    .WithArgs("-enable-url-source");
 
 var api = builder
     .AddProject<Projects.Anything_API>("anything-api", launchProfileName: "http")
     .WithReference(postgres)
     .WithReference(minio)
-    .WithEnvironment("ImageSettings__ImgproxyBaseUrl", imgproxy.GetEndpoint("http"))
-    .WithEnvironment("ImageSettings__ImgproxyKey", "0000000000000000000000000000000000000000000000000000000000000000")
-    .WithEnvironment("ImageSettings__ImgproxySalt", "0000000000000000000000000000000000000000000000000000000000000000")
+    .WithEnvironment("ImageSettings__BucketName", "recipe-images")
+    .WithEnvironment("ImageSettings__AccessKey", "minioadmin")
+    .WithEnvironment("ImageSettings__SecretKey", "minioadmin")
+    // MinioSourceEndpoint: the MinIO URL as seen from Imaginary's Docker network
+    .WithEnvironment("ImageSettings__MinioSourceEndpoint", "http://minio:9000")
+    // ImaginaryBaseUrl: injected from Aspire's endpoint reference at runtime
+    .WithEnvironment("ImageSettings__ImaginaryBaseUrl", imaginary.GetEndpoint("http"))
     .WaitFor(postgres)
     .WaitFor(minioBucket);
 
