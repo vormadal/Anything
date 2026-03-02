@@ -30,8 +30,14 @@ public static class DependencyInjection
         // Services
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IImageStorageService, MinioStorageService>();
 
         // Configuration
+        services.AddOptions<ImageSettings>()
+            .Bind(configuration.GetSection(ImageSettings.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddOptions<JwtSettings>()
             .Bind(configuration.GetSection(JwtSettings.SectionName))
             .ValidateDataAnnotations()

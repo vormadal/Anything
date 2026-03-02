@@ -54,6 +54,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(UserRoles.Admin, policy => policy.RequireRole(UserRoles.Admin));
 });
 
+// Allow large file uploads
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 20 * 1024 * 1024; // 20 MB
+});
+
 // Add OpenAPI/Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

@@ -1,5 +1,7 @@
+using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +12,8 @@ public record GetRecipeImagesQuery(int RecipeId) : IRequest<IResult>;
 
 public class GetRecipeImagesHandler(
     IRepository<Recipe> recipeRepository,
-    IRepository<RecipeImage> imageRepository) : IRequestHandler<GetRecipeImagesQuery, IResult>
+    IRepository<RecipeImage> imageRepository,
+    IImageStorageService imageStorageService) : IRequestHandler<GetRecipeImagesQuery, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
 
@@ -23,6 +26,15 @@ public class GetRecipeImagesHandler(
         var images = await imageRepository.Query()
             .Where(i => i.RecipeId == query.RecipeId && i.DeletedOn == null)
             .ToListAsync(ct);
-        return Results.Ok(images);
+
+        var response = images.Select(img => new RecipeImageResponse(
+            img.Id,
+            img.RecipeId,
+            imageStorageService.GetImageUrl(img.StorageKey, 300, 300, "fill"),
+            imageStorageService.GetImageUrl(img.StorageKey, 800, 600, "fit"),
+            imageStorageService.GetImageUrl(img.StorageKey, 1920, 1080, "fit"),
+            img.CreatedOn));
+
+        return Results.Ok(response);
     }
 }

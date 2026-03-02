@@ -159,12 +159,28 @@ export function useDeleteRecipeStep(recipeId: number) {
   });
 }
 
-export function useAddRecipeImage(recipeId: number) {
+const UPLOAD_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
+
+export function useUploadRecipeImage(recipeId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (url: string) =>
-      apiClient.api.recipes.byId(recipeId).images.post({ url }),
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const token = typeof window !== "undefined"
+        ? (localStorage.getItem("accessToken") ?? "")
+        : "";
+      const response = await fetch(
+        `${UPLOAD_API_BASE_URL}/api/recipes/${recipeId}/images/upload`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
+      if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeImages", recipeId] });
     },
