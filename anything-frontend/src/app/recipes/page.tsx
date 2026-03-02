@@ -18,7 +18,7 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 active:scale-[0.98]"
+      className="overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 active:scale-[0.98]"
     >
       <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
         {imageUrl && !imgError ? (
@@ -35,11 +35,12 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
             <CookingPot className="h-10 w-10 text-gray-300 dark:text-gray-500" />
           </div>
         )}
-      </div>
-      <div className="p-3">
-        <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 leading-snug">
-          {recipe.name}
-        </h3>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6">
+          <h3 className="text-lg font-bold text-white drop-shadow line-clamp-2 leading-snug">
+            {recipe.name}
+          </h3>
+        </div>
       </div>
     </button>
   );
