@@ -11,7 +11,7 @@ namespace Anything.Application.Services;
 public class MinioStorageService : IImageStorageService
 {
     private const string PublicReadPolicyTemplate =
-        """{{\"Version\":\"2012-10-17\",\"Statement\":[{{\"Effect\":\"Allow\",\"Principal\":{{\"AWS\":[\"*\"]}},\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::{0}/*\"]}}]}}""";
+        """{{"Version":"2012-10-17","Statement":[{{"Effect":"Allow","Principal":{{"AWS":["*"]}},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::{0}/*"]}}]}}""";
 
     private readonly ImageSettings _settings;
     private readonly IMinioClient _client;

@@ -14,7 +14,7 @@ var minio = builder
 // Fetches source images from MinIO via HTTP; no credentials needed since bucket is public-read.
 // Production: set MINIO_SOURCE_ENDPOINT and IMAGE_PROXY_BASE_URL in CapRover env vars.
 var imgproxy = builder
-    .AddContainer("imgproxy", "darthsim/imgproxy", "latest")
+    .AddContainer("imgproxy", "docker.io/darthsim/imgproxy", "latest")
     .WithHttpEndpoint(targetPort: 8080, name: "http");
 
 var api = builder
@@ -22,9 +22,9 @@ var api = builder
     .WithReference(postgres)
     .WithReference(minio)
     .WithEnvironment("ImageSettings__BucketName", "recipe-images")
-    .WithEnvironment("ImageSettings__AccessKey", "minioadmin")
-    .WithEnvironment("ImageSettings__SecretKey", "minioadmin")
-    .WithEnvironment("ImageSettings__Endpoint", "http://minio:9000")
+    .WithEnvironment("ImageSettings__AccessKey", minio.Resource.RootUser)
+    .WithEnvironment("ImageSettings__SecretKey", minio.Resource.PasswordParameter)
+    .WithEnvironment("ImageSettings__Endpoint", minio.GetEndpoint("http"))
     // MinioSourceEndpoint: the MinIO URL as seen from the image proxy's Docker network
     .WithEnvironment("ImageSettings__MinioSourceEndpoint", "http://minio:9000")
     // ImageProxyBaseUrl: injected from Aspire's endpoint reference at runtime
