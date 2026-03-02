@@ -1438,9 +1438,10 @@ export interface RecipeStep extends AdditionalDataHolder, Parsable {
 export interface RecipeImage extends AdditionalDataHolder, Parsable {
     id?: number | null;
     recipeId?: number | null;
-    url?: string | null;
+    thumbnailUrl?: string | null;
+    mediumUrl?: string | null;
+    originalUrl?: string | null;
     createdOn?: string | null;
-    deletedOn?: string | null;
 }
 export interface CreateRecipeRequest extends AdditionalDataHolder, Parsable {
     name?: string | null;
@@ -1521,9 +1522,10 @@ export function deserializeIntoRecipeImage(recipeImage: Partial<RecipeImage> | u
     return {
         "id": n => { recipeImage.id = n.getNumberValue(); },
         "recipeId": n => { recipeImage.recipeId = n.getNumberValue(); },
-        "url": n => { recipeImage.url = n.getStringValue(); },
+        "thumbnailUrl": n => { recipeImage.thumbnailUrl = n.getStringValue(); },
+        "mediumUrl": n => { recipeImage.mediumUrl = n.getStringValue(); },
+        "originalUrl": n => { recipeImage.originalUrl = n.getStringValue(); },
         "createdOn": n => { recipeImage.createdOn = n.getStringValue(); },
-        "deletedOn": n => { recipeImage.deletedOn = n.getStringValue(); },
     }
 }
 // @ts-ignore
@@ -1629,9 +1631,10 @@ export function serializeRecipeImage(writer: SerializationWriter, recipeImage: P
     if (!recipeImage || isSerializingDerivedType) { return; }
     writer.writeNumberValue("id", recipeImage.id);
     writer.writeNumberValue("recipeId", recipeImage.recipeId);
-    writer.writeStringValue("url", recipeImage.url);
+    writer.writeStringValue("thumbnailUrl", recipeImage.thumbnailUrl);
+    writer.writeStringValue("mediumUrl", recipeImage.mediumUrl);
+    writer.writeStringValue("originalUrl", recipeImage.originalUrl);
     writer.writeStringValue("createdOn", recipeImage.createdOn);
-    writer.writeStringValue("deletedOn", recipeImage.deletedOn);
     writer.writeAdditionalData(recipeImage.additionalData);
 }
 // @ts-ignore

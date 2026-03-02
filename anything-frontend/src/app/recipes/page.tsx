@@ -11,9 +11,7 @@ import type { Recipe } from "@/lib/api-client/models/index";
 function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }) {
   const { data: images } = useRecipeImages(recipe.id!);
   const firstImage = images?.[0];
-  const isSafeUrl = (url: string) =>
-    url.startsWith("http://") || url.startsWith("https://");
-  const imageUrl = firstImage?.url && isSafeUrl(firstImage.url) ? firstImage.url : null;
+  const imageUrl = firstImage?.thumbnailUrl ?? null;
   const [imgError, setImgError] = useState(false);
 
   return (

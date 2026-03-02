@@ -14,7 +14,7 @@ import {
   useAddRecipeStep,
   useUpdateRecipeStep,
   useDeleteRecipeStep,
-  useAddRecipeImage,
+  useUploadRecipeImage,
   useDeleteRecipeImage,
   useAddIngredientsToShoppingList,
 } from '@/hooks/useRecipes'
@@ -376,21 +376,27 @@ describe('useRecipes hooks', () => {
     })
   })
 
-  describe('useAddRecipeImage', () => {
-    it('should add an image successfully', async () => {
-      mockImagesPost.mockResolvedValueOnce({ id: 1, url: 'https://example.com/img.jpg', recipeId: 1 })
+  describe('useUploadRecipeImage', () => {
+    it('should upload an image successfully', async () => {
+      const mockFetch = jest.fn().mockResolvedValueOnce({ ok: true } as Response)
+      global.fetch = mockFetch
 
-      const { result } = renderHook(() => useAddRecipeImage(1), {
+      const { result } = renderHook(() => useUploadRecipeImage(1), {
         wrapper: createWrapper(),
       })
 
+      const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
+
       await act(async () => {
-        result.current.mutate('https://example.com/img.jpg')
+        result.current.mutate(file)
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockImagesPost).toHaveBeenCalledWith({ url: 'https://example.com/img.jpg' })
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/recipes/1/images/upload'),
+        expect.objectContaining({ method: 'POST' })
+      )
     })
   })
 
