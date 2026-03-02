@@ -406,7 +406,7 @@ export default function ShoppingListDetailPage() {
           </ul>
         )}
 
-        {items && items.length > 0 && (items.every((i) => i.isChecked) || isFewItems) && (
+        {!isEditMode && items && items.length > 0 && (items.every((i) => i.isChecked) || isFewItems) && (
           <div className="mt-4 flex justify-end">
             <Button
               onClick={handleCompleteList}
