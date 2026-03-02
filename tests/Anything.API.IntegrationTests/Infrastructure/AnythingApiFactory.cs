@@ -1,4 +1,5 @@
 using Anything.Core.Entities;
+using Anything.Core.Services;
 using Anything.Database;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -54,6 +55,14 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
             // Register DbContext with the Testcontainers PostgreSQL connection
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(_connectionString));
+
+            // Replace the real Minio-backed storage with a no-op stub so tests
+            // don't require a running Minio instance.
+            var imageStorageDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IImageStorageService));
+            if (imageStorageDescriptor != null)
+                services.Remove(imageStorageDescriptor);
+            services.AddScoped<IImageStorageService, NoOpImageStorageService>();
         });
     }
 
@@ -86,4 +95,12 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         db.Users.RemoveRange(db.Users.Where(u => u.Email != AdminEmail));
         await db.SaveChangesAsync();
     }
+}
+
+file class NoOpImageStorageService : IImageStorageService
+{
+    public Task Initialize(CancellationToken ct = default) => Task.CompletedTask;
+    public Task<string> Upload(Stream stream, string fileName, string contentType, long contentLength, CancellationToken ct = default) => Task.FromResult(fileName);
+    public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill") => storageKey;
+    public Task Delete(string storageKey, CancellationToken ct = default) => Task.CompletedTask;
 }
