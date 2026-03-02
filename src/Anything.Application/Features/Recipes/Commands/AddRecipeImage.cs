@@ -23,11 +23,14 @@ public class AddRecipeImageHandler(
         var image = new RecipeImage
         {
             RecipeId = command.RecipeId,
-            Url = command.Url
+            StorageKey = command.Url
         };
 
         imageRepository.Add(image);
         await unitOfWork.SaveChanges(ct);
-        return Results.Created($"/api/recipes/{command.RecipeId}/images/{image.Id}", image);
+
+        return Results.Created(
+            $"/api/recipes/{command.RecipeId}/images/{image.Id}",
+            new { image.Id, image.RecipeId, Url = image.StorageKey });
     }
 }

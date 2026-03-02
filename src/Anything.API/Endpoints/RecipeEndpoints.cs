@@ -120,13 +120,24 @@ public static class RecipeEndpoints
         .WithName("GetRecipeImages")
         .RequireAuthorization();
 
-        group.MapPost("/{id}/images", async (int id, CreateRecipeImageRequest request, IMediator mediator) =>
+        group.MapPost("/{id}/images", async (int id, AddRecipeImageRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new AddRecipeImageCommand(id, request.Url));
         })
         .WithName("AddRecipeImage")
         .WithParameterValidation()
         .RequireAuthorization();
+
+        group.MapPost("/{id}/images/upload", async (int id, IFormFile? file, IMediator mediator) =>
+        {
+            if (file == null || file.Length == 0)
+                return Results.BadRequest("No file uploaded or file is empty.");
+            await using var stream = file.OpenReadStream();
+            return await mediator.Send(new UploadRecipeImageCommand(id, stream, file.FileName, file.ContentType, file.Length));
+        })
+        .WithName("UploadRecipeImage")
+        .RequireAuthorization()
+        .DisableAntiforgery();
 
         group.MapDelete("/{id}/images/{imageId}", async (int id, int imageId, IMediator mediator) =>
         {

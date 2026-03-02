@@ -54,6 +54,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(UserRoles.Admin, policy => policy.RequireRole(UserRoles.Admin));
 });
 
+// Allow large file uploads
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 20 * 1024 * 1024; // 20 MB
+});
+
 // Add OpenAPI/Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -76,6 +82,9 @@ var app = builder.Build();
 
 // Seed admin user
 await SeedAdminUser(app);
+
+// Initialize image storage (set public-read bucket policy for Imaginary access)
+await InitImageStorage(app);
 
 app.MapDefaultEndpoints();
 
@@ -106,6 +115,13 @@ app.MapFoodPlanEndpoints();
 app.MapRecommendationEndpoints();
 
 await app.RunAsync();
+
+static async Task InitImageStorage(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var imageStorage = scope.ServiceProvider.GetRequiredService<IImageStorageService>();
+    await imageStorage.Initialize();
+}
 
 static async Task SeedAdminUser(WebApplication app)
 {
