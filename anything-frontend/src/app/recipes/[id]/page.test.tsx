@@ -457,7 +457,7 @@ describe('RecipeDetailPage', () => {
 
     await waitFor(() => {
       expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockAddToShoppingListPost).toHaveBeenCalledWith({ shoppingListId: 1 })
+      expect(mockAddToShoppingListPost).toHaveBeenCalledWith({ shoppingListId: 1, multiplier: 1 })
     })
 
     expect(toast.success).toHaveBeenCalledWith('Ingredients added to shopping list')

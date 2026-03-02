@@ -203,8 +203,8 @@ export function useAddIngredientsToShoppingList(recipeId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (shoppingListId: number) =>
-      apiClient.api.recipes.byId(recipeId).addToShoppingList.post({ shoppingListId }),
+    mutationFn: ({ shoppingListId, multiplier }: { shoppingListId: number; multiplier?: number }) =>
+      apiClient.api.recipes.byId(recipeId).addToShoppingList.post({ shoppingListId, multiplier }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems"] });

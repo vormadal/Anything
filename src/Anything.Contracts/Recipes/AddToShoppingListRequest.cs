@@ -1,4 +1,5 @@
 namespace Anything.Contracts.Recipes;
 
 public record AddToShoppingListRequest(
-    int ShoppingListId);
+    int ShoppingListId,
+    double Multiplier = 1.0);
