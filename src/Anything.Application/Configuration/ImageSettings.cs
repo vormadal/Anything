@@ -16,4 +16,8 @@ public class ImageSettings
 
     // Image proxy base URL (for constructing resized image URLs)
     public required string ImageProxyBaseUrl { get; init; }
+
+    // imgproxy URL signing (hex-encoded). When empty, URLs use /insecure/ prefix.
+    public string? ImageProxyKey { get; init; }
+    public string? ImageProxySalt { get; init; }
 }

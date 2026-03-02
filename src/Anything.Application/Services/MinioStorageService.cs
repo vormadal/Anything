@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Anything.Application.Configuration;
 using Anything.Core.Services;
 using Microsoft.Extensions.Logging;
@@ -64,7 +65,35 @@ public class MinioStorageService : IImageStorageService
     {
         var sourceUrl = $"{_settings.MinioSourceEndpoint.TrimEnd('/')}/{_settings.BucketName}/{storageKey}";
         var resize = resizingType == "fill" ? "fill" : "fit";
-        return $"{_settings.ImageProxyBaseUrl.TrimEnd('/')}/insecure/rs:{resize}:{width}:{height}/f:webp/plain/{sourceUrl}";
+        var path = $"/rs:{resize}:{width}:{height}/f:webp/plain/{sourceUrl}";
+
+        var signaturePrefix = string.IsNullOrEmpty(_settings.ImageProxyKey) || string.IsNullOrEmpty(_settings.ImageProxySalt)
+            ? "/insecure"
+            : "/" + SignPath(path, _settings.ImageProxyKey, _settings.ImageProxySalt);
+
+        return $"{_settings.ImageProxyBaseUrl.TrimEnd('/')}{signaturePrefix}{path}";
+    }
+
+    private static string SignPath(string path, string hexKey, string hexSalt)
+    {
+        var key = Convert.FromHexString(hexKey);
+        var salt = Convert.FromHexString(hexSalt);
+        var pathBytes = System.Text.Encoding.UTF8.GetBytes(path);
+
+        var data = new byte[salt.Length + pathBytes.Length];
+        salt.CopyTo(data, 0);
+        pathBytes.CopyTo(data, salt.Length);
+
+        var hash = HMACSHA256.HashData(key, data);
+        return Base64UrlEncode(hash);
+    }
+
+    private static string Base64UrlEncode(byte[] data)
+    {
+        return Convert.ToBase64String(data)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
     }
 
     public async Task Delete(string storageKey, CancellationToken ct = default)
