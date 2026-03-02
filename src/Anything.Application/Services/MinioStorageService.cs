@@ -30,8 +30,18 @@ public class MinioStorageService : IImageStorageService
         _client = builder.Build();
     }
 
-    public async Task Initialize(CancellationToken ct = default)
+    public async Task Initialize(bool ensureBucketExists = false, CancellationToken ct = default)
     {
+        if (ensureBucketExists)
+        {
+            var exists = await _client.BucketExistsAsync(new BucketExistsArgs().WithBucket(_settings.BucketName), ct);
+            if (!exists)
+            {
+                await _client.MakeBucketAsync(new MakeBucketArgs().WithBucket(_settings.BucketName), ct);
+                _logger.LogInformation("Created bucket {BucketName}", _settings.BucketName);
+            }
+        }
+
         var policy = string.Format(PublicReadPolicyTemplate, _settings.BucketName);
         try
         {

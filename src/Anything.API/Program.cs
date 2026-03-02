@@ -83,8 +83,8 @@ var app = builder.Build();
 // Seed admin user
 await SeedAdminUser(app);
 
-// Initialize image storage (set public-read bucket policy for image proxy access)
-await InitImageStorage(app);
+// Initialize image storage (create bucket in dev, set public-read bucket policy)
+await InitImageStorage(app, app.Environment.IsDevelopment());
 
 app.MapDefaultEndpoints();
 
@@ -116,11 +116,11 @@ app.MapRecommendationEndpoints();
 
 await app.RunAsync();
 
-static async Task InitImageStorage(WebApplication app)
+static async Task InitImageStorage(WebApplication app, bool ensureBucketExists)
 {
     using var scope = app.Services.CreateScope();
     var imageStorage = scope.ServiceProvider.GetRequiredService<IImageStorageService>();
-    await imageStorage.Initialize();
+    await imageStorage.Initialize(ensureBucketExists);
 }
 
 static async Task SeedAdminUser(WebApplication app)

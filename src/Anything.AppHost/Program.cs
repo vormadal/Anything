@@ -7,11 +7,8 @@ var postgres = builder
     .AddDatabase("anything");
 
 var minio = builder
-    .AddMinio("minio")
-    .WithDataVolume()
-    .WithMinioConsole();
-
-var minioBucket = minio.AddBucket("recipe-images");
+    .AddMinioContainer("minio")
+    .WithDataVolume();
 
 // imgproxy: open-source image processing proxy (https://github.com/imgproxy/imgproxy)
 // Fetches source images from MinIO via HTTP; no credentials needed since bucket is public-read.
@@ -33,7 +30,7 @@ var api = builder
     // ImageProxyBaseUrl: injected from Aspire's endpoint reference at runtime
     .WithEnvironment("ImageSettings__ImageProxyBaseUrl", imgproxy.GetEndpoint("http"))
     .WaitFor(postgres)
-    .WaitFor(minioBucket);
+    .WaitFor(minio);
 
 builder.AddJavaScriptApp("anything-frontend", "../../anything-frontend", "dev")
     .WithHttpEndpoint(port: 3001, env: "PORT")
