@@ -1477,6 +1477,8 @@ export interface CreateRecipeImageRequest extends AdditionalDataHolder, Parsable
     url?: string | null;
 }
 export interface AddIngredientsToShoppingListRequest extends AdditionalDataHolder, Parsable {
+    additionalData?: Record<string, unknown>;
+    multiplier?: number | null;
     shoppingListId?: number | null;
 }
 // @ts-ignore
@@ -1695,6 +1697,7 @@ export function serializeCreateRecipeImageRequest(writer: SerializationWriter, c
 export function serializeAddIngredientsToShoppingListRequest(writer: SerializationWriter, addIngredientsToShoppingListRequest: Partial<AddIngredientsToShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!addIngredientsToShoppingListRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("shoppingListId", addIngredientsToShoppingListRequest.shoppingListId);
+    writer.writeNumberValue("multiplier", addIngredientsToShoppingListRequest.multiplier);
     writer.writeAdditionalData(addIngredientsToShoppingListRequest.additionalData);
 }
 
@@ -1770,8 +1773,15 @@ export interface UpdateFoodPlanEntryRequest extends AdditionalDataHolder, Parsab
     recipeId?: number | null;
     dayOfWeek?: number | null;
 }
+export interface RecipeMultiplierItem extends AdditionalDataHolder, Parsable {
+    additionalData?: Record<string, unknown>;
+    multiplier?: number | null;
+    recipeId?: number | null;
+}
+
 export interface AddFoodPlanToShoppingListRequest extends AdditionalDataHolder, Parsable {
     additionalData?: Record<string, unknown>;
+    recipeMultipliers?: RecipeMultiplierItem[] | null;
     shoppingListId?: number | null;
 }
 
@@ -1890,9 +1900,17 @@ export function serializeUpdateFoodPlanEntryRequest(writer: SerializationWriter,
     writer.writeAdditionalData(req.additionalData);
 }
 // @ts-ignore
+export function serializeRecipeMultiplierItem(writer: SerializationWriter, item: Partial<RecipeMultiplierItem> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!item || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("recipeId", item.recipeId);
+    writer.writeNumberValue("multiplier", item.multiplier);
+    writer.writeAdditionalData(item.additionalData);
+}
+// @ts-ignore
 export function serializeAddFoodPlanToShoppingListRequest(writer: SerializationWriter, req: Partial<AddFoodPlanToShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!req || isSerializingDerivedType) { return; }
     writer.writeNumberValue("shoppingListId", req.shoppingListId);
+    writer.writeCollectionOfObjectValues<RecipeMultiplierItem>("recipeMultipliers", req.recipeMultipliers, serializeRecipeMultiplierItem);
     writer.writeAdditionalData(req.additionalData);
 }
 /* tslint:enable */

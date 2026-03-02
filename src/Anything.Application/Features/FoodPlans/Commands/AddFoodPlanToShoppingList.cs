@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record AddFoodPlanToShoppingListCommand(int FoodPlanId, int ShoppingListId) : IRequest<IResult>;
+public record AddFoodPlanToShoppingListCommand(int FoodPlanId, int ShoppingListId, IReadOnlyList<Anything.Contracts.FoodPlans.RecipeMultiplier>? RecipeMultipliers = null) : IRequest<IResult>;
 
 public class AddFoodPlanToShoppingListHandler(
     IRepository<FoodPlan> foodPlanRepository,
@@ -40,9 +40,18 @@ public class AddFoodPlanToShoppingListHandler(
             .Where(i => recipeIds.Contains(i.RecipeId) && i.DeletedOn == null)
             .ToListAsync(ct);
 
-        var itemNames = ingredients.Select(ingredient => string.IsNullOrWhiteSpace(ingredient.Unit)
-            ? $"{ingredient.Amount:0.##} {ingredient.Name}"
-            : $"{ingredient.Amount:0.##} {ingredient.Unit} {ingredient.Name}").ToList();
+        var multiplierLookup = command.RecipeMultipliers?
+            .ToDictionary(m => m.RecipeId, m => m.Multiplier > 0 ? m.Multiplier : 1.0)
+            ?? new Dictionary<int, double>();
+
+        var itemNames = ingredients.Select(ingredient =>
+        {
+            var multiplier = multiplierLookup.TryGetValue(ingredient.RecipeId, out var m) ? m : 1.0;
+            var scaledAmount = ingredient.Amount * (decimal)multiplier;
+            return string.IsNullOrWhiteSpace(ingredient.Unit)
+                ? $"{scaledAmount:0.##} {ingredient.Name}"
+                : $"{scaledAmount:0.##} {ingredient.Unit} {ingredient.Name}";
+        }).ToList();
 
         var itemNamesLower = itemNames.Select(n => n.ToLower()).ToHashSet();
         var existingRecommendations = await recommendationRepository.Query()

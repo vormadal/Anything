@@ -55,6 +55,7 @@ export default function RecipeDetailPage() {
 
   const [newStepText, setNewStepText] = useState("");
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
+  const [multiplier, setMultiplier] = useState(1);
 
   const { data: recipe, isLoading, error } = useRecipe(recipeId);
   const { data: ingredients } = useRecipeIngredients(recipeId);
@@ -205,7 +206,7 @@ export default function RecipeDetailPage() {
 
   const handleAddToShoppingList = async (shoppingListId: number) => {
     try {
-      await addToShoppingList.mutateAsync(shoppingListId);
+      await addToShoppingList.mutateAsync({ shoppingListId, multiplier });
       setShoppingListDialogOpen(false);
       toast.success("Ingredients added to shopping list");
     } catch {
@@ -509,6 +510,31 @@ export default function RecipeDetailPage() {
                   <DialogHeader>
                     <DialogTitle>Add ingredients to shopping list</DialogTitle>
                   </DialogHeader>
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      Multiplier (scale ingredient quantities):
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setMultiplier((m) => Math.max(1, m - 1))}
+                        className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-lg disabled:opacity-50"
+                        disabled={multiplier <= 1}
+                        aria-label="Decrease multiplier"
+                      >
+                        −
+                      </button>
+                      <span className="w-8 text-center font-semibold text-gray-900 dark:text-white">{multiplier}</span>
+                      <button
+                        type="button"
+                        onClick={() => setMultiplier((m) => m + 1)}
+                        className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-lg"
+                        aria-label="Increase multiplier"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                     Select a shopping list to add all ingredients to:
                   </p>

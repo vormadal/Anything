@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Recipes.Commands;
 
-public record AddRecipeToShoppingListCommand(int RecipeId, int ShoppingListId) : IRequest<IResult>;
+public record AddRecipeToShoppingListCommand(int RecipeId, int ShoppingListId, double Multiplier = 1.0) : IRequest<IResult>;
 
 public class AddRecipeToShoppingListHandler(
     IRepository<Recipe> recipeRepository,
@@ -32,9 +32,14 @@ public class AddRecipeToShoppingListHandler(
             .Where(i => i.RecipeId == command.RecipeId && i.DeletedOn == null)
             .ToListAsync(ct);
 
-        var itemNames = ingredients.Select(ingredient => string.IsNullOrWhiteSpace(ingredient.Unit)
-            ? $"{ingredient.Amount:0.##} {ingredient.Name}"
-            : $"{ingredient.Amount:0.##} {ingredient.Unit} {ingredient.Name}").ToList();
+        var multiplier = command.Multiplier > 0 ? command.Multiplier : 1.0;
+        var itemNames = ingredients.Select(ingredient =>
+        {
+            var scaledAmount = ingredient.Amount * (decimal)multiplier;
+            return string.IsNullOrWhiteSpace(ingredient.Unit)
+                ? $"{scaledAmount:0.##} {ingredient.Name}"
+                : $"{scaledAmount:0.##} {ingredient.Unit} {ingredient.Name}";
+        }).ToList();
 
         var itemNamesLower = itemNames.Select(n => n.ToLower()).ToHashSet();
         var existingRecommendations = await recommendationRepository.Query()

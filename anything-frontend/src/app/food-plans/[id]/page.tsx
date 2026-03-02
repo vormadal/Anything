@@ -189,17 +189,40 @@ function DayColumn({
 
 function AddToShoppingListDialog({
   foodPlanId,
+  entries,
+  recipes,
   onClose,
 }: {
   foodPlanId: number;
+  entries: FoodPlanEntry[] | undefined;
+  recipes: Recipe[] | undefined;
   onClose: () => void;
 }) {
   const { data: shoppingLists } = useShoppingLists();
   const addToShoppingList = useAddFoodPlanToShoppingList(foodPlanId);
 
+  const recipeEntries = (entries ?? []).filter((e) => e.recipeId != null);
+  const uniqueRecipeIds = [...new Set(recipeEntries.map((e) => e.recipeId!))];
+  const recipeMap = new Map((recipes ?? []).map((r) => [r.id, r]));
+
+  const [multipliers, setMultipliers] = useState<Record<number, number>>(() =>
+    Object.fromEntries(uniqueRecipeIds.map((id) => [id, 1]))
+  );
+
+  const setMultiplier = (recipeId: number, delta: number) => {
+    setMultipliers((prev) => ({
+      ...prev,
+      [recipeId]: Math.max(1, (prev[recipeId] ?? 1) + delta),
+    }));
+  };
+
   const handleSelect = async (listId: number) => {
     try {
-      await addToShoppingList.mutateAsync(listId);
+      const recipeMultipliers = uniqueRecipeIds.map((recipeId) => ({
+        recipeId,
+        multiplier: multipliers[recipeId] ?? 1,
+      }));
+      await addToShoppingList.mutateAsync({ shoppingListId: listId, recipeMultipliers });
       toast.success("Ingredients added to shopping list");
       onClose();
     } catch {
@@ -209,12 +232,53 @@ function AddToShoppingListDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           Add to Shopping List
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Select a shopping list to add all recipe ingredients from this week&apos;s plan.
+        {uniqueRecipeIds.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              Set the multiplier for each recipe:
+            </p>
+            <ul className="space-y-2">
+              {uniqueRecipeIds.map((recipeId) => {
+                const recipe = recipeMap.get(recipeId);
+                return (
+                  <li key={recipeId} className="flex items-center justify-between gap-2 py-1">
+                    <span className="text-sm text-gray-800 dark:text-gray-200 flex-1 min-w-0 truncate">
+                      {recipe?.name ?? `Recipe #${recipeId}`}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setMultiplier(recipeId, -1)}
+                        disabled={(multipliers[recipeId] ?? 1) <= 1}
+                        className="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold disabled:opacity-50"
+                        aria-label={`Decrease multiplier for ${recipe?.name}`}
+                      >
+                        −
+                      </button>
+                      <span className="w-5 text-center text-sm font-semibold text-gray-900 dark:text-white">
+                        {multipliers[recipeId] ?? 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setMultiplier(recipeId, 1)}
+                        className="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold"
+                        aria-label={`Increase multiplier for ${recipe?.name}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+          Select a shopping list:
         </p>
         <ul className="space-y-2 mb-4">
           {shoppingLists?.map((list) => (
@@ -337,6 +401,8 @@ export default function FoodPlanDetailPage() {
       {showShoppingListDialog && (
         <AddToShoppingListDialog
           foodPlanId={planId}
+          entries={entries}
+          recipes={recipes}
           onClose={() => setShowShoppingListDialog(false)}
         />
       )}

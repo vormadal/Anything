@@ -124,7 +124,7 @@ export function useDeleteFoodPlanEntry(foodPlanId: number) {
 
 export function useAddFoodPlanToShoppingList(foodPlanId: number) {
   return useMutation({
-    mutationFn: (shoppingListId: number) =>
-      apiClient.api.foodPlans.byId(foodPlanId).addToShoppingList.post({ shoppingListId }),
+    mutationFn: ({ shoppingListId, recipeMultipliers }: { shoppingListId: number; recipeMultipliers?: { recipeId: number; multiplier: number }[] }) =>
+      apiClient.api.foodPlans.byId(foodPlanId).addToShoppingList.post({ shoppingListId, recipeMultipliers }),
   });
 }

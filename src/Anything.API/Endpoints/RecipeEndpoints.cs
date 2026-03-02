@@ -149,7 +149,7 @@ public static class RecipeEndpoints
         // Add ingredients to shopping list
         group.MapPost("/{id}/add-to-shopping-list", async (int id, AddToShoppingListRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new AddRecipeToShoppingListCommand(id, request.ShoppingListId));
+            return await mediator.Send(new AddRecipeToShoppingListCommand(id, request.ShoppingListId, request.Multiplier));
         })
         .WithName("AddRecipeIngredientsToShoppingList")
         .WithParameterValidation()

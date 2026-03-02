@@ -319,7 +319,7 @@ describe('useFoodPlans hooks', () => {
       })
 
       await act(async () => {
-        result.current.mutate(5)
+        result.current.mutate({ shoppingListId: 5 })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
