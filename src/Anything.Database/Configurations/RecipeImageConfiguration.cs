@@ -6,7 +6,7 @@ namespace Anything.Database.Configurations;
 
 public class RecipeImageConfiguration : IEntityTypeConfiguration<RecipeImage>
 {
-    private const int StorageKeyMaxLength = 1000;
+    private const int StorageKeyMaxLength = 500;
 
     public void Configure(EntityTypeBuilder<RecipeImage> builder)
     {
