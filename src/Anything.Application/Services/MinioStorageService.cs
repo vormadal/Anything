@@ -63,7 +63,7 @@ public class MinioStorageService : IImageStorageService
 
     public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill")
     {
-        var sourceUrl = $"{_settings.MinioSourceEndpoint.TrimEnd('/')}/{_settings.BucketName}/{storageKey}";
+        var sourceUrl = $"{_settings.MinioSourceEndpoint}/{_settings.BucketName}/{storageKey}";
         var resize = resizingType == "fill" ? "fill" : "fit";
         var path = $"/rs:{resize}:{width}:{height}/f:webp/plain/{sourceUrl}";
 
