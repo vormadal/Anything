@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        // Imaginary in development (Aspire assigns the host port dynamically)
+        // imgproxy in development (Aspire assigns the host port dynamically)
         protocol: "http",
         hostname: "localhost",
         pathname: "/**",
