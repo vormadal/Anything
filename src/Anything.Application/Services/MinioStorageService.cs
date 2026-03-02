@@ -63,9 +63,8 @@ public class MinioStorageService : IImageStorageService
     public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill")
     {
         var sourceUrl = $"{_settings.MinioSourceEndpoint.TrimEnd('/')}/{_settings.BucketName}/{storageKey}";
-        var operation = resizingType == "fill" ? "crop" : "resize";
-        var encodedUrl = Uri.EscapeDataString(sourceUrl);
-        return $"{_settings.ImaginaryBaseUrl.TrimEnd('/')}/{operation}?width={width}&height={height}&type=webp&url={encodedUrl}";
+        var resize = resizingType == "fill" ? "fill" : "fit";
+        return $"{_settings.ImageProxyBaseUrl.TrimEnd('/')}/insecure/rs:{resize}:{width}:{height}/f:webp/plain/{sourceUrl}";
     }
 
     public async Task Delete(string storageKey, CancellationToken ct = default)

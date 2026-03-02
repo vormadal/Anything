@@ -13,13 +13,12 @@ var minio = builder
 
 var minioBucket = minio.AddBucket("recipe-images");
 
-// Imaginary: open-source image processing proxy (https://github.com/h2non/imaginary)
+// imgproxy: open-source image processing proxy (https://github.com/imgproxy/imgproxy)
 // Fetches source images from MinIO via HTTP; no credentials needed since bucket is public-read.
-// Production: set MINIO_SOURCE_ENDPOINT and IMAGINARY_BASE_URL in CapRover env vars.
-var imaginary = builder
-    .AddContainer("imaginary", "h2non/imaginary", "latest")
-    .WithHttpEndpoint(targetPort: 8088, name: "http")
-    .WithArgs("-enable-url-source");
+// Production: set MINIO_SOURCE_ENDPOINT and IMAGE_PROXY_BASE_URL in CapRover env vars.
+var imgproxy = builder
+    .AddContainer("imgproxy", "darthsim/imgproxy", "latest")
+    .WithHttpEndpoint(targetPort: 8080, name: "http");
 
 var api = builder
     .AddProject<Projects.Anything_API>("anything-api", launchProfileName: "http")
@@ -29,10 +28,10 @@ var api = builder
     .WithEnvironment("ImageSettings__AccessKey", "minioadmin")
     .WithEnvironment("ImageSettings__SecretKey", "minioadmin")
     .WithEnvironment("ImageSettings__Endpoint", "http://minio:9000")
-    // MinioSourceEndpoint: the MinIO URL as seen from Imaginary's Docker network
+    // MinioSourceEndpoint: the MinIO URL as seen from the image proxy's Docker network
     .WithEnvironment("ImageSettings__MinioSourceEndpoint", "http://minio:9000")
-    // ImaginaryBaseUrl: injected from Aspire's endpoint reference at runtime
-    .WithEnvironment("ImageSettings__ImaginaryBaseUrl", imaginary.GetEndpoint("http"))
+    // ImageProxyBaseUrl: injected from Aspire's endpoint reference at runtime
+    .WithEnvironment("ImageSettings__ImageProxyBaseUrl", imgproxy.GetEndpoint("http"))
     .WaitFor(postgres)
     .WaitFor(minioBucket);
 

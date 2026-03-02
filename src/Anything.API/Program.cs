@@ -83,7 +83,7 @@ var app = builder.Build();
 // Seed admin user
 await SeedAdminUser(app);
 
-// Initialize image storage (set public-read bucket policy for Imaginary access)
+// Initialize image storage (set public-read bucket policy for image proxy access)
 await InitImageStorage(app);
 
 app.MapDefaultEndpoints();
