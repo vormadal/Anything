@@ -8,8 +8,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 10
-    labels:
-      - "dotnet"
+    labels: []
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
