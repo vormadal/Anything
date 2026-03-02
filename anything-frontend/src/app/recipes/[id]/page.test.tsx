@@ -370,29 +370,38 @@ describe('RecipeDetailPage', () => {
 
   it('should add an image in edit mode', async () => {
     const user = userEvent.setup()
-    mockImagesPost.mockResolvedValueOnce({ id: 1, url: 'https://example.com/img.jpg', recipeId: 1 })
+    const originalFetch = global.fetch
+    const mockFetch = jest.fn().mockResolvedValueOnce({ ok: true } as Response)
+    global.fetch = mockFetch
 
-    render(<RecipeDetailPage />)
+    try {
+      render(<RecipeDetailPage />)
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
-    })
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
-    await user.type(screen.getByPlaceholderText('Image URL...'), 'https://example.com/img.jpg')
-    await user.click(screen.getByRole('button', { name: 'Add image' }))
+      await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
-    await waitFor(() => {
-      expect(mockImagesPost).toHaveBeenCalledWith({ url: 'https://example.com/img.jpg' })
-    })
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
+      await user.upload(fileInput, file)
 
-    expect(toast.success).toHaveBeenCalledWith('Image added')
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/recipes/1/images/upload'),
+          expect.objectContaining({ method: 'POST' })
+        )
+      })
+    } finally {
+      global.fetch = originalFetch
+    }
   })
 
   it('should delete an image in edit mode', async () => {
     const user = userEvent.setup()
     mockImagesGet.mockResolvedValue([
-      { id: 7, url: 'https://example.com/img.jpg', recipeId: 1 },
+      { id: 7, thumbnailUrl: 'https://example.com/img-thumb.jpg', originalUrl: 'https://example.com/img.jpg', recipeId: 1 },
     ])
     mockImageByIdDelete.mockResolvedValueOnce(undefined)
 

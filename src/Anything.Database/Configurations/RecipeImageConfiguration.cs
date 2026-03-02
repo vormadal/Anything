@@ -6,10 +6,12 @@ namespace Anything.Database.Configurations;
 
 public class RecipeImageConfiguration : IEntityTypeConfiguration<RecipeImage>
 {
+    private const int StorageKeyMaxLength = 1000;
+
     public void Configure(EntityTypeBuilder<RecipeImage> builder)
     {
         builder.HasKey(e => e.Id);
-        builder.Property(e => e.StorageKey).IsRequired().HasMaxLength(500);
+        builder.Property(e => e.StorageKey).IsRequired().HasMaxLength(StorageKeyMaxLength);
         builder.HasOne<Recipe>()
             .WithMany()
             .HasForeignKey(e => e.RecipeId)

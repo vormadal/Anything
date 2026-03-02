@@ -14,16 +14,6 @@ namespace Anything.Database.Migrations
                 name: "Url",
                 table: "RecipeImages",
                 newName: "StorageKey");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "StorageKey",
-                table: "RecipeImages",
-                type: "character varying(500)",
-                maxLength: 500,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying(1000)",
-                oldMaxLength: 1000);
         }
 
         /// <inheritdoc />
@@ -33,16 +23,6 @@ namespace Anything.Database.Migrations
                 name: "StorageKey",
                 table: "RecipeImages",
                 newName: "Url");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "Url",
-                table: "RecipeImages",
-                type: "character varying(1000)",
-                maxLength: 1000,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying(500)",
-                oldMaxLength: 500);
         }
     }
 }
