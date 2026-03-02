@@ -1,5 +1,6 @@
 using Anything.Application.Configuration;
 using Anything.Core.Services;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Minio;
 using Minio.DataModel.Args;
@@ -13,10 +14,12 @@ public class MinioStorageService : IImageStorageService
 
     private readonly ImageSettings _settings;
     private readonly IMinioClient _client;
+    private readonly ILogger<MinioStorageService> _logger;
 
-    public MinioStorageService(IOptions<ImageSettings> settings)
+    public MinioStorageService(IOptions<ImageSettings> settings, ILogger<MinioStorageService> logger)
     {
         _settings = settings.Value;
+        _logger = logger;
         var uri = new Uri(_settings.Endpoint);
         var builder = new MinioClient()
             .WithEndpoint(uri.Host, uri.Port)
@@ -35,9 +38,9 @@ public class MinioStorageService : IImageStorageService
                 .WithBucket(_settings.BucketName)
                 .WithPolicy(policy));
         }
-        catch
+        catch (Exception ex)
         {
-            // Non-fatal: bucket may not exist yet (provisioned separately by Aspire/admin)
+            _logger.LogWarning(ex, "Failed to set bucket policy for {BucketName}. The bucket may not exist yet or credentials may be incorrect.", _settings.BucketName);
         }
     }
 

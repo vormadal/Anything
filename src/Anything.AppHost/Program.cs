@@ -28,6 +28,7 @@ var api = builder
     .WithEnvironment("ImageSettings__BucketName", "recipe-images")
     .WithEnvironment("ImageSettings__AccessKey", "minioadmin")
     .WithEnvironment("ImageSettings__SecretKey", "minioadmin")
+    .WithEnvironment("ImageSettings__Endpoint", "http://minio:9000")
     // MinioSourceEndpoint: the MinIO URL as seen from Imaginary's Docker network
     .WithEnvironment("ImageSettings__MinioSourceEndpoint", "http://minio:9000")
     // ImaginaryBaseUrl: injected from Aspire's endpoint reference at runtime

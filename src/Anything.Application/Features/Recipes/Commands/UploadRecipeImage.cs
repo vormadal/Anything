@@ -47,6 +47,6 @@ public class UploadRecipeImageHandler(
         imageRepository.Add(image);
         await unitOfWork.SaveChanges(ct);
 
-        return Results.Created($"/api/recipes/{command.RecipeId}/images/{image.Id}", image);
+        return Results.Created($"/api/recipes/{command.RecipeId}/images/{image.Id}", value: null);
     }
 }
