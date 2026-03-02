@@ -120,6 +120,14 @@ public static class RecipeEndpoints
         .WithName("GetRecipeImages")
         .RequireAuthorization();
 
+        group.MapPost("/{id}/images", async (int id, AddRecipeImageRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new AddRecipeImageCommand(id, request.Url));
+        })
+        .WithName("AddRecipeImage")
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapPost("/{id}/images/upload", async (int id, IFormFile? file, IMediator mediator) =>
         {
             if (file == null || file.Length == 0)
