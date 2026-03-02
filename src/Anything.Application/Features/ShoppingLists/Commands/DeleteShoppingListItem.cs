@@ -13,10 +13,10 @@ public class DeleteShoppingListItemHandler(IRepository<ShoppingListItem> reposit
     public async Task<IResult> Handle(DeleteShoppingListItemCommand command, CancellationToken ct = default)
     {
         var item = await repository.GetById(command.ItemId);
-        if (item is null || item.DeletedOn != null || item.ShoppingListId != command.ShoppingListId)
+        if (item is null || item.ShoppingListId != command.ShoppingListId)
             return Results.NotFound();
 
-        item.DeletedOn = DateTime.UtcNow;
+        repository.Remove(item);
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

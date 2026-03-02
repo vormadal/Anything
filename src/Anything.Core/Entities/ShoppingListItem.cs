@@ -10,5 +10,4 @@ public class ShoppingListItem
     public string? Unit { get; set; }
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     public DateTime? ModifiedOn { get; set; }
-    public DateTime? DeletedOn { get; set; }
 }

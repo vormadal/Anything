@@ -22,7 +22,7 @@ public class CompleteShoppingListHandler(
         var now = DateTime.UtcNow;
 
         var items = await itemRepository.Query()
-            .Where(i => i.ShoppingListId == command.Id && i.DeletedOn == null)
+            .Where(i => i.ShoppingListId == command.Id)
             .ToListAsync(ct);
 
         foreach (var item in items)

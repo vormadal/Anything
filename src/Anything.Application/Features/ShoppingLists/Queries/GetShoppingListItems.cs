@@ -19,7 +19,7 @@ public class GetShoppingListItemsHandler(
             return Results.NotFound("Shopping list not found.");
 
         var items = await itemRepository.Query()
-            .Where(i => i.ShoppingListId == query.ShoppingListId && i.DeletedOn == null)
+            .Where(i => i.ShoppingListId == query.ShoppingListId)
             .ToListAsync(ct);
         return Results.Ok(items);
     }
