@@ -9,7 +9,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 10
     labels:
-      - "dependencies"
       - "dotnet"
     commit-message:
       prefix: "chore"
@@ -24,9 +23,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "frontend"
+    labels: []
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
@@ -40,9 +37,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "github-actions"
+    labels: []
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
