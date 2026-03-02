@@ -653,6 +653,46 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
+  it('should not show complete list button in edit mode even when all items are checked', async () => {
+    const user = userEvent.setup()
+    const mockItems = [
+      { id: 1, name: 'Milk', isChecked: true, shoppingListId: 1 },
+      { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
+    ]
+    mockItemsGet.mockResolvedValue(mockItems)
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+
+    expect(screen.queryByRole('button', { name: 'Complete List' })).not.toBeInTheDocument()
+  })
+
+  it('should show checked items in edit mode', async () => {
+    const user = userEvent.setup()
+    const mockItems = [
+      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
+      { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
+    ]
+    mockItemsGet.mockResolvedValue(mockItems)
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Milk')).toBeInTheDocument()
+      expect(screen.getByText('Bread')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+
+    expect(screen.getByRole('button', { name: 'Milk' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bread' })).toBeInTheDocument()
+  })
+
   it('should show error when complete fails', async () => {
     const user = userEvent.setup()
     const mockItems = [
