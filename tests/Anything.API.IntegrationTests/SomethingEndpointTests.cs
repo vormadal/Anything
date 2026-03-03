@@ -50,20 +50,59 @@ public class SomethingEndpointTests : IntegrationTestBase
         return _authenticatedClient;
     }
 
-    // --- GET /api/somethings ---
+    // --- CRUD Lifecycle ---
 
     [Fact]
-    public async Task GetSomethings_WhenEmpty_ReturnsEmptyList()
+    public async Task CrudLifecycle_CreateReadUpdateDeleteWorkCorrectly()
     {
+        // List is initially empty
         var client = await GetAuthenticatedClientAsync();
-        var result = await client.Api.Somethings.GetAsync();
+        var emptyResult = await client.Api.Somethings.GetAsync();
+        Assert.NotNull(emptyResult);
+        Assert.Empty(emptyResult);
 
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        // Create returns item with correct data
+        var created = await CreateSomethingViaClient("New Item");
+        Assert.True(created.Id > 0);
+        Assert.Equal("New Item", created.Name);
+        Assert.NotNull(created.CreatedOn);
+
+        // Item appears in list
+        var listResult = await client.Api.Somethings.GetAsync();
+        Assert.NotNull(listResult);
+        Assert.Single(listResult);
+        Assert.Equal("New Item", listResult[0].Name);
+
+        // Get by ID returns correct item
+        var getStream = await client.Api.Somethings[created.Id].GetAsync();
+        Assert.NotNull(getStream);
+        var getResult = await JsonSerializer.DeserializeAsync<SomethingResponse>(getStream, JsonOptions);
+        Assert.NotNull(getResult);
+        Assert.Equal(created.Id, getResult.Id);
+        Assert.Equal("New Item", getResult.Name);
+
+        // Update changes the name and sets ModifiedOn
+        await client.Api.Somethings[created.Id].PutAsync(
+            new KiotaModels.UpdateSomethingRequest { Name = "Updated" });
+
+        var updatedStream = await client.Api.Somethings[created.Id].GetAsync();
+        Assert.NotNull(updatedStream);
+        var updated = await JsonSerializer.DeserializeAsync<SomethingResponse>(updatedStream, JsonOptions);
+        Assert.NotNull(updated);
+        Assert.Equal("Updated", updated.Name);
+        Assert.NotNull(updated.ModifiedOn);
+
+        // Soft delete makes item disappear from list and by-ID
+        await client.Api.Somethings[created.Id].DeleteAsync();
+        var afterDelete = await client.Api.Somethings.GetAsync();
+        Assert.NotNull(afterDelete);
+        Assert.Empty(afterDelete);
     }
 
+    // --- Multiple Items ---
+
     [Fact]
-    public async Task GetSomethings_ReturnsSomethings()
+    public async Task GetSomethings_ReturnsMultipleItems()
     {
         await CreateSomethingViaClient("Item A");
         await CreateSomethingViaClient("Item B");
@@ -77,251 +116,88 @@ public class SomethingEndpointTests : IntegrationTestBase
         Assert.Contains(result, s => s.Name == "Item B");
     }
 
-    [Fact]
-    public async Task GetSomethings_DoesNotReturnDeletedItems()
-    {
-        var created = await CreateSomethingViaClient("To Delete");
-        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
-
-        var result = await (await GetAuthenticatedClientAsync()).Api.Somethings.GetAsync();
-
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    // --- GET /api/somethings/{id} ---
+    // --- Not Found / Deleted Scenarios ---
 
     [Fact]
-    public async Task GetSomethingById_ReturnsSomething()
-    {
-        var created = await CreateSomethingViaClient("Test Item");
-
-        var stream = await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].GetAsync();
-
-        Assert.NotNull(stream);
-        var result = await JsonSerializer.DeserializeAsync<SomethingResponse>(stream, JsonOptions);
-        Assert.NotNull(result);
-        Assert.Equal(created.Id, result.Id);
-        Assert.Equal("Test Item", result.Name);
-        Assert.NotNull(result.CreatedOn);
-    }
-
-    [Fact]
-    public async Task GetSomethingById_WhenNotFound_Returns404()
+    public async Task Operations_OnNonExistentOrDeletedItem_Return404()
     {
         var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
+
+        // Get non-existent
+        var getException = await Assert.ThrowsAsync<ApiException>(
             () => client.Api.Somethings[99999].GetAsync());
+        Assert.Equal(404, getException.ResponseStatusCode);
 
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
-
-    [Fact]
-    public async Task GetSomethingById_WhenDeleted_Returns404()
-    {
-        var created = await CreateSomethingViaClient("Deleted Item");
-        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
-
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
-            () => client.Api.Somethings[created.Id].GetAsync());
-
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
-
-    // --- POST /api/somethings ---
-
-    [Fact]
-    public async Task CreateSomething_ReturnsCreatedItem()
-    {
-        var created = await CreateSomethingViaClient("New Item");
-
-        Assert.NotNull(created);
-        Assert.True(created.Id > 0);
-        Assert.Equal("New Item", created.Name);
-        Assert.NotNull(created.CreatedOn);
-    }
-
-    [Fact]
-    public async Task CreateSomething_IsRetrievableViaGet()
-    {
-        var created = await CreateSomethingViaClient("Retrievable");
-
-        var result = await (await GetAuthenticatedClientAsync()).Api.Somethings.GetAsync();
-
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("Retrievable", result[0].Name);
-        Assert.Equal(created.Id, result[0].Id);
-    }
-
-    // --- PUT /api/somethings/{id} ---
-
-    [Fact]
-    public async Task UpdateSomething_UpdatesName()
-    {
-        var created = await CreateSomethingViaClient("Original");
-
-        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].PutAsync(
-            new KiotaModels.UpdateSomethingRequest { Name = "Updated" });
-
-        var result = await (await GetAuthenticatedClientAsync()).Api.Somethings.GetAsync();
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("Updated", result[0].Name);
-    }
-
-    [Fact]
-    public async Task UpdateSomething_SetsModifiedOn()
-    {
-        var created = await CreateSomethingViaClient("Before Update");
-
-        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].PutAsync(
-            new KiotaModels.UpdateSomethingRequest { Name = "After Update" });
-
-        var stream = await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].GetAsync();
-        Assert.NotNull(stream);
-        var result = await JsonSerializer.DeserializeAsync<SomethingResponse>(stream, JsonOptions);
-        Assert.NotNull(result);
-        Assert.NotNull(result.ModifiedOn);
-    }
-
-    [Fact]
-    public async Task UpdateSomething_WhenNotFound_Returns404()
-    {
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
+        // Update non-existent
+        var updateException = await Assert.ThrowsAsync<ApiException>(
             () => client.Api.Somethings[99999].PutAsync(
                 new KiotaModels.UpdateSomethingRequest { Name = "Nope" }));
+        Assert.Equal(404, updateException.ResponseStatusCode);
 
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
+        // Delete non-existent
+        var deleteException = await Assert.ThrowsAsync<ApiException>(
+            () => client.Api.Somethings[99999].DeleteAsync());
+        Assert.Equal(404, deleteException.ResponseStatusCode);
 
-    [Fact]
-    public async Task UpdateSomething_WhenDeleted_Returns404()
-    {
+        // Create then delete, then try all operations on deleted item
         var created = await CreateSomethingViaClient("Will Delete");
-        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
+        await client.Api.Somethings[created.Id].DeleteAsync();
 
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
+        var getDeletedEx = await Assert.ThrowsAsync<ApiException>(
+            () => client.Api.Somethings[created.Id].GetAsync());
+        Assert.Equal(404, getDeletedEx.ResponseStatusCode);
+
+        var updateDeletedEx = await Assert.ThrowsAsync<ApiException>(
             () => client.Api.Somethings[created.Id].PutAsync(
                 new KiotaModels.UpdateSomethingRequest { Name = "Too Late" }));
+        Assert.Equal(404, updateDeletedEx.ResponseStatusCode);
 
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
-
-    // --- DELETE /api/somethings/{id} ---
-
-    [Fact]
-    public async Task DeleteSomething_SoftDeletes()
-    {
-        var created = await CreateSomethingViaClient("Delete Me");
-
-        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
-
-        var result = await (await GetAuthenticatedClientAsync()).Api.Somethings.GetAsync();
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task DeleteSomething_WhenNotFound_Returns404()
-    {
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
-            () => client.Api.Somethings[99999].DeleteAsync());
-
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
-
-    [Fact]
-    public async Task DeleteSomething_WhenAlreadyDeleted_Returns404()
-    {
-        var created = await CreateSomethingViaClient("Double Delete");
-        await (await GetAuthenticatedClientAsync()).Api.Somethings[created.Id].DeleteAsync();
-
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
+        var deleteDeletedEx = await Assert.ThrowsAsync<ApiException>(
             () => client.Api.Somethings[created.Id].DeleteAsync());
-
-        Assert.Equal(404, exception.ResponseStatusCode);
+        Assert.Equal(404, deleteDeletedEx.ResponseStatusCode);
     }
 
-    // --- POST /api/somethings validation ---
+    // --- Validation ---
 
     [Fact]
-    public async Task CreateSomething_WithEmptyName_Returns400()
+    public async Task Create_WithInvalidName_Returns400()
     {
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/somethings", new { name = "" });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
+        // Empty name
+        var emptyResponse = await httpClient.PostAsJsonAsync("/api/somethings", new { name = "" });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyResponse.StatusCode);
 
-    [Fact]
-    public async Task CreateSomething_WithWhitespaceName_Returns400()
-    {
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/somethings", new { name = "   " });
+        // Whitespace name
+        var whitespaceResponse = await httpClient.PostAsJsonAsync("/api/somethings", new { name = "   " });
+        Assert.Equal(HttpStatusCode.BadRequest, whitespaceResponse.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateSomething_WithNameExceeding200Chars_Returns400()
-    {
+        // Name exceeding 200 chars
         var longName = new string('a', 201);
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/somethings", new { name = longName });
+        var longResponse = await httpClient.PostAsJsonAsync("/api/somethings", new { name = longName });
+        Assert.Equal(HttpStatusCode.BadRequest, longResponse.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateSomething_WithNameAt200Chars_Succeeds()
-    {
+        // Name at 200 chars should succeed
         var maxName = new string('a', 200);
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/somethings", new { name = maxName });
-
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-    }
-
-    // --- PUT /api/somethings/{id} validation ---
-
-    [Fact]
-    public async Task UpdateSomething_WithEmptyName_Returns400()
-    {
-        var created = await CreateSomethingViaClient("Valid Name");
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "" });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var maxResponse = await httpClient.PostAsJsonAsync("/api/somethings", new { name = maxName });
+        Assert.Equal(HttpStatusCode.Created, maxResponse.StatusCode);
     }
 
     [Fact]
-    public async Task UpdateSomething_WithWhitespaceName_Returns400()
+    public async Task Update_WithInvalidName_Returns400()
     {
         var created = await CreateSomethingViaClient("Valid Name");
-
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "   " });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
+        var emptyResponse = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "" });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyResponse.StatusCode);
 
-    [Fact]
-    public async Task UpdateSomething_WithNameExceeding200Chars_Returns400()
-    {
-        var created = await CreateSomethingViaClient("Valid Name");
+        var whitespaceResponse = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = "   " });
+        Assert.Equal(HttpStatusCode.BadRequest, whitespaceResponse.StatusCode);
+
         var longName = new string('a', 201);
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = longName });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var longResponse = await httpClient.PutAsJsonAsync($"/api/somethings/{created.Id}", new { name = longName });
+        Assert.Equal(HttpStatusCode.BadRequest, longResponse.StatusCode);
     }
 
     // --- Helper ---

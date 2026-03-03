@@ -1,0 +1,92 @@
+using Anything.Application.Features.ShoppingLists.Commands;
+using Anything.Application.UnitTests.Helpers;
+using Anything.Core.Entities;
+using Anything.Core.Repositories;
+using Microsoft.AspNetCore.Http.HttpResults;
+using NSubstitute;
+using Xunit;
+
+namespace Anything.Application.UnitTests.Features.ShoppingLists;
+
+public class AddShoppingListItemHandlerTests
+{
+    private readonly IRepository<ShoppingList> _listRepo = Substitute.For<IRepository<ShoppingList>>();
+    private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
+    private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+
+    private AddShoppingListItemHandler CreateHandler() =>
+        new(_listRepo, _itemRepo, _recommendationRepo, _unitOfWork);
+
+    [Fact]
+    public async Task Handle_WhenListNotFound_ReturnsNotFound()
+    {
+        _listRepo.GetById(1).Returns((ShoppingList?)null);
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null));
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WhenListDeleted_ReturnsNotFound()
+    {
+        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "List", DeletedOn = DateTime.UtcNow });
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null));
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_AddsItemAndCreatesRecommendation()
+    {
+        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", 2, "liters"));
+
+        _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
+            i.ShoppingListId == 1 &&
+            i.Name == "Milk" &&
+            i.Amount == 2 &&
+            i.Unit == "liters"));
+
+        _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
+            r.Name == "Milk" && !r.IsApproved));
+
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotCreateDuplicateRecommendation_CaseInsensitive()
+    {
+        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _recommendationRepo.Query().Returns(
+            new List<ShoppingListRecommendation>
+            {
+                new() { Id = 1, Name = "milk" }
+            }.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null));
+
+        _recommendationRepo.DidNotReceive().Add(Arg.Any<ShoppingListRecommendation>());
+    }
+
+    [Fact]
+    public async Task Handle_TrimsNameForRecommendation()
+    {
+        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        await handler.Handle(new AddShoppingListItemCommand(1, "  Bread  ", null, null));
+
+        _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
+            r.Name == "Bread"));
+    }
+}

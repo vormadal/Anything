@@ -50,491 +50,240 @@ public class InventoryItemEndpointTests : IntegrationTestBase
         return _authenticatedClient;
     }
 
-    // --- GET /api/inventory-items ---
+    // --- CRUD Lifecycle ---
 
     [Fact]
-    public async Task GetInventoryItems_WhenEmpty_ReturnsEmptyList()
+    public async Task CrudLifecycle_CreateReadUpdateDeleteWorkCorrectly()
     {
         var client = await GetAuthenticatedClientAsync();
-        var result = await client.Api.InventoryItems.GetAsync();
 
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
+        // Empty initially
+        var emptyResult = await client.Api.InventoryItems.GetAsync();
+        Assert.NotNull(emptyResult);
+        Assert.Empty(emptyResult);
 
-    [Fact]
-    public async Task GetInventoryItems_ReturnsItems()
-    {
-        await CreateItemViaClient("Item A", "Description A", null, null);
-        await CreateItemViaClient("Item B", "Description B", null, null);
-
-        var client = await GetAuthenticatedClientAsync();
-        var result = await client.Api.InventoryItems.GetAsync();
-
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
-        Assert.Contains(result, i => i.Name == "Item A" && i.Description == "Description A");
-        Assert.Contains(result, i => i.Name == "Item B" && i.Description == "Description B");
-    }
-
-    [Fact]
-    public async Task GetInventoryItems_DoesNotReturnDeletedItems()
-    {
-        var created = await CreateItemViaClient("To Delete", null, null, null);
-        await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].DeleteAsync();
-
-        var result = await (await GetAuthenticatedClientAsync()).Api.InventoryItems.GetAsync();
-
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    // --- GET /api/inventory-items/{id} ---
-
-    [Fact]
-    public async Task GetInventoryItemById_ReturnsItem()
-    {
-        var box = await CreateBoxViaClient(1, null);
-        var unit = await CreateStorageUnitViaClient("Unit", null);
-        var created = await CreateItemViaClient("Test Item", "Test Description", box.Id, unit.Id);
-
-        var stream = await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].GetAsync();
-
-        Assert.NotNull(stream);
-        var result = await JsonSerializer.DeserializeAsync<InventoryItemResponse>(stream, JsonOptions);
-        Assert.NotNull(result);
-        Assert.Equal(created.Id, result.Id);
-        Assert.Equal("Test Item", result.Name);
-        Assert.Equal("Test Description", result.Description);
-        Assert.Equal(box.Id, result.BoxId);
-        Assert.Equal(unit.Id, result.StorageUnitId);
-        Assert.NotNull(result.CreatedOn);
-    }
-
-    [Fact]
-    public async Task GetInventoryItemById_WhenNotFound_Returns404()
-    {
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
-            () => client.Api.InventoryItems[99999].GetAsync());
-
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
-
-    [Fact]
-    public async Task GetInventoryItemById_WhenDeleted_Returns404()
-    {
-        var created = await CreateItemViaClient("Deleted Item", null, null, null);
-        await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].DeleteAsync();
-
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
-            () => client.Api.InventoryItems[created.Id].GetAsync());
-
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
-
-    // --- POST /api/inventory-items ---
-
-    [Fact]
-    public async Task CreateInventoryItem_ReturnsCreatedItem()
-    {
-        var created = await CreateItemViaClient("New Item", "New Description", null, null);
-
-        Assert.NotNull(created);
-        Assert.True(created.Id > 0);
-        Assert.Equal("New Item", created.Name);
-        Assert.Equal("New Description", created.Description);
-        Assert.Null(created.BoxId);
-        Assert.Null(created.StorageUnitId);
-        Assert.NotNull(created.CreatedOn);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithoutDescription_Succeeds()
-    {
-        var created = await CreateItemViaClient("Item Without Description", null, null, null);
-
-        Assert.NotNull(created);
-        Assert.True(created.Id > 0);
-        Assert.Equal("Item Without Description", created.Name);
-        Assert.Null(created.Description);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithBoxAndStorageUnit_Succeeds()
-    {
+        // Create with all optional fields
         var unit = await CreateStorageUnitViaClient("Unit", null);
         var box = await CreateBoxViaClient(1, unit.Id);
-        var created = await CreateItemViaClient("Item", null, box.Id, unit.Id);
-
-        Assert.NotNull(created);
+        var created = await CreateItemViaClient("Test Item", "Test Description", box.Id, unit.Id);
+        Assert.True(created.Id > 0);
+        Assert.Equal("Test Item", created.Name);
+        Assert.Equal("Test Description", created.Description);
         Assert.Equal(box.Id, created.BoxId);
         Assert.Equal(unit.Id, created.StorageUnitId);
-    }
+        Assert.NotNull(created.CreatedOn);
 
-    [Fact]
-    public async Task CreateInventoryItem_IsRetrievableViaGet()
-    {
-        var created = await CreateItemViaClient("Retrievable", null, null, null);
+        // Create without optional fields
+        var minimal = await CreateItemViaClient("Minimal", null, null, null);
+        Assert.Null(minimal.Description);
+        Assert.Null(minimal.BoxId);
+        Assert.Null(minimal.StorageUnitId);
 
-        var result = await (await GetAuthenticatedClientAsync()).Api.InventoryItems.GetAsync();
+        // List returns items
+        var listResult = await client.Api.InventoryItems.GetAsync();
+        Assert.NotNull(listResult);
+        Assert.Equal(2, listResult.Count);
 
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("Retrievable", result[0].Name);
-        Assert.Equal(created.Id, result[0].Id);
-    }
-
-    // --- PUT /api/inventory-items/{id} ---
-
-    [Fact]
-    public async Task UpdateInventoryItem_UpdatesAllFields()
-    {
-        var box = await CreateBoxViaClient(1, null);
-        var unit = await CreateStorageUnitViaClient("Unit", null);
-        var created = await CreateItemViaClient("Original", "Original Desc", null, null);
-
-        await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].PutAsync(
-            new KiotaModels.UpdateInventoryItemRequest 
-            { 
-                Name = "Updated", 
-                Description = "Updated Desc", 
-                BoxId = box.Id, 
-                StorageUnitId = unit.Id 
-            });
-
-        var result = await (await GetAuthenticatedClientAsync()).Api.InventoryItems.GetAsync();
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("Updated", result[0].Name);
-        Assert.Equal("Updated Desc", result[0].Description);
-        Assert.Equal(box.Id, result[0].BoxId);
-        Assert.Equal(unit.Id, result[0].StorageUnitId);
-    }
-
-    [Fact]
-    public async Task UpdateInventoryItem_SetsModifiedOn()
-    {
-        var created = await CreateItemViaClient("Before Update", null, null, null);
-
-        await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].PutAsync(
-            new KiotaModels.UpdateInventoryItemRequest 
-            { 
-                Name = "After Update", 
-                Description = null, 
-                BoxId = null, 
-                StorageUnitId = null 
-            });
-
-        var stream = await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].GetAsync();
+        // Get by ID
+        var stream = await client.Api.InventoryItems[created.Id].GetAsync();
         Assert.NotNull(stream);
-        var result = await JsonSerializer.DeserializeAsync<InventoryItemResponse>(stream, JsonOptions);
-        Assert.NotNull(result);
-        Assert.NotNull(result.ModifiedOn);
+        var getResult = await JsonSerializer.DeserializeAsync<InventoryItemResponse>(stream, JsonOptions);
+        Assert.NotNull(getResult);
+        Assert.Equal("Test Item", getResult.Name);
+        Assert.Equal("Test Description", getResult.Description);
+
+        // Update
+        await client.Api.InventoryItems[created.Id].PutAsync(
+            new KiotaModels.UpdateInventoryItemRequest
+            {
+                Name = "Updated",
+                Description = "Updated Desc",
+                BoxId = null,
+                StorageUnitId = null
+            });
+        var updatedStream = await client.Api.InventoryItems[created.Id].GetAsync();
+        Assert.NotNull(updatedStream);
+        var updated = await JsonSerializer.DeserializeAsync<InventoryItemResponse>(updatedStream, JsonOptions);
+        Assert.NotNull(updated);
+        Assert.Equal("Updated", updated.Name);
+        Assert.Equal("Updated Desc", updated.Description);
+        Assert.NotNull(updated.ModifiedOn);
+
+        // Delete
+        await client.Api.InventoryItems[created.Id].DeleteAsync();
+        var afterDelete = await client.Api.InventoryItems.GetAsync();
+        Assert.NotNull(afterDelete);
+        Assert.Single(afterDelete);
     }
 
+    // --- Not Found / Deleted ---
+
     [Fact]
-    public async Task UpdateInventoryItem_WhenNotFound_Returns404()
+    public async Task Operations_OnNonExistentOrDeletedItem_Return404()
     {
         var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
+
+        var getEx = await Assert.ThrowsAsync<ApiException>(
+            () => client.Api.InventoryItems[99999].GetAsync());
+        Assert.Equal(404, getEx.ResponseStatusCode);
+
+        var updateEx = await Assert.ThrowsAsync<ApiException>(
             () => client.Api.InventoryItems[99999].PutAsync(
-                new KiotaModels.UpdateInventoryItemRequest 
-                { 
-                    Name = "Nope", 
-                    Description = null, 
-                    BoxId = null, 
-                    StorageUnitId = null 
+                new KiotaModels.UpdateInventoryItemRequest
+                {
+                    Name = "Nope", Description = null, BoxId = null, StorageUnitId = null
                 }));
+        Assert.Equal(404, updateEx.ResponseStatusCode);
 
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
-
-    [Fact]
-    public async Task UpdateInventoryItem_WhenDeleted_Returns404()
-    {
-        var created = await CreateItemViaClient("Will Delete", null, null, null);
-        await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].DeleteAsync();
-
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
-            () => client.Api.InventoryItems[created.Id].PutAsync(
-                new KiotaModels.UpdateInventoryItemRequest 
-                { 
-                    Name = "Too Late", 
-                    Description = null, 
-                    BoxId = null, 
-                    StorageUnitId = null 
-                }));
-
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
-
-    // --- DELETE /api/inventory-items/{id} ---
-
-    [Fact]
-    public async Task DeleteInventoryItem_SoftDeletes()
-    {
-        var created = await CreateItemViaClient("Delete Me", null, null, null);
-
-        await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].DeleteAsync();
-
-        var result = await (await GetAuthenticatedClientAsync()).Api.InventoryItems.GetAsync();
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task DeleteInventoryItem_WhenNotFound_Returns404()
-    {
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
+        var deleteEx = await Assert.ThrowsAsync<ApiException>(
             () => client.Api.InventoryItems[99999].DeleteAsync());
+        Assert.Equal(404, deleteEx.ResponseStatusCode);
 
-        Assert.Equal(404, exception.ResponseStatusCode);
-    }
+        // Deleted item
+        var created = await CreateItemViaClient("Will Delete", null, null, null);
+        await client.Api.InventoryItems[created.Id].DeleteAsync();
 
-    [Fact]
-    public async Task DeleteInventoryItem_WhenAlreadyDeleted_Returns404()
-    {
-        var created = await CreateItemViaClient("Double Delete", null, null, null);
-        await (await GetAuthenticatedClientAsync()).Api.InventoryItems[created.Id].DeleteAsync();
+        var getDeletedEx = await Assert.ThrowsAsync<ApiException>(
+            () => client.Api.InventoryItems[created.Id].GetAsync());
+        Assert.Equal(404, getDeletedEx.ResponseStatusCode);
 
-        var client = await GetAuthenticatedClientAsync();
-        var exception = await Assert.ThrowsAsync<ApiException>(
+        var updateDeletedEx = await Assert.ThrowsAsync<ApiException>(
+            () => client.Api.InventoryItems[created.Id].PutAsync(
+                new KiotaModels.UpdateInventoryItemRequest
+                {
+                    Name = "Too Late", Description = null, BoxId = null, StorageUnitId = null
+                }));
+        Assert.Equal(404, updateDeletedEx.ResponseStatusCode);
+
+        var deleteDeletedEx = await Assert.ThrowsAsync<ApiException>(
             () => client.Api.InventoryItems[created.Id].DeleteAsync());
-
-        Assert.Equal(404, exception.ResponseStatusCode);
+        Assert.Equal(404, deleteDeletedEx.ResponseStatusCode);
     }
 
-    // --- POST /api/inventory-items validation ---
+    // --- Name / Description Validation ---
 
     [Fact]
-    public async Task CreateInventoryItem_WithEmptyName_Returns400()
+    public async Task CreateAndUpdate_WithInvalidNameOrDescription_Returns400()
     {
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
-            new { name = "", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+        var payload = new { name = "", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null };
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
+        // Create: empty name
+        var emptyName = await httpClient.PostAsJsonAsync("/api/inventory-items", payload);
+        Assert.Equal(HttpStatusCode.BadRequest, emptyName.StatusCode);
 
-    [Fact]
-    public async Task CreateInventoryItem_WithWhitespaceName_Returns400()
-    {
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
+        // Create: whitespace name
+        var wsName = await httpClient.PostAsJsonAsync("/api/inventory-items",
             new { name = "   ", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, wsName.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithNameExceeding200Chars_Returns400()
-    {
+        // Create: name > 200 chars
         var longName = new string('a', 201);
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
+        var longNameResp = await httpClient.PostAsJsonAsync("/api/inventory-items",
             new { name = longName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, longNameResp.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithNameAt200Chars_Succeeds()
-    {
+        // Create: name at 200 chars succeeds
         var maxName = new string('a', 200);
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
+        var maxNameResp = await httpClient.PostAsJsonAsync("/api/inventory-items",
             new { name = maxName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.Created, maxNameResp.StatusCode);
 
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-    }
+        // Create: description > 1000 chars
+        var longDesc = new string('b', 1001);
+        var longDescResp = await httpClient.PostAsJsonAsync("/api/inventory-items",
+            new { name = "Valid", description = longDesc, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, longDescResp.StatusCode);
 
-    [Fact]
-    public async Task CreateInventoryItem_WithDescriptionExceeding1000Chars_Returns400()
-    {
-        var longDescription = new string('b', 1001);
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
-            new { name = "Valid Name", description = longDescription, boxId = (int?)null, storageUnitId = (int?)null });
+        // Create: description at 1000 chars succeeds
+        var maxDesc = new string('b', 1000);
+        var maxDescResp = await httpClient.PostAsJsonAsync("/api/inventory-items",
+            new { name = "Valid2", description = maxDesc, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.Created, maxDescResp.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithDescriptionAt1000Chars_Succeeds()
-    {
-        var maxDescription = new string('b', 1000);
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
-            new { name = "Valid Name", description = maxDescription, boxId = (int?)null, storageUnitId = (int?)null });
-
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithInvalidBoxId_Returns400()
-    {
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
-            new { name = "Item", description = (string?)null, boxId = 99999, storageUnitId = (int?)null });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithDeletedBox_Returns400()
-    {
-        var box = await CreateBoxViaClient(1, null);
-        await (await GetAuthenticatedClientAsync()).Api.InventoryBoxes[box.Id].DeleteAsync();
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
-            new { name = "Item", description = (string?)null, boxId = box.Id, storageUnitId = (int?)null });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithInvalidStorageUnitId_Returns400()
-    {
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
-            new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateInventoryItem_WithDeletedStorageUnit_Returns400()
-    {
-        var unit = await CreateStorageUnitViaClient("Deleted Unit", null);
-        await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits[unit.Id].DeleteAsync();
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", 
-            new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = unit.Id });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    // --- PUT /api/inventory-items/{id} validation ---
-
-    [Fact]
-    public async Task UpdateInventoryItem_WithEmptyName_Returns400()
-    {
-        var created = await CreateItemViaClient("Valid Name", null, null, null);
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", 
+        // Update validation
+        var created = await CreateItemViaClient("For Update", null, null, null);
+        var updateEmpty = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
             new { name = "", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, updateEmpty.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task UpdateInventoryItem_WithWhitespaceName_Returns400()
-    {
-        var created = await CreateItemViaClient("Valid Name", null, null, null);
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", 
+        var updateWs = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
             new { name = "   ", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, updateWs.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task UpdateInventoryItem_WithNameExceeding200Chars_Returns400()
-    {
-        var created = await CreateItemViaClient("Valid Name", null, null, null);
-        var longName = new string('a', 201);
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", 
+        var updateLongName = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
             new { name = longName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, updateLongName.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var updateLongDesc = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
+            new { name = "Valid", description = longDesc, boxId = (int?)null, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, updateLongDesc.StatusCode);
     }
 
-    [Fact]
-    public async Task UpdateInventoryItem_WithDescriptionExceeding1000Chars_Returns400()
-    {
-        var created = await CreateItemViaClient("Valid Name", null, null, null);
-        var longDescription = new string('b', 1001);
+    // --- FK Validation ---
 
+    [Fact]
+    public async Task CreateAndUpdate_WithInvalidForeignKeys_Returns400()
+    {
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", 
-            new { name = "Valid Name", description = longDescription, boxId = (int?)null, storageUnitId = (int?)null });
+        var client = await GetAuthenticatedClientAsync();
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
+        // Create with invalid box
+        var invalidBox = await httpClient.PostAsJsonAsync("/api/inventory-items",
+            new { name = "Item", description = (string?)null, boxId = 99999, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidBox.StatusCode);
 
-    [Fact]
-    public async Task UpdateInventoryItem_WithInvalidBoxId_Returns400()
-    {
-        var created = await CreateItemViaClient("Valid Name", null, null, null);
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", 
-            new { name = "Valid Name", description = (string?)null, boxId = 99999, storageUnitId = (int?)null });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task UpdateInventoryItem_WithDeletedBox_Returns400()
-    {
+        // Create with deleted box
         var box = await CreateBoxViaClient(1, null);
-        await (await GetAuthenticatedClientAsync()).Api.InventoryBoxes[box.Id].DeleteAsync();
-        var created = await CreateItemViaClient("Valid Name", null, null, null);
+        await client.Api.InventoryBoxes[box.Id].DeleteAsync();
+        var deletedBox = await httpClient.PostAsJsonAsync("/api/inventory-items",
+            new { name = "Item", description = (string?)null, boxId = box.Id, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, deletedBox.StatusCode);
 
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", 
-            new { name = "Valid Name", description = (string?)null, boxId = box.Id, storageUnitId = (int?)null });
+        // Create with invalid storage unit
+        var invalidUnit = await httpClient.PostAsJsonAsync("/api/inventory-items",
+            new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidUnit.StatusCode);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task UpdateInventoryItem_WithInvalidStorageUnitId_Returns400()
-    {
-        var created = await CreateItemViaClient("Valid Name", null, null, null);
-
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", 
-            new { name = "Valid Name", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task UpdateInventoryItem_WithDeletedStorageUnit_Returns400()
-    {
+        // Create with deleted storage unit
         var unit = await CreateStorageUnitViaClient("Deleted Unit", null);
-        await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits[unit.Id].DeleteAsync();
-        var created = await CreateItemViaClient("Valid Name", null, null, null);
+        await client.Api.InventoryStorageUnits[unit.Id].DeleteAsync();
+        var deletedUnit = await httpClient.PostAsJsonAsync("/api/inventory-items",
+            new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = unit.Id });
+        Assert.Equal(HttpStatusCode.BadRequest, deletedUnit.StatusCode);
 
-        var httpClient = await GetAuthenticatedHttpClientAsync();
-        var response = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", 
-            new { name = "Valid Name", description = (string?)null, boxId = (int?)null, storageUnitId = unit.Id });
+        // Update with invalid FK
+        var created = await CreateItemViaClient("Valid Item", null, null, null);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var updateInvalidBox = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
+            new { name = "Valid", description = (string?)null, boxId = 99999, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, updateInvalidBox.StatusCode);
+
+        var box2 = await CreateBoxViaClient(2, null);
+        await client.Api.InventoryBoxes[box2.Id].DeleteAsync();
+        var updateDeletedBox = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
+            new { name = "Valid", description = (string?)null, boxId = box2.Id, storageUnitId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, updateDeletedBox.StatusCode);
+
+        var updateInvalidUnit = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
+            new { name = "Valid", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 });
+        Assert.Equal(HttpStatusCode.BadRequest, updateInvalidUnit.StatusCode);
+
+        var unit2 = await CreateStorageUnitViaClient("Deleted Unit 2", null);
+        await client.Api.InventoryStorageUnits[unit2.Id].DeleteAsync();
+        var updateDeletedUnit = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
+            new { name = "Valid", description = (string?)null, boxId = (int?)null, storageUnitId = unit2.Id });
+        Assert.Equal(HttpStatusCode.BadRequest, updateDeletedUnit.StatusCode);
     }
 
-    // --- Helper ---
+    // --- Helpers ---
 
     private async Task<InventoryItemResponse> CreateItemViaClient(string name, string? description, int? boxId, int? storageUnitId)
     {
         var stream = await (await GetAuthenticatedClientAsync()).Api.InventoryItems.PostAsync(
-            new KiotaModels.CreateInventoryItemRequest 
-            { 
-                Name = name, 
-                Description = description, 
-                BoxId = boxId, 
-                StorageUnitId = storageUnitId 
+            new KiotaModels.CreateInventoryItemRequest
+            {
+                Name = name, Description = description, BoxId = boxId, StorageUnitId = storageUnitId
             });
 
         Assert.NotNull(stream);
@@ -565,29 +314,7 @@ public class InventoryItemEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record InventoryItemResponse(
-        int Id,
-        string Name,
-        string? Description,
-        int? BoxId,
-        int? StorageUnitId,
-        DateTime CreatedOn,
-        DateTime? ModifiedOn,
-        DateTime? DeletedOn);
-
-    private record InventoryBoxResponse(
-        int Id,
-        int Number,
-        int? StorageUnitId,
-        DateTime CreatedOn,
-        DateTime? ModifiedOn,
-        DateTime? DeletedOn);
-
-    private record InventoryStorageUnitResponse(
-        int Id,
-        string Name,
-        string? Type,
-        DateTime CreatedOn,
-        DateTime? ModifiedOn,
-        DateTime? DeletedOn);
+    private record InventoryItemResponse(int Id, string Name, string? Description, int? BoxId, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
+    private record InventoryBoxResponse(int Id, int Number, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
+    private record InventoryStorageUnitResponse(int Id, string Name, string? Type, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
 }
