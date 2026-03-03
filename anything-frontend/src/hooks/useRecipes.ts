@@ -159,7 +159,52 @@ export function useDeleteRecipeStep(recipeId: number) {
   });
 }
 
-const UPLOAD_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
+
+export interface ParsedIngredient {
+  amount: number;
+  unit?: string | null;
+  name: string;
+}
+
+export interface ParsedStep {
+  order: number;
+  text: string;
+}
+
+export interface ParsedRecipeResponse {
+  name: string;
+  link?: string | null;
+  ingredients: ParsedIngredient[];
+  steps: ParsedStep[];
+}
+
+export function useParseRecipeFromUrl() {
+  return useMutation({
+    mutationFn: async (url: string): Promise<ParsedRecipeResponse> => {
+      const token =
+        typeof window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(`${API_BASE_URL}/api/recipes/parse-url`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ url }),
+      });
+      if (!response.ok) {
+        const err = new Error(
+          (await response.text()) || `Error ${response.status}`
+        ) as Error & { status: number };
+        err.status = response.status;
+        throw err;
+      }
+      return response.json() as Promise<ParsedRecipeResponse>;
+    },
+  });
+}
 
 export function useUploadRecipeImage(recipeId: number) {
   const queryClient = useQueryClient();
@@ -172,7 +217,7 @@ export function useUploadRecipeImage(recipeId: number) {
         ? (localStorage.getItem("accessToken") ?? "")
         : "";
       const response = await fetch(
-        `${UPLOAD_API_BASE_URL}/api/recipes/${recipeId}/images/upload`,
+        `${API_BASE_URL}/api/recipes/${recipeId}/images/upload`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
