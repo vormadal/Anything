@@ -31,6 +31,7 @@ export default function ShoppingListDetailPage() {
   const [editingItem, setEditingItem] = useState<{ id: number; name: string; amount: string; unit: string } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cancelEditRef = useRef(false);
   const { setHeaderActions } = useHeaderActions();
 
   const { data: list } = useQuery({
@@ -136,6 +137,11 @@ export default function ShoppingListDetailPage() {
     }
   };
 
+  const handleCancelEdit = () => {
+    cancelEditRef.current = true;
+    setEditingItem(null);
+  };
+
   const handleSaveEdit = async (item: ShoppingListItem) => {
     if (!editingItem) return;
     try {
@@ -147,7 +153,6 @@ export default function ShoppingListDetailPage() {
         unit: editingItem.unit.trim() || null,
       });
       setEditingItem(null);
-      toast.success("Item updated");
     } catch {
       toast.error("Failed to update item. Please try again.");
     }
@@ -300,18 +305,29 @@ export default function ShoppingListDetailPage() {
                 )}
 
                 {isEditMode && editingItem !== null && editingItem.id === item.id ? (
-                  <>
+                  <div
+                    className="flex items-center gap-1 flex-1 min-w-0"
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        const cancelled = cancelEditRef.current;
+                        cancelEditRef.current = false;
+                        if (!cancelled) {
+                          handleSaveEdit(item);
+                        }
+                      }
+                    }}
+                  >
                     <input
                       type="text"
                       value={editingItem.name}
                       onChange={(e) =>
                         setEditingItem(editingItem ? { ...editingItem, name: e.target.value } : null)
                       }
-                      className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="flex-1 min-w-0 px-2 py-1 text-sm rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-white"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleSaveEdit(item);
-                        if (e.key === "Escape") setEditingItem(null);
+                        if (e.key === "Escape") handleCancelEdit();
                       }}
                     />
                     <input
@@ -323,7 +339,11 @@ export default function ShoppingListDetailPage() {
                       placeholder="Qty"
                       min="0"
                       step="any"
-                      className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-14 px-1 py-1 text-sm rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-white"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveEdit(item);
+                        if (e.key === "Escape") handleCancelEdit();
+                      }}
                     />
                     <input
                       type="text"
@@ -332,19 +352,13 @@ export default function ShoppingListDetailPage() {
                         setEditingItem(editingItem ? { ...editingItem, unit: e.target.value } : null)
                       }
                       placeholder="Unit"
-                      className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-14 px-1 py-1 text-sm rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-white"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveEdit(item);
+                        if (e.key === "Escape") handleCancelEdit();
+                      }}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleSaveEdit(item)}
-                      disabled={updateItem.isPending}
-                      aria-label="Save item"
-                      className="shrink-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  </>
+                  </div>
                 ) : (
                   <span
                     role={isEditMode ? "button" : undefined}
