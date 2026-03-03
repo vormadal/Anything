@@ -7,4 +7,6 @@ public record CreateFoodPlanRequest(
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name,
     [Required(ErrorMessage = "WeekStart is required.")]
-    DateTime WeekStart);
+    DateTime WeekStart,
+    [Range(1, 127, ErrorMessage = "ActiveDays must have at least one day selected (value between 1 and 127).")]
+    int ActiveDays = 31);

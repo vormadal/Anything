@@ -339,7 +339,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record FoodPlanDto(int Id, string? Name, DateTime WeekStart);
+    private record FoodPlanDto(int Id, string? Name, DateTime WeekStart, int ActiveDays = 31);
     private record FoodPlanEntryDto(int Id, int FoodPlanId, int? RecipeId, string? Name, int DayOfWeek);
     private record RecipeDto(int Id, string? Name);
     private record ShoppingListDto(int Id, string? Name);

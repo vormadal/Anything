@@ -32,8 +32,8 @@ export function useCreateFoodPlan() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (plan: { name: string; weekStart: Date }) =>
-      apiClient.api.foodPlans.post({ name: plan.name, weekStart: plan.weekStart }),
+    mutationFn: (plan: { name: string; weekStart: Date; activeDays?: number }) =>
+      apiClient.api.foodPlans.post({ name: plan.name, weekStart: plan.weekStart, activeDays: plan.activeDays ?? 31 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlans"] });
     },
@@ -44,8 +44,8 @@ export function useUpdateFoodPlan() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, name, weekStart }: { id: number; name: string; weekStart: Date }) =>
-      apiClient.api.foodPlans.byId(id).put({ name, weekStart }),
+    mutationFn: ({ id, name, weekStart, activeDays }: { id: number; name: string; weekStart: Date; activeDays?: number }) =>
+      apiClient.api.foodPlans.byId(id).put({ name, weekStart, activeDays: activeDays ?? 31 }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["foodPlans"] });
       queryClient.invalidateQueries({ queryKey: ["foodPlan", variables.id] });

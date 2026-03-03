@@ -1736,6 +1736,7 @@ export interface FoodPlan extends AdditionalDataHolder, Parsable {
     id?: number | null;
     name?: string | null;
     weekStart?: Date | null;
+    activeDays?: number | null;
     createdOn?: Date | null;
     modifiedOn?: Date | null;
     deletedOn?: Date | null;
@@ -1755,11 +1756,13 @@ export interface CreateFoodPlanRequest extends AdditionalDataHolder, Parsable {
     additionalData?: Record<string, unknown>;
     name?: string | null;
     weekStart?: Date | null;
+    activeDays?: number | null;
 }
 export interface UpdateFoodPlanRequest extends AdditionalDataHolder, Parsable {
     additionalData?: Record<string, unknown>;
     name?: string | null;
     weekStart?: Date | null;
+    activeDays?: number | null;
 }
 export interface AddFoodPlanEntryRequest extends AdditionalDataHolder, Parsable {
     additionalData?: Record<string, unknown>;
@@ -1791,6 +1794,7 @@ export function deserializeIntoFoodPlan(foodPlan: Partial<FoodPlan> | undefined 
         "id": n => { foodPlan.id = n.getNumberValue(); },
         "name": n => { foodPlan.name = n.getStringValue(); },
         "weekStart": n => { foodPlan.weekStart = n.getDateValue(); },
+        "activeDays": n => { foodPlan.activeDays = n.getNumberValue(); },
         "createdOn": n => { foodPlan.createdOn = n.getDateValue(); },
         "modifiedOn": n => { foodPlan.modifiedOn = n.getDateValue(); },
         "deletedOn": n => { foodPlan.deletedOn = n.getDateValue(); },
@@ -1814,6 +1818,7 @@ export function deserializeIntoCreateFoodPlanRequest(req: Partial<CreateFoodPlan
     return {
         "name": n => { req.name = n.getStringValue(); },
         "weekStart": n => { req.weekStart = n.getDateValue(); },
+        "activeDays": n => { req.activeDays = n.getNumberValue(); },
     }
 }
 // @ts-ignore
@@ -1821,6 +1826,7 @@ export function deserializeIntoUpdateFoodPlanRequest(req: Partial<UpdateFoodPlan
     return {
         "name": n => { req.name = n.getStringValue(); },
         "weekStart": n => { req.weekStart = n.getDateValue(); },
+        "activeDays": n => { req.activeDays = n.getNumberValue(); },
     }
 }
 // @ts-ignore
@@ -1851,6 +1857,7 @@ export function serializeFoodPlan(writer: SerializationWriter, foodPlan: Partial
     writer.writeNumberValue("id", foodPlan.id);
     writer.writeStringValue("name", foodPlan.name);
     writer.writeDateValue("weekStart", foodPlan.weekStart);
+    writer.writeNumberValue("activeDays", foodPlan.activeDays);
     writer.writeDateValue("createdOn", foodPlan.createdOn);
     writer.writeDateValue("modifiedOn", foodPlan.modifiedOn);
     writer.writeDateValue("deletedOn", foodPlan.deletedOn);
@@ -1874,6 +1881,7 @@ export function serializeCreateFoodPlanRequest(writer: SerializationWriter, req:
     if (!req || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", req.name);
     writer.writeDateValue("weekStart", req.weekStart);
+    writer.writeNumberValue("activeDays", req.activeDays);
     writer.writeAdditionalData(req.additionalData);
 }
 // @ts-ignore
@@ -1881,6 +1889,7 @@ export function serializeUpdateFoodPlanRequest(writer: SerializationWriter, req:
     if (!req || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", req.name);
     writer.writeDateValue("weekStart", req.weekStart);
+    writer.writeNumberValue("activeDays", req.activeDays);
     writer.writeAdditionalData(req.additionalData);
 }
 // @ts-ignore
