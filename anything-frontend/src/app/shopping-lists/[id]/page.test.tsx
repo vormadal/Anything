@@ -426,7 +426,6 @@ describe('ShoppingListDetailPage', () => {
     const itemName = screen.getByRole('button', { name: 'Milk' })
     await user.click(itemName)
 
-    expect(screen.getByRole('button', { name: 'Save item' })).toBeInTheDocument()
     expect(screen.getByDisplayValue('Milk')).toBeInTheDocument()
   })
 
@@ -449,13 +448,11 @@ describe('ShoppingListDetailPage', () => {
     await user.clear(editInput)
     await user.type(editInput, 'Whole Milk')
 
-    await user.click(screen.getByRole('button', { name: 'Save item' }))
+    await user.keyboard('{Enter}')
 
     await waitFor(() => {
       expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Whole Milk', isChecked: false }))
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Item updated')
   })
 
   it('should save item with updated amount and unit', async () => {
@@ -477,7 +474,7 @@ describe('ShoppingListDetailPage', () => {
     await user.clear(qtyInput)
     await user.type(qtyInput, '2')
 
-    await user.click(screen.getByRole('button', { name: 'Save item' }))
+    await user.keyboard('{Enter}')
 
     await waitFor(() => {
       expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', amount: 2, unit: 'l' }))
@@ -531,6 +528,33 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
+  it('should not show a success toast after saving an item', async () => {
+    const user = userEvent.setup()
+    const mockItems = [{ id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 }]
+    mockItemsGet.mockResolvedValue(mockItems)
+    mockItemsItemPut.mockResolvedValueOnce(undefined)
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Milk')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await user.click(screen.getByRole('button', { name: 'Milk' }))
+
+    const editInput = screen.getByDisplayValue('Milk')
+    await user.clear(editInput)
+    await user.type(editInput, 'Whole Milk')
+    await user.keyboard('{Enter}')
+
+    await waitFor(() => {
+      expect(mockItemsItemPut).toHaveBeenCalled()
+    })
+
+    expect(toast.success).not.toHaveBeenCalledWith('Item updated')
+  })
+
   it('should show error when rename fails', async () => {
     const user = userEvent.setup()
     const mockItems = [{ id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 }]
@@ -545,7 +569,7 @@ describe('ShoppingListDetailPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
     await user.click(screen.getByRole('button', { name: 'Milk' }))
-    await user.click(screen.getByRole('button', { name: 'Save item' }))
+    await user.keyboard('{Enter}')
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to update item. Please try again.')
@@ -746,7 +770,7 @@ describe('ShoppingListDetailPage', () => {
     itemName.focus()
     await user.keyboard('{Enter}')
 
-    expect(screen.getByRole('button', { name: 'Save item' })).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Milk')).toBeInTheDocument()
   })
 
   it('should sort checked items to the bottom', async () => {
