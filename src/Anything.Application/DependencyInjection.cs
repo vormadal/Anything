@@ -32,6 +32,11 @@ public static class DependencyInjection
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IImageStorageService, MinioStorageService>();
+        services.AddHttpClient<IRecipeParserService, RecipeParserService>(client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("AnythingApp/1.0 (recipe-parser)");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
 
         // Background services
         services.AddHostedService<FoodPlanAutoRenewService>();
