@@ -388,6 +388,39 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // --- AutoRenew ---
+
+    [Fact]
+    public async Task CreateFoodPlan_WithAutoRenew_PersistsAutoRenewField()
+    {
+        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/food-plans",
+            new { name = "Auto Plan", weekStart, autoRenew = true });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var plan = await response.Content.ReadFromJsonAsync<FoodPlanDto>(JsonOptions);
+        Assert.NotNull(plan);
+        Assert.True(plan.AutoRenew);
+    }
+
+    [Fact]
+    public async Task UpdateFoodPlan_WithAutoRenew_PersistsAutoRenewField()
+    {
+        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        var client = await GetAuthenticatedHttpClientAsync();
+        var plan = await CreateFoodPlanAsync("Auto Plan", weekStart);
+
+        var updateResponse = await client.PutAsJsonAsync($"/api/food-plans/{plan.Id}",
+            new { name = "Auto Plan", weekStart, autoRenew = true });
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        var getResponse = await client.GetAsync($"/api/food-plans/{plan.Id}");
+        var updated = await getResponse.Content.ReadFromJsonAsync<FoodPlanDto>(JsonOptions);
+        Assert.NotNull(updated);
+        Assert.True(updated.AutoRenew);
+    }
+
     // --- Helpers ---
 
     private async Task<FoodPlanDto> CreateFoodPlanAsync(string name, DateTime weekStart)
@@ -410,7 +443,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record FoodPlanDto(int Id, string? Name, DateTime WeekStart, int ActiveDays = 31);
+    private record FoodPlanDto(int Id, string? Name, DateTime WeekStart, int ActiveDays = 31, bool AutoRenew = false);
     private record FoodPlanEntryDto(int Id, int FoodPlanId, int? RecipeId, string? Name, int DayOfWeek);
     private record RecipeDto(int Id, string? Name);
     private record ShoppingListDto(int Id, string? Name);
