@@ -35,6 +35,14 @@ public static class RecipeEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPost("/parse-url", async (ParseRecipeFromUrlRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ParseRecipeFromUrlCommand(request.Url));
+        })
+        .WithName("ParseRecipeFromUrl")
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapPut("/{id}", async (int id, UpdateRecipeRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new UpdateRecipeCommand(id, request.Name, request.Link, request.Notes));
