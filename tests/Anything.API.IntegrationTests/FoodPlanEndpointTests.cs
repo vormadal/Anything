@@ -302,6 +302,77 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
+        Assert.Contains(items, i => i.Name == "Spaghetti" && i.Amount == 200 && i.Unit == "g");
+        Assert.Contains(items, i => i.Name == "Minced Beef" && i.Amount == 400 && i.Unit == "g");
+    }
+
+    [Fact]
+    public async Task AddFoodPlanToShoppingList_WhenSameIngredientInMultipleRecipes_MergesQuantities()
+    {
+        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
+        var recipe1 = await CreateRecipeAsync("Pasta");
+        var recipe2 = await CreateRecipeAsync("Pizza");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PostAsJsonAsync($"/api/recipes/{recipe1.Id}/ingredients",
+            new { name = "Flour", amount = 200, unit = "g" });
+        await client.PostAsJsonAsync($"/api/recipes/{recipe2.Id}/ingredients",
+            new { name = "Flour", amount = 300, unit = "g" });
+        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
+            new { name = "Monday", recipeId = recipe1.Id, dayOfWeek = 0 });
+        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
+            new { name = "Tuesday", recipeId = recipe2.Id, dayOfWeek = 1 });
+
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" });
+        var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        Assert.NotNull(shoppingList);
+
+        var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/add-to-shopping-list",
+            new { shoppingListId = shoppingList.Id });
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items");
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        Assert.NotNull(items);
+        Assert.Single(items);
+        Assert.Equal("Flour", items[0].Name);
+        Assert.Equal(500, items[0].Amount);
+        Assert.Equal("g", items[0].Unit);
+    }
+
+    [Fact]
+    public async Task AddFoodPlanToShoppingList_WhenSameNameDifferentUnit_AddsAsSeparateItems()
+    {
+        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
+        var recipe1 = await CreateRecipeAsync("Pasta");
+        var recipe2 = await CreateRecipeAsync("Pizza");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PostAsJsonAsync($"/api/recipes/{recipe1.Id}/ingredients",
+            new { name = "Flour", amount = 200, unit = "g" });
+        await client.PostAsJsonAsync($"/api/recipes/{recipe2.Id}/ingredients",
+            new { name = "Flour", amount = 2, unit = "cups" });
+        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
+            new { name = "Monday", recipeId = recipe1.Id, dayOfWeek = 0 });
+        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
+            new { name = "Tuesday", recipeId = recipe2.Id, dayOfWeek = 1 });
+
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" });
+        var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        Assert.NotNull(shoppingList);
+
+        var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/add-to-shopping-list",
+            new { shoppingListId = shoppingList.Id });
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items");
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        Assert.NotNull(items);
+        Assert.Equal(2, items.Length);
+        Assert.Contains(items, i => i.Name == "Flour" && i.Amount == 200 && i.Unit == "g");
+        Assert.Contains(items, i => i.Name == "Flour" && i.Amount == 2 && i.Unit == "cups");
     }
 
     [Fact]
@@ -343,5 +414,5 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     private record FoodPlanEntryDto(int Id, int FoodPlanId, int? RecipeId, string? Name, int DayOfWeek);
     private record RecipeDto(int Id, string? Name);
     private record ShoppingListDto(int Id, string? Name);
-    private record ShoppingListItemDto(int Id, string? Name, bool IsChecked);
+    private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
 }

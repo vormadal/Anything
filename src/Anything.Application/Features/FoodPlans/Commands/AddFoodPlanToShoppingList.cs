@@ -44,38 +44,62 @@ public class AddFoodPlanToShoppingListHandler(
             .ToDictionary(m => m.RecipeId, m => m.Multiplier > 0 ? m.Multiplier : 1.0)
             ?? new Dictionary<int, double>();
 
-        var itemNames = ingredients.Select(ingredient =>
-        {
-            var multiplier = multiplierLookup.TryGetValue(ingredient.RecipeId, out var m) ? m : 1.0;
-            var scaledAmount = ingredient.Amount * (decimal)multiplier;
-            return string.IsNullOrWhiteSpace(ingredient.Unit)
-                ? $"{scaledAmount:0.##} {ingredient.Name}"
-                : $"{scaledAmount:0.##} {ingredient.Unit} {ingredient.Name}";
-        }).ToList();
+        var grouped = ingredients
+            .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower()))
+            .Select(g => (
+                Name: g.First().Name.Trim(),
+                Amount: g.Sum(i =>
+                {
+                    var mult = multiplierLookup.TryGetValue(i.RecipeId, out var m) ? m : 1.0;
+                    return i.Amount * (decimal)mult;
+                }),
+                Unit: string.IsNullOrWhiteSpace(g.First().Unit) ? null : g.First().Unit?.Trim()
+            ))
+            .ToList();
 
-        var itemNamesLower = itemNames.Select(n => n.ToLower()).ToHashSet();
+        var existingItems = await shoppingListItemRepository.Query()
+            .Where(i => i.ShoppingListId == command.ShoppingListId)
+            .ToListAsync(ct);
+
+        var ingredientNamesLower = grouped.Select(g => g.Name.ToLower()).ToHashSet();
         var existingRecommendations = await recommendationRepository.Query()
-            .Where(r => r.DeletedOn == null && itemNamesLower.Contains(r.Name.ToLower()))
+            .Where(r => r.DeletedOn == null && ingredientNamesLower.Contains(r.Name.ToLower()))
             .Select(r => r.Name.ToLower())
             .ToHashSetAsync(ct);
 
-        foreach (var itemName in itemNames)
+        foreach (var (name, amount, unit) in grouped)
         {
-            shoppingListItemRepository.Add(new ShoppingListItem
-            {
-                ShoppingListId = command.ShoppingListId,
-                Name = itemName
-            });
+            var nameKey = name.ToLower();
+            var unitKey = (unit ?? "").ToLower();
+            var existing = existingItems.FirstOrDefault(i =>
+                i.Name.Trim().ToLower() == nameKey &&
+                (i.Unit ?? "").Trim().ToLower() == unitKey);
 
-            var nameNormalized = itemName.Trim();
-            if (!existingRecommendations.Contains(nameNormalized.ToLower()))
+            if (existing != null)
+            {
+                existing.Amount = (existing.Amount ?? 0) + amount;
+                existing.ModifiedOn = DateTime.UtcNow;
+                shoppingListItemRepository.Update(existing);
+            }
+            else
+            {
+                shoppingListItemRepository.Add(new ShoppingListItem
+                {
+                    ShoppingListId = command.ShoppingListId,
+                    Name = name,
+                    Amount = amount,
+                    Unit = unit
+                });
+            }
+
+            if (!existingRecommendations.Contains(nameKey))
             {
                 recommendationRepository.Add(new ShoppingListRecommendation
                 {
-                    Name = nameNormalized,
+                    Name = name,
                     IsApproved = false
                 });
-                existingRecommendations.Add(nameNormalized.ToLower());
+                existingRecommendations.Add(nameKey);
             }
         }
 
