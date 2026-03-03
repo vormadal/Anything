@@ -7,6 +7,7 @@ import {
   usePendingRecommendations,
   useApproveRecommendation,
   useDeleteRecommendation,
+  useUpdateRecommendation,
 } from '@/hooks/useRecommendations'
 
 const mockApprovedGet = jest.fn()
@@ -14,8 +15,9 @@ const mockPendingGet = jest.fn()
 const mockAllGet = jest.fn()
 const mockApprovePost = jest.fn()
 const mockDeleteFn = jest.fn()
+const mockPutFn = jest.fn()
 const mockApprove = { post: mockApprovePost }
-const mockItemById = jest.fn(() => ({ approve: mockApprove, delete: mockDeleteFn }))
+const mockItemById = jest.fn(() => ({ approve: mockApprove, delete: mockDeleteFn, put: mockPutFn }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -182,6 +184,37 @@ describe('useRecommendations hooks', () => {
           await result.current.mutateAsync(99)
         })
       ).rejects.toThrow('Not Found')
+    })
+  })
+
+  describe('useUpdateRecommendation', () => {
+    it('calls put endpoint with correct id and payload', async () => {
+      mockPutFn.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useUpdateRecommendation(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({ id: 1, name: 'Milk', preferredUnit: 'L' })
+      })
+
+      expect(mockItemById).toHaveBeenCalledWith(1)
+      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Milk', preferredUnit: 'L' })
+    })
+
+    it('handles update error', async () => {
+      mockPutFn.mockRejectedValueOnce(new Error('Forbidden'))
+
+      const { result } = renderHook(() => useUpdateRecommendation(), {
+        wrapper: createWrapper(),
+      })
+
+      await expect(
+        act(async () => {
+          await result.current.mutateAsync({ id: 1, name: 'Milk' })
+        })
+      ).rejects.toThrow('Forbidden')
     })
   })
 })

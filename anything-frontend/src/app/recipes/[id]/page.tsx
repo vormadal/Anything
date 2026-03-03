@@ -24,10 +24,11 @@ import {
   useAddIngredientsToShoppingList,
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
+import { useApprovedRecommendations } from "@/hooks/useRecommendations";
 import { RecipeImageUpload } from "@/components/RecipeImageUpload";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 
 export default function RecipeDetailPage() {
@@ -56,12 +57,16 @@ export default function RecipeDetailPage() {
   const [newStepText, setNewStepText] = useState("");
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
+  const [showIngredientSuggestions, setShowIngredientSuggestions] = useState(false);
+  const ingredientNameRef = useRef<HTMLInputElement>(null);
+  const SUGGESTION_CLOSE_DELAY_MS = 150;
 
   const { data: recipe, isLoading, error } = useRecipe(recipeId);
   const { data: ingredients } = useRecipeIngredients(recipeId);
   const { data: steps } = useRecipeSteps(recipeId);
   const { data: images } = useRecipeImages(recipeId);
   const { data: shoppingLists } = useShoppingLists();
+  const { data: recommendations } = useApprovedRecommendations();
 
   const updateRecipe = useUpdateRecipe();
   const addIngredient = useAddRecipeIngredient(recipeId);
@@ -141,6 +146,23 @@ export default function RecipeDetailPage() {
     } catch {
       toast.error("Failed to update ingredient. Please try again.");
     }
+  };
+
+  const filteredIngredientSuggestions =
+    recommendations?.filter(
+      (r) =>
+        r.name &&
+        newIngredientName.trim().length > 0 &&
+        r.name.toLowerCase().includes(newIngredientName.toLowerCase())
+    ) ?? [];
+
+  const handleSelectIngredientSuggestion = (name: string, preferredUnit?: string | null) => {
+    setNewIngredientName(name);
+    if (!newIngredientUnit.trim() && preferredUnit?.trim()) {
+      setNewIngredientUnit(preferredUnit.trim());
+    }
+    setShowIngredientSuggestions(false);
+    ingredientNameRef.current?.focus();
   };
 
   const handleAddIngredient = async (e: React.FormEvent) => {
@@ -405,13 +427,42 @@ export default function RecipeDetailPage() {
                   placeholder="Unit"
                   className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                 />
-                <input
-                  type="text"
-                  value={newIngredientName}
-                  onChange={(e) => setNewIngredientName(e.target.value)}
-                  placeholder="Ingredient name"
-                  className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                />
+                <div className="relative flex-1 min-w-0">
+                  <input
+                    ref={ingredientNameRef}
+                    type="text"
+                    value={newIngredientName}
+                    onChange={(e) => {
+                      setNewIngredientName(e.target.value);
+                      setShowIngredientSuggestions(true);
+                    }}
+                    onFocus={() => setShowIngredientSuggestions(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowIngredientSuggestions(false), SUGGESTION_CLOSE_DELAY_MS)
+                    }
+                    placeholder="Ingredient name"
+                    className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                    autoComplete="off"
+                  />
+                  {showIngredientSuggestions && filteredIngredientSuggestions.length > 0 && (
+                    <ul className="absolute z-10 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {filteredIngredientSuggestions.map((suggestion) => (
+                        <li key={suggestion.id}>
+                          <button
+                            type="button"
+                            onMouseDown={() => handleSelectIngredientSuggestion(suggestion.name!, suggestion.preferredUnit)}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
+                          >
+                            <span>{suggestion.name}</span>
+                            {suggestion.preferredUnit && (
+                              <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">({suggestion.preferredUnit})</span>
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <Button type="submit" size="icon" disabled={addIngredient.isPending} aria-label="Add ingredient">
                   <Plus className="h-4 w-4" />
                 </Button>

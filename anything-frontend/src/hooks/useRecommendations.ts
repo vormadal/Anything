@@ -40,6 +40,18 @@ export function useApproveRecommendation() {
   });
 }
 
+export function useUpdateRecommendation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, name, preferredUnit }: { id: number; name: string; preferredUnit?: string | null }) =>
+      apiClient.api.shoppingListRecommendations.byId(id).put({ name, preferredUnit: preferredUnit ?? null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
+    },
+  });
+}
+
 export function useDeleteRecommendation() {
   const queryClient = useQueryClient();
 

@@ -119,13 +119,14 @@ export default function ShoppingListDetailPage() {
     }
   };
 
-  const handleSelectSuggestion = async (name: string) => {
+  const handleSelectSuggestion = async (name: string, preferredUnit?: string | null) => {
     setShowSuggestions(false);
+    const unit = newItemUnit.trim() || preferredUnit?.trim() || null;
     try {
       await addItem.mutateAsync({
         name,
         amount: parseAmount(newItemAmount),
-        unit: newItemUnit.trim() || null,
+        unit,
       });
       setNewItemName("");
       setNewItemAmount("");
@@ -228,10 +229,13 @@ export default function ShoppingListDetailPage() {
                       <li key={suggestion.id}>
                         <button
                           type="button"
-                          onMouseDown={() => handleSelectSuggestion(suggestion.name!)}
+                          onMouseDown={() => handleSelectSuggestion(suggestion.name!, suggestion.preferredUnit)}
                           className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
                         >
-                          {suggestion.name}
+                          <span>{suggestion.name}</span>
+                          {suggestion.preferredUnit && (
+                            <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">({suggestion.preferredUnit})</span>
+                          )}
                         </button>
                       </li>
                     ))}
