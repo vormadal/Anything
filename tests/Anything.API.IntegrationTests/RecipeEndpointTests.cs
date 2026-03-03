@@ -450,8 +450,56 @@ public class RecipeEndpointTests : IntegrationTestBase
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
-        Assert.Contains(items, i => i.Name!.Contains("Spaghetti") && i.Name.Contains("200") && i.Name.Contains("g"));
-        Assert.Contains(items, i => i.Name!.Contains("Tomato sauce") && i.Name.Contains("1"));
+        Assert.Contains(items, i => i.Name == "Spaghetti" && i.Amount == 200 && i.Unit == "g");
+        Assert.Contains(items, i => i.Name == "Tomato sauce" && i.Amount == 1 && i.Unit == null);
+    }
+
+    [Fact]
+    public async Task AddToShoppingList_WhenAddedTwice_MergesQuantitiesForSameUnit()
+    {
+        var recipe = await CreateRecipeAsync("Pasta", null, null);
+        await AddIngredientAsync(recipe.Id, "Spaghetti", 200, "g", null);
+
+        var listId = await CreateShoppingListAsync("My List");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
+            new { shoppingListId = listId });
+        await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
+            new { shoppingListId = listId });
+
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items");
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        Assert.NotNull(items);
+        Assert.Single(items);
+        Assert.Equal("Spaghetti", items[0].Name);
+        Assert.Equal(400, items[0].Amount);
+        Assert.Equal("g", items[0].Unit);
+    }
+
+    [Fact]
+    public async Task AddToShoppingList_WhenSameNameDifferentUnit_AddsAsSeparateItems()
+    {
+        var recipe1 = await CreateRecipeAsync("Recipe A", null, null);
+        await AddIngredientAsync(recipe1.Id, "Flour", 200, "g", null);
+
+        var recipe2 = await CreateRecipeAsync("Recipe B", null, null);
+        await AddIngredientAsync(recipe2.Id, "Flour", 2, "cups", null);
+
+        var listId = await CreateShoppingListAsync("My List");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        await client.PostAsJsonAsync($"/api/recipes/{recipe1.Id}/add-to-shopping-list",
+            new { shoppingListId = listId });
+        await client.PostAsJsonAsync($"/api/recipes/{recipe2.Id}/add-to-shopping-list",
+            new { shoppingListId = listId });
+
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items");
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        Assert.NotNull(items);
+        Assert.Equal(2, items.Length);
+        Assert.Contains(items, i => i.Name == "Flour" && i.Amount == 200 && i.Unit == "g");
+        Assert.Contains(items, i => i.Name == "Flour" && i.Amount == 2 && i.Unit == "cups");
     }
 
     [Fact]
@@ -534,5 +582,5 @@ public class RecipeEndpointTests : IntegrationTestBase
     private record StepDto(int Id, int RecipeId, string? Text, int Order);
     private record ImageDto(int Id, int RecipeId, string? Url);
     private record ShoppingListDto(int Id, string? Name);
-    private record ShoppingListItemDto(int Id, string? Name, bool IsChecked);
+    private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
 }
