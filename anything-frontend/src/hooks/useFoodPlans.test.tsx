@@ -160,7 +160,7 @@ describe('useFoodPlans hooks', () => {
       })
 
       await act(async () => {
-        result.current.mutate({ name: 'Week 1', weekStart: new Date('2026-03-02T00:00:00Z') })
+        result.current.mutate({ name: 'Week 1', weekStart: new Date('2026-03-02T00:00:00Z'), activeDays: 31 })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
@@ -168,6 +168,7 @@ describe('useFoodPlans hooks', () => {
       expect(mockPost).toHaveBeenCalledWith({
         name: 'Week 1',
         weekStart: new Date('2026-03-02T00:00:00Z'),
+        activeDays: 31,
       })
     })
 
@@ -178,7 +179,7 @@ describe('useFoodPlans hooks', () => {
         wrapper: createWrapper(),
       })
 
-      result.current.mutate({ name: 'Week 1', weekStart: new Date('2026-03-02T00:00:00Z') })
+      result.current.mutate({ name: 'Week 1', weekStart: new Date('2026-03-02T00:00:00Z'), activeDays: 31 })
 
       await waitFor(() => expect(result.current.isError).toBe(true))
 
@@ -195,13 +196,13 @@ describe('useFoodPlans hooks', () => {
       })
 
       await act(async () => {
-        result.current.mutate({ id: 1, name: 'Updated Week', weekStart: new Date('2026-03-09T00:00:00Z') })
+        result.current.mutate({ id: 1, name: 'Updated Week', weekStart: new Date('2026-03-09T00:00:00Z'), activeDays: 31 })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockPut).toHaveBeenCalledWith({ name: 'Updated Week', weekStart: new Date('2026-03-09T00:00:00Z') })
+      expect(mockPut).toHaveBeenCalledWith({ name: 'Updated Week', weekStart: new Date('2026-03-09T00:00:00Z'), activeDays: 31 })
     })
   })
 

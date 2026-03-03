@@ -17,9 +17,29 @@ import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { ShoppingCart, Plus, X } from "lucide-react";
 
-const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 // Delay before closing the suggestions dropdown on blur, allowing onMouseDown on a suggestion to fire first
 const SUGGESTION_BLUR_DELAY_MS = 150;
+// Default active days bitmask: Mon–Fri
+const DEFAULT_ACTIVE_DAYS = 31;
+
+/**
+ * Convert a JS Date's getDay() value (0=Sun…6=Sat) to our weekday index (0=Mon…6=Sun).
+ */
+function jsToWeekdayIndex(jsDay: number): number {
+  return (jsDay + 6) % 7;
+}
+
+/**
+ * Build the ordered list of day indices to display, starting from the weekStart day and
+ * filtering by the activeDays bitmask.
+ */
+function getOrderedActiveDays(weekStartDate: Date, activeDays: number): { index: number; name: string }[] {
+  const startIndex = jsToWeekdayIndex(weekStartDate.getDay());
+  return Array.from({ length: 7 }, (_, i) => (startIndex + i) % 7)
+    .filter((i) => (activeDays >> i) & 1)
+    .map((i) => ({ index: i, name: DAYS_OF_WEEK[i] }));
+}
 
 function EntryBadge({
   entry,
@@ -364,6 +384,18 @@ export default function FoodPlanDetailPage() {
   }
 
   const weekStartDate = plan.weekStart ? new Date(plan.weekStart) : new Date();
+  const activeDays = plan.activeDays ?? DEFAULT_ACTIVE_DAYS;
+  const orderedDays = getOrderedActiveDays(weekStartDate, activeDays);
+
+  const lgColsClass: Record<number, string> = {
+    1: "lg:grid-cols-1",
+    2: "lg:grid-cols-2",
+    3: "lg:grid-cols-3",
+    4: "lg:grid-cols-4",
+    5: "lg:grid-cols-5",
+    6: "lg:grid-cols-6",
+    7: "lg:grid-cols-7",
+  };
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
@@ -384,12 +416,12 @@ export default function FoodPlanDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2">
-        {DAYS_OF_WEEK.map((day, index) => (
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${lgColsClass[orderedDays.length] ?? "lg:grid-cols-5"} gap-2`}>
+        {orderedDays.map(({ index, name: dayName }) => (
           <DayColumn
-            key={day}
+            key={index}
             dayIndex={index}
-            dayName={day}
+            dayName={dayName}
             entries={entries ?? []}
             foodPlanId={planId}
             recipes={recipes}

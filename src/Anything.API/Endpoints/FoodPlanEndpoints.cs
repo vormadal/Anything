@@ -27,7 +27,7 @@ public static class FoodPlanEndpoints
 
         group.MapPost("/", async (CreateFoodPlanRequest request, IMediator mediator) =>
         {
-            var result = await mediator.Send(new CreateFoodPlanCommand(request.Name, request.WeekStart));
+            var result = await mediator.Send(new CreateFoodPlanCommand(request.Name, request.WeekStart, request.ActiveDays));
             return Results.Created($"/api/food-plans/{result.Id}", result);
         })
         .WithName("CreateFoodPlan")
@@ -36,7 +36,7 @@ public static class FoodPlanEndpoints
 
         group.MapPut("/{id}", async (int id, UpdateFoodPlanRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateFoodPlanCommand(id, request.Name, request.WeekStart));
+            return await mediator.Send(new UpdateFoodPlanCommand(id, request.Name, request.WeekStart, request.ActiveDays));
         })
         .WithName("UpdateFoodPlan")
         .WithParameterValidation()
