@@ -453,10 +453,7 @@ export default function RecipeDetailPage() {
                             onMouseDown={() => handleSelectIngredientSuggestion(suggestion.name!, suggestion.preferredUnit)}
                             className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
                           >
-                            <span>{suggestion.name}</span>
-                            {suggestion.preferredUnit && (
-                              <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">({suggestion.preferredUnit})</span>
-                            )}
+                            {suggestion.name}
                           </button>
                         </li>
                       ))}
