@@ -73,6 +73,18 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync($"/api/shopping-lists/{listId}/items", new { name = itemName });
     }
 
+    private async Task CreateRecommendationViaRecipeAsync(string ingredientName)
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var recipeResponse = await client.PostAsJsonAsync("/api/recipes", new { name = $"Test Recipe for {ingredientName}" });
+        var recipe = await recipeResponse.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        await client.PostAsJsonAsync($"/api/recipes/{recipe!.Id}/ingredients",
+            new { name = ingredientName, amount = 1.0, unit = (string?)null, group = (string?)null });
+        var listId = await CreateShoppingListAsync($"Test List for {ingredientName}");
+        await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
+            new { shoppingListId = listId, multiplier = 1.0 });
+    }
+
     // --- GET /api/shopping-list-recommendations ---
 
     [Fact]
@@ -98,7 +110,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     [Fact]
     public async Task GetApprovedRecommendations_OnlyReturnsApproved()
     {
-        // Add an item to create a pending recommendation
+        // Add an item manually - this no longer creates a pending recommendation
         var listId = await CreateShoppingListAsync("Test List");
         await AddShoppingListItemAsync(listId, "Milk");
 
@@ -108,7 +120,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
         Assert.NotNull(result);
-        // Milk is pending (not approved), so it should not appear in approved list
+        // No recommendations have been created or approved, so the list should be empty
         Assert.Empty(result);
     }
 
@@ -136,7 +148,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AddShoppingListItem_CreatesRecommendation()
+    public async Task AddShoppingListItem_DoesNotCreateRecommendation()
     {
         var listId = await CreateShoppingListAsync("Test List");
         await AddShoppingListItemAsync(listId, "Bread");
@@ -146,25 +158,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
 
         Assert.NotNull(result);
-        Assert.Contains(result, r => r.Name == "Bread" && !r.IsApproved);
-    }
-
-    [Fact]
-    public async Task AddShoppingListItem_DoesNotCreateDuplicateRecommendation()
-    {
-        var listId = await CreateShoppingListAsync("Test List");
-        // Add same item name twice (even in different lists)
-        await AddShoppingListItemAsync(listId, "Eggs");
-
-        var listId2 = await CreateShoppingListAsync("Test List 2");
-        await AddShoppingListItemAsync(listId2, "eggs"); // lowercase - same item
-
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-list-recommendations/pending");
-        var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
-
-        Assert.NotNull(result);
-        Assert.Single(result.Where(r => r.Name!.ToLower() == "eggs"));
+        Assert.DoesNotContain(result, r => r.Name == "Bread");
     }
 
     // --- POST /api/shopping-list-recommendations/{id}/approve ---
@@ -172,8 +166,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     [Fact]
     public async Task ApproveRecommendation_ApprovesAndAppearsInApprovedList()
     {
-        var listId = await CreateShoppingListAsync("Test List");
-        await AddShoppingListItemAsync(listId, "Butter");
+        await CreateRecommendationViaRecipeAsync("Butter");
 
         var client = await GetAuthenticatedHttpClientAsync();
         var pendingResponse = await client.GetAsync("/api/shopping-list-recommendations/pending");
@@ -193,8 +186,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     [Fact]
     public async Task ApproveRecommendation_RequiresAdminRole()
     {
-        var listId = await CreateShoppingListAsync("Test List");
-        await AddShoppingListItemAsync(listId, "Cheese");
+        await CreateRecommendationViaRecipeAsync("Cheese");
 
         var client = await GetAuthenticatedHttpClientAsync();
         var pendingResponse = await client.GetAsync("/api/shopping-list-recommendations/pending");
@@ -219,8 +211,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     [Fact]
     public async Task DeleteRecommendation_RemovesFromPendingList()
     {
-        var listId = await CreateShoppingListAsync("Test List");
-        await AddShoppingListItemAsync(listId, "Sugar");
+        await CreateRecommendationViaRecipeAsync("Sugar");
 
         var client = await GetAuthenticatedHttpClientAsync();
         var pendingResponse = await client.GetAsync("/api/shopping-list-recommendations/pending");
@@ -239,8 +230,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     [Fact]
     public async Task DeleteRecommendation_RequiresAdminRole()
     {
-        var listId = await CreateShoppingListAsync("Test List");
-        await AddShoppingListItemAsync(listId, "Salt");
+        await CreateRecommendationViaRecipeAsync("Salt");
 
         var adminClient = await GetAuthenticatedHttpClientAsync();
         var pendingResponse = await adminClient.GetAsync("/api/shopping-list-recommendations/pending");
@@ -263,5 +253,6 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);
+    private record RecipeDto(int Id, string Name);
     private record RecommendationDto(int Id, string? Name, bool IsApproved);
 }
