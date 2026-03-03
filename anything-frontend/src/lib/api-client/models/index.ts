@@ -292,6 +292,9 @@ export function createUpdateShoppingListItemRequestFromDiscriminatorValue(parseN
 export function createShoppingListRecommendationFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoShoppingListRecommendation;
 }
+export function createUpdateRecommendationRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateRecommendationRequest;
+}
 /**
  * The deserialization information for the current model
  * @param CreateInventoryBoxRequest The instance to deserialize into.
@@ -634,6 +637,13 @@ export function deserializeIntoShoppingListRecommendation(shoppingListRecommenda
         "isApproved": n => { shoppingListRecommendation.isApproved = n.getBooleanValue(); },
         "modifiedOn": n => { shoppingListRecommendation.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingListRecommendation.name = n.getStringValue(); },
+        "preferredUnit": n => { shoppingListRecommendation.preferredUnit = n.getStringValue(); },
+    }
+}
+export function deserializeIntoUpdateRecommendationRequest(updateRecommendationRequest: Partial<UpdateRecommendationRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { updateRecommendationRequest.name = n.getStringValue(); },
+        "preferredUnit": n => { updateRecommendationRequest.preferredUnit = n.getStringValue(); },
     }
 }
 export interface InventoryBox extends AdditionalDataHolder, Parsable {
@@ -1155,7 +1165,14 @@ export function serializeShoppingListRecommendation(writer: SerializationWriter,
     writer.writeBooleanValue("isApproved", shoppingListRecommendation.isApproved);
     writer.writeDateValue("modifiedOn", shoppingListRecommendation.modifiedOn);
     writer.writeStringValue("name", shoppingListRecommendation.name);
+    writer.writeStringValue("preferredUnit", shoppingListRecommendation.preferredUnit);
     writer.writeAdditionalData(shoppingListRecommendation.additionalData);
+}
+export function serializeUpdateRecommendationRequest(writer: SerializationWriter, updateRecommendationRequest: Partial<UpdateRecommendationRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateRecommendationRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", updateRecommendationRequest.name);
+    writer.writeStringValue("preferredUnit", updateRecommendationRequest.preferredUnit);
+    writer.writeAdditionalData(updateRecommendationRequest.additionalData);
 }
 export interface Something extends AdditionalDataHolder, Parsable {
     /**
@@ -1356,6 +1373,24 @@ export interface ShoppingListRecommendation extends AdditionalDataHolder, Parsab
      * The name property
      */
     name?: string | null;
+    /**
+     * The preferredUnit property
+     */
+    preferredUnit?: string | null;
+}
+export interface UpdateRecommendationRequest extends AdditionalDataHolder, Parsable {
+    /**
+     * The additionalData property
+     */
+    additionalData?: Record<string, unknown>;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The preferredUnit property
+     */
+    preferredUnit?: string | null;
 }
 // Recipe models
 // @ts-ignore

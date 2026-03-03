@@ -4,6 +4,7 @@ public class ShoppingListRecommendation
 {
     public int Id { get; set; }
     public required string Name { get; set; }
+    public string? PreferredUnit { get; set; }
     public bool IsApproved { get; set; }
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     public DateTime? ModifiedOn { get; set; }

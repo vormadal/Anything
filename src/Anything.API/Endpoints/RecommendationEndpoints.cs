@@ -1,5 +1,6 @@
 using Anything.Application.Features.Recommendations.Commands;
 using Anything.Application.Features.Recommendations.Queries;
+using Anything.Contracts.Recommendations;
 using Anything.Core.Constants;
 using Anything.Mediator;
 
@@ -30,6 +31,14 @@ public static class RecommendationEndpoints
             return await mediator.Send(new GetPendingRecommendationsQuery());
         })
         .WithName("GetPendingRecommendations")
+        .RequireAuthorization(UserRoles.Admin);
+
+        group.MapPut("/{id}", async (int id, UpdateRecommendationRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new UpdateRecommendationCommand(id, request.Name, request.PreferredUnit));
+        })
+        .WithName("UpdateRecommendation")
+        .WithParameterValidation()
         .RequireAuthorization(UserRoles.Admin);
 
         group.MapPost("/{id}/approve", async (int id, IMediator mediator) =>

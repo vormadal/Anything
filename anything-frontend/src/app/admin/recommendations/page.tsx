@@ -7,11 +7,12 @@ import {
   useAllRecommendations,
   useApproveRecommendation,
   useDeleteRecommendation,
+  useUpdateRecommendation,
 } from "@/hooks/useRecommendations";
 import { isAdmin } from "@/lib/roles";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Check, X } from "lucide-react";
+import { Check, X, Pencil } from "lucide-react";
 import { useState } from "react";
 
 type Tab = "pending" | "all";
@@ -24,6 +25,11 @@ export default function AdminRecommendationsPage() {
   const { data: allRecommendations } = useAllRecommendations();
   const approveRecommendation = useApproveRecommendation();
   const deleteRecommendation = useDeleteRecommendation();
+  const updateRecommendation = useUpdateRecommendation();
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPreferredUnit, setEditPreferredUnit] = useState("");
 
   if (user && !isAdmin(user.role)) {
     return (
@@ -65,6 +71,31 @@ export default function AdminRecommendationsPage() {
       toast.success("Removed.");
     } catch {
       toast.error("Failed to remove recommendation.");
+    }
+  };
+
+  const handleStartEdit = (id: number, name: string, preferredUnit: string | null | undefined) => {
+    setEditingId(id);
+    setEditName(name);
+    setEditPreferredUnit(preferredUnit ?? "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleSaveEdit = async (id: number) => {
+    if (!editName.trim()) return;
+    try {
+      await updateRecommendation.mutateAsync({
+        id,
+        name: editName.trim(),
+        preferredUnit: editPreferredUnit.trim() || null,
+      });
+      setEditingId(null);
+      toast.success("Recommendation updated.");
+    } catch {
+      toast.error("Failed to update recommendation.");
     }
   };
 
@@ -121,34 +152,71 @@ export default function AdminRecommendationsPage() {
                 {validPending.map((rec) => (
                   <li
                     key={rec.id}
-                    className="flex items-center justify-between gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                    className="flex flex-col gap-2 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
                   >
-                    <span className="text-sm text-gray-900 dark:text-white truncate">
-                      {rec.name}
-                    </span>
-                    <div className="flex gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(rec.id!)}
-                        disabled={approveRecommendation.isPending}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3"
-                        aria-label="Approve"
-                      >
-                        <Check className="h-4 w-4 sm:mr-1" />
-                        <span className="hidden sm:inline">Approve</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleReject(rec.id!)}
-                        disabled={deleteRecommendation.isPending}
-                        className="px-3"
-                        aria-label="Reject"
-                      >
-                        <X className="h-4 w-4 sm:mr-1" />
-                        <span className="hidden sm:inline">Reject</span>
-                      </Button>
-                    </div>
+                    {editingId === rec.id ? (
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Name"
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                          autoFocus
+                        />
+                        <input
+                          type="text"
+                          value={editPreferredUnit}
+                          onChange={(e) => setEditPreferredUnit(e.target.value)}
+                          placeholder="Preferred unit (optional)"
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                          <Button size="sm" onClick={() => handleSaveEdit(rec.id!)} disabled={updateRecommendation.isPending}>Save</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm text-gray-900 dark:text-white truncate">{rec.name}</span>
+                          {rec.preferredUnit && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{rec.preferredUnit}</span>
+                          )}
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleStartEdit(rec.id!, rec.name!, rec.preferredUnit)}
+                            aria-label="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(rec.id!)}
+                            disabled={approveRecommendation.isPending}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3"
+                            aria-label="Approve"
+                          >
+                            <Check className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Approve</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleReject(rec.id!)}
+                            disabled={deleteRecommendation.isPending}
+                            className="px-3"
+                            aria-label="Reject"
+                          >
+                            <X className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Reject</span>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -167,33 +235,70 @@ export default function AdminRecommendationsPage() {
                 {validAll.map((rec) => (
                   <li
                     key={rec.id}
-                    className="flex items-center justify-between gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                    className="flex flex-col gap-2 p-3 border border-gray-200 dark:border-gray-700 rounded-md"
                   >
-                    <span className="text-sm text-gray-900 dark:text-white truncate">
-                      {rec.name}
-                    </span>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          rec.isApproved
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                        }`}
-                      >
-                        {rec.isApproved ? "Approved" : "Pending"}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleRemove(rec.id!)}
-                        disabled={deleteRecommendation.isPending}
-                        className="px-3"
-                        aria-label="Remove"
-                      >
-                        <X className="h-4 w-4 sm:mr-1" />
-                        <span className="hidden sm:inline">Remove</span>
-                      </Button>
-                    </div>
+                    {editingId === rec.id ? (
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Name"
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                          autoFocus
+                        />
+                        <input
+                          type="text"
+                          value={editPreferredUnit}
+                          onChange={(e) => setEditPreferredUnit(e.target.value)}
+                          placeholder="Preferred unit (optional)"
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                          <Button size="sm" onClick={() => handleSaveEdit(rec.id!)} disabled={updateRecommendation.isPending}>Save</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm text-gray-900 dark:text-white truncate">{rec.name}</span>
+                          {rec.preferredUnit && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{rec.preferredUnit}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                              rec.isApproved
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                            }`}
+                          >
+                            {rec.isApproved ? "Approved" : "Pending"}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleStartEdit(rec.id!, rec.name!, rec.preferredUnit)}
+                            aria-label="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRemove(rec.id!)}
+                            disabled={deleteRecommendation.isPending}
+                            className="px-3"
+                            aria-label="Remove"
+                          >
+                            <X className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Remove</span>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
