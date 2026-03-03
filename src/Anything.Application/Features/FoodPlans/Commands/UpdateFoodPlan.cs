@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record UpdateFoodPlanCommand(int Id, string Name, DateTime WeekStart, int ActiveDays = 31) : IRequest<IResult>;
+public record UpdateFoodPlanCommand(int Id, string Name, DateTime WeekStart, int ActiveDays = 31, bool AutoRenew = false) : IRequest<IResult>;
 
 public class UpdateFoodPlanHandler(IRepository<FoodPlan> repository, IUnitOfWork unitOfWork)
     : IRequestHandler<UpdateFoodPlanCommand, IResult>
@@ -21,6 +21,7 @@ public class UpdateFoodPlanHandler(IRepository<FoodPlan> repository, IUnitOfWork
         plan.Name = command.Name;
         plan.WeekStart = command.WeekStart;
         plan.ActiveDays = command.ActiveDays;
+        plan.AutoRenew = command.AutoRenew;
         plan.ModifiedOn = DateTime.UtcNow;
         repository.Update(plan);
         await unitOfWork.SaveChanges(ct);

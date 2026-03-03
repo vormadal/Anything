@@ -9,4 +9,5 @@ public record CreateFoodPlanRequest(
     [Required(ErrorMessage = "WeekStart is required.")]
     DateTime WeekStart,
     [Range(1, 127, ErrorMessage = "ActiveDays must have at least one day selected (value between 1 and 127).")]
-    int ActiveDays = 31);
+    int ActiveDays = 31,
+    bool AutoRenew = false);

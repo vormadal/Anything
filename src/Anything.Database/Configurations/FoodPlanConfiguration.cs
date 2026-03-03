@@ -11,5 +11,6 @@ public class FoodPlanConfiguration : IEntityTypeConfiguration<FoodPlan>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.Property(e => e.ActiveDays).HasDefaultValue(31);
+        builder.Property(e => e.AutoRenew).HasDefaultValue(false);
     }
 }

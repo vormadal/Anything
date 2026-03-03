@@ -4,7 +4,7 @@ using Anything.Mediator;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record CreateFoodPlanCommand(string Name, DateTime WeekStart, int ActiveDays = 31) : IRequest<FoodPlan>;
+public record CreateFoodPlanCommand(string Name, DateTime WeekStart, int ActiveDays = 31, bool AutoRenew = false) : IRequest<FoodPlan>;
 
 public class CreateFoodPlanHandler(IRepository<FoodPlan> repository, IUnitOfWork unitOfWork)
     : IRequestHandler<CreateFoodPlanCommand, FoodPlan>
@@ -15,7 +15,8 @@ public class CreateFoodPlanHandler(IRepository<FoodPlan> repository, IUnitOfWork
         {
             Name = command.Name,
             WeekStart = command.WeekStart,
-            ActiveDays = command.ActiveDays
+            ActiveDays = command.ActiveDays,
+            AutoRenew = command.AutoRenew
         };
         repository.Add(plan);
         await unitOfWork.SaveChanges(ct);

@@ -1,4 +1,5 @@
 using Anything.Application.Configuration;
+using Anything.Application.Features.FoodPlans.Services;
 using Anything.Application.Services;
 using Anything.Core.Services;
 using Anything.Mediator;
@@ -31,6 +32,9 @@ public static class DependencyInjection
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IImageStorageService, MinioStorageService>();
+
+        // Background services
+        services.AddHostedService<FoodPlanAutoRenewService>();
 
         // Configuration
         services.AddOptions<ImageSettings>()
