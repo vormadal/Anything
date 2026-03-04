@@ -20,13 +20,14 @@ const mockImagesPost = jest.fn()
 const mockImageByIdDelete = jest.fn()
 const mockAddToShoppingListPost = jest.fn()
 
+const mockRecipeDelete = jest.fn()
 const mockIngredientById = jest.fn(() => ({ put: mockIngredientByIdPut, delete: mockIngredientByIdDelete }))
 const mockStepById = jest.fn(() => ({ put: mockStepByIdPut, delete: mockStepByIdDelete }))
 const mockImageById = jest.fn(() => ({ delete: mockImageByIdDelete }))
 const mockById = jest.fn(() => ({
   get: mockRecipeGet,
   put: mockRecipePut,
-  delete: jest.fn(),
+  delete: mockRecipeDelete,
   ingredients: { get: mockIngredientsGet, post: mockIngredientsPost, byId: mockIngredientById },
   steps: { get: mockStepsGet, post: mockStepsPost, byId: mockStepById },
   images: { get: mockImagesGet, post: mockImagesPost, byId: mockImageById },
@@ -83,6 +84,7 @@ describe('RecipeDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockRecipeGet.mockResolvedValue(mockRecipe)
+    mockRecipeDelete.mockResolvedValue(undefined)
     mockIngredientsGet.mockResolvedValue([])
     mockStepsGet.mockResolvedValue([])
     mockImagesGet.mockResolvedValue([])
@@ -486,5 +488,100 @@ describe('RecipeDetailPage', () => {
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to add ingredients to shopping list. Please try again.')
     })
+  })
+
+  it('should not show context menu button in view mode', async () => {
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('button', { name: 'More options' })).not.toBeInTheDocument()
+  })
+
+  it('should show context menu button in edit mode', async () => {
+    const user = userEvent.setup()
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+
+    expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+  })
+
+  it('should open delete confirmation dialog from context menu', async () => {
+    const user = userEvent.setup()
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    const deleteMenuItem = await screen.findByRole('button', { name: /Delete Recipe/i })
+    await user.click(deleteMenuItem)
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText('Delete Recipe')).toBeInTheDocument()
+  })
+
+  it('should delete recipe and navigate to /recipes on confirm', async () => {
+    const user = userEvent.setup()
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    const deleteMenuItem = await screen.findByRole('button', { name: /Delete Recipe/i })
+    await user.click(deleteMenuItem)
+
+    const confirmButton = screen.getByRole('button', { name: 'Delete' })
+    await user.click(confirmButton)
+
+    await waitFor(() => {
+      expect(mockRecipeDelete).toHaveBeenCalled()
+    })
+
+    expect(toast.success).toHaveBeenCalledWith('Recipe deleted')
+    expect(mockPush).toHaveBeenCalledWith('/recipes')
+  })
+
+  it('should show error toast when delete recipe fails', async () => {
+    const user = userEvent.setup()
+    mockRecipeDelete.mockRejectedValueOnce(new Error('Server error'))
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    const deleteMenuItem = await screen.findByRole('button', { name: /Delete Recipe/i })
+    await user.click(deleteMenuItem)
+
+    const confirmButton = screen.getByRole('button', { name: 'Delete' })
+    await user.click(confirmButton)
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to delete recipe. Please try again.')
+    })
+
+    expect(mockPush).not.toHaveBeenCalledWith('/recipes')
   })
 })
