@@ -160,10 +160,10 @@ public class RecipeEndpointTests : IntegrationTestBase
         var recipe = await CreateRecipeAsync("Test", null, null);
         var client = await GetAuthenticatedHttpClientAsync();
 
-        // Zero amount
+        // Zero amount is now allowed (for ingredients like "salt to taste")
         var zeroAmount = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
-            new { name = "Flour", amount = 0 });
-        Assert.Equal(HttpStatusCode.BadRequest, zeroAmount.StatusCode);
+            new { name = "Salt", amount = 0 });
+        Assert.Equal(HttpStatusCode.Created, zeroAmount.StatusCode);
 
         // Negative amount
         var negativeAmount = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
@@ -177,6 +177,112 @@ public class RecipeEndpointTests : IntegrationTestBase
 
         var getNotFound = await client.GetAsync("/api/recipes/99999/ingredients");
         Assert.Equal(HttpStatusCode.NotFound, getNotFound.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRecipe_CreatesRecipeWithIngredientsAndStepsAtomically()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync("/api/recipes/import", new
+        {
+            name = "Pasta Carbonara",
+            link = "https://example.com/carbonara",
+            notes = "Classic Italian",
+            ingredients = new[]
+            {
+                new { name = "Spaghetti", amount = 200, unit = "g", group = (string?)null },
+                new { name = "Salt", amount = 0, unit = (string?)null, group = (string?)null },
+                new { name = "Bacon", amount = 150, unit = "g", group = (string?)null },
+            },
+            steps = new[]
+            {
+                new { text = "Boil pasta", order = 1 },
+                new { text = "Fry bacon", order = 2 },
+                new { text = "Combine and serve", order = 3 },
+            }
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        Assert.NotNull(recipe);
+        Assert.True(recipe.Id > 0);
+        Assert.Equal("Pasta Carbonara", recipe.Name);
+
+        var ingredientsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients");
+        var ingredients = await ingredientsResponse.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions);
+        Assert.NotNull(ingredients);
+        Assert.Equal(3, ingredients.Length);
+        Assert.Contains(ingredients, i => i.Name == "Spaghetti" && i.Amount == 200 && i.Unit == "g");
+        Assert.Contains(ingredients, i => i.Name == "Salt" && i.Amount == 0);
+        Assert.Contains(ingredients, i => i.Name == "Bacon" && i.Amount == 150 && i.Unit == "g");
+
+        var stepsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/steps");
+        var steps = await stepsResponse.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions);
+        Assert.NotNull(steps);
+        Assert.Equal(3, steps.Length);
+    }
+
+    [Fact]
+    public async Task ImportRecipe_WithNegativeAmount_ClampsToZero()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync("/api/recipes/import", new
+        {
+            name = "Test Recipe",
+            link = (string?)null,
+            notes = (string?)null,
+            ingredients = new[]
+            {
+                new { name = "Some ingredient", amount = -5, unit = (string?)null, group = (string?)null },
+            },
+            steps = Array.Empty<object>()
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        Assert.NotNull(recipe);
+
+        var ingredientsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients");
+        var ingredients = await ingredientsResponse.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions);
+        Assert.NotNull(ingredients);
+        Assert.Single(ingredients);
+        Assert.Equal(0, ingredients[0].Amount);
+    }
+
+    [Fact]
+    public async Task ImportRecipe_WithEmptyName_Returns400()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync("/api/recipes/import", new
+        {
+            name = "",
+            ingredients = Array.Empty<object>(),
+            steps = Array.Empty<object>()
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRecipe_WithNoIngredientsOrSteps_CreatesRecipe()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync("/api/recipes/import", new
+        {
+            name = "Simple Recipe",
+            link = (string?)null,
+            notes = (string?)null,
+            ingredients = Array.Empty<object>(),
+            steps = Array.Empty<object>()
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        Assert.NotNull(recipe);
+        Assert.Equal("Simple Recipe", recipe.Name);
     }
 
     // --- Steps ---

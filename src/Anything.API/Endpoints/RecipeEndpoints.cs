@@ -43,6 +43,22 @@ public static class RecipeEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPost("/import", async (ImportRecipeRequest request, IMediator mediator) =>
+        {
+            var ingredients = (request.Ingredients ?? [])
+                .Select(i => new ImportRecipeIngredient(i.Name, i.Amount, i.Unit, i.Group))
+                .ToList();
+            var steps = (request.Steps ?? [])
+                .Select(s => new ImportRecipeStep(s.Text, s.Order))
+                .ToList();
+            var result = await mediator.Send(new ImportRecipeCommand(
+                request.Name, request.Link, request.Notes, ingredients, steps));
+            return Results.Created($"/api/recipes/{result.Id}", result);
+        })
+        .WithName("ImportRecipe")
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapPut("/{id}", async (int id, UpdateRecipeRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new UpdateRecipeCommand(id, request.Name, request.Link, request.Notes));

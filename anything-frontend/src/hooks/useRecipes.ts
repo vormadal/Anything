@@ -206,6 +206,60 @@ export function useParseRecipeFromUrl() {
   });
 }
 
+export interface ImportRecipePayload {
+  name: string;
+  link?: string | null;
+  notes?: string | null;
+  ingredients: ParsedIngredient[];
+  steps: ParsedStep[];
+}
+
+export function useImportRecipe() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: ImportRecipePayload): Promise<{ id: number }> => {
+      const token =
+        typeof window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(`${API_BASE_URL}/api/recipes/import`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: payload.name,
+          link: payload.link ?? null,
+          notes: payload.notes ?? null,
+          ingredients: payload.ingredients.map((i) => ({
+            name: i.name,
+            amount: i.amount,
+            unit: i.unit ?? null,
+            group: null,
+          })),
+          steps: payload.steps.map((s) => ({
+            text: s.text,
+            order: s.order,
+          })),
+        }),
+      });
+      if (!response.ok) {
+        const err = new Error(
+          (await response.text()) || `Error ${response.status}`
+        ) as Error & { status: number };
+        err.status = response.status;
+        throw err;
+      }
+      return response.json() as Promise<{ id: number }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+  });
+}
+
 export function useUploadRecipeImage(recipeId: number) {
   const queryClient = useQueryClient();
 
