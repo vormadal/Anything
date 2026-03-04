@@ -22,18 +22,26 @@ public class AddFoodPlanEntryHandler(
         if (plan is null || plan.DeletedOn != null)
             return Results.NotFound(FoodPlanNotFound);
 
-        if (command.RecipeId.HasValue)
+        int? recipeId = command.RecipeId;
+        if (recipeId.HasValue)
         {
-            var recipe = await recipeRepository.GetById(command.RecipeId.Value);
+            var recipe = await recipeRepository.GetById(recipeId.Value);
             if (recipe is null || recipe.DeletedOn != null)
                 return Results.NotFound(RecipeNotFound);
+        }
+        else
+        {
+            var newRecipe = new Recipe { Name = command.Name };
+            recipeRepository.Add(newRecipe);
+            await unitOfWork.SaveChanges(ct);
+            recipeId = newRecipe.Id;
         }
 
         var entry = new FoodPlanEntry
         {
             FoodPlanId = command.FoodPlanId,
             Name = command.Name,
-            RecipeId = command.RecipeId,
+            RecipeId = recipeId,
             DayOfWeek = command.DayOfWeek
         };
         entryRepository.Add(entry);
