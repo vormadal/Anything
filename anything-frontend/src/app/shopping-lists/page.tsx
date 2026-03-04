@@ -1,21 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useShoppingLists, useCreateShoppingList, useDeleteShoppingList } from "@/hooks/useShoppingLists";
+import { useShoppingLists, useCreateShoppingList } from "@/hooks/useShoppingLists";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { Plus, Pencil, Check, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export default function ShoppingListsPage() {
-  const [isEditMode, setIsEditMode] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newListName, setNewListName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: lists, isLoading, error } = useShoppingLists();
   const createList = useCreateShoppingList();
-  const deleteList = useDeleteShoppingList();
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
 
@@ -35,15 +33,6 @@ export default function ShoppingListsPage() {
     }
   };
 
-  const handleDeleteList = async (id: number) => {
-    try {
-      await deleteList.mutateAsync(id);
-      toast.success("Shopping list deleted");
-    } catch {
-      toast.error("Failed to delete shopping list. Please try again.");
-    }
-  };
-
   const handleCancelCreate = () => {
     setIsCreating(false);
     setNewListName("");
@@ -53,31 +42,17 @@ export default function ShoppingListsPage() {
     setHeaderActions(
       <div className="flex items-center gap-1 ml-auto">
         <Button
-          variant={isEditMode ? "default" : "ghost"}
+          variant="ghost"
           size="icon"
-          onClick={() => {
-            setIsEditMode(!isEditMode);
-            setIsCreating(false);
-            setNewListName("");
-          }}
-          aria-label={isEditMode ? "Done editing" : "Edit lists"}
+          onClick={() => setIsCreating(true)}
+          aria-label="Create shopping list"
         >
-          {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
+          <Plus className="h-5 w-5" />
         </Button>
-        {!isEditMode && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsCreating(true)}
-            aria-label="Create shopping list"
-          >
-            <Plus className="h-5 w-5" />
-          </Button>
-        )}
       </div>
     );
     return () => setHeaderActions(null);
-  }, [isEditMode, setHeaderActions]);
+  }, [setHeaderActions]);
 
   useEffect(() => {
     if (isCreating) {
@@ -136,26 +111,12 @@ export default function ShoppingListsPage() {
               <button
                 type="button"
                 className="flex-1 flex items-center px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={() => {
-                  if (!isEditMode) router.push(`/shopping-lists/${list.id}`);
-                }}
+                onClick={() => router.push(`/shopping-lists/${list.id}`)}
               >
                 <span className="text-gray-900 dark:text-white font-medium text-sm">
                   {list.name}
                 </span>
               </button>
-              {isEditMode && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeleteList(list.id!)}
-                  disabled={deleteList.isPending}
-                  className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  aria-label="Delete list"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
             </div>
           ))}
         </div>
