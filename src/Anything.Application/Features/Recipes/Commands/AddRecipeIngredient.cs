@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Anything.Application.Features.Recipes.Commands;
 
-public record AddRecipeIngredientCommand(int RecipeId, string Name, decimal Amount, string? Unit, string? Group) : IRequest<IResult>;
+public record AddRecipeIngredientCommand(int RecipeId, string Name, decimal? Amount, string? Unit, string? Group) : IRequest<IResult>;
 
 public class AddRecipeIngredientHandler(
     IRepository<Recipe> recipeRepository,

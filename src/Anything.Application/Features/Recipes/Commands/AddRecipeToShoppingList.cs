@@ -39,7 +39,7 @@ public class AddRecipeToShoppingListHandler(
             .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower()))
             .Select(g => (
                 Name: g.First().Name.Trim(),
-                Amount: g.Sum(i => i.Amount * (decimal)multiplier),
+                Amount: g.Sum(i => (i.Amount ?? 0) * (decimal)multiplier),
                 Unit: string.IsNullOrWhiteSpace(g.First().Unit) ? null : g.First().Unit?.Trim()
             ))
             .ToList();

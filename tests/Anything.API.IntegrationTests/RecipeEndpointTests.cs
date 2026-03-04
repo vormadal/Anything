@@ -508,7 +508,7 @@ public class RecipeEndpointTests : IntegrationTestBase
     }
 
     private record RecipeDto(int Id, string? Name, string? Link, string? Notes);
-    private record IngredientDto(int Id, int RecipeId, string? Name, decimal Amount, string? Unit, string? Group);
+    private record IngredientDto(int Id, int RecipeId, string? Name, decimal? Amount, string? Unit, string? Group);
     private record StepDto(int Id, int RecipeId, string? Text, int Order);
     private record ImageDto(int Id, int RecipeId, string? Url);
     private record ShoppingListDto(int Id, string? Name);
