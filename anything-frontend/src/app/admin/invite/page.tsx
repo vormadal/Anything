@@ -139,9 +139,10 @@ export default function AdminInvitePage() {
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {invites.map((invite) => {
               if (invite.id == null) return null;
+              const inviteId = invite.id;
               const status = getInviteStatus(invite);
               return (
-                <li key={invite.id} className="py-3 flex items-center justify-between gap-4">
+                <li key={inviteId} className="py-3 flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{invite.email}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -154,7 +155,7 @@ export default function AdminInvitePage() {
                       variant="ghost"
                       size="sm"
                       aria-label={`Delete invite for ${invite.email}`}
-                      onClick={() => handleDelete(invite.id)}
+                      onClick={() => handleDelete(inviteId)}
                       disabled={deleteInvite.isPending}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />

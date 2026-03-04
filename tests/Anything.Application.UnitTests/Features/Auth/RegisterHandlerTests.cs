@@ -70,7 +70,7 @@ public class RegisterHandlerTests
         var invite = new UserInvite
         {
             Id = 1, Email = "new@test.com", Token = "token",
-            ExpiresAt = DateTime.UtcNow.AddDays(-1), CreatedByUserId = 1
+            ExpiresAt = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc), CreatedByUserId = 1
         };
         _inviteRepo.Query().Returns(new List<UserInvite> { invite }.AsAsyncQueryable());
 
