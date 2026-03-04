@@ -6,7 +6,7 @@ public class Recipe
     public required string Name { get; set; }
     public string? Link { get; set; }
     public string? Notes { get; set; }
-    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }
 }

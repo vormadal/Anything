@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Recommendations.Commands;
 
 public record UpdateRecommendationCommand(int Id, string Name, string? PreferredUnit) : IRequest<IResult>;
 
-public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IUnitOfWork unitOfWork)
+public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateRecommendationCommand, IResult>
 {
     private const string RecommendationNotFound = "Recommendation not found.";
@@ -20,7 +20,7 @@ public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation>
 
         recommendation.Name = command.Name;
         recommendation.PreferredUnit = command.PreferredUnit;
-        recommendation.ModifiedOn = DateTime.UtcNow;
+        recommendation.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

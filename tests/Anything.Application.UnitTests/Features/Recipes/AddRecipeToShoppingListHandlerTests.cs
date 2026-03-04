@@ -17,9 +17,15 @@ public class AddRecipeToShoppingListHandlerTests
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private AddRecipeToShoppingListHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _unitOfWork);
+        new(_recipeRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _unitOfWork, _timeProvider);
+
+    public AddRecipeToShoppingListHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    }
 
     private void SetupValidRecipeAndList(int recipeId = 1, int listId = 10)
     {
@@ -43,7 +49,7 @@ public class AddRecipeToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenRecipeDeleted_ReturnsNotFound()
     {
-        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Test", DeletedOn = DateTime.UtcNow });
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Test", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));

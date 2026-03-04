@@ -14,9 +14,15 @@ public class CreateInventoryItemHandlerTests
     private readonly IRepository<InventoryBox> _boxRepo = Substitute.For<IRepository<InventoryBox>>();
     private readonly IRepository<InventoryStorageUnit> _storageUnitRepo = Substitute.For<IRepository<InventoryStorageUnit>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private CreateInventoryItemHandler CreateHandler() =>
-        new(_itemRepo, _boxRepo, _storageUnitRepo, _unitOfWork);
+        new(_itemRepo, _boxRepo, _storageUnitRepo, _unitOfWork, _timeProvider);
+
+    public CreateInventoryItemHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    }
 
     [Fact]
     public async Task Handle_WithNullBoxAndStorageUnit_CreatesItem()
@@ -57,7 +63,7 @@ public class CreateInventoryItemHandlerTests
     [Fact]
     public async Task Handle_WithDeletedBox_ReturnsBadRequest()
     {
-        _boxRepo.GetById(1).Returns(new InventoryBox { Id = 1, Number = 1, DeletedOn = DateTime.UtcNow });
+        _boxRepo.GetById(1).Returns(new InventoryBox { Id = 1, Number = 1, DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, null));
@@ -79,7 +85,7 @@ public class CreateInventoryItemHandlerTests
     [Fact]
     public async Task Handle_WithDeletedStorageUnit_ReturnsBadRequest()
     {
-        _storageUnitRepo.GetById(1).Returns(new InventoryStorageUnit { Id = 1, Name = "Unit", DeletedOn = DateTime.UtcNow });
+        _storageUnitRepo.GetById(1).Returns(new InventoryStorageUnit { Id = 1, Name = "Unit", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, null, 1));

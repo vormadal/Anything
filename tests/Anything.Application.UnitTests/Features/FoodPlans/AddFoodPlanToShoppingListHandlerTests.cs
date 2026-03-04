@@ -17,13 +17,19 @@ public class AddFoodPlanToShoppingListHandlerTests
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private AddFoodPlanToShoppingListHandler CreateHandler() =>
-        new(_foodPlanRepo, _entryRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _unitOfWork);
+        new(_foodPlanRepo, _entryRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _unitOfWork, _timeProvider);
+
+    public AddFoodPlanToShoppingListHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    }
 
     private void SetupValidPlanAndList(int planId = 1, int listId = 10)
     {
-        _foodPlanRepo.GetById(planId).Returns(new FoodPlan { Id = planId, Name = "Week Plan", WeekStart = DateTime.UtcNow });
+        _foodPlanRepo.GetById(planId).Returns(new FoodPlan { Id = planId, Name = "Week Plan", WeekStart = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
         _shoppingListRepo.GetById(listId).Returns(new ShoppingList { Id = listId, Name = "My List" });
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
@@ -43,7 +49,7 @@ public class AddFoodPlanToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenShoppingListNotFound_ReturnsNotFound()
     {
-        _foodPlanRepo.GetById(1).Returns(new FoodPlan { Id = 1, Name = "Plan", WeekStart = DateTime.UtcNow });
+        _foodPlanRepo.GetById(1).Returns(new FoodPlan { Id = 1, Name = "Plan", WeekStart = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
         _shoppingListRepo.GetById(10).Returns((ShoppingList?)null);
 
         var handler = CreateHandler();

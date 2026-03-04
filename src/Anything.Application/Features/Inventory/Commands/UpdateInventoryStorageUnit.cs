@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Inventory.Commands;
 
 public record UpdateInventoryStorageUnitCommand(int Id, string Name, string? Type) : IRequest<IResult>;
 
-public class UpdateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit> repository, IUnitOfWork unitOfWork)
+public class UpdateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateInventoryStorageUnitCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateInventoryStorageUnitCommand command, CancellationToken ct = default)
@@ -18,7 +18,7 @@ public class UpdateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit>
 
         storageUnit.Name = command.Name;
         storageUnit.Type = command.Type;
-        storageUnit.ModifiedOn = DateTime.UtcNow;
+        storageUnit.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

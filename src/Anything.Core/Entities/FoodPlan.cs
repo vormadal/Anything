@@ -16,7 +16,7 @@ public class FoodPlan
     /// the day after its last day.
     /// </summary>
     public bool AutoRenew { get; set; }
-    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }
 }

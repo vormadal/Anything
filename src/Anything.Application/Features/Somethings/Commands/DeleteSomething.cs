@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Somethings.Commands;
 
 public record DeleteSomethingCommand(int Id) : IRequest<IResult>;
 
-public class DeleteSomethingHandler(IRepository<Something> repository, IUnitOfWork unitOfWork)
+public class DeleteSomethingHandler(IRepository<Something> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<DeleteSomethingCommand, IResult>
 {
     public async Task<IResult> Handle(DeleteSomethingCommand command, CancellationToken ct = default)
@@ -16,7 +16,7 @@ public class DeleteSomethingHandler(IRepository<Something> repository, IUnitOfWo
         if (something is null || something.DeletedOn != null)
             return Results.NotFound();
 
-        something.DeletedOn = DateTime.UtcNow;
+        something.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

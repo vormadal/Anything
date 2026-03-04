@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Recipes.Commands;
 
 public record UpdateRecipeIngredientCommand(int RecipeId, int IngredientId, string Name, decimal Amount, string? Unit, string? Group) : IRequest<IResult>;
 
-public class UpdateRecipeIngredientHandler(IRepository<RecipeIngredient> repository, IUnitOfWork unitOfWork)
+public class UpdateRecipeIngredientHandler(IRepository<RecipeIngredient> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateRecipeIngredientCommand, IResult>
 {
     private const string IngredientNotFound = "Ingredient not found.";
@@ -22,7 +22,7 @@ public class UpdateRecipeIngredientHandler(IRepository<RecipeIngredient> reposit
         ingredient.Amount = command.Amount;
         ingredient.Unit = command.Unit;
         ingredient.Group = command.Group;
-        ingredient.ModifiedOn = DateTime.UtcNow;
+        ingredient.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

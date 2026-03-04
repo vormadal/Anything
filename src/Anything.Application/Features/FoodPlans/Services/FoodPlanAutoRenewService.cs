@@ -63,7 +63,8 @@ public class FoodPlanAutoRenewService(
                         Name = plan.Name,
                         WeekStart = nextWeekStart,
                         ActiveDays = plan.ActiveDays,
-                        AutoRenew = true
+                        AutoRenew = true,
+                        CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                     });
 
                     logger.LogInformation(
@@ -75,7 +76,7 @@ public class FoodPlanAutoRenewService(
             // Soft-delete this plan the day after its last day (WeekStart + 7)
             if (today >= plan.WeekStart.Date.AddDays(DaysInWeek))
             {
-                plan.DeletedOn = DateTime.UtcNow;
+                plan.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
                 repository.Update(plan);
 
                 logger.LogInformation(

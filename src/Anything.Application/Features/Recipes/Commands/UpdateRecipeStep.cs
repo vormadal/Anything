@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Recipes.Commands;
 
 public record UpdateRecipeStepCommand(int RecipeId, int StepId, string Text, int Order) : IRequest<IResult>;
 
-public class UpdateRecipeStepHandler(IRepository<RecipeStep> repository, IUnitOfWork unitOfWork)
+public class UpdateRecipeStepHandler(IRepository<RecipeStep> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateRecipeStepCommand, IResult>
 {
     private const string StepNotFound = "Step not found.";
@@ -20,7 +20,7 @@ public class UpdateRecipeStepHandler(IRepository<RecipeStep> repository, IUnitOf
 
         step.Text = command.Text;
         step.Order = command.Order;
-        step.ModifiedOn = DateTime.UtcNow;
+        step.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

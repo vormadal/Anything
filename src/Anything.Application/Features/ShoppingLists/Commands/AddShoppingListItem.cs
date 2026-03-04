@@ -12,7 +12,8 @@ public class AddShoppingListItemHandler(
     IRepository<ShoppingList> listRepository,
     IRepository<ShoppingListItem> itemRepository,
     IRepository<ShoppingListRecommendation> recommendationRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<AddShoppingListItemCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<AddShoppingListItemCommand, IResult>
 {
     public async Task<IResult> Handle(AddShoppingListItemCommand command, CancellationToken ct = default)
     {
@@ -25,7 +26,8 @@ public class AddShoppingListItemHandler(
             ShoppingListId = command.ShoppingListId,
             Name = command.Name,
             Amount = command.Amount,
-            Unit = command.Unit
+            Unit = command.Unit,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         itemRepository.Add(item);
@@ -38,7 +40,8 @@ public class AddShoppingListItemHandler(
             recommendationRepository.Add(new ShoppingListRecommendation
             {
                 Name = nameNormalized,
-                IsApproved = false
+                IsApproved = false,
+                CreatedOn = timeProvider.GetUtcNow().UtcDateTime
             });
         }
 

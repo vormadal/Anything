@@ -38,7 +38,8 @@ public class RefreshTokenHandler(
         {
             UserId = user.Id,
             Token = newRefreshToken,
-            ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime
+            ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         refreshTokenRepository.Add(newRefreshTokenEntity);

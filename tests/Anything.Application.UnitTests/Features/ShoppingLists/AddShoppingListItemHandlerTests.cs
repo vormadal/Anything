@@ -14,9 +14,15 @@ public class AddShoppingListItemHandlerTests
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private AddShoppingListItemHandler CreateHandler() =>
-        new(_listRepo, _itemRepo, _recommendationRepo, _unitOfWork);
+        new(_listRepo, _itemRepo, _recommendationRepo, _unitOfWork, _timeProvider);
+
+    public AddShoppingListItemHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    }
 
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
@@ -32,7 +38,7 @@ public class AddShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_WhenListDeleted_ReturnsNotFound()
     {
-        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "List", DeletedOn = DateTime.UtcNow });
+        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null));

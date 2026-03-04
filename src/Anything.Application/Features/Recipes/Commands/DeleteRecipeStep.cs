@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Recipes.Commands;
 
 public record DeleteRecipeStepCommand(int RecipeId, int StepId) : IRequest<IResult>;
 
-public class DeleteRecipeStepHandler(IRepository<RecipeStep> repository, IUnitOfWork unitOfWork)
+public class DeleteRecipeStepHandler(IRepository<RecipeStep> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<DeleteRecipeStepCommand, IResult>
 {
     private const string StepNotFound = "Step not found.";
@@ -18,7 +18,7 @@ public class DeleteRecipeStepHandler(IRepository<RecipeStep> repository, IUnitOf
         if (step is null || step.DeletedOn != null || step.RecipeId != command.RecipeId)
             return Results.NotFound(StepNotFound);
 
-        step.DeletedOn = DateTime.UtcNow;
+        step.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

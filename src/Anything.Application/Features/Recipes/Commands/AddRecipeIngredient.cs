@@ -10,7 +10,8 @@ public record AddRecipeIngredientCommand(int RecipeId, string Name, decimal Amou
 public class AddRecipeIngredientHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<RecipeIngredient> ingredientRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<AddRecipeIngredientCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<AddRecipeIngredientCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
 
@@ -26,7 +27,8 @@ public class AddRecipeIngredientHandler(
             Name = command.Name,
             Amount = command.Amount,
             Unit = command.Unit,
-            Group = command.Group
+            Group = command.Group,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         ingredientRepository.Add(ingredient);

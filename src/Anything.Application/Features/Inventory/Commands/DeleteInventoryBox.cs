@@ -11,7 +11,8 @@ public record DeleteInventoryBoxCommand(int Id) : IRequest<IResult>;
 public class DeleteInventoryBoxHandler(
     IRepository<InventoryBox> boxRepository,
     IRepository<InventoryItem> itemRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<DeleteInventoryBoxCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<DeleteInventoryBoxCommand, IResult>
 {
     public async Task<IResult> Handle(DeleteInventoryBoxCommand command, CancellationToken ct = default)
     {
@@ -19,7 +20,7 @@ public class DeleteInventoryBoxHandler(
         if (box is null || box.DeletedOn != null)
             return Results.NotFound();
 
-        box.DeletedOn = DateTime.UtcNow;
+        box.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         var itemsInBox = await itemRepository.Query()
             .Where(i => i.BoxId == command.Id && i.DeletedOn == null)
@@ -28,7 +29,7 @@ public class DeleteInventoryBoxHandler(
         foreach (var item in itemsInBox)
         {
             item.BoxId = null;
-            item.ModifiedOn = DateTime.UtcNow;
+            item.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
         }
 
         await unitOfWork.SaveChanges(ct);

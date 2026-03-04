@@ -33,7 +33,8 @@ public class CreateInviteHandler(
             Email = command.Email,
             Token = token,
             ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime,
-            CreatedByUserId = command.UserId
+            CreatedByUserId = command.UserId,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         inviteRepository.Add(invite);

@@ -6,7 +6,7 @@ namespace Anything.Application.Features.Recipes.Commands;
 
 public record CreateRecipeCommand(string Name, string? Link, string? Notes) : IRequest<Recipe>;
 
-public class CreateRecipeHandler(IRepository<Recipe> repository, IUnitOfWork unitOfWork)
+public class CreateRecipeHandler(IRepository<Recipe> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<CreateRecipeCommand, Recipe>
 {
     public async Task<Recipe> Handle(CreateRecipeCommand command, CancellationToken ct = default)
@@ -15,7 +15,8 @@ public class CreateRecipeHandler(IRepository<Recipe> repository, IUnitOfWork uni
         {
             Name = command.Name,
             Link = command.Link,
-            Notes = command.Notes
+            Notes = command.Notes,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         repository.Add(recipe);

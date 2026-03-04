@@ -10,7 +10,8 @@ public record UpdateInventoryBoxCommand(int Id, int Number, int? StorageUnitId) 
 public class UpdateInventoryBoxHandler(
     IRepository<InventoryBox> boxRepository,
     IRepository<InventoryStorageUnit> storageUnitRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<UpdateInventoryBoxCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<UpdateInventoryBoxCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateInventoryBoxCommand command, CancellationToken ct = default)
     {
@@ -27,7 +28,7 @@ public class UpdateInventoryBoxHandler(
 
         box.Number = command.Number;
         box.StorageUnitId = command.StorageUnitId;
-        box.ModifiedOn = DateTime.UtcNow;
+        box.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

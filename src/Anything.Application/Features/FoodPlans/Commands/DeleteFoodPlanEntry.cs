@@ -11,7 +11,8 @@ public record DeleteFoodPlanEntryCommand(int FoodPlanId, int EntryId) : IRequest
 public class DeleteFoodPlanEntryHandler(
     IRepository<FoodPlan> foodPlanRepository,
     IRepository<FoodPlanEntry> entryRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<DeleteFoodPlanEntryCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<DeleteFoodPlanEntryCommand, IResult>
 {
     private const string FoodPlanNotFound = "Food plan not found.";
     private const string EntryNotFound = "Food plan entry not found.";
@@ -27,7 +28,7 @@ public class DeleteFoodPlanEntryHandler(
         if (entry is null)
             return Results.NotFound(EntryNotFound);
 
-        entry.DeletedOn = DateTime.UtcNow;
+        entry.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         entryRepository.Update(entry);
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

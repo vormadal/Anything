@@ -7,7 +7,7 @@ public class InventoryItem
     public string? Description { get; set; }
     public int? BoxId { get; set; }
     public int? StorageUnitId { get; set; }
-    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }
 }
