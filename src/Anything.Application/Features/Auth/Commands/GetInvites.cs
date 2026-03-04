@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Auth.Commands;
 
-public record GetInvitesQuery(int UserId, string UserRole) : IRequest<IResult>;
+public record GetInvitesQuery(string UserRole) : IRequest<IResult>;
 
 public class GetInvitesHandler(
     IRepository<UserInvite> inviteRepository,

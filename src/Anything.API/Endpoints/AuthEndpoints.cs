@@ -38,9 +38,8 @@ public static class AuthEndpoints
 
         group.MapGet("/invites", async (ClaimsPrincipal user, IMediator mediator) =>
         {
-            var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             var userRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
-            return await mediator.Send(new GetInvitesQuery(userId, userRole));
+            return await mediator.Send(new GetInvitesQuery(userRole));
         })
         .WithName("GetInvites")
         .RequireAuthorization();
