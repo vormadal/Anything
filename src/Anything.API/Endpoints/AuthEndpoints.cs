@@ -36,6 +36,15 @@ public static class AuthEndpoints
         .WithParameterValidation()
         .AllowAnonymous();
 
+        group.MapGet("/invites", async (ClaimsPrincipal user, IMediator mediator) =>
+        {
+            var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            return await mediator.Send(new GetInvitesQuery(userId, userRole));
+        })
+        .WithName("GetInvites")
+        .RequireAuthorization();
+
         group.MapPost("/invites", async (CreateInviteRequest request, ClaimsPrincipal user, IMediator mediator) =>
         {
             var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
@@ -44,6 +53,14 @@ public static class AuthEndpoints
         })
         .WithName("CreateInvite")
         .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapDelete("/invites/{id}", async (int id, ClaimsPrincipal user, IMediator mediator) =>
+        {
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            return await mediator.Send(new DeleteInviteCommand(id, userRole));
+        })
+        .WithName("DeleteInvite")
         .RequireAuthorization();
 
         group.MapPut("/profile", async (UpdateProfileRequest request, ClaimsPrincipal user, IMediator mediator) =>

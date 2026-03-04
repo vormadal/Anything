@@ -6,12 +6,18 @@ import { toast } from "sonner";
 
 // Mock the apiClient module
 const mockInvitesPost = jest.fn();
+const mockInvitesGet = jest.fn();
+const mockInviteDelete = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
   apiClient: {
     api: {
       auth: {
-        invites: { post: (...args: unknown[]) => mockInvitesPost(...args) },
+        invites: {
+          post: (...args: unknown[]) => mockInvitesPost(...args),
+          get: (...args: unknown[]) => mockInvitesGet(...args),
+          byId: (id: number) => ({ delete: (...args: unknown[]) => mockInviteDelete(id, ...args) }),
+        },
       },
     },
   },
@@ -48,6 +54,7 @@ describe("AdminInvitePage", () => {
     jest.clearAllMocks();
     localStorage.clear();
     writeTextMock.mockClear();
+    mockInvitesGet.mockResolvedValue([]);
   });
 
   describe("Access Control", () => {
@@ -262,6 +269,69 @@ describe("AdminInvitePage", () => {
       await waitFor(() => {
         expect(screen.getByText(/Expires in 7 days/)).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("Invite List", () => {
+    beforeEach(() => {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" })
+      );
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("should show 'No invites found' when list is empty", async () => {
+      mockInvitesGet.mockResolvedValueOnce([]);
+
+      renderWithClient(<AdminInvitePage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("No invites found.")).toBeInTheDocument();
+      });
+    });
+
+    it("should display invite list with statuses", async () => {
+      const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const past = new Date(Date.now() - 1000);
+      mockInvitesGet.mockResolvedValueOnce([
+        { id: 1, email: "pending@test.com", expiresAt: future, createdOn: new Date(), isUsed: false, isExpired: false },
+        { id: 2, email: "accepted@test.com", expiresAt: future, createdOn: new Date(), isUsed: true, isExpired: false },
+        { id: 3, email: "expired@test.com", expiresAt: past, createdOn: new Date(), isUsed: false, isExpired: true },
+      ]);
+
+      renderWithClient(<AdminInvitePage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("pending@test.com")).toBeInTheDocument();
+      });
+      expect(screen.getByText("accepted@test.com")).toBeInTheDocument();
+      expect(screen.getByText("expired@test.com")).toBeInTheDocument();
+      expect(screen.getByText("Pending")).toBeInTheDocument();
+      expect(screen.getByText("Accepted")).toBeInTheDocument();
+      expect(screen.getByText("Expired")).toBeInTheDocument();
+    });
+
+    it("should delete invite when delete button is clicked", async () => {
+      const user = userEvent.setup();
+      const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      mockInvitesGet.mockResolvedValue([
+        { id: 42, email: "todelete@test.com", expiresAt: future, createdOn: new Date(), isUsed: false, isExpired: false },
+      ]);
+      mockInviteDelete.mockResolvedValueOnce(undefined);
+
+      renderWithClient(<AdminInvitePage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("todelete@test.com")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "Delete invite for todelete@test.com" }));
+
+      await waitFor(() => {
+        expect(mockInviteDelete).toHaveBeenCalledWith(42);
+      });
+      expect(toast.success).toHaveBeenCalledWith("Invite deleted");
     });
   });
 });

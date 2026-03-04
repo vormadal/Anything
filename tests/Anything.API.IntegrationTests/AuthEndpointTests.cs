@@ -141,6 +141,87 @@ public class AuthEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    // --- GET /api/auth/invites (Admin only) ---
+
+    [Fact]
+    public async Task GetInvites_AsAdmin_ReturnsInviteList()
+    {
+        var token = await LoginAsAdminAsync();
+
+        var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/invites")
+        {
+            Content = JsonContent.Create(new { email = "listtest@example.com" })
+        };
+        createRequest.Headers.Add("Authorization", $"Bearer {token}");
+        await HttpClient.SendAsync(createRequest);
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, "/api/auth/invites");
+        getRequest.Headers.Add("Authorization", $"Bearer {token}");
+
+        var response = await HttpClient.SendAsync(getRequest);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<List<InviteListItem>>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Contains(result, i => i.Email == "listtest@example.com");
+    }
+
+    [Fact]
+    public async Task GetInvites_WithoutAuth_Returns401()
+    {
+        var response = await HttpClient.GetAsync("/api/auth/invites");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // --- DELETE /api/auth/invites/{id} (Admin only) ---
+
+    [Fact]
+    public async Task DeleteInvite_AsAdmin_DeletesInvite()
+    {
+        var token = await LoginAsAdminAsync();
+
+        var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/invites")
+        {
+            Content = JsonContent.Create(new { email = "todelete@example.com" })
+        };
+        createRequest.Headers.Add("Authorization", $"Bearer {token}");
+        await HttpClient.SendAsync(createRequest);
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, "/api/auth/invites");
+        getRequest.Headers.Add("Authorization", $"Bearer {token}");
+        var getResponse = await HttpClient.SendAsync(getRequest);
+        var invites = await getResponse.Content.ReadFromJsonAsync<List<InviteListItem>>(JsonOptions);
+        Assert.NotNull(invites);
+        var invite = invites.First(i => i.Email == "todelete@example.com");
+
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/auth/invites/{invite.Id}");
+        deleteRequest.Headers.Add("Authorization", $"Bearer {token}");
+        var deleteResponse = await HttpClient.SendAsync(deleteRequest);
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteInvite_WithoutAuth_Returns401()
+    {
+        var response = await HttpClient.DeleteAsync("/api/auth/invites/1");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteInvite_NonExistent_Returns404()
+    {
+        var token = await LoginAsAdminAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/auth/invites/99999");
+        request.Headers.Add("Authorization", $"Bearer {token}");
+
+        var response = await HttpClient.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     // --- POST /api/auth/register ---
 
     [Fact]
@@ -238,4 +319,12 @@ public class AuthEndpointTests : IntegrationTestBase
     private record CreateInviteResponse(
         string InviteUrl,
         string Token);
+
+    private record InviteListItem(
+        int Id,
+        string Email,
+        DateTime ExpiresAt,
+        DateTime CreatedOn,
+        bool IsUsed,
+        bool IsExpired);
 }

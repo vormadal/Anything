@@ -52,6 +52,15 @@ export function createCreateInviteResponseFromDiscriminatorValue(parseNode: Pars
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {InviteResponse}
+ */
+// @ts-ignore
+export function createInviteResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoInviteResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {CreateSomethingRequest}
  */
 // @ts-ignore
@@ -138,6 +147,32 @@ export interface CreateInviteResponse extends AdditionalDataHolder, Parsable {
      * The token property
      */
     token?: string | null;
+}
+export interface InviteResponse extends AdditionalDataHolder, Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The email property
+     */
+    email?: string | null;
+    /**
+     * The expiresAt property
+     */
+    expiresAt?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The isExpired property
+     */
+    isExpired?: boolean | null;
+    /**
+     * The isUsed property
+     */
+    isUsed?: boolean | null;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -354,6 +389,22 @@ export function deserializeIntoCreateInviteResponse(createInviteResponse: Partia
     return {
         "inviteUrl": n => { createInviteResponse.inviteUrl = n.getStringValue(); },
         "token": n => { createInviteResponse.token = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param InviteResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoInviteResponse(inviteResponse: Partial<InviteResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { inviteResponse.createdOn = n.getDateValue(); },
+        "email": n => { inviteResponse.email = n.getStringValue(); },
+        "expiresAt": n => { inviteResponse.expiresAt = n.getDateValue(); },
+        "id": n => { inviteResponse.id = n.getNumberValue(); },
+        "isExpired": n => { inviteResponse.isExpired = n.getBooleanValue(); },
+        "isUsed": n => { inviteResponse.isUsed = n.getBooleanValue(); },
     }
 }
 /**
@@ -863,6 +914,23 @@ export function serializeCreateInviteResponse(writer: SerializationWriter, creat
     writer.writeStringValue("inviteUrl", createInviteResponse.inviteUrl);
     writer.writeStringValue("token", createInviteResponse.token);
     writer.writeAdditionalData(createInviteResponse.additionalData);
+}
+/**
+ * Serializes information the current object
+ * @param InviteResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeInviteResponse(writer: SerializationWriter, inviteResponse: Partial<InviteResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!inviteResponse || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", inviteResponse.createdOn);
+    writer.writeStringValue("email", inviteResponse.email);
+    writer.writeDateValue("expiresAt", inviteResponse.expiresAt);
+    writer.writeNumberValue("id", inviteResponse.id);
+    writer.writeBooleanValue("isExpired", inviteResponse.isExpired);
+    writer.writeBooleanValue("isUsed", inviteResponse.isUsed);
+    writer.writeAdditionalData(inviteResponse.additionalData);
 }
 /**
  * Serializes information the current object
