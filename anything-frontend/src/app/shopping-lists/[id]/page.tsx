@@ -17,7 +17,7 @@ import {
 } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import type { ShoppingListItem, ShoppingList } from "@/lib/api-client/models/index";
 import { apiClient } from "@/lib/apiClient";
@@ -168,7 +168,7 @@ export default function ShoppingListDetailPage() {
     }
   };
 
-  const handleDeleteList = useCallback(async () => {
+  const handleDeleteList = async () => {
     try {
       await deleteList.mutateAsync(listId);
       toast.success("Shopping list deleted");
@@ -176,10 +176,7 @@ export default function ShoppingListDetailPage() {
     } catch {
       toast.error("Failed to delete shopping list. Please try again.");
     }
-  }, [deleteList, listId, router]);
-
-  const handleDeleteListRef = useRef(handleDeleteList);
-  handleDeleteListRef.current = handleDeleteList;
+  };
 
   useEffect(() => {
     setHeaderActions(
@@ -195,22 +192,6 @@ export default function ShoppingListDetailPage() {
         >
           {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="More options">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-              onSelect={() => handleDeleteListRef.current()}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete list
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     );
     return () => setHeaderActions(null);
@@ -226,9 +207,27 @@ export default function ShoppingListDetailPage() {
           >
             &larr; Back to Shopping Lists
           </button>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {list?.name ?? "Shopping List"}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {list?.name ?? "Shopping List"}
+            </h2>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="More options">
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                  onSelect={handleDeleteList}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete list
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {isEditMode && (
