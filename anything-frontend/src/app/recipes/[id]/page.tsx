@@ -523,11 +523,16 @@ export default function RecipeDetailPage() {
                       </>
                     ) : (
                       <span className="text-gray-800 dark:text-gray-200 text-sm">
-                        {(ingredient.amount != null || ingredient.unit) && (
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {ingredient.amount != null ? ingredient.amount : ""}{ingredient.unit ? ` ${ingredient.unit}` : ""}
-                          </span>
-                        )}{(ingredient.amount != null || ingredient.unit) ? " " : ""}
+                        {(() => {
+                          const hasAmountOrUnit = ingredient.amount != null || !!ingredient.unit;
+                          return hasAmountOrUnit ? (
+                            <>
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {ingredient.amount != null ? ingredient.amount : ""}{ingredient.unit ? ` ${ingredient.unit}` : ""}
+                              </span>{" "}
+                            </>
+                          ) : null;
+                        })()}
                         {ingredient.name}
                       </span>
                     )}
