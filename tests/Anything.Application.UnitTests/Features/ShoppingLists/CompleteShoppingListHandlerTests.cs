@@ -13,9 +13,15 @@ public class CompleteShoppingListHandlerTests
     private readonly IRepository<ShoppingList> _listRepo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private CompleteShoppingListHandler CreateHandler() =>
-        new(_listRepo, _itemRepo, _unitOfWork);
+        new(_listRepo, _itemRepo, _unitOfWork, _timeProvider);
+
+    public CompleteShoppingListHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    }
 
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
@@ -33,7 +39,7 @@ public class CompleteShoppingListHandlerTests
     {
         _listRepo.GetById(1).Returns(new ShoppingList
         {
-            Id = 1, Name = "List", DeletedOn = DateTime.UtcNow
+            Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         });
 
         var handler = CreateHandler();

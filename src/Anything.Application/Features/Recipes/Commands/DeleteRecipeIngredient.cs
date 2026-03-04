@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Recipes.Commands;
 
 public record DeleteRecipeIngredientCommand(int RecipeId, int IngredientId) : IRequest<IResult>;
 
-public class DeleteRecipeIngredientHandler(IRepository<RecipeIngredient> repository, IUnitOfWork unitOfWork)
+public class DeleteRecipeIngredientHandler(IRepository<RecipeIngredient> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<DeleteRecipeIngredientCommand, IResult>
 {
     private const string IngredientNotFound = "Ingredient not found.";
@@ -18,7 +18,7 @@ public class DeleteRecipeIngredientHandler(IRepository<RecipeIngredient> reposit
         if (ingredient is null || ingredient.DeletedOn != null || ingredient.RecipeId != command.RecipeId)
             return Results.NotFound(IngredientNotFound);
 
-        ingredient.DeletedOn = DateTime.UtcNow;
+        ingredient.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

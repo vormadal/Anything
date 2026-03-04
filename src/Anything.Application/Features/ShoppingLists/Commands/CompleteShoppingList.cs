@@ -11,7 +11,8 @@ public record CompleteShoppingListCommand(int Id) : IRequest<IResult>;
 public class CompleteShoppingListHandler(
     IRepository<ShoppingList> listRepository,
     IRepository<ShoppingListItem> itemRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<CompleteShoppingListCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<CompleteShoppingListCommand, IResult>
 {
     public async Task<IResult> Handle(CompleteShoppingListCommand command, CancellationToken ct = default)
     {
@@ -19,7 +20,7 @@ public class CompleteShoppingListHandler(
         if (list is null || list.DeletedOn != null)
             return Results.NotFound();
 
-        var now = DateTime.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
 
         var items = await itemRepository.Query()
             .Where(i => i.ShoppingListId == command.Id)
@@ -36,7 +37,7 @@ public class CompleteShoppingListHandler(
 
         list.DeletedOn = now;
 
-        var newList = new ShoppingList { Name = list.Name };
+        var newList = new ShoppingList { Name = list.Name, CreatedOn = timeProvider.GetUtcNow().UtcDateTime };
         listRepository.Add(newList);
         await unitOfWork.SaveChanges(ct);
         return Results.Created($"/api/shopping-lists/{newList.Id}", newList);

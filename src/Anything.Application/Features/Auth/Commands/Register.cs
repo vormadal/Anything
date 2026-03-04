@@ -38,7 +38,8 @@ public class RegisterHandler(
             Email = command.Email,
             PasswordHash = passwordService.HashPassword(command.Password),
             Name = command.Name,
-            Role = UserRoles.User
+            Role = UserRoles.User,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         invite.IsUsed = true;

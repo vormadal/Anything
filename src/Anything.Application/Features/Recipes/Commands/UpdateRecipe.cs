@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Recipes.Commands;
 
 public record UpdateRecipeCommand(int Id, string Name, string? Link, string? Notes) : IRequest<IResult>;
 
-public class UpdateRecipeHandler(IRepository<Recipe> repository, IUnitOfWork unitOfWork)
+public class UpdateRecipeHandler(IRepository<Recipe> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateRecipeCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
@@ -21,7 +21,7 @@ public class UpdateRecipeHandler(IRepository<Recipe> repository, IUnitOfWork uni
         recipe.Name = command.Name;
         recipe.Link = command.Link;
         recipe.Notes = command.Notes;
-        recipe.ModifiedOn = DateTime.UtcNow;
+        recipe.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

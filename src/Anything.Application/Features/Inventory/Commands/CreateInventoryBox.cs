@@ -10,7 +10,8 @@ public record CreateInventoryBoxCommand(int Number, int? StorageUnitId) : IReque
 public class CreateInventoryBoxHandler(
     IRepository<InventoryBox> boxRepository,
     IRepository<InventoryStorageUnit> storageUnitRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<CreateInventoryBoxCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<CreateInventoryBoxCommand, IResult>
 {
     public async Task<IResult> Handle(CreateInventoryBoxCommand command, CancellationToken ct = default)
     {
@@ -24,7 +25,8 @@ public class CreateInventoryBoxHandler(
         var box = new InventoryBox
         {
             Number = command.Number,
-            StorageUnitId = command.StorageUnitId
+            StorageUnitId = command.StorageUnitId,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         boxRepository.Add(box);

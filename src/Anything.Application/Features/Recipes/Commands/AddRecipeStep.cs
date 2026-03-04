@@ -10,7 +10,8 @@ public record AddRecipeStepCommand(int RecipeId, string Text, int Order) : IRequ
 public class AddRecipeStepHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<RecipeStep> stepRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<AddRecipeStepCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<AddRecipeStepCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
 
@@ -24,7 +25,8 @@ public class AddRecipeStepHandler(
         {
             RecipeId = command.RecipeId,
             Text = command.Text,
-            Order = command.Order
+            Order = command.Order,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         stepRepository.Add(step);

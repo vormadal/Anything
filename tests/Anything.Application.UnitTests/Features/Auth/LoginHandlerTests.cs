@@ -80,7 +80,7 @@ public class LoginHandlerTests
         var user = new User
         {
             Id = 1, Email = "test@test.com", PasswordHash = "hash",
-            Name = "Test", Role = "User", DeletedOn = DateTime.UtcNow
+            Name = "Test", Role = "User", DeletedOn = new DateTime(2026, 3, 3, 12, 0, 0, DateTimeKind.Utc)
         };
         // Deleted users filtered by WHERE DeletedOn == null, so query returns empty
         _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());

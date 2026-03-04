@@ -11,7 +11,8 @@ public record DeleteRecipeImageCommand(int RecipeId, int ImageId) : IRequest<IRe
 public class DeleteRecipeImageHandler(
     IRepository<RecipeImage> repository,
     IImageStorageService imageStorageService,
-    IUnitOfWork unitOfWork) : IRequestHandler<DeleteRecipeImageCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<DeleteRecipeImageCommand, IResult>
 {
     private const string ImageNotFound = "Image not found.";
 
@@ -23,7 +24,7 @@ public class DeleteRecipeImageHandler(
 
         await imageStorageService.Delete(image.StorageKey, ct);
 
-        image.DeletedOn = DateTime.UtcNow;
+        image.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

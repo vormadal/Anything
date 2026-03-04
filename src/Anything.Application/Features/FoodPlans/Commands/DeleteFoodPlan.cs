@@ -7,7 +7,7 @@ namespace Anything.Application.Features.FoodPlans.Commands;
 
 public record DeleteFoodPlanCommand(int Id) : IRequest<IResult>;
 
-public class DeleteFoodPlanHandler(IRepository<FoodPlan> repository, IUnitOfWork unitOfWork)
+public class DeleteFoodPlanHandler(IRepository<FoodPlan> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<DeleteFoodPlanCommand, IResult>
 {
     private const string FoodPlanNotFound = "Food plan not found.";
@@ -18,7 +18,7 @@ public class DeleteFoodPlanHandler(IRepository<FoodPlan> repository, IUnitOfWork
         if (plan is null || plan.DeletedOn != null)
             return Results.NotFound(FoodPlanNotFound);
 
-        plan.DeletedOn = DateTime.UtcNow;
+        plan.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         repository.Update(plan);
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

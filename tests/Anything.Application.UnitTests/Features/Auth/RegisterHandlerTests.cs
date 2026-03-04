@@ -34,7 +34,7 @@ public class RegisterHandlerTests
         var invite = new UserInvite
         {
             Id = 1, Email = "new@test.com", Token = "valid-token",
-            ExpiresAt = DateTime.UtcNow.AddDays(1), CreatedByUserId = 1
+            ExpiresAt = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc), CreatedByUserId = 1
         };
         _inviteRepo.Query().Returns(new List<UserInvite> { invite }.AsAsyncQueryable());
         _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
@@ -86,7 +86,7 @@ public class RegisterHandlerTests
         var invite = new UserInvite
         {
             Id = 1, Email = "invited@test.com", Token = "token",
-            ExpiresAt = DateTime.UtcNow.AddDays(1), CreatedByUserId = 1
+            ExpiresAt = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc), CreatedByUserId = 1
         };
         _inviteRepo.Query().Returns(new List<UserInvite> { invite }.AsAsyncQueryable());
 
@@ -114,7 +114,7 @@ public class RegisterHandlerTests
         var invite = new UserInvite
         {
             Id = 1, Email = "existing@test.com", Token = "token",
-            ExpiresAt = DateTime.UtcNow.AddDays(1), CreatedByUserId = 1
+            ExpiresAt = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc), CreatedByUserId = 1
         };
         _inviteRepo.Query().Returns(new List<UserInvite> { invite }.AsAsyncQueryable());
 

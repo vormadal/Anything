@@ -8,6 +8,6 @@ public class ShoppingListItem
     public bool IsChecked { get; set; }
     public decimal? Amount { get; set; }
     public string? Unit { get; set; }
-    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
 }

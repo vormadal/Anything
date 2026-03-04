@@ -13,9 +13,15 @@ public class DeleteInventoryBoxHandlerTests
     private readonly IRepository<InventoryBox> _boxRepo = Substitute.For<IRepository<InventoryBox>>();
     private readonly IRepository<InventoryItem> _itemRepo = Substitute.For<IRepository<InventoryItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private DeleteInventoryBoxHandler CreateHandler() =>
-        new(_boxRepo, _itemRepo, _unitOfWork);
+        new(_boxRepo, _itemRepo, _unitOfWork, _timeProvider);
+
+    public DeleteInventoryBoxHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    }
 
     [Fact]
     public async Task Handle_WhenBoxNotFound_ReturnsNotFound()
@@ -33,7 +39,7 @@ public class DeleteInventoryBoxHandlerTests
     {
         _boxRepo.GetById(1).Returns(new InventoryBox
         {
-            Id = 1, Number = 1, DeletedOn = DateTime.UtcNow
+            Id = 1, Number = 1, DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         });
 
         var handler = CreateHandler();

@@ -11,7 +11,8 @@ public class CreateInventoryItemHandler(
     IRepository<InventoryItem> itemRepository,
     IRepository<InventoryBox> boxRepository,
     IRepository<InventoryStorageUnit> storageUnitRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<CreateInventoryItemCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<CreateInventoryItemCommand, IResult>
 {
     public async Task<IResult> Handle(CreateInventoryItemCommand command, CancellationToken ct = default)
     {
@@ -34,7 +35,8 @@ public class CreateInventoryItemHandler(
             Name = command.Name,
             Description = command.Description,
             BoxId = command.BoxId,
-            StorageUnitId = command.StorageUnitId
+            StorageUnitId = command.StorageUnitId,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         itemRepository.Add(item);

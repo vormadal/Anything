@@ -33,7 +33,8 @@ public class LoginHandler(
         {
             UserId = user.Id,
             Token = refreshToken,
-            ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime
+            ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         refreshTokenRepository.Add(refreshTokenEntity);

@@ -31,7 +31,7 @@ public class RefreshTokenHandlerTests
         var oldToken = new RefreshToken
         {
             Id = 1, UserId = 10, Token = "old-refresh-token",
-            ExpiresAt = DateTime.UtcNow.AddDays(3)
+            ExpiresAt = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc)
         };
         var user = new User { Id = 10, Email = "test@test.com", PasswordHash = "hash", Name = "Test", Role = "User" };
 
@@ -73,7 +73,7 @@ public class RefreshTokenHandlerTests
         var expiredToken = new RefreshToken
         {
             Id = 1, UserId = 10, Token = "expired-token",
-            ExpiresAt = DateTime.UtcNow.AddDays(-1) // Expired yesterday
+            ExpiresAt = new DateTime(2026, 3, 2, 12, 0, 0, DateTimeKind.Utc) // Expired yesterday
         };
         _refreshTokenRepo.Query().Returns(new List<RefreshToken> { expiredToken }.AsAsyncQueryable());
 
@@ -101,14 +101,14 @@ public class RefreshTokenHandlerTests
         var token = new RefreshToken
         {
             Id = 1, UserId = 10, Token = "valid-token",
-            ExpiresAt = DateTime.UtcNow.AddDays(3)
+            ExpiresAt = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc)
         };
         _refreshTokenRepo.Query().Returns(new List<RefreshToken> { token }.AsAsyncQueryable());
 
         var deletedUser = new User
         {
             Id = 10, Email = "test@test.com", PasswordHash = "hash",
-            Name = "Test", Role = "User", DeletedOn = DateTime.UtcNow
+            Name = "Test", Role = "User", DeletedOn = new DateTime(2026, 3, 3, 12, 0, 0, DateTimeKind.Utc)
         };
         _userRepo.GetById(10).Returns(deletedUser);
 
@@ -124,7 +124,7 @@ public class RefreshTokenHandlerTests
         var token = new RefreshToken
         {
             Id = 1, UserId = 10, Token = "valid-token",
-            ExpiresAt = DateTime.UtcNow.AddDays(3)
+            ExpiresAt = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc)
         };
         _refreshTokenRepo.Query().Returns(new List<RefreshToken> { token }.AsAsyncQueryable());
         _userRepo.GetById(10).Returns((User?)null);

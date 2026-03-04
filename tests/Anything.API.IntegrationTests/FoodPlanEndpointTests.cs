@@ -125,7 +125,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync("/api/food-plans",
-            new { name = "", weekStart = DateTime.UtcNow });
+            new { name = "", weekStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc) });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -148,7 +148,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PutAsJsonAsync("/api/food-plans/99999",
-            new { name = "Name", weekStart = DateTime.UtcNow });
+            new { name = "Name", weekStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc) });
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 

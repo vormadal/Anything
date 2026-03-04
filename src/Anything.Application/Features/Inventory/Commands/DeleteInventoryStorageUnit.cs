@@ -12,7 +12,8 @@ public class DeleteInventoryStorageUnitHandler(
     IRepository<InventoryStorageUnit> storageUnitRepo,
     IRepository<InventoryBox> boxRepo,
     IRepository<InventoryItem> itemRepo,
-    IUnitOfWork unitOfWork) : IRequestHandler<DeleteInventoryStorageUnitCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<DeleteInventoryStorageUnitCommand, IResult>
 {
     public async Task<IResult> Handle(DeleteInventoryStorageUnitCommand command, CancellationToken ct = default)
     {
@@ -28,7 +29,7 @@ public class DeleteInventoryStorageUnitHandler(
         if (hasActiveBoxes || hasActiveItems)
             return Results.Conflict("Cannot delete storage unit while active boxes or items are associated with it.");
 
-        storageUnit.DeletedOn = DateTime.UtcNow;
+        storageUnit.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

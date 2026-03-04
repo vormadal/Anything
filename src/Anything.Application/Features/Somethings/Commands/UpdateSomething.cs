@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Somethings.Commands;
 
 public record UpdateSomethingCommand(int Id, string Name) : IRequest<IResult>;
 
-public class UpdateSomethingHandler(IRepository<Something> repository, IUnitOfWork unitOfWork)
+public class UpdateSomethingHandler(IRepository<Something> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateSomethingCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateSomethingCommand command, CancellationToken ct = default)
@@ -17,7 +17,7 @@ public class UpdateSomethingHandler(IRepository<Something> repository, IUnitOfWo
             return Results.NotFound();
 
         something.Name = command.Name;
-        something.ModifiedOn = DateTime.UtcNow;
+        something.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

@@ -10,7 +10,8 @@ public record AddRecipeImageCommand(int RecipeId, string Url) : IRequest<IResult
 public class AddRecipeImageHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<RecipeImage> imageRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<AddRecipeImageCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<AddRecipeImageCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
 
@@ -23,7 +24,8 @@ public class AddRecipeImageHandler(
         var image = new RecipeImage
         {
             RecipeId = command.RecipeId,
-            StorageKey = command.Url
+            StorageKey = command.Url,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         imageRepository.Add(image);

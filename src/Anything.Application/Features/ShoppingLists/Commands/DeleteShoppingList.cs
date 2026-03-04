@@ -7,7 +7,7 @@ namespace Anything.Application.Features.ShoppingLists.Commands;
 
 public record DeleteShoppingListCommand(int Id) : IRequest<IResult>;
 
-public class DeleteShoppingListHandler(IRepository<ShoppingList> repository, IUnitOfWork unitOfWork)
+public class DeleteShoppingListHandler(IRepository<ShoppingList> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<DeleteShoppingListCommand, IResult>
 {
     public async Task<IResult> Handle(DeleteShoppingListCommand command, CancellationToken ct = default)
@@ -16,7 +16,7 @@ public class DeleteShoppingListHandler(IRepository<ShoppingList> repository, IUn
         if (list is null || list.DeletedOn != null)
             return Results.NotFound();
 
-        list.DeletedOn = DateTime.UtcNow;
+        list.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

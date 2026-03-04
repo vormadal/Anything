@@ -15,7 +15,8 @@ public class AddFoodPlanToShoppingListHandler(
     IRepository<ShoppingList> shoppingListRepository,
     IRepository<ShoppingListItem> shoppingListItemRepository,
     IRepository<ShoppingListRecommendation> recommendationRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<AddFoodPlanToShoppingListCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<AddFoodPlanToShoppingListCommand, IResult>
 {
     private const string FoodPlanNotFound = "Food plan not found.";
     private const string ShoppingListNotFound = "Shopping list not found.";
@@ -78,7 +79,7 @@ public class AddFoodPlanToShoppingListHandler(
             if (existing != null)
             {
                 existing.Amount = (existing.Amount ?? 0) + amount;
-                existing.ModifiedOn = DateTime.UtcNow;
+                existing.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
                 shoppingListItemRepository.Update(existing);
             }
             else
@@ -88,7 +89,8 @@ public class AddFoodPlanToShoppingListHandler(
                     ShoppingListId = command.ShoppingListId,
                     Name = name,
                     Amount = amount,
-                    Unit = unit
+                    Unit = unit,
+                    CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
             }
 
@@ -97,7 +99,8 @@ public class AddFoodPlanToShoppingListHandler(
                 recommendationRepository.Add(new ShoppingListRecommendation
                 {
                     Name = name,
-                    IsApproved = false
+                    IsApproved = false,
+                    CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
                 existingRecommendations.Add(nameKey);
             }

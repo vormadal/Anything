@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Recommendations.Commands;
 
 public record DeleteRecommendationCommand(int Id) : IRequest<IResult>;
 
-public class DeleteRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IUnitOfWork unitOfWork)
+public class DeleteRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<DeleteRecommendationCommand, IResult>
 {
     private const string RecommendationNotFound = "Recommendation not found.";
@@ -18,7 +18,7 @@ public class DeleteRecommendationHandler(IRepository<ShoppingListRecommendation>
         if (recommendation is null || recommendation.DeletedOn != null)
             return Results.NotFound(RecommendationNotFound);
 
-        recommendation.DeletedOn = DateTime.UtcNow;
+        recommendation.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

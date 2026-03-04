@@ -12,7 +12,8 @@ public class UpdateFoodPlanEntryHandler(
     IRepository<FoodPlan> foodPlanRepository,
     IRepository<Recipe> recipeRepository,
     IRepository<FoodPlanEntry> entryRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<UpdateFoodPlanEntryCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<UpdateFoodPlanEntryCommand, IResult>
 {
     private const string FoodPlanNotFound = "Food plan not found.";
     private const string EntryNotFound = "Food plan entry not found.";
@@ -39,7 +40,7 @@ public class UpdateFoodPlanEntryHandler(
         entry.Name = command.Name;
         entry.RecipeId = command.RecipeId;
         entry.DayOfWeek = command.DayOfWeek;
-        entry.ModifiedOn = DateTime.UtcNow;
+        entry.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
         entryRepository.Update(entry);
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

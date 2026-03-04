@@ -7,7 +7,7 @@ namespace Anything.Application.Features.ShoppingLists.Commands;
 
 public record UpdateShoppingListItemCommand(int ShoppingListId, int ItemId, string Name, bool IsChecked, decimal? Amount, string? Unit) : IRequest<IResult>;
 
-public class UpdateShoppingListItemHandler(IRepository<ShoppingListItem> repository, IUnitOfWork unitOfWork)
+public class UpdateShoppingListItemHandler(IRepository<ShoppingListItem> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateShoppingListItemCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateShoppingListItemCommand command, CancellationToken ct = default)
@@ -20,7 +20,7 @@ public class UpdateShoppingListItemHandler(IRepository<ShoppingListItem> reposit
         item.IsChecked = command.IsChecked;
         item.Amount = command.Amount;
         item.Unit = command.Unit;
-        item.ModifiedOn = DateTime.UtcNow;
+        item.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

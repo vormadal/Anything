@@ -11,7 +11,8 @@ public class UpdateInventoryItemHandler(
     IRepository<InventoryItem> itemRepository,
     IRepository<InventoryBox> boxRepository,
     IRepository<InventoryStorageUnit> storageUnitRepository,
-    IUnitOfWork unitOfWork) : IRequestHandler<UpdateInventoryItemCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<UpdateInventoryItemCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateInventoryItemCommand command, CancellationToken ct = default)
     {
@@ -37,7 +38,7 @@ public class UpdateInventoryItemHandler(
         item.Description = command.Description;
         item.BoxId = command.BoxId;
         item.StorageUnitId = command.StorageUnitId;
-        item.ModifiedOn = DateTime.UtcNow;
+        item.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
