@@ -3,13 +3,13 @@
 import { Button } from "@/components/ui/button";
 import {
   useCreateRecipe,
+  useImportRecipe,
   useParseRecipeFromUrl,
 } from "@/hooks/useRecipes";
 import type { ParsedIngredient, ParsedStep } from "@/hooks/useRecipes";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/apiClient";
 
 type Mode = "select" | "url" | "manual";
 
@@ -30,6 +30,7 @@ export default function NewRecipePage() {
   const [isParsed, setIsParsed] = useState(false);
 
   const createRecipe = useCreateRecipe();
+  const importRecipe = useImportRecipe();
   const parseFromUrl = useParseRecipeFromUrl();
   const router = useRouter();
 
@@ -61,28 +62,22 @@ export default function NewRecipePage() {
     e.preventDefault();
     if (!name.trim()) return;
     try {
-      const newRecipe = await createRecipe.mutateAsync({
-        name,
-        link: link || undefined,
-        notes: notes || undefined,
-      });
-      if (newRecipe?.id) {
-        for (const ingredient of parsedIngredients) {
-          await apiClient.api.recipes.byId(newRecipe.id).ingredients.post({
-            name: ingredient.name,
-            amount: ingredient.amount,
-            unit: ingredient.unit ?? undefined,
-          });
-        }
-        for (const step of parsedSteps) {
-          await apiClient.api.recipes.byId(newRecipe.id).steps.post({
-            text: step.text,
-            order: step.order,
-          });
-        }
-        router.push(`/recipes/${newRecipe.id}`);
+      if (isParsed) {
+        const result = await importRecipe.mutateAsync({
+          name,
+          link: link || null,
+          notes: notes || null,
+          ingredients: parsedIngredients,
+          steps: parsedSteps,
+        });
+        router.push(`/recipes/${result.id}`);
       } else {
-        router.push("/recipes");
+        const newRecipe = await createRecipe.mutateAsync({
+          name,
+          link: link || undefined,
+          notes: notes || undefined,
+        });
+        router.push(newRecipe?.id ? `/recipes/${newRecipe.id}` : "/recipes");
       }
       toast.success("Recipe created");
     } catch {
@@ -266,10 +261,10 @@ export default function NewRecipePage() {
 
             <Button
               type="submit"
-              disabled={createRecipe.isPending}
+              disabled={createRecipe.isPending || importRecipe.isPending}
               className="w-full"
             >
-              {createRecipe.isPending ? "Creating..." : "Create Recipe"}
+              {createRecipe.isPending || importRecipe.isPending ? "Creating..." : "Create Recipe"}
             </Button>
           </form>
         )}

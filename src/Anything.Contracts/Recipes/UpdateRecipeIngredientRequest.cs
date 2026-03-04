@@ -6,7 +6,7 @@ public record UpdateRecipeIngredientRequest(
     [Required(ErrorMessage = "Name is required.")]
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
     string Name,
-    [Range(0.001, double.MaxValue, ErrorMessage = "Amount must be greater than 0.")]
+    [Range(0, double.MaxValue, ErrorMessage = "Amount must be 0 or greater.")]
     decimal Amount,
     [StringLength(100, ErrorMessage = "Unit must be at most 100 characters.")]
     string? Unit,
