@@ -195,7 +195,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AddFoodPlanEntry_WithName_ReturnsCreated()
+    public async Task AddFoodPlanEntry_WithoutRecipeId_AutoCreatesRecipe()
     {
         var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
         var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
@@ -209,6 +209,13 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         Assert.NotNull(entry);
         Assert.Equal("Homemade Salad", entry.Name);
         Assert.Equal(1, entry.DayOfWeek);
+        Assert.NotNull(entry.RecipeId);
+
+        var recipeResponse = await client.GetAsync($"/api/recipes/{entry.RecipeId}");
+        Assert.Equal(HttpStatusCode.OK, recipeResponse.StatusCode);
+        var recipe = await recipeResponse.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        Assert.NotNull(recipe);
+        Assert.Equal("Homemade Salad", recipe.Name);
     }
 
     [Fact]
