@@ -8,13 +8,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon } from "lucide-react";
+import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical } from "lucide-react";
 import {
   useRecipe,
   useRecipeIngredients,
   useRecipeSteps,
   useRecipeImages,
   useUpdateRecipe,
+  useDeleteRecipe,
   useAddRecipeIngredient,
   useUpdateRecipeIngredient,
   useDeleteRecipeIngredient,
@@ -57,6 +58,8 @@ export default function RecipeDetailPage() {
   const [newStepText, setNewStepText] = useState("");
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [showIngredientSuggestions, setShowIngredientSuggestions] = useState(false);
   const ingredientNameRef = useRef<HTMLInputElement>(null);
   const SUGGESTION_CLOSE_DELAY_MS = 150;
@@ -69,6 +72,7 @@ export default function RecipeDetailPage() {
   const { data: recommendations } = useApprovedRecommendations();
 
   const updateRecipe = useUpdateRecipe();
+  const deleteRecipe = useDeleteRecipe();
   const addIngredient = useAddRecipeIngredient(recipeId);
   const updateIngredient = useUpdateRecipeIngredient(recipeId);
   const deleteIngredient = useDeleteRecipeIngredient(recipeId);
@@ -236,6 +240,17 @@ export default function RecipeDetailPage() {
     }
   };
 
+  const handleDeleteRecipe = async () => {
+    try {
+      await deleteRecipe.mutateAsync(recipeId);
+      toast.success("Recipe deleted");
+      router.push("/recipes");
+    } catch {
+      toast.error("Failed to delete recipe. Please try again.");
+      setDeleteConfirmOpen(false);
+    }
+  };
+
   const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 
   const heroImageUrl = images?.[0]?.originalUrl ?? "";
@@ -277,7 +292,38 @@ export default function RecipeDetailPage() {
         </button>
 
         {/* Edit / Done button — top right */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          {isEditMode && (
+            <div className="relative">
+              <button
+                onClick={() => setContextMenuOpen((open) => !open)}
+                aria-label="More options"
+                className="h-8 w-8 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full text-white transition-colors"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+              {contextMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setContextMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg min-w-[160px] z-50">
+                    <button
+                      onClick={() => {
+                        setContextMenuOpen(false);
+                        setDeleteConfirmOpen(true);
+                      }}
+                      className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete Recipe
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <Button
             variant={isEditMode ? "default" : "outline"}
             size="sm"
@@ -662,6 +708,30 @@ export default function RecipeDetailPage() {
           )}
         </div>
       </div>
+
+      {/* ── Delete recipe confirmation dialog ── */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Recipe</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Are you sure you want to delete this recipe? This action cannot be undone.
+          </p>
+          <div className="flex gap-2 justify-end mt-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteRecipe}
+              disabled={deleteRecipe.isPending}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
