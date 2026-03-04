@@ -151,9 +151,34 @@ export async function refreshAccessToken(): Promise<string | null> {
 
 // Create invite (admin only)
 export function useCreateInvite() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (data: { email: string }) =>
       apiClient.api.auth.invites.post({ email: data.email }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth", "invites"] });
+    },
+  });
+}
+
+// List invites (admin only)
+export function useInvites() {
+  return useQuery({
+    queryKey: ["auth", "invites"],
+    queryFn: () => apiClient.api.auth.invites.get(),
+  });
+}
+
+// Delete invite (admin only)
+export function useDeleteInvite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => apiClient.api.auth.invites.byId(id).delete(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth", "invites"] });
+    },
   });
 }
 

@@ -1,17 +1,20 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useCreateInvite, useCurrentUser } from "@/hooks/useAuth";
+import { useCreateInvite, useCurrentUser, useDeleteInvite, useInvites } from "@/hooks/useAuth";
 import { isAdmin } from "@/lib/roles";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Copy, Link } from "lucide-react";
+import { Copy, Link, Trash2 } from "lucide-react";
+import type { InviteResponse } from "@/lib/api-client/models/index";
 
 export default function AdminInvitePage() {
   const [email, setEmail] = useState("");
   const [inviteData, setInviteData] = useState<{ email: string; url: string } | null>(null);
   const createInvite = useCreateInvite();
+  const deleteInvite = useDeleteInvite();
+  const { data: invites, isLoading: invitesLoading } = useInvites();
   const { data: user } = useCurrentUser();
   const router = useRouter();
 
@@ -60,9 +63,24 @@ export default function AdminInvitePage() {
     toast.success("Copied to clipboard!");
   };
 
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteInvite.mutateAsync(id);
+      toast.success("Invite deleted");
+    } catch {
+      toast.error("Failed to delete invite");
+    }
+  };
+
+  const getInviteStatus = (invite: InviteResponse) => {
+    if (invite.isUsed) return { label: "Accepted", className: "text-green-600 dark:text-green-400" };
+    if (invite.isExpired) return { label: "Expired", className: "text-red-600 dark:text-red-400" };
+    return { label: "Pending", className: "text-yellow-600 dark:text-yellow-400" };
+  };
+
   return (
-    <div className="container mx-auto px-4 py-4 max-w-lg">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+    <div className="container mx-auto px-4 py-4 max-w-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 mb-6">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Generate a one-time registration link for a specific email address.
         </p>
@@ -108,6 +126,45 @@ export default function AdminInvitePage() {
               </Button>
             </div>
           </div>
+        )}
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Invites</h2>
+        {invitesLoading ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading invites...</p>
+        ) : !invites || invites.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No invites found.</p>
+        ) : (
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            {invites.map((invite) => {
+              if (invite.id == null) return null;
+              const inviteId = invite.id;
+              const status = getInviteStatus(invite);
+              return (
+                <li key={inviteId} className="py-3 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{invite.email}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Expires: {invite.expiresAt ? new Date(invite.expiresAt).toLocaleDateString() : "—"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`text-xs font-medium ${status.className}`}>{status.label}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Delete invite for ${invite.email}`}
+                      onClick={() => handleDelete(inviteId)}
+                      disabled={deleteInvite.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     </div>
