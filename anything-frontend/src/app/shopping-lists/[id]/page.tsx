@@ -31,6 +31,7 @@ export default function ShoppingListDetailPage() {
   const [editingItem, setEditingItem] = useState<{ id: number; name: string; amount: string; unit: string } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
   const cancelEditRef = useRef(false);
   const { setHeaderActions } = useHeaderActions();
 
@@ -114,28 +115,19 @@ export default function ShoppingListDetailPage() {
       setNewItemUnit("");
       setShowSuggestions(false);
       toast.success("Item added");
+      inputRef.current?.focus();
     } catch {
       toast.error("Failed to add item. Please try again.");
     }
   };
 
-  const handleSelectSuggestion = async (name: string, preferredUnit?: string | null) => {
+  const handleSelectSuggestion = (name: string, preferredUnit?: string | null) => {
     setShowSuggestions(false);
-    const unit = newItemUnit.trim() || preferredUnit?.trim() || null;
-    try {
-      await addItem.mutateAsync({
-        name,
-        amount: parseAmount(newItemAmount),
-        unit,
-      });
-      setNewItemName("");
-      setNewItemAmount("");
-      setNewItemUnit("");
-      toast.success("Item added");
-      inputRef.current?.focus();
-    } catch {
-      toast.error("Failed to add item. Please try again.");
+    setNewItemName(name);
+    if (!newItemUnit.trim() && preferredUnit?.trim()) {
+      setNewItemUnit(preferredUnit.trim());
     }
+    amountInputRef.current?.focus();
   };
 
   const handleCancelEdit = () => {
@@ -240,6 +232,7 @@ export default function ShoppingListDetailPage() {
                 )}
               </div>
               <input
+                ref={amountInputRef}
                 type="number"
                 value={newItemAmount}
                 onChange={(e) => setNewItemAmount(e.target.value)}

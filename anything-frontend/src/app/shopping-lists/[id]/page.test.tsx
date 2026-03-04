@@ -802,4 +802,57 @@ describe('ShoppingListDetailPage', () => {
     expect(milkIndex).toBeLessThan(butterIndex)
     expect(eggsIndex).toBeLessThan(butterIndex)
   })
+
+  it('should populate name field when suggestion is clicked, not add immediately', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    jest.mocked(
+      (await import('@/lib/apiClient')).apiClient.api.shoppingListRecommendations.get
+    ).mockResolvedValue([{ id: 1, name: 'Milk', preferredUnit: 'l', isApproved: true }])
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+
+    const nameInput = screen.getByPlaceholderText('Add an item...')
+    await user.type(nameInput, 'Mi')
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Milk' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Milk' }))
+
+    expect(mockItemsPost).not.toHaveBeenCalled()
+    expect(nameInput).toHaveValue('Milk')
+    expect(screen.getByPlaceholderText('Unit')).toHaveValue('l')
+  })
+
+  it('should focus name input after adding an item', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    mockItemsPost.mockResolvedValueOnce({ id: 5, name: 'Butter', isChecked: false, shoppingListId: 1 })
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+
+    const nameInput = screen.getByPlaceholderText('Add an item...')
+    await user.type(nameInput, 'Butter')
+    await user.click(screen.getByRole('button', { name: 'Add item' }))
+
+    await waitFor(() => {
+      expect(mockItemsPost).toHaveBeenCalled()
+    })
+
+    expect(document.activeElement).toBe(nameInput)
+  })
 })
