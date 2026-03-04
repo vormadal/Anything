@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Anything.Application.Features.Recipes.Commands;
 
-public record UpdateRecipeIngredientCommand(int RecipeId, int IngredientId, string Name, decimal Amount, string? Unit, string? Group) : IRequest<IResult>;
+public record UpdateRecipeIngredientCommand(int RecipeId, int IngredientId, string Name, decimal? Amount, string? Unit, string? Group) : IRequest<IResult>;
 
 public class UpdateRecipeIngredientHandler(IRepository<RecipeIngredient> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateRecipeIngredientCommand, IResult>

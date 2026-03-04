@@ -131,8 +131,9 @@ export default function RecipeDetailPage() {
   const handleSaveIngredient = async (ingredientId: number) => {
     const edits = editingIngredients[ingredientId];
     if (!edits) return;
-    const parsedAmount = Number(edits.amount);
-    if (!edits.name.trim() || isNaN(parsedAmount) || parsedAmount <= 0) return;
+    if (!edits.name.trim()) return;
+    const parsedAmount = edits.amount ? Number(edits.amount) : null;
+    if (edits.amount && (isNaN(parsedAmount!) || parsedAmount! < 0)) return;
 
     try {
       await updateIngredient.mutateAsync({
@@ -171,8 +172,9 @@ export default function RecipeDetailPage() {
 
   const handleAddIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = Number(newIngredientAmount);
-    if (!newIngredientName.trim() || !newIngredientAmount || isNaN(parsedAmount) || parsedAmount <= 0) return;
+    if (!newIngredientName.trim()) return;
+    const parsedAmount = newIngredientAmount ? Number(newIngredientAmount) : null;
+    if (newIngredientAmount && (isNaN(parsedAmount!) || parsedAmount! < 0)) return;
 
     try {
       await addIngredient.mutateAsync({
@@ -184,6 +186,7 @@ export default function RecipeDetailPage() {
       setNewIngredientAmount("");
       setNewIngredientUnit("");
       toast.success("Ingredient added");
+      ingredientNameRef.current?.focus();
     } catch {
       toast.error("Failed to add ingredient. Please try again.");
     }
@@ -455,24 +458,88 @@ export default function RecipeDetailPage() {
             Ingredients
           </h2>
 
+          {ingredients && ingredients.length === 0 && (
+            <p className="text-sm text-gray-400 dark:text-gray-500 py-1">
+              {isEditMode ? "No ingredients yet. Add some below." : "No ingredients yet."}
+            </p>
+          )}
+
+          {ingredients && ingredients.length > 0 && (
+            <ul className="space-y-0.5">
+              {ingredients.map((ingredient) => {
+                const id = ingredient.id!;
+                const edits = editingIngredients[id];
+                return (
+                  <li key={id} className="flex items-center gap-1 py-1">
+                    {isEditMode ? (
+                      <>
+                        <input
+                          type="text"
+                          value={edits?.name ?? (ingredient.name ?? "")}
+                          onChange={(e) => handleIngredientFieldChange(id, "name", e.target.value)}
+                          placeholder="Ingredient name"
+                          aria-label="Ingredient name"
+                          className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                        />
+                        <input
+                          type="number"
+                          value={edits?.amount ?? String(ingredient.amount ?? "")}
+                          onChange={(e) => handleIngredientFieldChange(id, "amount", e.target.value)}
+                          placeholder="Qty"
+                          aria-label="Ingredient quantity"
+                          className="w-14 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                          step="any"
+                        />
+                        <input
+                          type="text"
+                          value={edits?.unit ?? (ingredient.unit ?? "")}
+                          onChange={(e) => handleIngredientFieldChange(id, "unit", e.target.value)}
+                          placeholder="Unit"
+                          aria-label="Ingredient unit"
+                          className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                        />
+                        {edits && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleSaveIngredient(id)}
+                            disabled={updateIngredient.isPending}
+                            aria-label="Save ingredient"
+                            className="shrink-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteIngredient(id)}
+                          disabled={deleteIngredient.isPending}
+                          aria-label="Remove ingredient"
+                          className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-gray-800 dark:text-gray-200 text-sm">
+                        {(ingredient.amount != null || ingredient.unit) && (
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {ingredient.amount != null ? ingredient.amount : ""}{ingredient.unit ? ` ${ingredient.unit}` : ""}
+                          </span>
+                        )}{(ingredient.amount != null || ingredient.unit) ? " " : ""}
+                        {ingredient.name}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
           {isEditMode && (
-            <form onSubmit={handleAddIngredient} className="mb-3">
+            <form onSubmit={handleAddIngredient} className="mt-3">
               <div className="flex gap-1 items-center">
-                <input
-                  type="number"
-                  value={newIngredientAmount}
-                  onChange={(e) => setNewIngredientAmount(e.target.value)}
-                  placeholder="Qty"
-                  className="w-14 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                  step="any"
-                />
-                <input
-                  type="text"
-                  value={newIngredientUnit}
-                  onChange={(e) => setNewIngredientUnit(e.target.value)}
-                  placeholder="Unit"
-                  className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                />
                 <div className="relative flex-1 min-w-0">
                   <input
                     ref={ingredientNameRef}
@@ -506,88 +573,26 @@ export default function RecipeDetailPage() {
                     </ul>
                   )}
                 </div>
+                <input
+                  type="number"
+                  value={newIngredientAmount}
+                  onChange={(e) => setNewIngredientAmount(e.target.value)}
+                  placeholder="Qty"
+                  className="w-14 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                  step="any"
+                />
+                <input
+                  type="text"
+                  value={newIngredientUnit}
+                  onChange={(e) => setNewIngredientUnit(e.target.value)}
+                  placeholder="Unit"
+                  className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                />
                 <Button type="submit" size="icon" disabled={addIngredient.isPending} aria-label="Add ingredient">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </form>
-          )}
-
-          {ingredients && ingredients.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-1">
-              {isEditMode ? "No ingredients yet. Add some above." : "No ingredients yet."}
-            </p>
-          )}
-
-          {ingredients && ingredients.length > 0 && (
-            <ul className="space-y-0.5">
-              {ingredients.map((ingredient) => {
-                const id = ingredient.id!;
-                const edits = editingIngredients[id];
-                return (
-                  <li key={id} className="flex items-center gap-1 py-1">
-                    {isEditMode ? (
-                      <>
-                        <input
-                          type="number"
-                          value={edits?.amount ?? String(ingredient.amount ?? "")}
-                          onChange={(e) => handleIngredientFieldChange(id, "amount", e.target.value)}
-                          placeholder="Qty"
-                          aria-label="Ingredient quantity"
-                          className="w-14 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                          step="any"
-                        />
-                        <input
-                          type="text"
-                          value={edits?.unit ?? (ingredient.unit ?? "")}
-                          onChange={(e) => handleIngredientFieldChange(id, "unit", e.target.value)}
-                          placeholder="Unit"
-                          aria-label="Ingredient unit"
-                          className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                        />
-                        <input
-                          type="text"
-                          value={edits?.name ?? (ingredient.name ?? "")}
-                          onChange={(e) => handleIngredientFieldChange(id, "name", e.target.value)}
-                          placeholder="Ingredient name"
-                          aria-label="Ingredient name"
-                          className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                        />
-                        {edits && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleSaveIngredient(id)}
-                            disabled={updateIngredient.isPending}
-                            aria-label="Save ingredient"
-                            className="shrink-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteIngredient(id)}
-                          disabled={deleteIngredient.isPending}
-                          aria-label="Remove ingredient"
-                          className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <span className="text-gray-800 dark:text-gray-200 text-sm">
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {ingredient.amount}{ingredient.unit ? ` ${ingredient.unit}` : ""}
-                        </span>{" "}
-                        {ingredient.name}
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
           )}
 
           {/* Add to Shopping List — view mode only */}

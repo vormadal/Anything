@@ -250,10 +250,44 @@ describe('RecipeDetailPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
     await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
-    // No amount entered
+    // No amount entered — amount is optional, so form should submit
     await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
 
-    expect(mockIngredientsPost).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(mockIngredientsPost).toHaveBeenCalledWith({
+        name: 'Flour',
+        amount: null,
+        unit: undefined,
+        group: undefined,
+      })
+    })
+  })
+
+  it('should add an ingredient without amount in edit mode', async () => {
+    const user = userEvent.setup()
+    mockIngredientsPost.mockResolvedValueOnce({ id: 2, name: 'Salt', amount: null, unit: null, recipeId: 1 })
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await user.type(screen.getByPlaceholderText('Ingredient name'), 'Salt')
+    // No amount or unit entered
+    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
+
+    await waitFor(() => {
+      expect(mockIngredientsPost).toHaveBeenCalledWith({
+        name: 'Salt',
+        amount: null,
+        unit: undefined,
+        group: undefined,
+      })
+    })
+
+    expect(toast.success).toHaveBeenCalledWith('Ingredient added')
   })
 
   it('should show error when add ingredient fails', async () => {

@@ -86,7 +86,7 @@ export function useAddRecipeIngredient(recipeId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (ingredient: { name: string; amount: number; unit?: string; group?: string }) =>
+    mutationFn: (ingredient: { name: string; amount?: number | null; unit?: string; group?: string }) =>
       apiClient.api.recipes.byId(recipeId).ingredients.post({
         name: ingredient.name,
         amount: ingredient.amount,
@@ -103,7 +103,7 @@ export function useUpdateRecipeIngredient(recipeId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ ingredientId, name, amount, unit, group }: { ingredientId: number; name: string; amount: number; unit?: string | null; group?: string | null }) =>
+    mutationFn: ({ ingredientId, name, amount, unit, group }: { ingredientId: number; name: string; amount?: number | null; unit?: string | null; group?: string | null }) =>
       apiClient.api.recipes.byId(recipeId).ingredients.byId(ingredientId).put({ name, amount, unit, group }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
