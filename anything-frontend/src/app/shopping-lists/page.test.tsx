@@ -7,8 +7,6 @@ import { toast } from 'sonner'
 // Mock the apiClient module
 const mockShoppingListsGet = jest.fn()
 const mockShoppingListsPost = jest.fn()
-const mockShoppingListsByIdDelete = jest.fn()
-const mockShoppingListsById = jest.fn(() => ({ delete: mockShoppingListsByIdDelete }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -16,7 +14,6 @@ jest.mock('@/lib/apiClient', () => ({
       shoppingLists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
         post: (...args: unknown[]) => mockShoppingListsPost(...args),
-        byId: (...args: unknown[]) => mockShoppingListsById(...args),
       },
     },
   },
@@ -173,65 +170,6 @@ describe('ShoppingListsPage', () => {
     expect(screen.queryByPlaceholderText('List name...')).not.toBeInTheDocument()
   })
 
-  it('should enter edit mode when edit button is clicked', async () => {
-    const user = userEvent.setup()
-    const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
-    mockShoppingListsGet.mockResolvedValue(mockData)
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Groceries')).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Edit lists' }))
-
-    expect(screen.getByRole('button', { name: 'Delete list' })).toBeInTheDocument()
-  })
-
-  it('should delete a list when delete button is clicked in edit mode', async () => {
-    const user = userEvent.setup()
-    const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
-    mockShoppingListsGet.mockResolvedValueOnce(mockData).mockResolvedValueOnce([])
-    mockShoppingListsByIdDelete.mockResolvedValueOnce(undefined)
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Groceries')).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Edit lists' }))
-    await user.click(screen.getByRole('button', { name: 'Delete list' }))
-
-    await waitFor(() => {
-      expect(mockShoppingListsById).toHaveBeenCalledWith(1)
-      expect(mockShoppingListsByIdDelete).toHaveBeenCalled()
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Shopping list deleted')
-  })
-
-  it('should show error toast when delete fails', async () => {
-    const user = userEvent.setup()
-    const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
-    mockShoppingListsGet.mockResolvedValue(mockData)
-    mockShoppingListsByIdDelete.mockRejectedValueOnce(new Error('Server error'))
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Groceries')).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Edit lists' }))
-    await user.click(screen.getByRole('button', { name: 'Delete list' }))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to delete shopping list. Please try again.')
-    })
-  })
-
   it('should navigate to list when row is clicked', async () => {
     const user = userEvent.setup()
     const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
@@ -247,25 +185,6 @@ describe('ShoppingListsPage', () => {
     await user.click(row)
 
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists/1')
-  })
-
-  it('should not navigate when row is clicked in edit mode', async () => {
-    const user = userEvent.setup()
-    const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
-    mockShoppingListsGet.mockResolvedValue(mockData)
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Groceries')).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Edit lists' }))
-
-    const row = screen.getByRole('button', { name: /Groceries/ })
-    await user.click(row)
-
-    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('should show creating state on create button while submitting', async () => {

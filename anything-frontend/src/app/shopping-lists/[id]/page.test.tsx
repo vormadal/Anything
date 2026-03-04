@@ -855,4 +855,85 @@ describe('ShoppingListDetailPage', () => {
 
     expect(document.activeElement).toBe(nameInput)
   })
+
+  it('should show More options button in header', async () => {
+    mockItemsGet.mockResolvedValue([])
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+    })
+  })
+
+  it('should delete list and navigate to shopping lists when Delete list is selected from context menu', async () => {
+    const user = userEvent.setup()
+    const mockListDelete = jest.fn().mockResolvedValueOnce(undefined)
+    mockById.mockReturnValue({
+      get: mockListGet,
+      delete: mockListDelete,
+      items: {
+        get: mockItemsGet,
+        post: mockItemsPost,
+        byId: mockItemsItemById,
+      },
+      complete: { post: mockCompletePost },
+    })
+    mockItemsGet.mockResolvedValue([])
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete list')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Delete list'))
+
+    await waitFor(() => {
+      expect(mockListDelete).toHaveBeenCalled()
+    })
+
+    expect(toast.success).toHaveBeenCalledWith('Shopping list deleted')
+    expect(mockPush).toHaveBeenCalledWith('/shopping-lists')
+  })
+
+  it('should show error toast when delete list fails', async () => {
+    const user = userEvent.setup()
+    const mockListDelete = jest.fn().mockRejectedValueOnce(new Error('Server error'))
+    mockById.mockReturnValue({
+      get: mockListGet,
+      delete: mockListDelete,
+      items: {
+        get: mockItemsGet,
+        post: mockItemsPost,
+        byId: mockItemsItemById,
+      },
+      complete: { post: mockCompletePost },
+    })
+    mockItemsGet.mockResolvedValue([])
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete list')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Delete list'))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to delete shopping list. Please try again.')
+    })
+  })
 })

@@ -2,21 +2,28 @@
 
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   useShoppingListItems,
   useAddShoppingListItem,
   useUpdateShoppingListItem,
   useRemoveShoppingListItem,
   useCompleteShoppingList,
+  useDeleteShoppingList,
 } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import type { ShoppingListItem, ShoppingList } from "@/lib/api-client/models/index";
 import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { Pencil, Check, Plus, Trash2 } from "lucide-react";
+import { Pencil, Check, Plus, Trash2, MoreVertical } from "lucide-react";
 
 export default function ShoppingListDetailPage() {
   const SUGGESTION_CLOSE_DELAY_MS = 150;
@@ -46,6 +53,7 @@ export default function ShoppingListDetailPage() {
   const updateItem = useUpdateShoppingListItem(listId);
   const removeItem = useRemoveShoppingListItem(listId);
   const completeList = useCompleteShoppingList();
+  const deleteList = useDeleteShoppingList();
   const { data: recommendations } = useApprovedRecommendations();
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
@@ -160,6 +168,19 @@ export default function ShoppingListDetailPage() {
     }
   };
 
+  const handleDeleteList = useCallback(async () => {
+    try {
+      await deleteList.mutateAsync(listId);
+      toast.success("Shopping list deleted");
+      router.push("/shopping-lists");
+    } catch {
+      toast.error("Failed to delete shopping list. Please try again.");
+    }
+  }, [deleteList, listId, router]);
+
+  const handleDeleteListRef = useRef(handleDeleteList);
+  handleDeleteListRef.current = handleDeleteList;
+
   useEffect(() => {
     setHeaderActions(
       <div className="flex items-center gap-1 ml-auto">
@@ -174,6 +195,22 @@ export default function ShoppingListDetailPage() {
         >
           {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="More options">
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+              onSelect={() => handleDeleteListRef.current()}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete list
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
     return () => setHeaderActions(null);
