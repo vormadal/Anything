@@ -747,7 +747,7 @@ describe('ShoppingListDetailPage', () => {
 
     render(<ShoppingListDetailPage />)
 
-    const backButton = screen.getByText('← Back to Shopping Lists')
+    const backButton = screen.getByRole('button', { name: 'Go back' })
     await user.click(backButton)
 
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists')

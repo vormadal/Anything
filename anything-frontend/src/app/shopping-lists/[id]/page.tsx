@@ -40,7 +40,7 @@ export default function ShoppingListDetailPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const cancelEditRef = useRef(false);
-  const { setHeaderActions } = useHeaderActions();
+  const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const { data: list } = useQuery({
     queryKey: ["shoppingList", listId],
@@ -168,17 +168,8 @@ export default function ShoppingListDetailPage() {
     }
   };
 
-  const handleDeleteList = async () => {
-    try {
-      await deleteList.mutateAsync(listId);
-      toast.success("Shopping list deleted");
-      router.push("/shopping-lists");
-    } catch {
-      toast.error("Failed to delete shopping list. Please try again.");
-    }
-  };
-
   useEffect(() => {
+    setLeftAction({ type: "back", href: "/shopping-lists" });
     setHeaderActions(
       <div className="flex items-center gap-1 ml-auto">
         <Button
@@ -192,42 +183,47 @@ export default function ShoppingListDetailPage() {
         >
           {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="More options">
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+              onSelect={async () => {
+                try {
+                  await deleteList.mutateAsync(listId);
+                  toast.success("Shopping list deleted");
+                  router.push("/shopping-lists");
+                } catch {
+                  toast.error("Failed to delete shopping list. Please try again.");
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete list
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
-    return () => setHeaderActions(null);
-  }, [isEditMode, setHeaderActions]);
+    return () => {
+      setHeaderActions(null);
+      setLeftAction({ type: "menu" });
+    };
+    // deleteList, listId, router are stable references — omitted intentionally
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
         <div className="mb-4">
-          <button
-            onClick={() => router.push("/shopping-lists")}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-1 block"
-          >
-            &larr; Back to Shopping Lists
-          </button>
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {list?.name ?? "Shopping List"}
-            </h2>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="More options">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-                  onSelect={handleDeleteList}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete list
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {list?.name ?? "Shopping List"}
+          </h2>
         </div>
 
         {isEditMode && (

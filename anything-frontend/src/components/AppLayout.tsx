@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Menu,
+  ArrowLeft,
   Home,
   ShoppingCart,
   CookingPot,
@@ -75,7 +76,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const router = useRouter();
   const pathname = usePathname();
-  const { headerActions, hideTitle } = useHeaderActions();
+  const { headerActions, hideTitle, leftAction } = useHeaderActions();
 
   const navigate = (path: string) => {
     setDrawerOpen(false);
@@ -96,14 +97,25 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center h-14 px-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {leftAction.type === "back" ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push(leftAction.href)}
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
           {!hideTitle && (
             <h1 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white truncate flex-1">
               {getPageTitle(pathname)}

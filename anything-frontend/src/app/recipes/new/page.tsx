@@ -7,9 +7,10 @@ import {
   useParseRecipeFromUrl,
 } from "@/hooks/useRecipes";
 import type { ParsedIngredient, ParsedStep } from "@/hooks/useRecipes";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useHeaderActions } from "@/context/PageActionsContext";
 
 type Mode = "select" | "url" | "manual";
 
@@ -33,6 +34,12 @@ export default function NewRecipePage() {
   const importRecipe = useImportRecipe();
   const parseFromUrl = useParseRecipeFromUrl();
   const router = useRouter();
+  const { setLeftAction } = useHeaderActions();
+
+  useEffect(() => {
+    setLeftAction({ type: "back", href: "/recipes" });
+    return () => setLeftAction({ type: "menu" });
+  }, [setLeftAction]);
 
   const handleParse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,12 +101,6 @@ export default function NewRecipePage() {
     return (
       <div className="container mx-auto px-4 py-4 max-w-lg">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <button
-            onClick={() => router.push("/recipes")}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 block"
-          >
-            &larr; Back to Recipes
-          </button>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
             New Recipe
           </h2>

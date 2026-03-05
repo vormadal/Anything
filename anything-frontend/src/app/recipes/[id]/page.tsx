@@ -6,9 +6,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useHeaderActions } from "@/context/PageActionsContext";
 import {
   useRecipe,
   useRecipeIngredients,
@@ -30,7 +36,7 @@ import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import { RecipeImageUpload } from "@/components/RecipeImageUpload";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 
 export default function RecipeDetailPage() {
@@ -60,7 +66,6 @@ export default function RecipeDetailPage() {
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [showIngredientSuggestions, setShowIngredientSuggestions] = useState(false);
   const ingredientNameRef = useRef<HTMLInputElement>(null);
@@ -83,13 +88,13 @@ export default function RecipeDetailPage() {
   const deleteImage = useDeleteRecipeImage(recipeId);
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
 
-  const handleEnterEditMode = () => {
+  const handleEnterEditMode = useCallback(() => {
     setEditName(recipe?.name ?? "");
     setEditLink(recipe?.link ?? "");
     setEditNotes(recipe?.notes ?? "");
     setEditingIngredients({});
     setIsEditMode(true);
-  };
+  }, [recipe?.name, recipe?.link, recipe?.notes]);
 
   const handleExitEditMode = async () => {
     const nameChanged = editName !== (recipe?.name ?? "");
@@ -260,6 +265,91 @@ export default function RecipeDetailPage() {
 
   const heroImageUrl = images?.[0]?.originalUrl ?? "";
 
+  const { setHeaderActions, setLeftAction } = useHeaderActions();
+
+  // Keep a ref to the exit handler so the header effect closure is always current
+  const handleExitEditModeRef = useRef(handleExitEditMode);
+  useEffect(() => {
+    handleExitEditModeRef.current = handleExitEditMode;
+  });
+
+  useEffect(() => {
+    setLeftAction({ type: "back", href: "/recipes" });
+    if (isEditMode) {
+      setHeaderActions(
+        <div className="flex items-center gap-1 ml-auto">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => handleExitEditModeRef.current()}
+            disabled={updateRecipe.isPending}
+            aria-label="Done editing"
+          >
+            <Check className="h-4 w-4 mr-1" />
+            Done
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="More options">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                onSelect={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Recipe
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      );
+    } else {
+      setHeaderActions(
+        <div className="flex items-center gap-1 ml-auto">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setFoodPlanDialogOpen(true)}
+            aria-label="Add to food plan"
+          >
+            <CalendarPlus className="h-5 w-5" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="More options">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={handleEnterEditMode}>
+                <Pencil className="h-4 w-4" />
+                Edit recipe
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShoppingListDialogOpen(true)}>
+                <ShoppingCart className="h-4 w-4" />
+                Add to Shopping List
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                onSelect={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Recipe
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      );
+    }
+    return () => {
+      setHeaderActions(null);
+      setLeftAction({ type: "menu" });
+    };
+  }, [isEditMode, updateRecipe.isPending, setHeaderActions, setLeftAction, handleEnterEditMode]);
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* ── Hero: full-width image with overlaid controls and title ── */}
@@ -287,76 +377,6 @@ export default function RecipeDetailPage() {
 
         {/* Gradient for legibility of the title */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
-
-        {/* Back button — top left */}
-        <button
-          onClick={() => router.push("/recipes")}
-          className="absolute top-4 left-4 text-sm text-white/90 hover:text-white font-medium bg-black/30 hover:bg-black/50 rounded-full px-3 py-1.5 transition-colors"
-        >
-          ← Back to Recipes
-        </button>
-
-        {/* Edit / Done button — top right */}
-        <div className="absolute top-4 right-4 flex items-center gap-2">
-          {!isEditMode && (
-            <button
-              onClick={() => setFoodPlanDialogOpen(true)}
-              aria-label="Add to food plan"
-              className="h-8 w-8 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full text-white transition-colors"
-            >
-              <CalendarPlus className="h-4 w-4" />
-            </button>
-          )}
-          {isEditMode && (
-            <div className="relative">
-              <button
-                onClick={() => setContextMenuOpen((open) => !open)}
-                aria-label="More options"
-                className="h-8 w-8 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full text-white transition-colors"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
-              {contextMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setContextMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg min-w-[160px] z-50">
-                    <button
-                      onClick={() => {
-                        setContextMenuOpen(false);
-                        setDeleteConfirmOpen(true);
-                      }}
-                      className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete Recipe
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          <Button
-            variant={isEditMode ? "default" : "outline"}
-            size="sm"
-            onClick={isEditMode ? handleExitEditMode : handleEnterEditMode}
-            disabled={updateRecipe.isPending}
-            aria-label={isEditMode ? "Done editing" : "Edit recipe"}
-            className={
-              isEditMode
-                ? ""
-                : "bg-black/30 hover:bg-black/50 border-white/30 text-white hover:text-white"
-            }
-          >
-            {isEditMode ? (
-              <><Check className="h-4 w-4 mr-1" />Done</>
-            ) : (
-              <><Pencil className="h-4 w-4 mr-1" />Edit</>
-            )}
-          </Button>
-        </div>
 
         {/* Title — bottom left */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 pt-8">
@@ -611,17 +631,9 @@ export default function RecipeDetailPage() {
             </form>
           )}
 
-          {/* Add to Shopping List — view mode only */}
-          {!isEditMode && ingredients && ingredients.length > 0 && shoppingLists && shoppingLists.length > 0 && (
-            <div className="mt-4">
-              <Dialog open={shoppingListDialogOpen} onOpenChange={setShoppingListDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <ShoppingCart className="h-4 w-4" />
-                    Add to Shopping List
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
+          {/* Add to Shopping List dialog — triggered from header ⋮ menu */}
+          <Dialog open={shoppingListDialogOpen} onOpenChange={setShoppingListDialogOpen}>
+            <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Add ingredients to shopping list</DialogTitle>
                   </DialogHeader>
@@ -654,7 +666,7 @@ export default function RecipeDetailPage() {
                     Select a shopping list to add all ingredients to:
                   </p>
                   <ul className="space-y-2">
-                    {shoppingLists.map((list) => (
+                    {(shoppingLists ?? []).map((list) => (
                       <li key={list.id}>
                         <button
                           onClick={() => handleAddToShoppingList(list.id!)}
@@ -666,10 +678,8 @@ export default function RecipeDetailPage() {
                       </li>
                     ))}
                   </ul>
-                </DialogContent>
-              </Dialog>
-            </div>
-          )}
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* ── Steps ── */}

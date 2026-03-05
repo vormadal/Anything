@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { useCreateFoodPlan } from "@/hooks/useFoodPlans";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useHeaderActions } from "@/context/PageActionsContext";
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 // Default: Mon–Fri (bits 0–4 set → 31)
@@ -44,6 +45,12 @@ export default function NewFoodPlanPage() {
   const [selectedDays, setSelectedDays] = useState<Set<number>>(bitmaskToDaySet(DEFAULT_ACTIVE_DAYS));
   const createFoodPlan = useCreateFoodPlan();
   const router = useRouter();
+  const { setLeftAction } = useHeaderActions();
+
+  useEffect(() => {
+    setLeftAction({ type: "back", href: "/food-plans" });
+    return () => setLeftAction({ type: "menu" });
+  }, [setLeftAction]);
 
   const toggleDay = (index: number) => {
     setSelectedDays((prev) => {
@@ -81,13 +88,6 @@ export default function NewFoodPlanPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-        <button
-          onClick={() => router.push("/food-plans")}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 block"
-        >
-          &larr; Back to Food Plans
-        </button>
-
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           New Food Plan
         </h2>
