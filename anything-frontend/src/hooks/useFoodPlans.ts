@@ -128,3 +128,29 @@ export function useAddFoodPlanToShoppingList(foodPlanId: number) {
       apiClient.api.foodPlans.byId(foodPlanId).addToShoppingList.post({ shoppingListId, recipeMultipliers }),
   });
 }
+
+export function useAddEntryToFoodPlan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      foodPlanId,
+      name,
+      recipeId,
+      dayOfWeek,
+    }: {
+      foodPlanId: number;
+      name: string;
+      recipeId?: number | null;
+      dayOfWeek: number;
+    }) =>
+      apiClient.api.foodPlans.byId(foodPlanId).entries.post({
+        name,
+        recipeId,
+        dayOfWeek,
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries", variables.foodPlanId] });
+    },
+  });
+}

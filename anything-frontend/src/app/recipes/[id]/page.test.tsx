@@ -52,6 +52,17 @@ jest.mock('@/lib/apiClient', () => ({
           complete: { post: jest.fn() },
         })),
       },
+      foodPlans: {
+        get: jest.fn().mockResolvedValue([]),
+        post: jest.fn(),
+        byId: jest.fn(() => ({
+          get: jest.fn(),
+          put: jest.fn(),
+          delete: jest.fn(),
+          entries: { get: jest.fn(), post: jest.fn(), byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
+          addToShoppingList: { post: jest.fn() },
+        })),
+      },
     },
   },
 }))
@@ -617,5 +628,45 @@ describe('RecipeDetailPage', () => {
     })
 
     expect(mockPush).not.toHaveBeenCalledWith('/recipes')
+  })
+
+  it('should show add-to-food-plan button in view mode', async () => {
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /Add to food plan/i })).toBeInTheDocument()
+  })
+
+  it('should not show add-to-food-plan button in edit mode', async () => {
+    const user = userEvent.setup()
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+
+    expect(screen.queryByRole('button', { name: /Add to food plan/i })).not.toBeInTheDocument()
+  })
+
+  it('should open food plan dialog when add-to-food-plan button is clicked', async () => {
+    const user = userEvent.setup()
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /Add to food plan/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Add to Food Plan')).toBeInTheDocument()
+    })
   })
 })

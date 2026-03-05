@@ -7,6 +7,8 @@ import RecipesPage from './page'
 // Mock the apiClient module
 const mockRecipesGet = jest.fn()
 const mockImagesGet = jest.fn()
+const mockFoodPlansGet = jest.fn()
+const mockFoodPlanEntriesPost = jest.fn()
 const mockRecipesById = jest.fn(() => ({
   delete: jest.fn(),
   get: jest.fn(),
@@ -33,6 +35,17 @@ jest.mock('@/lib/apiClient', () => ({
           delete: jest.fn(),
           items: { get: jest.fn(), post: jest.fn(), byId: jest.fn() },
           complete: { post: jest.fn() },
+        })),
+      },
+      foodPlans: {
+        get: (...args: unknown[]) => mockFoodPlansGet(...args),
+        post: jest.fn(),
+        byId: jest.fn(() => ({
+          get: jest.fn(),
+          put: jest.fn(),
+          delete: jest.fn(),
+          entries: { get: jest.fn(), post: (...args: unknown[]) => mockFoodPlanEntriesPost(...args), byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
+          addToShoppingList: { post: jest.fn() },
         })),
       },
     },
@@ -69,6 +82,7 @@ describe('RecipesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockImagesGet.mockResolvedValue([])
+    mockFoodPlansGet.mockResolvedValue([])
   })
 
   it('should display loading state initially', () => {
@@ -138,6 +152,39 @@ describe('RecipesPage', () => {
 
     await waitFor(() => {
       expect(mockSetHeaderActions).toHaveBeenCalled()
+    })
+  })
+
+  it('should show add-to-food-plan button on each recipe card', async () => {
+    const mockData = [{ id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' }]
+    mockRecipesGet.mockResolvedValue(mockData)
+
+    render(<RecipesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /Add to food plan/i })).toBeInTheDocument()
+  })
+
+  it('should open food plan dialog when add-to-food-plan button is clicked', async () => {
+    const user = userEvent.setup()
+    const mockData = [{ id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' }]
+    mockRecipesGet.mockResolvedValue(mockData)
+    mockFoodPlansGet.mockResolvedValue([{ id: 1, name: 'Week 1', activeDays: 31, weekStart: '2024-01-01T00:00:00Z' }])
+
+    render(<RecipesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+    })
+
+    const addButton = screen.getByRole('button', { name: /Add to food plan/i })
+    await user.click(addButton)
+
+    await waitFor(() => {
+      expect(screen.getByText('Add to Food Plan')).toBeInTheDocument()
     })
   })
 })
