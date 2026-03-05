@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { ShoppingCart, Plus, X } from "lucide-react";
+import { ShoppingCart, Plus, X, Settings } from "lucide-react";
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 // Delay before closing the suggestions dropdown on blur, allowing onMouseDown on a suggestion to fire first
@@ -354,6 +354,15 @@ export default function FoodPlanDetailPage() {
         <Button
           variant="ghost"
           size="icon"
+          onClick={() => router.push(`/food-plans/${planId}/edit`)}
+          aria-label="Edit food plan settings"
+          title="Edit food plan settings"
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setShowShoppingListDialog(true)}
           aria-label="Add to shopping list"
           title="Add all recipe ingredients to shopping list"
@@ -363,7 +372,7 @@ export default function FoodPlanDetailPage() {
       </div>
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  }, [setHeaderActions, planId, router]);
 
   if (planLoading || entriesLoading) {
     return (
