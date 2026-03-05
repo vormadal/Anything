@@ -91,6 +91,11 @@ jest.mock('sonner', () => ({
 
 const mockRecipe = { id: 1, name: 'Test Recipe', createdOn: '2024-01-01T00:00:00Z' }
 
+async function enterEditMode(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'More options' }))
+  await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
+}
+
 describe('RecipeDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -101,10 +106,10 @@ describe('RecipeDetailPage', () => {
     mockImagesGet.mockResolvedValue([])
   })
 
-  it('should render back button "← Back to Recipes"', () => {
+  it('should render back button', () => {
     render(<RecipeDetailPage />)
 
-    expect(screen.getByText('← Back to Recipes')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
   })
 
   it('should display loading state', () => {
@@ -171,8 +176,7 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    const editButton = screen.getByRole('button', { name: 'Edit recipe' })
-    await user.click(editButton)
+    await enterEditMode(user)
 
     expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
     // Title/link/notes are directly editable; no separate "Edit Details" button
@@ -195,10 +199,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
 
     expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Qty')).toBeInTheDocument()
@@ -211,10 +215,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
 
     await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
     await user.type(screen.getByPlaceholderText('Qty'), '2')
@@ -240,10 +244,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
     await user.type(screen.getByPlaceholderText('Qty'), '2')
     await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
 
@@ -256,10 +260,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
     await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
     // No amount entered — amount is optional, so form should submit
     await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
@@ -281,10 +285,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
     await user.type(screen.getByPlaceholderText('Ingredient name'), 'Salt')
     // No amount or unit entered
     await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
@@ -308,10 +312,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
     await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
     await user.type(screen.getByPlaceholderText('Qty'), '2')
     await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
@@ -334,7 +338,7 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText(/Flour/)).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
 
     const removeButton = screen.getByRole('button', { name: 'Remove ingredient' })
     await user.click(removeButton)
@@ -354,10 +358,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
 
     await user.type(screen.getByPlaceholderText('Step description...'), 'Mix ingredients')
     await user.click(screen.getByRole('button', { name: 'Add step' }))
@@ -376,10 +380,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
     await user.type(screen.getByPlaceholderText('Step description...'), 'Mix')
     await user.click(screen.getByRole('button', { name: 'Add step' }))
 
@@ -401,7 +405,7 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Preheat oven')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
 
     // The Remove step button
     const removeButtons = screen.getAllByRole('button', { name: 'Remove step' })
@@ -425,10 +429,10 @@ describe('RecipeDetailPage', () => {
       render(<RecipeDetailPage />)
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+        expect(screen.getByText('Test Recipe')).toBeInTheDocument()
       })
 
-      await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+      await enterEditMode(user)
 
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
       const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
@@ -458,7 +462,7 @@ describe('RecipeDetailPage', () => {
       expect(screen.getAllByAltText('Recipe image').length).toBeGreaterThan(0)
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
 
     const removeButton = screen.getByRole('button', { name: 'Remove image' })
     await user.click(removeButton)
@@ -476,7 +480,7 @@ describe('RecipeDetailPage', () => {
 
     render(<RecipeDetailPage />)
 
-    const backButton = screen.getByText('← Back to Recipes')
+    const backButton = screen.getByRole('button', { name: 'Go back' })
     await user.click(backButton)
 
     expect(mockPush).toHaveBeenCalledWith('/recipes')
@@ -492,11 +496,12 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Add to Shopping List/i })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    // Open the dialog
-    await user.click(screen.getByRole('button', { name: /Add to Shopping List/i }))
+    // Open More options and click Add to Shopping List
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Add to Shopping List/i }))
 
     // Click the shopping list button in the dialog
     const listButton = await screen.findByRole('button', { name: 'My List' })
@@ -520,11 +525,12 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Add to Shopping List/i })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    // Open the dialog
-    await user.click(screen.getByRole('button', { name: /Add to Shopping List/i }))
+    // Open More options and click Add to Shopping List
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Add to Shopping List/i }))
 
     // Click the shopping list button in the dialog
     const listButton = await screen.findByRole('button', { name: 'My List' })
@@ -535,14 +541,14 @@ describe('RecipeDetailPage', () => {
     })
   })
 
-  it('should not show context menu button in view mode', async () => {
+  it('should show context menu button in view mode', async () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    expect(screen.queryByRole('button', { name: 'More options' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
   })
 
   it('should show context menu button in edit mode', async () => {
@@ -551,10 +557,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
 
     expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
   })
@@ -565,13 +571,12 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
     await user.click(screen.getByRole('button', { name: 'More options' }))
 
-    const deleteMenuItem = await screen.findByRole('button', { name: /Delete Recipe/i })
+    const deleteMenuItem = await screen.findByRole('menuitem', { name: /Delete Recipe/i })
     await user.click(deleteMenuItem)
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
@@ -584,13 +589,12 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
     await user.click(screen.getByRole('button', { name: 'More options' }))
 
-    const deleteMenuItem = await screen.findByRole('button', { name: /Delete Recipe/i })
+    const deleteMenuItem = await screen.findByRole('menuitem', { name: /Delete Recipe/i })
     await user.click(deleteMenuItem)
 
     const confirmButton = screen.getByRole('button', { name: 'Delete' })
@@ -611,13 +615,12 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
     await user.click(screen.getByRole('button', { name: 'More options' }))
 
-    const deleteMenuItem = await screen.findByRole('button', { name: /Delete Recipe/i })
+    const deleteMenuItem = await screen.findByRole('menuitem', { name: /Delete Recipe/i })
     await user.click(deleteMenuItem)
 
     const confirmButton = screen.getByRole('button', { name: 'Delete' })
@@ -646,10 +649,10 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit recipe' })).toBeInTheDocument()
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
+    await enterEditMode(user)
 
     expect(screen.queryByRole('button', { name: /Add to food plan/i })).not.toBeInTheDocument()
   })
