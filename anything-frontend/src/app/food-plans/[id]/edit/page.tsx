@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useFoodPlan, useUpdateFoodPlan } from "@/hooks/useFoodPlans";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
@@ -28,29 +28,24 @@ function daySetToBitmask(days: Set<number>): number {
   return bitmask;
 }
 
-export default function EditFoodPlanPage() {
-  const params = useParams();
-  const router = useRouter();
-  const planId = Number(params.id);
+interface FoodPlan {
+  id: number;
+  name?: string | null;
+  weekStart?: string | Date | null;
+  activeDays?: number | null;
+}
 
-  const { data: plan, isLoading } = useFoodPlan(planId);
+function EditFoodPlanForm({ plan, planId }: { plan: FoodPlan; planId: number }) {
+  const router = useRouter();
   const updateFoodPlan = useUpdateFoodPlan();
 
-  const [name, setName] = useState("");
-  const [weekStart, setWeekStart] = useState("");
-  const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
-  const [initialized, setInitialized] = useState(false);
-
-  useEffect(() => {
-    if (plan && !initialized) {
-      setName(plan.name ?? "");
-      setWeekStart(
-        plan.weekStart ? toDateInputValue(new Date(plan.weekStart)) : ""
-      );
-      setSelectedDays(bitmaskToDaySet(plan.activeDays ?? DEFAULT_ACTIVE_DAYS));
-      setInitialized(true);
-    }
-  }, [plan, initialized]);
+  const [name, setName] = useState(plan.name ?? "");
+  const [weekStart, setWeekStart] = useState(
+    plan.weekStart ? toDateInputValue(new Date(plan.weekStart as string)) : ""
+  );
+  const [selectedDays, setSelectedDays] = useState<Set<number>>(
+    bitmaskToDaySet(plan.activeDays ?? DEFAULT_ACTIVE_DAYS)
+  );
 
   const toggleDay = (index: number) => {
     setSelectedDays((prev) => {
@@ -81,24 +76,6 @@ export default function EditFoodPlanPage() {
       toast.error("Failed to update food plan. Please try again.");
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-        Loading...
-      </div>
-    );
-  }
-
-  if (!plan) {
-    return (
-      <div className="container mx-auto px-4 py-4 max-w-lg">
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          Food plan not found.
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
@@ -188,4 +165,31 @@ export default function EditFoodPlanPage() {
       </div>
     </div>
   );
+}
+
+export default function EditFoodPlanPage() {
+  const params = useParams();
+  const planId = Number(params.id);
+
+  const { data: plan, isLoading } = useFoodPlan(planId);
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <div className="container mx-auto px-4 py-4 max-w-lg">
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          Food plan not found.
+        </div>
+      </div>
+    );
+  }
+
+  return <EditFoodPlanForm plan={plan} planId={planId} />;
 }
