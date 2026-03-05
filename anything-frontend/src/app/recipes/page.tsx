@@ -4,8 +4,9 @@ import { useRecipes, useRecipeImages } from "@/hooks/useRecipes";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { Search, X, CookingPot, Plus } from "lucide-react";
+import { Search, X, CookingPot, Plus, CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import type { Recipe } from "@/lib/api-client/models/index";
 
 function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }) {
@@ -13,36 +14,53 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
   const firstImage = images?.[0];
   const imageUrl = firstImage?.thumbnailUrl ?? null;
   const [imgError, setImgError] = useState(false);
+  const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 active:scale-[0.98]"
-    >
-      <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
-        {imageUrl && !imgError ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={imageUrl}
-            alt={recipe.name ?? "Recipe"}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <CookingPot className="h-10 w-10 text-gray-300 dark:text-gray-500" />
+    <div className="relative overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 active:scale-[0.98]"
+      >
+        <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
+          {imageUrl && !imgError ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={imageUrl}
+              alt={recipe.name ?? "Recipe"}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <CookingPot className="h-10 w-10 text-gray-300 dark:text-gray-500" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6">
+            <h3 className="text-lg font-bold text-white drop-shadow line-clamp-2 leading-snug">
+              {recipe.name}
+            </h3>
           </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6">
-          <h3 className="text-lg font-bold text-white drop-shadow line-clamp-2 leading-snug">
-            {recipe.name}
-          </h3>
         </div>
-      </div>
-    </button>
+      </button>
+      <button
+        type="button"
+        onClick={() => setFoodPlanDialogOpen(true)}
+        aria-label="Add to food plan"
+        className="absolute top-2 right-2 h-8 w-8 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors"
+      >
+        <CalendarPlus className="h-4 w-4" />
+      </button>
+      {foodPlanDialogOpen && (
+        <AddToFoodPlanDialog
+          recipe={recipe}
+          onClose={() => setFoodPlanDialogOpen(false)}
+        />
+      )}
+    </div>
   );
 }
 

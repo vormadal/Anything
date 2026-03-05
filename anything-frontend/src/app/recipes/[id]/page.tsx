@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical } from "lucide-react";
+import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus } from "lucide-react";
 import {
   useRecipe,
   useRecipeIngredients,
@@ -26,6 +26,7 @@ import {
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
+import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import { RecipeImageUpload } from "@/components/RecipeImageUpload";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -57,6 +58,7 @@ export default function RecipeDetailPage() {
 
   const [newStepText, setNewStepText] = useState("");
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
+  const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -296,6 +298,15 @@ export default function RecipeDetailPage() {
 
         {/* Edit / Done button — top right */}
         <div className="absolute top-4 right-4 flex items-center gap-2">
+          {!isEditMode && (
+            <button
+              onClick={() => setFoodPlanDialogOpen(true)}
+              aria-label="Add to food plan"
+              className="h-8 w-8 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full text-white transition-colors"
+            >
+              <CalendarPlus className="h-4 w-4" />
+            </button>
+          )}
           {isEditMode && (
             <div className="relative">
               <button
@@ -718,6 +729,14 @@ export default function RecipeDetailPage() {
           )}
         </div>
       </div>
+
+      {/* ── Add to Food Plan dialog ── */}
+      {foodPlanDialogOpen && recipe && (
+        <AddToFoodPlanDialog
+          recipe={recipe}
+          onClose={() => setFoodPlanDialogOpen(false)}
+        />
+      )}
 
       {/* ── Delete recipe confirmation dialog ── */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
