@@ -19,6 +19,13 @@ public static class ShoppingListEndpoints
         .WithName("GetShoppingLists")
         .RequireAuthorization();
 
+        group.MapGet("/completed", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new GetCompletedShoppingListsQuery());
+        })
+        .WithName("GetCompletedShoppingLists")
+        .RequireAuthorization();
+
         group.MapGet("/{id}", async (int id, IMediator mediator) =>
         {
             return await mediator.Send(new GetShoppingListByIdQuery(id));

@@ -4,6 +4,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type { ShoppingList, ShoppingListItem } from "@/lib/api-client/models/index";
 
+export function useCompletedShoppingLists() {
+  return useQuery({
+    queryKey: ["completedShoppingLists"],
+    queryFn: () =>
+      apiClient.api.shoppingLists.completed.get() as Promise<ShoppingList[]>,
+  });
+}
+
 export function useShoppingLists() {
   return useQuery({
     queryKey: ["shoppingLists"],
@@ -44,6 +52,7 @@ export function useCompleteShoppingList() {
       apiClient.api.shoppingLists.byId(id).complete.post() as Promise<ShoppingList>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+      queryClient.invalidateQueries({ queryKey: ["completedShoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems"] });
     },
   });
