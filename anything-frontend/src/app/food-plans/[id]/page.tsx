@@ -10,7 +10,7 @@ import {
 } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
@@ -329,10 +329,9 @@ function AddToShoppingListDialog({
 
 export default function FoodPlanDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const planId = Number(params.id);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
-  const { setHeaderActions } = useHeaderActions();
+  const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const { data: plan, isLoading: planLoading } = useFoodPlan(planId);
   const { data: entries, isLoading: entriesLoading } = useFoodPlanEntries(planId);
@@ -349,6 +348,7 @@ export default function FoodPlanDetailPage() {
   };
 
   useEffect(() => {
+    setLeftAction({ type: "back", href: "/food-plans" });
     setHeaderActions(
       <div className="flex items-center gap-1 ml-auto">
         <Button
@@ -362,8 +362,11 @@ export default function FoodPlanDetailPage() {
         </Button>
       </div>
     );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+    return () => {
+      setHeaderActions(null);
+      setLeftAction({ type: "menu" });
+    };
+  }, [setHeaderActions, setLeftAction]);
 
   if (planLoading || entriesLoading) {
     return (
@@ -400,20 +403,12 @@ export default function FoodPlanDetailPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
       <div className="mb-4">
-        <div>
-          <button
-            onClick={() => router.push("/food-plans")}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-1 block"
-          >
-            &larr; Back to Food Plans
-          </button>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            {plan.name}
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            Week of {weekStartDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
-          </p>
-        </div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          {plan.name}
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          Week of {weekStartDate.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+        </p>
       </div>
 
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${lgColsClass[orderedDays.length] ?? "lg:grid-cols-5"} gap-2`}>
