@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { Plus, Pencil, Check, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Pencil, Check, Trash2, CalendarDays, Settings } from "lucide-react";
 
 function formatWeekRange(weekStart: Date | null | undefined): string {
   if (!weekStart) return "";
@@ -104,16 +104,27 @@ export default function FoodPlansPage() {
                 </span>
               </button>
               {isEditMode && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeletePlan(plan.id!)}
-                  disabled={deletePlan.isPending}
-                  className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  aria-label="Delete food plan"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push(`/food-plans/${plan.id}/edit`)}
+                    className="shrink-0"
+                    aria-label="Edit food plan"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeletePlan(plan.id!)}
+                    disabled={deletePlan.isPending}
+                    className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    aria-label="Delete food plan"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
               )}
             </div>
           ))}

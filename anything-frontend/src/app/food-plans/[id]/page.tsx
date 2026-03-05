@@ -10,12 +10,12 @@ import {
 } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { ShoppingCart, Plus, X } from "lucide-react";
+import { ShoppingCart, Plus, X, Settings } from "lucide-react";
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 // Delay before closing the suggestions dropdown on blur, allowing onMouseDown on a suggestion to fire first
@@ -329,6 +329,7 @@ function AddToShoppingListDialog({
 
 export default function FoodPlanDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const planId = Number(params.id);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
   const { setHeaderActions, setLeftAction } = useHeaderActions();
@@ -354,6 +355,15 @@ export default function FoodPlanDetailPage() {
         <Button
           variant="ghost"
           size="icon"
+          onClick={() => router.push(`/food-plans/${planId}/edit`)}
+          aria-label="Edit food plan settings"
+          title="Edit food plan settings"
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setShowShoppingListDialog(true)}
           aria-label="Add to shopping list"
           title="Add all recipe ingredients to shopping list"
@@ -366,7 +376,7 @@ export default function FoodPlanDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [setHeaderActions, setLeftAction]);
+  }, [setHeaderActions, setLeftAction, planId, router]);
 
   if (planLoading || entriesLoading) {
     return (

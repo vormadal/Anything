@@ -185,6 +185,7 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 - PostgreSQL connection is managed by Aspire when using AppHost, or via `appsettings.Development.json` when running standalone.
 - The solution file is `.slnx` format (new XML-based solution format).
 - Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
+- always run linter, build and tests before committing changes.
 
 ## Testing
 
