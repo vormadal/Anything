@@ -666,7 +666,7 @@ export default function RecipeDetailPage() {
                     Select a shopping list to add all ingredients to:
                   </p>
                   <ul className="space-y-2">
-                    {shoppingLists.map((list) => (
+                    {(shoppingLists ?? []).map((list) => (
                       <li key={list.id}>
                         <button
                           onClick={() => handleAddToShoppingList(list.id!)}
