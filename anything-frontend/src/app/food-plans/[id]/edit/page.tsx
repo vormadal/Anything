@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useFoodPlan, useUpdateFoodPlan } from "@/hooks/useFoodPlans";
+import { FoodPlan } from "@/lib/api-client/models/index";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -28,20 +29,13 @@ function daySetToBitmask(days: Set<number>): number {
   return bitmask;
 }
 
-interface FoodPlan {
-  id: number;
-  name?: string | null;
-  weekStart?: string | Date | null;
-  activeDays?: number | null;
-}
-
 function EditFoodPlanForm({ plan, planId }: { plan: FoodPlan; planId: number }) {
   const router = useRouter();
   const updateFoodPlan = useUpdateFoodPlan();
 
   const [name, setName] = useState(plan.name ?? "");
   const [weekStart, setWeekStart] = useState(
-    plan.weekStart ? toDateInputValue(new Date(plan.weekStart as string)) : ""
+    plan.weekStart ? toDateInputValue(new Date(plan.weekStart)) : ""
   );
   const [selectedDays, setSelectedDays] = useState<Set<number>>(
     bitmaskToDaySet(plan.activeDays ?? DEFAULT_ACTIVE_DAYS)
