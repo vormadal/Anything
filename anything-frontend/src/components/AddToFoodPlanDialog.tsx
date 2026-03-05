@@ -16,6 +16,8 @@ const DAYS_OF_WEEK = [
   "Sunday",
 ] as const;
 
+const DEFAULT_ACTIVE_DAYS = 31;
+
 function getActiveDaysFromBitmask(activeDays: number): { index: number; name: string }[] {
   return DAYS_OF_WEEK.map((name, index) => ({ index, name })).filter(
     ({ index }) => (activeDays >> index) & 1
@@ -35,7 +37,9 @@ export function AddToFoodPlanDialog({ recipe, onClose }: AddToFoodPlanDialogProp
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number | null>(null);
 
   const selectedPlan = foodPlans?.find((p) => p.id === selectedPlanId);
-  const activeDays = selectedPlan ? getActiveDaysFromBitmask(selectedPlan.activeDays ?? 31) : [];
+  const activeDays = selectedPlan
+    ? getActiveDaysFromBitmask(selectedPlan.activeDays ?? DEFAULT_ACTIVE_DAYS)
+    : [];
 
   const handlePlanChange = (planId: number | null) => {
     setSelectedPlanId(planId);
@@ -47,7 +51,7 @@ export function AddToFoodPlanDialog({ recipe, onClose }: AddToFoodPlanDialogProp
     try {
       await addEntry.mutateAsync({
         foodPlanId: selectedPlanId,
-        name: recipe.name ?? "",
+        name: recipe.name || "Unnamed Recipe",
         recipeId: recipe.id,
         dayOfWeek: selectedDayOfWeek,
       });
