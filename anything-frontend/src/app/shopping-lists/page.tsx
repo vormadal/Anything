@@ -1,18 +1,26 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useShoppingLists, useCreateShoppingList } from "@/hooks/useShoppingLists";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useShoppingLists, useCreateShoppingList, useCompletedShoppingLists } from "@/hooks/useShoppingLists";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { Plus } from "lucide-react";
+import { MoreVertical, Plus } from "lucide-react";
 
 export default function ShoppingListsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [showCompleted, setShowCompleted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: lists, isLoading, error } = useShoppingLists();
+  const { data: completedLists } = useCompletedShoppingLists();
   const createList = useCreateShoppingList();
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
@@ -49,16 +57,34 @@ export default function ShoppingListsPage() {
         >
           <Plus className="h-5 w-5" />
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Shopping list options">
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuCheckboxItem
+              checked={showCompleted}
+              onCheckedChange={setShowCompleted}
+            >
+              Show completed lists
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  }, [setHeaderActions, showCompleted]);
 
   useEffect(() => {
     if (isCreating) {
       inputRef.current?.focus();
     }
   }, [isCreating]);
+
+  const hasActiveLists = lists && lists.length > 0;
+  const hasCompletedLists = showCompleted && completedLists && completedLists.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
@@ -98,13 +124,13 @@ export default function ShoppingListsPage() {
         </div>
       )}
 
-      {lists && lists.length === 0 && !isCreating && (
+      {lists && lists.length === 0 && !isCreating && !hasCompletedLists && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           No shopping lists yet.
         </div>
       )}
 
-      {lists && lists.length > 0 && (
+      {hasActiveLists && (
         <div className="space-y-1">
           {lists.map((list) => (
             <div key={list.id} className="flex items-center gap-2">
@@ -119,6 +145,35 @@ export default function ShoppingListsPage() {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {showCompleted && (
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+            Completed lists
+          </h2>
+          {completedLists && completedLists.length === 0 && (
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+              No completed lists yet.
+            </div>
+          )}
+          {hasCompletedLists && (
+            <div className="space-y-1">
+              {completedLists.map((list) => (
+                <div key={list.id} className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
+                      {list.name}
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -355,6 +355,56 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // --- GET /api/shopping-lists/completed ---
+
+    [Fact]
+    public async Task GetCompletedShoppingLists_WhenEmpty_ReturnsEmptyList()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync("/api/shopping-lists/completed");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetCompletedShoppingLists_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync("/api/shopping-lists/completed");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetCompletedShoppingLists_ReturnsCompletedLists()
+    {
+        var list = await CreateShoppingListAsync("Weekly Shop");
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PostAsync($"/api/shopping-lists/{list.Id}/complete", null);
+
+        var response = await client.GetAsync("/api/shopping-lists/completed");
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("Weekly Shop", result[0].Name);
+        Assert.NotNull(result[0].DeletedOn);
+    }
+
+    [Fact]
+    public async Task GetCompletedShoppingLists_DoesNotReturnActiveLists()
+    {
+        await CreateShoppingListAsync("Active List");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync("/api/shopping-lists/completed");
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
     // --- POST /api/shopping-lists/{id}/complete ---
 
     [Fact]
@@ -416,6 +466,6 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record ShoppingListDto(int Id, string? Name);
+    private record ShoppingListDto(int Id, string? Name, DateTime? DeletedOn = null);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
 }
