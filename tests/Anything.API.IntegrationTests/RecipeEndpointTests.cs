@@ -191,9 +191,9 @@ public class RecipeEndpointTests : IntegrationTestBase
             notes = "Classic Italian",
             ingredients = new[]
             {
-                new { name = "Spaghetti", amount = 200, unit = "g", group = (string?)null },
+                new { name = "Spaghetti", amount = (decimal?)200, unit = "g", group = (string?)null },
                 new { name = "Salt", amount = (decimal?)null, unit = (string?)null, group = (string?)null },
-                new { name = "Bacon", amount = 150, unit = "g", group = (string?)null },
+                new { name = "Bacon", amount = (decimal?)150, unit = "g", group = (string?)null },
             },
             steps = new[]
             {
