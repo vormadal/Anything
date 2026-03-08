@@ -18,7 +18,10 @@ export function generateImageMetadata() {
 export default function Icon({ id }: { id: string }) {
   const size = id === "192" ? 192 : 512;
   const fontSize = Math.round(size * 0.45);
-  const radius = Math.round(size * 0.2);
+  // Maskable icons (512) must fill the entire canvas — no border radius —
+  // so the OS can apply its own shape clipping without showing a browser badge.
+  // Regular icons (192, purpose "any") keep rounded corners.
+  const borderRadius = id === "512" ? 0 : Math.round(size * 0.2);
 
   return new ImageResponse(
     (
@@ -30,7 +33,7 @@ export default function Icon({ id }: { id: string }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          borderRadius: radius,
+          borderRadius,
         }}
       >
         <span
