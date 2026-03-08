@@ -15,7 +15,7 @@ public class GetShoppingListItemsHandler(
     public async Task<IResult> Handle(GetShoppingListItemsQuery query, CancellationToken ct = default)
     {
         var list = await listRepository.GetById(query.ShoppingListId);
-        if (list is null || list.DeletedOn != null)
+        if (list is null)
             return Results.NotFound("Shopping list not found.");
 
         var items = await itemRepository.Query()

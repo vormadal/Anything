@@ -162,14 +162,18 @@ export default function ShoppingListsPage() {
             <div className="space-y-1">
               {completedLists.map((list) => (
                 <div key={list.id} className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <button
+                    type="button"
+                    className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={() => router.push(`/shopping-lists/${list.id}`)}
+                  >
                     <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
                       {list.name}
                     </span>
                     <span className="text-xs text-gray-400 dark:text-gray-500">
                       Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
                     </span>
-                  </div>
+                  </button>
                 </div>
               ))}
             </div>

@@ -12,7 +12,7 @@ public class GetShoppingListByIdHandler(IRepository<ShoppingList> repository)
 {
     public async Task<IResult> Handle(GetShoppingListByIdQuery query, CancellationToken ct = default)
     {
-        return await repository.GetById(query.Id) is ShoppingList list && list.DeletedOn == null
+        return await repository.GetById(query.Id) is ShoppingList list
             ? Results.Ok(list)
             : Results.NotFound();
     }
