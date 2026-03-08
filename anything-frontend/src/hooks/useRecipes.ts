@@ -162,7 +162,7 @@ export function useDeleteRecipeStep(recipeId: number) {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 
 export interface ParsedIngredient {
-  amount: number;
+  amount?: number | null;
   unit?: string | null;
   name: string;
 }

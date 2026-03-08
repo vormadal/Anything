@@ -1,6 +1,6 @@
 namespace Anything.Contracts.Recipes;
 
-public record ParsedIngredient(decimal Amount, string? Unit, string Name);
+public record ParsedIngredient(decimal? Amount, string? Unit, string Name);
 
 public record ParsedStep(int Order, string Text);
 
