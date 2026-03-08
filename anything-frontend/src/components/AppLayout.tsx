@@ -52,6 +52,7 @@ function getPageTitle(pathname: string): string {
   if (pathname === "/admin/invite") return "Invite Users";
   if (pathname === "/admin/recommendations") return "Recommendations";
   if (pathname.startsWith("/admin")) return "Admin";
+  if (pathname === "/profile") return "Profile";
   return "Anything";
 }
 
@@ -187,14 +188,17 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
           <div className="border-t border-gray-200 dark:border-gray-800 p-4">
             {user && (
-              <div className="mb-3 px-1">
+              <button
+                onClick={() => navigate("/profile")}
+                className="mb-3 px-1 w-full text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors py-1"
+              >
                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {user.name}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   {user.email}
                 </p>
-              </div>
+              </button>
             )}
             <button
               onClick={handleLogout}
