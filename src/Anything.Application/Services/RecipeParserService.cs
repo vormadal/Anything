@@ -182,7 +182,7 @@ public class RecipeParserService(HttpClient httpClient) : IRecipeParserService
         var text = raw.Trim();
         var amountMatch = LeadingNumberRegex.Match(text);
         if (!amountMatch.Success)
-            return new ParsedIngredient(0, null, text);
+            return new ParsedIngredient(null, null, text);
 
         var amount = ParseAmount(amountMatch.Value.Trim());
         var rest = text[amountMatch.Length..].TrimStart();

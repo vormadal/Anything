@@ -4,7 +4,7 @@ using Anything.Mediator;
 
 namespace Anything.Application.Features.Recipes.Commands;
 
-public record ImportRecipeIngredient(string Name, decimal Amount, string? Unit, string? Group);
+public record ImportRecipeIngredient(string Name, decimal? Amount, string? Unit, string? Group);
 
 public record ImportRecipeStep(string Text, int Order);
 
@@ -37,7 +37,7 @@ public class ImportRecipeHandler(
         {
             RecipeId = recipe.Id,
             Name = i.Name,
-            Amount = i.Amount < 0 ? 0 : i.Amount,
+            Amount = i.Amount.HasValue && i.Amount < 0 ? 0 : i.Amount,
             Unit = i.Unit,
             Group = i.Group
         }).ToList();

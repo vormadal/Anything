@@ -191,9 +191,9 @@ public class RecipeEndpointTests : IntegrationTestBase
             notes = "Classic Italian",
             ingredients = new[]
             {
-                new { name = "Spaghetti", amount = 200, unit = "g", group = (string?)null },
-                new { name = "Salt", amount = 0, unit = (string?)null, group = (string?)null },
-                new { name = "Bacon", amount = 150, unit = "g", group = (string?)null },
+                new { name = "Spaghetti", amount = (decimal?)200, unit = "g", group = (string?)null },
+                new { name = "Salt", amount = (decimal?)null, unit = (string?)null, group = (string?)null },
+                new { name = "Bacon", amount = (decimal?)150, unit = "g", group = (string?)null },
             },
             steps = new[]
             {
@@ -214,7 +214,7 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.NotNull(ingredients);
         Assert.Equal(3, ingredients.Length);
         Assert.Contains(ingredients, i => i.Name == "Spaghetti" && i.Amount == 200 && i.Unit == "g");
-        Assert.Contains(ingredients, i => i.Name == "Salt" && i.Amount == 0);
+        Assert.Contains(ingredients, i => i.Name == "Salt" && i.Amount == null);
         Assert.Contains(ingredients, i => i.Name == "Bacon" && i.Amount == 150 && i.Unit == "g");
 
         var stepsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/steps");
