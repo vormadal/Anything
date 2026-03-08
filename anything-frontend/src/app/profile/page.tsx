@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useCurrentUser, useUpdateProfile, useChangePassword } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/apiClient";
 
 export default function ProfilePage() {
   const { data: user } = useCurrentUser();
@@ -11,10 +12,16 @@ export default function ProfilePage() {
   const updateProfile = useUpdateProfile();
   const changePassword = useChangePassword();
 
-  const [name, setName] = useState(user?.name ?? "");
+  const [name, setName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  useEffect(() => {
+    if (user?.name) {
+      setName(user.name);
+    }
+  }, [user?.name]);
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +34,12 @@ export default function ProfilePage() {
     try {
       await updateProfile.mutateAsync({ name: name.trim() });
       toast.success("Name updated successfully");
-    } catch {
-      toast.error("Failed to update name");
+    } catch (err) {
+      if (err instanceof ApiError && err.responseStatusCode === 400) {
+        toast.error("Invalid name");
+      } else {
+        toast.error("Failed to update name");
+      }
     }
   };
 
@@ -51,8 +62,12 @@ export default function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch {
-      toast.error("Failed to change password. Please check your current password.");
+    } catch (err) {
+      if (err instanceof ApiError && err.responseStatusCode === 400) {
+        toast.error("Current password is incorrect");
+      } else {
+        toast.error("Failed to change password");
+      }
     }
   };
 
