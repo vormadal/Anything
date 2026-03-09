@@ -1,10 +1,12 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
-import { useLogin, useLogout, setTokens, clearTokens, getAccessToken, getRefreshToken } from "@/hooks/useAuth";
+import { useLogin, useLogout, useUpdateProfile, useChangePassword, setTokens, clearTokens, getAccessToken, getRefreshToken, setUser, getUser } from "@/hooks/useAuth";
 
 // Mock the apiClient module
 const mockLoginPost = jest.fn()
+const mockProfilePut = jest.fn()
+const mockPasswordPut = jest.fn()
 
 jest.mock('@/lib/apiClient', () => {
   class ApiError extends Error {
@@ -24,7 +26,10 @@ jest.mock('@/lib/apiClient', () => {
           refresh: { post: jest.fn() },
           register: { post: jest.fn() },
           invites: { post: jest.fn() },
-          profile: { put: jest.fn() },
+          profile: {
+            put: (...args: unknown[]) => mockProfilePut(...args),
+            password: { put: (...args: unknown[]) => mockPasswordPut(...args) },
+          },
         },
       },
     },
@@ -139,6 +144,46 @@ describe("useAuth hooks", () => {
 
       expect(getAccessToken()).toBeNull();
       expect(getRefreshToken()).toBeNull();
+    });
+  });
+
+  describe("useUpdateProfile", () => {
+    it("should update user name in localStorage on success", async () => {
+      setUser({ email: "test@example.com", name: "Old Name", role: "User" });
+      mockProfilePut.mockResolvedValueOnce(undefined);
+
+      const { result } = renderHook(() => useUpdateProfile(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(async () => {
+        await result.current.mutateAsync({ name: "New Name" });
+      });
+
+      expect(mockProfilePut).toHaveBeenCalledWith({ name: "New Name" });
+      expect(getUser()?.name).toBe("New Name");
+    });
+  });
+
+  describe("useChangePassword", () => {
+    it("should call the password endpoint with current and new password", async () => {
+      mockPasswordPut.mockResolvedValueOnce(undefined);
+
+      const { result } = renderHook(() => useChangePassword(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(async () => {
+        await result.current.mutateAsync({
+          currentPassword: "OldPass123!",
+          newPassword: "NewPass123!",
+        });
+      });
+
+      expect(mockPasswordPut).toHaveBeenCalledWith({
+        currentPassword: "OldPass123!",
+        newPassword: "NewPass123!",
+      });
     });
   });
 });

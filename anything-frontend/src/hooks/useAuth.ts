@@ -189,9 +189,24 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (data: { name: string }) =>
       apiClient.api.auth.profile.put({ name: data.name }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      const currentUser = getUser();
+      if (currentUser) {
+        setUser({ ...currentUser, name: variables.name });
+      }
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
     },
+  });
+}
+
+// Change password
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      apiClient.api.auth.profile.password.put({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      }),
   });
 }
 

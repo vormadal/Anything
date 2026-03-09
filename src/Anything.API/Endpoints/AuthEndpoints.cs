@@ -70,5 +70,14 @@ public static class AuthEndpoints
         .WithName("UpdateProfile")
         .WithParameterValidation()
         .RequireAuthorization();
+
+        group.MapPut("/profile/password", async (ChangePasswordRequest request, ClaimsPrincipal user, IMediator mediator) =>
+        {
+            var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            return await mediator.Send(new ChangePasswordCommand(userId, request.CurrentPassword, request.NewPassword));
+        })
+        .WithName("ChangePassword")
+        .WithParameterValidation()
+        .RequireAuthorization();
     }
 }

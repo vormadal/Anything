@@ -4,12 +4,18 @@
 // @ts-ignore
 import { serializeUpdateProfileRequest, type UpdateProfileRequest } from '../../../models/index';
 // @ts-ignore
-import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
+import { PasswordRequestBuilderRequestsMetadata, type PasswordRequestBuilder } from './password/index';
+// @ts-ignore
+import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /api/auth/profile
  */
 export interface ProfileRequestBuilder extends BaseRequestBuilder<ProfileRequestBuilder> {
+    /**
+     * The password property
+     */
+    get password(): PasswordRequestBuilder;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
@@ -26,6 +32,14 @@ export interface ProfileRequestBuilder extends BaseRequestBuilder<ProfileRequest
  * Uri template for the request builder.
  */
 export const ProfileRequestBuilderUriTemplate = "{+baseurl}/api/auth/profile";
+/**
+ * Metadata for all the navigation properties in the request builder.
+ */
+export const ProfileRequestBuilderNavigationMetadata: Record<Exclude<keyof ProfileRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
+    password: {
+        requestsMetadata: PasswordRequestBuilderRequestsMetadata,
+    },
+};
 /**
  * Metadata for all the requests in the request builder.
  */

@@ -290,6 +290,98 @@ public class AuthEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, registerResponse.StatusCode);
     }
 
+    // --- PUT /api/auth/profile/password ---
+
+    [Fact]
+    public async Task ChangePassword_WithValidCurrentPassword_Returns204()
+    {
+        var token = await LoginAsAdminAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/auth/profile/password")
+        {
+            Content = JsonContent.Create(new
+            {
+                currentPassword = "Admin123!",
+                newPassword = "NewAdmin123!"
+            })
+        };
+        request.Headers.Add("Authorization", $"Bearer {token}");
+
+        var response = await HttpClient.SendAsync(request);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        // Restore the original password so other tests are not affected
+        var loginResponse = await HttpClient.PostAsJsonAsync("/api/auth/login", new
+        {
+            email = "admin@anything.local",
+            password = "NewAdmin123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions);
+        Assert.NotNull(loginResult);
+
+        var restoreRequest = new HttpRequestMessage(HttpMethod.Put, "/api/auth/profile/password")
+        {
+            Content = JsonContent.Create(new
+            {
+                currentPassword = "NewAdmin123!",
+                newPassword = "Admin123!"
+            })
+        };
+        restoreRequest.Headers.Add("Authorization", $"Bearer {loginResult.AccessToken}");
+        await HttpClient.SendAsync(restoreRequest);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithWrongCurrentPassword_Returns400()
+    {
+        var token = await LoginAsAdminAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/auth/profile/password")
+        {
+            Content = JsonContent.Create(new
+            {
+                currentPassword = "WrongPassword123!",
+                newPassword = "NewAdmin123!"
+            })
+        };
+        request.Headers.Add("Authorization", $"Bearer {token}");
+
+        var response = await HttpClient.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithShortNewPassword_Returns400()
+    {
+        var token = await LoginAsAdminAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/auth/profile/password")
+        {
+            Content = JsonContent.Create(new
+            {
+                currentPassword = "Admin123!",
+                newPassword = "short"
+            })
+        };
+        request.Headers.Add("Authorization", $"Bearer {token}");
+
+        var response = await HttpClient.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithoutAuth_Returns401()
+    {
+        var response = await HttpClient.PutAsJsonAsync("/api/auth/profile/password", new
+        {
+            currentPassword = "Admin123!",
+            newPassword = "NewAdmin123!"
+        });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     // --- Helper Methods ---
 
     private async Task<string> LoginAsAdminAsync()

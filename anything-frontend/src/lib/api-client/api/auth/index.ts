@@ -6,7 +6,7 @@ import { InvitesRequestBuilderNavigationMetadata, InvitesRequestBuilderRequestsM
 // @ts-ignore
 import { LoginRequestBuilderRequestsMetadata, type LoginRequestBuilder } from './login/index';
 // @ts-ignore
-import { ProfileRequestBuilderRequestsMetadata, type ProfileRequestBuilder } from './profile/index';
+import { ProfileRequestBuilderNavigationMetadata, ProfileRequestBuilderRequestsMetadata, type ProfileRequestBuilder } from './profile/index';
 // @ts-ignore
 import { RefreshRequestBuilderRequestsMetadata, type RefreshRequestBuilder } from './refresh/index';
 // @ts-ignore
@@ -56,6 +56,7 @@ export const AuthRequestBuilderNavigationMetadata: Record<Exclude<keyof AuthRequ
     },
     profile: {
         requestsMetadata: ProfileRequestBuilderRequestsMetadata,
+        navigationMetadata: ProfileRequestBuilderNavigationMetadata,
     },
     refresh: {
         requestsMetadata: RefreshRequestBuilderRequestsMetadata,
