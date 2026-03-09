@@ -142,8 +142,11 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var deleteResponse = await client.DeleteAsync($"/api/shopping-lists/{list.Id}");
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
+        // Soft-deleted lists are still accessible by ID (with DeletedOn set)
         var getResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}");
-        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        Assert.NotNull(result?.DeletedOn);
     }
 
     [Fact]
@@ -425,14 +428,17 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task CompleteShoppingList_OldListBecomesDeleted()
+    public async Task CompleteShoppingList_OldListIsAccessibleAsCompleted()
     {
         var list = await CreateShoppingListAsync("Weekly Shop");
         var client = await GetAuthenticatedHttpClientAsync();
         await client.PostAsync($"/api/shopping-lists/{list.Id}/complete", null);
 
+        // Completed lists are accessible by ID and have DeletedOn set
         var getResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}");
-        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        Assert.NotNull(result?.DeletedOn);
     }
 
     [Fact]

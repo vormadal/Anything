@@ -261,4 +261,28 @@ describe('ShoppingListsPage', () => {
       expect(screen.getByText(/Completed \d/)).toBeInTheDocument()
     })
   })
+
+  it('should navigate to completed list detail when clicked', async () => {
+    const user = userEvent.setup()
+    mockShoppingListsGet.mockResolvedValue([])
+    mockShoppingListsCompletedGet.mockResolvedValue([
+      { id: 10, name: 'Old Groceries', deletedOn: new Date('2024-03-01T10:00:00Z') },
+    ])
+
+    render(<ShoppingListsPage />)
+
+    const menuButton = screen.getByRole('button', { name: 'Shopping list options' })
+    await user.click(menuButton)
+
+    const checkboxItem = await screen.findByText('Show completed lists')
+    await user.click(checkboxItem)
+
+    await waitFor(() => {
+      expect(screen.getByText('Old Groceries')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /Old Groceries/ }))
+
+    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/10')
+  })
 })

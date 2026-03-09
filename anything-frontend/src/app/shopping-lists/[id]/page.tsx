@@ -23,7 +23,7 @@ import type { ShoppingListItem, ShoppingList } from "@/lib/api-client/models/ind
 import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { Pencil, Check, Plus, Trash2, MoreVertical } from "lucide-react";
+import { Pencil, Check, Plus, Trash2, MoreVertical, Archive } from "lucide-react";
 
 export default function ShoppingListDetailPage() {
   const SUGGESTION_CLOSE_DELAY_MS = 150;
@@ -60,6 +60,7 @@ export default function ShoppingListDetailPage() {
   const checkedItems = items?.filter((i) => i.isChecked) ?? [];
   const sortedItems = [...uncheckedItems, ...checkedItems];
   const isFewItems = uncheckedItems.length > 0 && uncheckedItems.length <= 3;
+  const isCompleted = !!list?.deletedOn;
 
   const filteredSuggestions =
     recommendations?.filter(
@@ -171,43 +172,45 @@ export default function ShoppingListDetailPage() {
   useEffect(() => {
     setLeftAction({ type: "back", href: "/shopping-lists" });
     setHeaderActions(
-      <div className="flex items-center gap-1 ml-auto">
-        <Button
-          variant={isEditMode ? "default" : "ghost"}
-          size="icon"
-          onClick={() => {
-            setIsEditMode(!isEditMode);
-            setEditingItem(null);
-          }}
-          aria-label={isEditMode ? "Done editing" : "Edit list"}
-        >
-          {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="More options">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-              onSelect={async () => {
-                try {
-                  await deleteList.mutateAsync(listId);
-                  toast.success("Shopping list deleted");
-                  router.push("/shopping-lists");
-                } catch {
-                  toast.error("Failed to delete shopping list. Please try again.");
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete list
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      isCompleted ? null : (
+        <div className="flex items-center gap-1 ml-auto">
+          <Button
+            variant={isEditMode ? "default" : "ghost"}
+            size="icon"
+            onClick={() => {
+              setIsEditMode(!isEditMode);
+              setEditingItem(null);
+            }}
+            aria-label={isEditMode ? "Done editing" : "Edit list"}
+          >
+            {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="More options">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                onSelect={async () => {
+                  try {
+                    await deleteList.mutateAsync(listId);
+                    toast.success("Shopping list deleted");
+                    router.push("/shopping-lists");
+                  } catch {
+                    toast.error("Failed to delete shopping list. Please try again.");
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete list
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )
     );
     return () => {
       setHeaderActions(null);
@@ -215,7 +218,7 @@ export default function ShoppingListDetailPage() {
     };
     // deleteList, listId, router are stable references — omitted intentionally
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, setHeaderActions, setLeftAction]);
+  }, [isEditMode, isCompleted, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
@@ -224,9 +227,17 @@ export default function ShoppingListDetailPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             {list?.name ?? "Shopping List"}
           </h2>
+          {isCompleted && (
+            <div className="mt-2 flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
+              <Archive className="h-4 w-4" />
+              <span>
+                Completed{list?.deletedOn ? ` on ${new Date(list.deletedOn).toLocaleDateString()}` : ""} · Read-only
+              </span>
+            </div>
+          )}
         </div>
 
-        {isEditMode && (
+        {isEditMode && !isCompleted && (
           <form onSubmit={handleAddItem} className="mb-4">
             <div className="flex gap-1 items-center">
               <div className="relative flex-1">
@@ -318,13 +329,13 @@ export default function ShoppingListDetailPage() {
                   <button
                     type="button"
                     onClick={() => handleToggleCheck(item)}
-                    disabled={updateItem.isPending || completeList.isPending}
+                    disabled={isCompleted || updateItem.isPending || completeList.isPending}
                     aria-label={item.isChecked ? "Uncheck item" : "Check item"}
                     className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       item.isChecked
                         ? "bg-gray-300 border-gray-300 dark:bg-gray-600 dark:border-gray-600"
                         : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
-                    }`}
+                    } ${isCompleted ? "cursor-default opacity-60" : ""}`}
                   >
                     {item.isChecked && <Check className="h-3 w-3 text-gray-500 dark:text-gray-400" />}
                   </button>
@@ -446,7 +457,7 @@ export default function ShoppingListDetailPage() {
           </ul>
         )}
 
-        {!isEditMode && items && items.length > 0 && (items.every((i) => i.isChecked) || isFewItems) && (
+        {!isEditMode && !isCompleted && items && items.length > 0 && (items.every((i) => i.isChecked) || isFewItems) && (
           <div className="mt-4 flex justify-end">
             <Button
               onClick={handleCompleteList}
