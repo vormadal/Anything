@@ -18,7 +18,7 @@ if (!APP_NAME || !CAPROVER_PASSWORD) {
 function fetchAppDefinition() {
   const output = execSync(
     `caprover api --caproverUrl ${CAPROVER_URL} ` +
-      `--caproverPassword ${CAPROVER_PASSWORD} ` +
+      `--caproverPassword "${CAPROVER_PASSWORD}" ` +
       `--path /user/apps/appDefinitions --method GET --data "{}"`,
     { encoding: "utf-8" }
   );
