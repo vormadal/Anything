@@ -252,9 +252,7 @@ export default function ShoppingListDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-    // deleteList, listId, router are stable references — omitted intentionally
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, isCompleted, setHeaderActions, setLeftAction]);
+  }, [isEditMode, isCompleted, setHeaderActions, setLeftAction, deleteList, listId, router]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">

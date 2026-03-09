@@ -1,7 +1,8 @@
 "use client";
 
 import { useRecipes, useRecipeImages, useRecipeTags } from "@/hooks/useRecipes";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { Search, X, CookingPot, Plus, CalendarPlus } from "lucide-react";
@@ -31,12 +32,12 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
       >
         <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
           {imageUrl && !imgError ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={imageUrl}
               alt={recipe.name ?? "Recipe"}
-              className="w-full h-full object-cover"
-              loading="lazy"
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
               onError={() => setImgError(true)}
             />
           ) : (
@@ -104,10 +105,10 @@ export default function RecipesPage() {
     return recipes.filter((r) => r.name?.toLowerCase().includes(query));
   }, [recipes, searchQuery]);
 
-  const handleCloseSearch = () => {
+  const handleCloseSearch = useCallback(() => {
     setSearchOpen(false);
     setSearchQuery("");
-  };
+  }, []);
 
   useEffect(() => {
     if (searchOpen) {
@@ -195,8 +196,7 @@ export default function RecipesPage() {
     );
 
     return () => setHeaderActions(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchOpen, searchQuery, setHeaderActions]);
+  }, [searchOpen, searchQuery, setHeaderActions, handleCloseSearch, router]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
