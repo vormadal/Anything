@@ -142,6 +142,55 @@ describe('Home Page Integration Tests', () => {
     })
   })
 
+  it('should navigate to recipe detail when a recipe-linked entry is clicked', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    const monday = new Date('2025-06-16T00:00:00')
+    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay())
+
+    mockFoodPlansGet.mockResolvedValue([
+      { id: 10, name: 'My Plan', weekStart: monday.toISOString() },
+    ])
+    mockFoodPlansByIdEntriesGet.mockResolvedValue([
+      { id: 1, dayOfWeek: planDayOfWeek, name: null, recipeId: 5 },
+    ])
+    mockRecipesGet.mockResolvedValue([{ id: 5, name: 'Lasagna' }])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lasagna')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Lasagna'))
+    expect(mockPush).toHaveBeenCalledWith('/recipes/5')
+  })
+
+  it('should not be clickable for plan entries without a recipe', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    const monday = new Date('2025-06-16T00:00:00')
+    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay())
+
+    mockFoodPlansGet.mockResolvedValue([
+      { id: 10, name: 'My Plan', weekStart: monday.toISOString() },
+    ])
+    mockFoodPlansByIdEntriesGet.mockResolvedValue([
+      { id: 2, dayOfWeek: planDayOfWeek, name: 'Homemade Soup', recipeId: null },
+    ])
+    mockRecipesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Homemade Soup')).toBeInTheDocument()
+    })
+
+    // The entry should not be a button
+    expect(screen.queryByRole('button', { name: 'Homemade Soup' })).not.toBeInTheDocument()
+  })
+
   it('should navigate to food plan detail when "Edit plan" is clicked', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))

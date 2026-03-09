@@ -118,6 +118,19 @@ export default function Home() {
             {todayEntries.map((entry) => {
               const recipe = entry.recipeId ? recipes?.find((r) => r.id === entry.recipeId) : null;
               const displayName = recipe?.name ?? entry.name ?? "Unknown";
+              if (entry.recipeId) {
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                    onClick={() => router.push(`/recipes/${entry.recipeId}`)}
+                  >
+                    <span className="text-sm text-gray-900 dark:text-white">{displayName}</span>
+                    <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+                  </button>
+                );
+              }
               return (
                 <div key={entry.id} className="px-4 py-2.5 flex items-center justify-between">
                   <span className="text-sm text-gray-900 dark:text-white">{displayName}</span>
