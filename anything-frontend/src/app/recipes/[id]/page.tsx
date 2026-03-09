@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus } from "lucide-react";
+import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,9 @@ import {
   useDeleteRecipeStep,
   useDeleteRecipeImage,
   useAddIngredientsToShoppingList,
+  useRecipeTags,
+  useAddRecipeTag,
+  useDeleteRecipeTag,
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
@@ -63,6 +66,7 @@ export default function RecipeDetailPage() {
   >({});
 
   const [newStepText, setNewStepText] = useState("");
+  const [newTagName, setNewTagName] = useState("");
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
@@ -75,6 +79,7 @@ export default function RecipeDetailPage() {
   const { data: ingredients } = useRecipeIngredients(recipeId);
   const { data: steps } = useRecipeSteps(recipeId);
   const { data: images } = useRecipeImages(recipeId);
+  const { data: tags } = useRecipeTags(recipeId);
   const { data: shoppingLists } = useShoppingLists();
   const { data: recommendations } = useApprovedRecommendations();
 
@@ -87,6 +92,8 @@ export default function RecipeDetailPage() {
   const deleteStep = useDeleteRecipeStep(recipeId);
   const deleteImage = useDeleteRecipeImage(recipeId);
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
+  const addTag = useAddRecipeTag(recipeId);
+  const deleteTag = useDeleteRecipeTag(recipeId);
 
   const handleEnterEditMode = useCallback(() => {
     setEditName(recipe?.name ?? "");
@@ -237,6 +244,27 @@ export default function RecipeDetailPage() {
       toast.success("Image removed");
     } catch {
       toast.error("Failed to remove image. Please try again.");
+    }
+  };
+
+  const handleAddTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTagName.trim()) return;
+    try {
+      await addTag.mutateAsync(newTagName.trim());
+      setNewTagName("");
+      toast.success("Tag added");
+    } catch {
+      toast.error("Failed to add tag. Please try again.");
+    }
+  };
+
+  const handleDeleteTag = async (tagId: number) => {
+    try {
+      await deleteTag.mutateAsync(tagId);
+      toast.success("Tag removed");
+    } catch {
+      toast.error("Failed to remove tag. Please try again.");
     }
   };
 
@@ -482,6 +510,58 @@ export default function RecipeDetailPage() {
             </div>
           )
         )}
+
+        {/* ── Tags ── */}
+        <div className="mb-8">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+            Tags
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {tags?.map((tag) => (
+              <span
+                key={tag.id}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
+              >
+                {tag.name}
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTag(tag.id)}
+                    disabled={deleteTag.isPending}
+                    aria-label={`Remove tag ${tag.name}`}
+                    className="ml-0.5 text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </span>
+            ))}
+            {(!tags || tags.length === 0) && !isEditMode && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No tags yet.</p>
+            )}
+          </div>
+          {isEditMode && (
+            <form onSubmit={handleAddTag} className="flex gap-2 mt-3">
+              <input
+                type="text"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                placeholder="Add a tag (e.g. vegetarian)"
+                maxLength={50}
+                className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+              />
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                disabled={!newTagName.trim() || addTag.isPending}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </form>
+          )}
+        </div>
 
         {/* ── Ingredients ── */}
         <div className="mb-10">

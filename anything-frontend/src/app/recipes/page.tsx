@@ -1,6 +1,6 @@
 "use client";
 
-import { useRecipes, useRecipeImages } from "@/hooks/useRecipes";
+import { useRecipes, useRecipeImages, useRecipeTags } from "@/hooks/useRecipes";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
@@ -9,12 +9,18 @@ import { Button } from "@/components/ui/button";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import type { Recipe } from "@/lib/api-client/models/index";
 
+const MAX_VISIBLE_TAGS = 3;
+
 function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }) {
   const { data: images } = useRecipeImages(recipe.id!);
+  const { data: tags } = useRecipeTags(recipe.id!);
   const firstImage = images?.[0];
   const imageUrl = firstImage?.thumbnailUrl ?? null;
   const [imgError, setImgError] = useState(false);
   const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
+
+  const visibleTags = tags?.slice(0, MAX_VISIBLE_TAGS) ?? [];
+  const extraTagCount = (tags?.length ?? 0) - visibleTags.length;
 
   return (
     <div className="relative overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all">
@@ -43,6 +49,23 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
             <h3 className="text-lg font-bold text-white drop-shadow line-clamp-2 leading-snug">
               {recipe.name}
             </h3>
+            {visibleTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {visibleTags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+                {extraTagCount > 0 && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm">
+                    +{extraTagCount}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </button>
