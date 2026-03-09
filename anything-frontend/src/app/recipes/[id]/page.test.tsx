@@ -422,7 +422,12 @@ describe('RecipeDetailPage', () => {
   it('should add an image in edit mode', async () => {
     const user = userEvent.setup()
     const originalFetch = global.fetch
-    const mockFetch = jest.fn().mockResolvedValueOnce({ ok: true } as Response)
+    const mockFetch = jest.fn().mockImplementation((url: string) => {
+      if ((url as string).includes('/tags')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as unknown as Response)
+      }
+      return Promise.resolve({ ok: true } as Response)
+    })
     global.fetch = mockFetch
 
     try {
