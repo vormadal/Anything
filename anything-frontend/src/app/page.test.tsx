@@ -36,7 +36,9 @@ const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    back: jest.fn(),
   }),
+  usePathname: () => '/',
 }))
 
 // Helper to get a Monday date that contains "today"

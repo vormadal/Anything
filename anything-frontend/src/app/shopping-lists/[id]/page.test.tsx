@@ -41,8 +41,10 @@ const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    back: jest.fn(),
   }),
   useParams: () => ({ id: '1' }),
+  usePathname: () => '/shopping-lists/1',
 }))
 
 // Mock toast
