@@ -42,6 +42,14 @@ public static class ShoppingListEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPut("/{id}", async (int id, UpdateShoppingListRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new UpdateShoppingListCommand(id, request.Name));
+        })
+        .WithName("UpdateShoppingList")
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapDelete("/{id}", async (int id, IMediator mediator) =>
         {
             return await mediator.Send(new DeleteShoppingListCommand(id));
