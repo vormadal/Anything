@@ -182,13 +182,16 @@ describe('Home Page Integration Tests', () => {
     expect(mockPush).toHaveBeenCalledWith('/food-plans')
   })
 
-  it('should show top 2 shopping lists', async () => {
+  it('should show top 5 shopping lists', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockFoodPlansGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([
       { id: 1, name: 'Grocery List' },
       { id: 2, name: 'Party Supplies' },
       { id: 3, name: 'Hardware Store' },
+      { id: 4, name: 'Office Supplies' },
+      { id: 5, name: 'Pharmacy Run' },
+      { id: 6, name: 'Weekend Market' },
     ])
 
     render(<Home />)
@@ -196,12 +199,15 @@ describe('Home Page Integration Tests', () => {
     await waitFor(() => {
       expect(screen.getByText('Grocery List')).toBeInTheDocument()
       expect(screen.getByText('Party Supplies')).toBeInTheDocument()
+      expect(screen.getByText('Hardware Store')).toBeInTheDocument()
+      expect(screen.getByText('Office Supplies')).toBeInTheDocument()
+      expect(screen.getByText('Pharmacy Run')).toBeInTheDocument()
     })
 
-    // Third list should not be shown directly
-    expect(screen.queryByText('Hardware Store')).not.toBeInTheDocument()
+    // Sixth list should not be shown directly
+    expect(screen.queryByText('Weekend Market')).not.toBeInTheDocument()
     // But "View all X lists" link should be present
-    expect(screen.getByText(/View all 3 lists/i)).toBeInTheDocument()
+    expect(screen.getByText(/View all 6 lists/i)).toBeInTheDocument()
   })
 
   it('should show empty state when no shopping lists exist', async () => {

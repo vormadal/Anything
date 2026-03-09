@@ -52,7 +52,7 @@ export default function Home() {
   const { data: entries } = useFoodPlanEntries(currentPlan?.id ?? 0);
 
   const todayEntries = entries?.filter((e) => e.dayOfWeek === planDayOfWeek) ?? [];
-  const topLists = shoppingLists?.slice(0, 2) ?? [];
+  const topLists = shoppingLists?.slice(0, 5) ?? [];
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-6">
