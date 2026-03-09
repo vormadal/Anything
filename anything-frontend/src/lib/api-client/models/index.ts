@@ -341,6 +341,15 @@ export function createCreateShoppingListItemRequestFromDiscriminatorValue(parseN
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateShoppingListRequest}
+ */
+// @ts-ignore
+export function createUpdateShoppingListRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateShoppingListRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UpdateShoppingListItemRequest}
  */
 // @ts-ignore
@@ -705,6 +714,12 @@ export function deserializeIntoCreateShoppingListItemRequest(createShoppingListI
  * @param UpdateShoppingListItemRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
+// @ts-ignore
+export function deserializeIntoUpdateShoppingListRequest(updateShoppingListRequest: Partial<UpdateShoppingListRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { updateShoppingListRequest.name = n.getStringValue(); },
+    }
+}
 // @ts-ignore
 export function deserializeIntoUpdateShoppingListItemRequest(updateShoppingListItemRequest: Partial<UpdateShoppingListItemRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
@@ -1264,6 +1279,12 @@ export function serializeCreateShoppingListItemRequest(writer: SerializationWrit
  * @param writer Serialization writer to use to serialize this model
  */
 // @ts-ignore
+export function serializeUpdateShoppingListRequest(writer: SerializationWriter, updateShoppingListRequest: Partial<UpdateShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateShoppingListRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", updateShoppingListRequest.name);
+    writer.writeAdditionalData(updateShoppingListRequest.additionalData);
+}
+// @ts-ignore
 export function serializeUpdateShoppingListItemRequest(writer: SerializationWriter, updateShoppingListItemRequest: Partial<UpdateShoppingListItemRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateShoppingListItemRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("amount", updateShoppingListItemRequest.amount);
@@ -1441,6 +1462,16 @@ export interface CreateShoppingListItemRequest extends AdditionalDataHolder, Par
      * The unit property
      */
     unit?: string | null;
+}
+export interface UpdateShoppingListRequest extends AdditionalDataHolder, Parsable {
+    /**
+     * The additionalData property
+     */
+    additionalData?: Record<string, unknown>;
+    /**
+     * The name property
+     */
+    name?: string | null;
 }
 export interface UpdateShoppingListItemRequest extends AdditionalDataHolder, Parsable {
     /**

@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 // @ts-ignore
-import { createShoppingListFromDiscriminatorValue, type ShoppingList } from '../../../models/index';
+import { createShoppingListFromDiscriminatorValue, serializeUpdateShoppingListRequest, type ShoppingList, type UpdateShoppingListRequest } from '../../../models/index';
 // @ts-ignore
 import { ShoppingListsItemCompleteRequestBuilderRequestsMetadata, type ShoppingListsItemCompleteRequestBuilder } from './complete/index';
 // @ts-ignore
@@ -31,6 +31,11 @@ export interface ShoppingListsItemRequestBuilder extends BaseRequestBuilder<Shop
      */
      get(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ShoppingList | undefined>;
     /**
+     * @param body The request body
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     */
+     put(body: UpdateShoppingListRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
+    /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
      */
@@ -40,6 +45,12 @@ export interface ShoppingListsItemRequestBuilder extends BaseRequestBuilder<Shop
      * @returns {RequestInformation}
      */
      toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined) : RequestInformation;
+    /**
+     * @param body The request body
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+     toPutRequestInformation(body: UpdateShoppingListRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : RequestInformation;
 }
 /**
  * Uri template for the request builder.
@@ -70,6 +81,13 @@ export const ShoppingListsItemRequestBuilderRequestsMetadata: RequestsMetadata =
         responseBodyContentType: "application/json",
         adapterMethodName: "send",
         responseBodyFactory: createShoppingListFromDiscriminatorValue,
+    },
+    put: {
+        uriTemplate: ShoppingListsItemRequestBuilderUriTemplate,
+        adapterMethodName: "sendNoResponseContent",
+        requestBodyContentType: "application/json",
+        requestBodySerializer: serializeUpdateShoppingListRequest,
+        requestInformationContentSetMethod: "setContentFromParsable",
     },
 };
 /* tslint:enable */

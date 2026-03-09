@@ -10,12 +10,14 @@ import {
   useAddShoppingListItem,
   useUpdateShoppingListItem,
   useRemoveShoppingListItem,
+  useUpdateShoppingList,
 } from '@/hooks/useShoppingLists'
 
 // Mock the apiClient module
 const mockGet = jest.fn()
 const mockPost = jest.fn()
 const mockDelete = jest.fn()
+const mockPut = jest.fn()
 const mockItemsGet = jest.fn()
 const mockItemsPost = jest.fn()
 const mockItemsItemPut = jest.fn()
@@ -24,7 +26,7 @@ const mockItemsItemById = jest.fn(() => ({ put: mockItemsItemPut, delete: mockIt
 const mockCompletePost = jest.fn()
 const mockItems = { get: mockItemsGet, post: mockItemsPost, byId: mockItemsItemById }
 const mockComplete = { post: mockCompletePost }
-const mockById = jest.fn(() => ({ delete: mockDelete, get: mockGet, items: mockItems, complete: mockComplete }))
+const mockById = jest.fn(() => ({ delete: mockDelete, get: mockGet, put: mockPut, items: mockItems, complete: mockComplete }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -243,6 +245,39 @@ describe('useShoppingLists hooks', () => {
 
       expect(mockItemsItemById).toHaveBeenCalledWith(2)
       expect(mockItemsItemDelete).toHaveBeenCalled()
+    })
+  })
+
+  describe('useUpdateShoppingList', () => {
+    it('should update a shopping list name successfully', async () => {
+      mockPut.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useUpdateShoppingList(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ id: 1, name: 'Updated Groceries' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockPut).toHaveBeenCalledWith({ name: 'Updated Groceries' })
+    })
+
+    it('should handle update error', async () => {
+      mockPut.mockRejectedValueOnce(new Error('Server error'))
+
+      const { result } = renderHook(() => useUpdateShoppingList(), {
+        wrapper: createWrapper(),
+      })
+
+      result.current.mutate({ id: 1, name: 'Updated Groceries' })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+
+      expect(result.current.error).toBeTruthy()
     })
   })
 })

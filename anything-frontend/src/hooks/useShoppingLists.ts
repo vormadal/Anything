@@ -32,6 +32,19 @@ export function useCreateShoppingList() {
   });
 }
 
+export function useUpdateShoppingList() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) =>
+      apiClient.api.shoppingLists.byId(id).put({ name }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
+    },
+  });
+}
+
 export function useDeleteShoppingList() {
   const queryClient = useQueryClient();
 
