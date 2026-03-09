@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useCurrentUser, useUpdateProfile, useChangePassword } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useCurrentUser, useUpdateProfile, useChangePassword, getUser } from "@/hooks/useAuth";
+import { useState } from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/apiClient";
 
@@ -12,16 +12,10 @@ export default function ProfilePage() {
   const updateProfile = useUpdateProfile();
   const changePassword = useChangePassword();
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => getUser()?.name ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  useEffect(() => {
-    if (user?.name) {
-      setName(user.name);
-    }
-  }, [user?.name]);
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
