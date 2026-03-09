@@ -169,54 +169,54 @@ public class InventoryItemEndpointTests : IntegrationTestBase
         var payload = new { name = "", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null };
 
         // Create: empty name
-        var emptyName = await httpClient.PostAsJsonAsync("/api/inventory-items", payload);
+        var emptyName = await httpClient.PostAsJsonAsync("/api/inventory-items", payload, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, emptyName.StatusCode);
 
         // Create: whitespace name
         var wsName = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = "   ", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = "   ", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, wsName.StatusCode);
 
         // Create: name > 200 chars
         var longName = new string('a', 201);
         var longNameResp = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = longName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = longName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, longNameResp.StatusCode);
 
         // Create: name at 200 chars succeeds
         var maxName = new string('a', 200);
         var maxNameResp = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = maxName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = maxName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, maxNameResp.StatusCode);
 
         // Create: description > 1000 chars
         var longDesc = new string('b', 1001);
         var longDescResp = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = "Valid", description = longDesc, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = "Valid", description = longDesc, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, longDescResp.StatusCode);
 
         // Create: description at 1000 chars succeeds
         var maxDesc = new string('b', 1000);
         var maxDescResp = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = "Valid2", description = maxDesc, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = "Valid2", description = maxDesc, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, maxDescResp.StatusCode);
 
         // Update validation
         var created = await CreateItemViaClient("For Update", null, null, null);
         var updateEmpty = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
-            new { name = "", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = "", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateEmpty.StatusCode);
 
         var updateWs = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
-            new { name = "   ", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = "   ", description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateWs.StatusCode);
 
         var updateLongName = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
-            new { name = longName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = longName, description = (string?)null, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateLongName.StatusCode);
 
         var updateLongDesc = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
-            new { name = "Valid", description = longDesc, boxId = (int?)null, storageUnitId = (int?)null });
+            new { name = "Valid", description = longDesc, boxId = (int?)null, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateLongDesc.StatusCode);
     }
 
@@ -230,49 +230,49 @@ public class InventoryItemEndpointTests : IntegrationTestBase
 
         // Create with invalid box
         var invalidBox = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = "Item", description = (string?)null, boxId = 99999, storageUnitId = (int?)null });
+            new { name = "Item", description = (string?)null, boxId = 99999, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, invalidBox.StatusCode);
 
         // Create with deleted box
         var box = await CreateBoxViaClient(1, null);
         await client.Api.InventoryBoxes[box.Id].DeleteAsync();
         var deletedBox = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = "Item", description = (string?)null, boxId = box.Id, storageUnitId = (int?)null });
+            new { name = "Item", description = (string?)null, boxId = box.Id, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, deletedBox.StatusCode);
 
         // Create with invalid storage unit
         var invalidUnit = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 });
+            new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, invalidUnit.StatusCode);
 
         // Create with deleted storage unit
         var unit = await CreateStorageUnitViaClient("Deleted Unit", null);
         await client.Api.InventoryStorageUnits[unit.Id].DeleteAsync();
         var deletedUnit = await httpClient.PostAsJsonAsync("/api/inventory-items",
-            new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = unit.Id });
+            new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = unit.Id }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, deletedUnit.StatusCode);
 
         // Update with invalid FK
         var created = await CreateItemViaClient("Valid Item", null, null, null);
 
         var updateInvalidBox = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
-            new { name = "Valid", description = (string?)null, boxId = 99999, storageUnitId = (int?)null });
+            new { name = "Valid", description = (string?)null, boxId = 99999, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateInvalidBox.StatusCode);
 
         var box2 = await CreateBoxViaClient(2, null);
         await client.Api.InventoryBoxes[box2.Id].DeleteAsync();
         var updateDeletedBox = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
-            new { name = "Valid", description = (string?)null, boxId = box2.Id, storageUnitId = (int?)null });
+            new { name = "Valid", description = (string?)null, boxId = box2.Id, storageUnitId = (int?)null }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateDeletedBox.StatusCode);
 
         var updateInvalidUnit = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
-            new { name = "Valid", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 });
+            new { name = "Valid", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateInvalidUnit.StatusCode);
 
         var unit2 = await CreateStorageUnitViaClient("Deleted Unit 2", null);
         await client.Api.InventoryStorageUnits[unit2.Id].DeleteAsync();
         var updateDeletedUnit = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
-            new { name = "Valid", description = (string?)null, boxId = (int?)null, storageUnitId = unit2.Id });
+            new { name = "Valid", description = (string?)null, boxId = (int?)null, storageUnitId = unit2.Id }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateDeletedUnit.StatusCode);
     }
 

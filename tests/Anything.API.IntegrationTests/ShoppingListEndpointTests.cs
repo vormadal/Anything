@@ -35,10 +35,10 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     public async Task GetShoppingLists_WhenEmpty_ReturnsEmptyList()
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-lists");
+        var response = await client.GetAsync("/api/shopping-lists", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Empty(result);
     }
@@ -46,7 +46,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     [Fact]
     public async Task GetShoppingLists_RequiresAuthentication()
     {
-        var response = await HttpClient.GetAsync("/api/shopping-lists");
+        var response = await HttpClient.GetAsync("/api/shopping-lists", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -57,8 +57,8 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         await CreateShoppingListAsync("Hardware");
 
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-lists");
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+        var response = await client.GetAsync("/api/shopping-lists", TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(2, result.Length);
@@ -71,10 +71,10 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     {
         var list = await CreateShoppingListAsync("To Delete");
         var client = await GetAuthenticatedHttpClientAsync();
-        await client.DeleteAsync($"/api/shopping-lists/{list.Id}");
+        await client.DeleteAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
 
-        var response = await client.GetAsync("/api/shopping-lists");
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+        var response = await client.GetAsync("/api/shopping-lists", TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Empty(result);
@@ -88,10 +88,10 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var list = await CreateShoppingListAsync("My List");
 
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync($"/api/shopping-lists/{list.Id}");
+        var response = await client.GetAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Equal(list.Id, result.Id);
         Assert.Equal("My List", result.Name);
@@ -101,7 +101,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     public async Task GetShoppingListById_WhenNotFound_Returns404()
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-lists/99999");
+        var response = await client.GetAsync("/api/shopping-lists/99999", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -119,7 +119,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     [Fact]
     public async Task CreateShoppingList_RequiresAuthentication()
     {
-        var response = await HttpClient.PostAsJsonAsync("/api/shopping-lists", new { name = "Test" });
+        var response = await HttpClient.PostAsJsonAsync("/api/shopping-lists", new { name = "Test" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -127,7 +127,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     public async Task CreateShoppingList_WithEmptyName_Returns400()
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "" });
+        var response = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -139,13 +139,13 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var list = await CreateShoppingListAsync("To Delete");
         var client = await GetAuthenticatedHttpClientAsync();
 
-        var deleteResponse = await client.DeleteAsync($"/api/shopping-lists/{list.Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
         // Soft-deleted lists are still accessible by ID (with DeletedOn set)
-        var getResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}");
+        var getResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
-        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result?.DeletedOn);
     }
 
@@ -153,7 +153,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     public async Task DeleteShoppingList_WhenNotFound_Returns404()
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.DeleteAsync("/api/shopping-lists/99999");
+        var response = await client.DeleteAsync("/api/shopping-lists/99999", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -165,9 +165,9 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var list = await CreateShoppingListAsync("My List");
         var client = await GetAuthenticatedHttpClientAsync();
 
-        var response = await client.GetAsync($"/api/shopping-lists/{list.Id}/items");
+        var response = await client.GetAsync($"/api/shopping-lists/{list.Id}/items", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Empty(result);
     }
@@ -176,7 +176,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     public async Task GetShoppingListItems_WhenListNotFound_Returns404()
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-lists/99999/items");
+        var response = await client.GetAsync("/api/shopping-lists/99999/items", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -224,7 +224,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         var response = await client.PostAsJsonAsync($"/api/shopping-lists/{list.Id}/items",
-            new { name = "Milk", amount = 0 });
+            new { name = "Milk", amount = 0 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -235,7 +235,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         var response = await client.PostAsJsonAsync($"/api/shopping-lists/{list.Id}/items",
-            new { name = "Milk", amount = -1 });
+            new { name = "Milk", amount = -1 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -246,7 +246,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         var response = await client.PostAsJsonAsync($"/api/shopping-lists/{list.Id}/items",
-            new { name = "" });
+            new { name = "" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -255,7 +255,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync("/api/shopping-lists/99999/items",
-            new { name = "Milk" });
+            new { name = "Milk" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -267,8 +267,8 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         await AddItemAsync(list.Id, "Butter", null, null);
 
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync($"/api/shopping-lists/{list.Id}/items");
-        var items = await response.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        var response = await client.GetAsync($"/api/shopping-lists/{list.Id}/items", TestContext.Current.CancellationToken);
+        var items = await response.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
@@ -287,11 +287,11 @@ public class ShoppingListEndpointTests : IntegrationTestBase
 
         var updateResponse = await client.PutAsJsonAsync(
             $"/api/shopping-lists/{list.Id}/items/{item.Id}",
-            new { name = "Whole Milk", isChecked = true });
+            new { name = "Whole Milk", isChecked = true }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}/items");
-        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         var updated = Assert.Single(items);
         Assert.Equal("Whole Milk", updated.Name);
@@ -307,11 +307,11 @@ public class ShoppingListEndpointTests : IntegrationTestBase
 
         var updateResponse = await client.PutAsJsonAsync(
             $"/api/shopping-lists/{list.Id}/items/{item.Id}",
-            new { name = "Sugar", isChecked = false, amount = 300, unit = "g" });
+            new { name = "Sugar", isChecked = false, amount = 300, unit = "g" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}/items");
-        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         var updated = Assert.Single(items);
         Assert.Equal(300m, updated.Amount);
@@ -326,7 +326,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
 
         var response = await client.PutAsJsonAsync(
             $"/api/shopping-lists/{list.Id}/items/99999",
-            new { name = "X", isChecked = false });
+            new { name = "X", isChecked = false }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -339,11 +339,11 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var item = await AddItemAsync(list.Id, "Milk", null, null);
         var client = await GetAuthenticatedHttpClientAsync();
 
-        var deleteResponse = await client.DeleteAsync($"/api/shopping-lists/{list.Id}/items/{item.Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/shopping-lists/{list.Id}/items/{item.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}/items");
-        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         Assert.Empty(items);
     }
@@ -354,7 +354,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var list = await CreateShoppingListAsync("My List");
         var client = await GetAuthenticatedHttpClientAsync();
 
-        var response = await client.DeleteAsync($"/api/shopping-lists/{list.Id}/items/99999");
+        var response = await client.DeleteAsync($"/api/shopping-lists/{list.Id}/items/99999", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -364,10 +364,10 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     public async Task GetCompletedShoppingLists_WhenEmpty_ReturnsEmptyList()
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-lists/completed");
+        var response = await client.GetAsync("/api/shopping-lists/completed", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Empty(result);
     }
@@ -375,7 +375,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     [Fact]
     public async Task GetCompletedShoppingLists_RequiresAuthentication()
     {
-        var response = await HttpClient.GetAsync("/api/shopping-lists/completed");
+        var response = await HttpClient.GetAsync("/api/shopping-lists/completed", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -384,10 +384,10 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     {
         var list = await CreateShoppingListAsync("Weekly Shop");
         var client = await GetAuthenticatedHttpClientAsync();
-        await client.PostAsync($"/api/shopping-lists/{list.Id}/complete", null);
+        await client.PostAsync($"/api/shopping-lists/{list.Id}/complete", null, TestContext.Current.CancellationToken);
 
-        var response = await client.GetAsync("/api/shopping-lists/completed");
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+        var response = await client.GetAsync("/api/shopping-lists/completed", TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Single(result);
@@ -401,8 +401,8 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         await CreateShoppingListAsync("Active List");
 
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-lists/completed");
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions);
+        var response = await client.GetAsync("/api/shopping-lists/completed", TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Empty(result);
@@ -418,10 +418,10 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         await AddItemAsync(list.Id, "Bread", null, null);
 
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsync($"/api/shopping-lists/{list.Id}/complete", null);
+        var response = await client.PostAsync($"/api/shopping-lists/{list.Id}/complete", null, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var newList = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        var newList = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(newList);
         Assert.NotEqual(list.Id, newList.Id);
         Assert.Equal("Weekly Shop", newList.Name);
@@ -432,12 +432,12 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     {
         var list = await CreateShoppingListAsync("Weekly Shop");
         var client = await GetAuthenticatedHttpClientAsync();
-        await client.PostAsync($"/api/shopping-lists/{list.Id}/complete", null);
+        await client.PostAsync($"/api/shopping-lists/{list.Id}/complete", null, TestContext.Current.CancellationToken);
 
         // Completed lists are accessible by ID and have DeletedOn set
-        var getResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}");
+        var getResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
-        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result?.DeletedOn);
     }
 
@@ -445,7 +445,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     public async Task CompleteShoppingList_WhenNotFound_Returns404()
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsync("/api/shopping-lists/99999/complete", null);
+        var response = await client.PostAsync("/api/shopping-lists/99999/complete", null, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -454,9 +454,9 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     private async Task<ShoppingListDto> CreateShoppingListAsync(string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/shopping-lists", new { name });
+        var response = await client.PostAsJsonAsync("/api/shopping-lists", new { name }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result;
     }
@@ -465,9 +465,9 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync($"/api/shopping-lists/{listId}/items",
-            new { name, amount, unit });
+            new { name, amount, unit }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListItemDto>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListItemDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result;
     }

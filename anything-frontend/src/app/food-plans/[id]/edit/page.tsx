@@ -1,69 +1,24 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useFoodPlan, useUpdateFoodPlan } from "@/hooks/useFoodPlans";
 import { useSmartBack } from "@/hooks/useSmartBack";
 import { FoodPlan } from "@/lib/api-client/models/index";
 import { useParams } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
-
-const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
-// Default: Mon–Fri (bits 0–4 set → 31)
-const DEFAULT_ACTIVE_DAYS = 31;
-
-function toDateInputValue(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
-
-function bitmaskToDaySet(bitmask: number): Set<number> {
-  const days = new Set<number>();
-  for (let i = 0; i < 7; i++) {
-    if ((bitmask >> i) & 1) days.add(i);
-  }
-  return days;
-}
-
-function daySetToBitmask(days: Set<number>): number {
-  let bitmask = 0;
-  for (const d of days) bitmask |= 1 << d;
-  return bitmask;
-}
+import { FoodPlanForm, FoodPlanFormValues } from "../../FoodPlanForm";
+import { DEFAULT_ACTIVE_DAYS, toDateInputValue } from "@/lib/foodPlanUtils";
 
 function EditFoodPlanForm({ plan, planId }: { plan: FoodPlan; planId: number }) {
   const { navigateBack } = useSmartBack();
   const updateFoodPlan = useUpdateFoodPlan();
 
-  const [name, setName] = useState(plan.name ?? "");
-  const [weekStart, setWeekStart] = useState(
-    plan.weekStart ? toDateInputValue(new Date(plan.weekStart)) : ""
-  );
-  const [selectedDays, setSelectedDays] = useState<Set<number>>(
-    bitmaskToDaySet(plan.activeDays ?? DEFAULT_ACTIVE_DAYS)
-  );
-
-  const toggleDay = (index: number) => {
-    setSelectedDays((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !weekStart || selectedDays.size === 0) return;
-
+  const handleSubmit = async ({ name, weekStart, activeDays }: FoodPlanFormValues) => {
     try {
       await updateFoodPlan.mutateAsync({
         id: planId,
         name,
         weekStart: new Date(weekStart + "T00:00:00Z"),
-        activeDays: daySetToBitmask(selectedDays),
+        activeDays,
       });
       toast.success("Food plan updated");
       navigateBack(`/food-plans/${planId}`);
@@ -81,82 +36,18 @@ function EditFoodPlanForm({ plan, planId }: { plan: FoodPlan; planId: number }) 
         >
           &larr; Back to Food Plan
         </button>
-
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Edit Food Plan
         </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="plan-name"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Name
-            </label>
-            <input
-              id="plan-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Food plan name"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              autoFocus
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="plan-week-start"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Start Date
-            </label>
-            <input
-              id="plan-week-start"
-              type="date"
-              value={weekStart}
-              onChange={(e) => setWeekStart(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              required
-            />
-          </div>
-
-          <div>
-            <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Days to show
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {ALL_DAYS.map((day, index) => (
-                <label
-                  key={day}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm cursor-pointer select-none transition-colors ${
-                    selectedDays.has(index)
-                      ? "bg-blue-500 border-blue-500 text-white"
-                      : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-400"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={selectedDays.has(index)}
-                    onChange={() => toggleDay(index)}
-                  />
-                  {day.slice(0, 3)}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={updateFoodPlan.isPending || selectedDays.size === 0}
-            className="w-full"
-          >
-            {updateFoodPlan.isPending ? "Saving..." : "Save Changes"}
-          </Button>
-        </form>
+        <FoodPlanForm
+          initialName={plan.name ?? ""}
+          initialWeekStart={plan.weekStart ? toDateInputValue(new Date(plan.weekStart)) : ""}
+          initialActiveDays={plan.activeDays ?? DEFAULT_ACTIVE_DAYS}
+          onSubmit={handleSubmit}
+          isPending={updateFoodPlan.isPending}
+          submitLabel="Save Changes"
+          pendingLabel="Saving..."
+        />
       </div>
     </div>
   );

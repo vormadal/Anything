@@ -26,11 +26,11 @@ public class AuthEndpointTests : IntegrationTestBase
         {
             email = "admin@anything.local",
             password = "Admin123!"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
-        var result = await response.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions);
+
+        var result = await response.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.NotEmpty(result.AccessToken);
         Assert.NotEmpty(result.RefreshToken);
@@ -46,7 +46,7 @@ public class AuthEndpointTests : IntegrationTestBase
         {
             email = "admin@anything.local",
             password = "WrongPassword"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -58,7 +58,7 @@ public class AuthEndpointTests : IntegrationTestBase
         {
             email = "nonexistent@example.com",
             password = "SomePassword"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -72,9 +72,9 @@ public class AuthEndpointTests : IntegrationTestBase
         {
             email = "admin@anything.local",
             password = "Admin123!"
-        });
+        }, TestContext.Current.CancellationToken);
 
-        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions);
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(loginResult);
 
         // Wait a moment to ensure time has passed for token generation
@@ -83,11 +83,11 @@ public class AuthEndpointTests : IntegrationTestBase
         var refreshResponse = await HttpClient.PostAsJsonAsync("/api/auth/refresh", new
         {
             refreshToken = loginResult.RefreshToken
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, refreshResponse.StatusCode);
-        
-        var refreshResult = await refreshResponse.Content.ReadFromJsonAsync<RefreshTokenResponse>(JsonOptions);
+
+        var refreshResult = await refreshResponse.Content.ReadFromJsonAsync<RefreshTokenResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(refreshResult);
         Assert.NotEmpty(refreshResult.AccessToken);
         Assert.NotEmpty(refreshResult.RefreshToken);
@@ -102,7 +102,7 @@ public class AuthEndpointTests : IntegrationTestBase
         var response = await HttpClient.PostAsJsonAsync("/api/auth/refresh", new
         {
             refreshToken = "invalid-token"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -120,11 +120,11 @@ public class AuthEndpointTests : IntegrationTestBase
         };
         request.Headers.Add("Authorization", $"Bearer {token}");
 
-        var response = await HttpClient.SendAsync(request);
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
-        var result = await response.Content.ReadFromJsonAsync<CreateInviteResponse>(JsonOptions);
+
+        var result = await response.Content.ReadFromJsonAsync<CreateInviteResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.NotEmpty(result.Token);
         Assert.Contains("/register?token=", result.InviteUrl);
@@ -136,7 +136,7 @@ public class AuthEndpointTests : IntegrationTestBase
         var response = await HttpClient.PostAsJsonAsync("/api/auth/invites", new
         {
             email = "newuser@example.com"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -153,16 +153,16 @@ public class AuthEndpointTests : IntegrationTestBase
             Content = JsonContent.Create(new { email = "listtest@example.com" })
         };
         createRequest.Headers.Add("Authorization", $"Bearer {token}");
-        await HttpClient.SendAsync(createRequest);
+        await HttpClient.SendAsync(createRequest, TestContext.Current.CancellationToken);
 
         var getRequest = new HttpRequestMessage(HttpMethod.Get, "/api/auth/invites");
         getRequest.Headers.Add("Authorization", $"Bearer {token}");
 
-        var response = await HttpClient.SendAsync(getRequest);
+        var response = await HttpClient.SendAsync(getRequest, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var result = await response.Content.ReadFromJsonAsync<List<InviteListItem>>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<List<InviteListItem>>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Contains(result, i => i.Email == "listtest@example.com");
     }
@@ -170,7 +170,7 @@ public class AuthEndpointTests : IntegrationTestBase
     [Fact]
     public async Task GetInvites_WithoutAuth_Returns401()
     {
-        var response = await HttpClient.GetAsync("/api/auth/invites");
+        var response = await HttpClient.GetAsync("/api/auth/invites", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -186,18 +186,18 @@ public class AuthEndpointTests : IntegrationTestBase
             Content = JsonContent.Create(new { email = "todelete@example.com" })
         };
         createRequest.Headers.Add("Authorization", $"Bearer {token}");
-        await HttpClient.SendAsync(createRequest);
+        await HttpClient.SendAsync(createRequest, TestContext.Current.CancellationToken);
 
         var getRequest = new HttpRequestMessage(HttpMethod.Get, "/api/auth/invites");
         getRequest.Headers.Add("Authorization", $"Bearer {token}");
-        var getResponse = await HttpClient.SendAsync(getRequest);
-        var invites = await getResponse.Content.ReadFromJsonAsync<List<InviteListItem>>(JsonOptions);
+        var getResponse = await HttpClient.SendAsync(getRequest, TestContext.Current.CancellationToken);
+        var invites = await getResponse.Content.ReadFromJsonAsync<List<InviteListItem>>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(invites);
         var invite = invites.First(i => i.Email == "todelete@example.com");
 
         var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/auth/invites/{invite.Id}");
         deleteRequest.Headers.Add("Authorization", $"Bearer {token}");
-        var deleteResponse = await HttpClient.SendAsync(deleteRequest);
+        var deleteResponse = await HttpClient.SendAsync(deleteRequest, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
     }
@@ -205,7 +205,7 @@ public class AuthEndpointTests : IntegrationTestBase
     [Fact]
     public async Task DeleteInvite_WithoutAuth_Returns401()
     {
-        var response = await HttpClient.DeleteAsync("/api/auth/invites/1");
+        var response = await HttpClient.DeleteAsync("/api/auth/invites/1", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -217,7 +217,7 @@ public class AuthEndpointTests : IntegrationTestBase
         var request = new HttpRequestMessage(HttpMethod.Delete, "/api/auth/invites/99999");
         request.Headers.Add("Authorization", $"Bearer {token}");
 
-        var response = await HttpClient.SendAsync(request);
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -235,8 +235,8 @@ public class AuthEndpointTests : IntegrationTestBase
         };
         inviteRequest.Headers.Add("Authorization", $"Bearer {token}");
 
-        var inviteResponse = await HttpClient.SendAsync(inviteRequest);
-        var invite = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResponse>(JsonOptions);
+        var inviteResponse = await HttpClient.SendAsync(inviteRequest, TestContext.Current.CancellationToken);
+        var invite = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(invite);
 
         var registerResponse = await HttpClient.PostAsJsonAsync("/api/auth/register", new
@@ -245,7 +245,7 @@ public class AuthEndpointTests : IntegrationTestBase
             password = "TestPass123!",
             name = "Test User",
             inviteToken = invite.Token
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
     }
@@ -259,7 +259,7 @@ public class AuthEndpointTests : IntegrationTestBase
             password = "TestPass123!",
             name = "Test User",
             inviteToken = "invalid-token"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -275,8 +275,8 @@ public class AuthEndpointTests : IntegrationTestBase
         };
         inviteRequest.Headers.Add("Authorization", $"Bearer {token}");
 
-        var inviteResponse = await HttpClient.SendAsync(inviteRequest);
-        var invite = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResponse>(JsonOptions);
+        var inviteResponse = await HttpClient.SendAsync(inviteRequest, TestContext.Current.CancellationToken);
+        var invite = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(invite);
 
         var registerResponse = await HttpClient.PostAsJsonAsync("/api/auth/register", new
@@ -285,7 +285,7 @@ public class AuthEndpointTests : IntegrationTestBase
             password = "TestPass123!",
             name = "Test User",
             inviteToken = invite.Token
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, registerResponse.StatusCode);
     }
@@ -307,7 +307,7 @@ public class AuthEndpointTests : IntegrationTestBase
         };
         request.Headers.Add("Authorization", $"Bearer {token}");
 
-        var response = await HttpClient.SendAsync(request);
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         // Restore the original password so other tests are not affected
@@ -315,9 +315,9 @@ public class AuthEndpointTests : IntegrationTestBase
         {
             email = "admin@anything.local",
             password = "NewAdmin123!"
-        });
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
-        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions);
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(loginResult);
 
         var restoreRequest = new HttpRequestMessage(HttpMethod.Put, "/api/auth/profile/password")
@@ -329,7 +329,7 @@ public class AuthEndpointTests : IntegrationTestBase
             })
         };
         restoreRequest.Headers.Add("Authorization", $"Bearer {loginResult.AccessToken}");
-        await HttpClient.SendAsync(restoreRequest);
+        await HttpClient.SendAsync(restoreRequest, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -347,7 +347,7 @@ public class AuthEndpointTests : IntegrationTestBase
         };
         request.Headers.Add("Authorization", $"Bearer {token}");
 
-        var response = await HttpClient.SendAsync(request);
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -366,7 +366,7 @@ public class AuthEndpointTests : IntegrationTestBase
         };
         request.Headers.Add("Authorization", $"Bearer {token}");
 
-        var response = await HttpClient.SendAsync(request);
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -377,7 +377,7 @@ public class AuthEndpointTests : IntegrationTestBase
         {
             currentPassword = "Admin123!",
             newPassword = "NewAdmin123!"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -390,9 +390,9 @@ public class AuthEndpointTests : IntegrationTestBase
         {
             email = "admin@anything.local",
             password = "Admin123!"
-        });
+        }, TestContext.Current.CancellationToken);
 
-        var result = await response.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result.AccessToken;
     }

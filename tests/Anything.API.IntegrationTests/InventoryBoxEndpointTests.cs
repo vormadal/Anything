@@ -169,25 +169,25 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         var httpClient = await GetAuthenticatedHttpClientAsync();
 
         // Create with invalid storage unit
-        var invalidCreate = await httpClient.PostAsJsonAsync("/api/inventory-boxes", new { number = 1, storageUnitId = 99999 });
+        var invalidCreate = await httpClient.PostAsJsonAsync("/api/inventory-boxes", new { number = 1, storageUnitId = 99999 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, invalidCreate.StatusCode);
 
         // Create with deleted storage unit
         var unit = await CreateStorageUnitViaClient("Deleted Unit", null);
         await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits[unit.Id].DeleteAsync();
 
-        var deletedCreate = await httpClient.PostAsJsonAsync("/api/inventory-boxes", new { number = 1, storageUnitId = unit.Id });
+        var deletedCreate = await httpClient.PostAsJsonAsync("/api/inventory-boxes", new { number = 1, storageUnitId = unit.Id }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, deletedCreate.StatusCode);
 
         // Update with invalid storage unit
         var box = await CreateBoxViaClient(1, null);
-        var invalidUpdate = await httpClient.PutAsJsonAsync($"/api/inventory-boxes/{box.Id}", new { number = 1, storageUnitId = 99999 });
+        var invalidUpdate = await httpClient.PutAsJsonAsync($"/api/inventory-boxes/{box.Id}", new { number = 1, storageUnitId = 99999 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, invalidUpdate.StatusCode);
 
         // Update with deleted storage unit
         var unit2 = await CreateStorageUnitViaClient("Deleted Unit 2", null);
         await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits[unit2.Id].DeleteAsync();
-        var deletedUpdate = await httpClient.PutAsJsonAsync($"/api/inventory-boxes/{box.Id}", new { number = 1, storageUnitId = unit2.Id });
+        var deletedUpdate = await httpClient.PutAsJsonAsync($"/api/inventory-boxes/{box.Id}", new { number = 1, storageUnitId = unit2.Id }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, deletedUpdate.StatusCode);
     }
 

@@ -1,4 +1,20 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(jq:*)",
+      "Bash(tail:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)",
+      "Bash(grep:*)",
+      "Bash(python3:*)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet ef:*)",
+      "Bash(dotnet tool:*)",
+      "Bash(dotnet test:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

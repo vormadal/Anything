@@ -37,9 +37,9 @@ public class RecipeEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         // Empty initially
-        var emptyResponse = await client.GetAsync("/api/recipes");
+        var emptyResponse = await client.GetAsync("/api/recipes", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, emptyResponse.StatusCode);
-        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<RecipeDto[]>(JsonOptions);
+        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<RecipeDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(emptyResult);
         Assert.Empty(emptyResult);
 
@@ -52,35 +52,35 @@ public class RecipeEndpointTests : IntegrationTestBase
 
         // Create list returns items
         await CreateRecipeAsync("Pizza", null, null);
-        var listResponse = await client.GetAsync("/api/recipes");
-        var list = await listResponse.Content.ReadFromJsonAsync<RecipeDto[]>(JsonOptions);
+        var listResponse = await client.GetAsync("/api/recipes", TestContext.Current.CancellationToken);
+        var list = await listResponse.Content.ReadFromJsonAsync<RecipeDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(list);
         Assert.Equal(2, list.Length);
 
         // Get by ID
-        var getResponse = await client.GetAsync($"/api/recipes/{recipe.Id}");
+        var getResponse = await client.GetAsync($"/api/recipes/{recipe.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
-        var getResult = await getResponse.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        var getResult = await getResponse.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(getResult);
         Assert.Equal("Stew", getResult.Name);
 
         // Update
         var updateResponse = await client.PutAsJsonAsync($"/api/recipes/{recipe.Id}",
-            new { name = "New Name", link = "https://updated.com", notes = "Updated notes" });
+            new { name = "New Name", link = "https://updated.com", notes = "Updated notes" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
 
-        var updatedGet = await client.GetAsync($"/api/recipes/{recipe.Id}");
-        var updated = await updatedGet.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        var updatedGet = await client.GetAsync($"/api/recipes/{recipe.Id}", TestContext.Current.CancellationToken);
+        var updated = await updatedGet.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(updated);
         Assert.Equal("New Name", updated.Name);
         Assert.Equal("https://updated.com", updated.Link);
         Assert.Equal("Updated notes", updated.Notes);
 
         // Delete
-        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}");
+        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, afterDelete.StatusCode);
     }
 
@@ -89,7 +89,7 @@ public class RecipeEndpointTests : IntegrationTestBase
     [Fact]
     public async Task GetRecipes_RequiresAuthentication()
     {
-        var response = await HttpClient.GetAsync("/api/recipes");
+        var response = await HttpClient.GetAsync("/api/recipes", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -100,9 +100,9 @@ public class RecipeEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
 
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/recipes/99999")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await client.PutAsJsonAsync("/api/recipes/99999", new { name = "X" })).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync("/api/recipes/99999")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/recipes/99999", TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PutAsJsonAsync("/api/recipes/99999", new { name = "X" }, TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync("/api/recipes/99999", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     // --- Validation ---
@@ -112,10 +112,10 @@ public class RecipeEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
 
-        var emptyName = await client.PostAsJsonAsync("/api/recipes", new { name = "" });
+        var emptyName = await client.PostAsJsonAsync("/api/recipes", new { name = "" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, emptyName.StatusCode);
 
-        var invalidLink = await client.PostAsJsonAsync("/api/recipes", new { name = "Test", link = "not-a-url" });
+        var invalidLink = await client.PostAsJsonAsync("/api/recipes", new { name = "Test", link = "not-a-url" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, invalidLink.StatusCode);
     }
 
@@ -128,9 +128,9 @@ public class RecipeEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         // Empty initially
-        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients");
+        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, emptyResponse.StatusCode);
-        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions);
+        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(emptyResult);
         Assert.Empty(emptyResult);
 
@@ -145,11 +145,11 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Equal("Salad Base", lettuce.Group);
 
         // Delete
-        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/ingredients/{flour.Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/ingredients/{flour.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients");
-        var remaining = await afterDelete.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions);
+        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients", TestContext.Current.CancellationToken);
+        var remaining = await afterDelete.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(remaining);
         Assert.Single(remaining);
     }
@@ -162,20 +162,20 @@ public class RecipeEndpointTests : IntegrationTestBase
 
         // Zero amount is now allowed (for ingredients like "salt to taste")
         var zeroAmount = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
-            new { name = "Salt", amount = 0 });
+            new { name = "Salt", amount = 0 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, zeroAmount.StatusCode);
 
         // Negative amount
         var negativeAmount = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
-            new { name = "Flour", amount = -1 });
+            new { name = "Flour", amount = -1 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, negativeAmount.StatusCode);
 
         // Recipe not found
         var notFound = await client.PostAsJsonAsync("/api/recipes/99999/ingredients",
-            new { name = "Salt", amount = 1 });
+            new { name = "Salt", amount = 1 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
 
-        var getNotFound = await client.GetAsync("/api/recipes/99999/ingredients");
+        var getNotFound = await client.GetAsync("/api/recipes/99999/ingredients", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, getNotFound.StatusCode);
     }
 
@@ -201,24 +201,24 @@ public class RecipeEndpointTests : IntegrationTestBase
                 new { text = "Fry bacon", order = 2 },
                 new { text = "Combine and serve", order = 3 },
             }
-        });
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(recipe);
         Assert.True(recipe.Id > 0);
         Assert.Equal("Pasta Carbonara", recipe.Name);
 
-        var ingredientsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients");
-        var ingredients = await ingredientsResponse.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions);
+        var ingredientsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients", TestContext.Current.CancellationToken);
+        var ingredients = await ingredientsResponse.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(ingredients);
         Assert.Equal(3, ingredients.Length);
         Assert.Contains(ingredients, i => i.Name == "Spaghetti" && i.Amount == 200 && i.Unit == "g");
         Assert.Contains(ingredients, i => i.Name == "Salt" && i.Amount == null);
         Assert.Contains(ingredients, i => i.Name == "Bacon" && i.Amount == 150 && i.Unit == "g");
 
-        var stepsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/steps");
-        var steps = await stepsResponse.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions);
+        var stepsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/steps", TestContext.Current.CancellationToken);
+        var steps = await stepsResponse.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(steps);
         Assert.Equal(3, steps.Length);
     }
@@ -238,14 +238,14 @@ public class RecipeEndpointTests : IntegrationTestBase
                 new { name = "Some ingredient", amount = -5, unit = (string?)null, group = (string?)null },
             },
             steps = Array.Empty<object>()
-        });
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(recipe);
 
-        var ingredientsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients");
-        var ingredients = await ingredientsResponse.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions);
+        var ingredientsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/ingredients", TestContext.Current.CancellationToken);
+        var ingredients = await ingredientsResponse.Content.ReadFromJsonAsync<IngredientDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(ingredients);
         Assert.Single(ingredients);
         Assert.Equal(0, ingredients[0].Amount);
@@ -261,7 +261,7 @@ public class RecipeEndpointTests : IntegrationTestBase
             name = "",
             ingredients = Array.Empty<object>(),
             steps = Array.Empty<object>()
-        });
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -277,10 +277,10 @@ public class RecipeEndpointTests : IntegrationTestBase
             notes = (string?)null,
             ingredients = Array.Empty<object>(),
             steps = Array.Empty<object>()
-        });
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        var recipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(recipe);
         Assert.Equal("Simple Recipe", recipe.Name);
     }
@@ -294,8 +294,8 @@ public class RecipeEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         // Empty initially
-        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/steps");
-        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions);
+        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/steps", TestContext.Current.CancellationToken);
+        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(emptyResult);
         Assert.Empty(emptyResult);
 
@@ -304,8 +304,8 @@ public class RecipeEndpointTests : IntegrationTestBase
         await AddStepAsync(recipe.Id, "Boil water", 1);
         await AddStepAsync(recipe.Id, "Add ingredients", 2);
 
-        var stepsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/steps");
-        var steps = await stepsResponse.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions);
+        var stepsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/steps", TestContext.Current.CancellationToken);
+        var steps = await stepsResponse.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(steps);
         Assert.Equal(3, steps.Length);
         Assert.Equal("Boil water", steps[0].Text);
@@ -313,11 +313,11 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Equal("Serve", steps[2].Text);
 
         // Delete
-        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/steps/{steps[0].Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/steps/{steps[0].Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/steps");
-        var remaining = await afterDelete.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions);
+        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/steps", TestContext.Current.CancellationToken);
+        var remaining = await afterDelete.Content.ReadFromJsonAsync<StepDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(remaining);
         Assert.Equal(2, remaining.Length);
     }
@@ -328,7 +328,7 @@ public class RecipeEndpointTests : IntegrationTestBase
         var recipe = await CreateRecipeAsync("Test", null, null);
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/steps",
-            new { text = "", order = 1 });
+            new { text = "", order = 1 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -341,8 +341,8 @@ public class RecipeEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         // Empty initially
-        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/images");
-        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<ImageDto[]>(JsonOptions);
+        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/images", TestContext.Current.CancellationToken);
+        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<ImageDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(emptyResult);
         Assert.Empty(emptyResult);
 
@@ -352,11 +352,11 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Equal("https://example.com/steak.jpg", image.Url);
 
         // Delete
-        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/images/{image.Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/images/{image.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/images");
-        var remaining = await afterDelete.Content.ReadFromJsonAsync<ImageDto[]>(JsonOptions);
+        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/images", TestContext.Current.CancellationToken);
+        var remaining = await afterDelete.Content.ReadFromJsonAsync<ImageDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(remaining);
         Assert.Empty(remaining);
     }
@@ -368,11 +368,11 @@ public class RecipeEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         var invalidUrl = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/images",
-            new { url = "not-a-url" });
+            new { url = "not-a-url" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, invalidUrl.StatusCode);
 
         var notFound = await client.PostAsJsonAsync("/api/recipes/99999/images",
-            new { url = "https://example.com/img.jpg" });
+            new { url = "https://example.com/img.jpg" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
     }
 
@@ -390,11 +390,11 @@ public class RecipeEndpointTests : IntegrationTestBase
 
         // First add
         var response = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
-            new { shoppingListId = listId });
+            new { shoppingListId = listId }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items");
-        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
         Assert.Contains(items, i => i.Name == "Spaghetti" && i.Amount == 200 && i.Unit == "g");
@@ -402,10 +402,10 @@ public class RecipeEndpointTests : IntegrationTestBase
 
         // Second add merges quantities
         await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
-            new { shoppingListId = listId });
+            new { shoppingListId = listId }, TestContext.Current.CancellationToken);
 
-        var mergedResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items");
-        var merged = await mergedResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        var mergedResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items", TestContext.Current.CancellationToken);
+        var merged = await mergedResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(merged);
         Assert.Equal(2, merged.Length);
         Assert.Contains(merged, i => i.Name == "Spaghetti" && i.Amount == 400 && i.Unit == "g");
@@ -424,12 +424,12 @@ public class RecipeEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         await client.PostAsJsonAsync($"/api/recipes/{recipe1.Id}/add-to-shopping-list",
-            new { shoppingListId = listId });
+            new { shoppingListId = listId }, TestContext.Current.CancellationToken);
         await client.PostAsJsonAsync($"/api/recipes/{recipe2.Id}/add-to-shopping-list",
-            new { shoppingListId = listId });
+            new { shoppingListId = listId }, TestContext.Current.CancellationToken);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items");
-        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions);
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
         Assert.Contains(items, i => i.Name == "Flour" && i.Amount == 200 && i.Unit == "g");
@@ -444,13 +444,13 @@ public class RecipeEndpointTests : IntegrationTestBase
         // Recipe not found
         var listId = await CreateShoppingListAsync("My List");
         var recipeNotFound = await client.PostAsJsonAsync("/api/recipes/99999/add-to-shopping-list",
-            new { shoppingListId = listId });
+            new { shoppingListId = listId }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, recipeNotFound.StatusCode);
 
         // Shopping list not found
         var recipe = await CreateRecipeAsync("Tacos", null, null);
         var listNotFound = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
-            new { shoppingListId = 99999 });
+            new { shoppingListId = 99999 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, listNotFound.StatusCode);
     }
 
@@ -459,9 +459,9 @@ public class RecipeEndpointTests : IntegrationTestBase
     private async Task<RecipeDto> CreateRecipeAsync(string name, string? link, string? notes)
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/recipes", new { name, link, notes });
+        var response = await client.PostAsJsonAsync("/api/recipes", new { name, link, notes }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result;
     }
@@ -470,9 +470,9 @@ public class RecipeEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync($"/api/recipes/{recipeId}/ingredients",
-            new { name, amount, unit, group });
+            new { name, amount, unit, group }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<IngredientDto>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<IngredientDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result;
     }
@@ -481,9 +481,9 @@ public class RecipeEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync($"/api/recipes/{recipeId}/steps",
-            new { text, order });
+            new { text, order }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<StepDto>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<StepDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result;
     }
@@ -492,9 +492,9 @@ public class RecipeEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync($"/api/recipes/{recipeId}/images",
-            new { url });
+            new { url }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ImageDto>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<ImageDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result;
     }
@@ -502,8 +502,8 @@ public class RecipeEndpointTests : IntegrationTestBase
     private async Task<int> CreateShoppingListAsync(string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/shopping-lists", new { name });
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
+        var response = await client.PostAsJsonAsync("/api/shopping-lists", new { name }, TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         return result!.Id;
     }
 
@@ -516,9 +516,9 @@ public class RecipeEndpointTests : IntegrationTestBase
         var recipe = await CreateRecipeAsync("Tagged Recipe", null, null);
 
         // Initially empty
-        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/tags");
+        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/tags", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, emptyResponse.StatusCode);
-        var emptyTags = await emptyResponse.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions);
+        var emptyTags = await emptyResponse.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(emptyTags);
         Assert.Empty(emptyTags);
 
@@ -531,18 +531,18 @@ public class RecipeEndpointTests : IntegrationTestBase
         var tag2 = await AddTagAsync(recipe.Id, "cold");
 
         // List returns both tags
-        var listResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/tags");
-        var tags = await listResponse.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions);
+        var listResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/tags", TestContext.Current.CancellationToken);
+        var tags = await listResponse.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(tags);
         Assert.Equal(2, tags.Length);
 
         // Delete a tag
-        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/tags/{tag1.Id}");
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/tags/{tag1.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
         // Tag is no longer in the list
-        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/tags");
-        var remainingTags = await afterDelete.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions);
+        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/tags", TestContext.Current.CancellationToken);
+        var remainingTags = await afterDelete.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(remainingTags);
         Assert.Single(remainingTags);
         Assert.Equal(tag2.Id, remainingTags[0].Id);
@@ -554,16 +554,16 @@ public class RecipeEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         // Get tags for non-existent recipe
-        var getResponse = await client.GetAsync("/api/recipes/99999/tags");
+        var getResponse = await client.GetAsync("/api/recipes/99999/tags", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
 
         // Add tag to non-existent recipe
-        var addResponse = await client.PostAsJsonAsync("/api/recipes/99999/tags", new { name = "meat" });
+        var addResponse = await client.PostAsJsonAsync("/api/recipes/99999/tags", new { name = "meat" }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
 
         // Delete non-existent tag
         var recipe = await CreateRecipeAsync("Recipe for Tag 404", null, null);
-        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/tags/99999");
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/tags/99999", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
     }
 
@@ -577,8 +577,8 @@ public class RecipeEndpointTests : IntegrationTestBase
         await AddTagAsync(recipe1.Id, "hot");
 
         // Recipe 2 should have no tags
-        var response = await client.GetAsync($"/api/recipes/{recipe2.Id}/tags");
-        var tags = await response.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions);
+        var response = await client.GetAsync($"/api/recipes/{recipe2.Id}/tags", TestContext.Current.CancellationToken);
+        var tags = await response.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(tags);
         Assert.Empty(tags);
     }
@@ -586,9 +586,9 @@ public class RecipeEndpointTests : IntegrationTestBase
     private async Task<TagDto> AddTagAsync(int recipeId, string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync($"/api/recipes/{recipeId}/tags", new { name });
+        var response = await client.PostAsJsonAsync($"/api/recipes/{recipeId}/tags", new { name }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<TagDto>(JsonOptions);
+        var result = await response.Content.ReadFromJsonAsync<TagDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result;
     }
