@@ -32,10 +32,12 @@ const mockGet = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
+    back: jest.fn(),
   }),
   useSearchParams: () => ({
     get: mockGet,
   }),
+  usePathname: () => '/login',
 }));
 
 describe("LoginPage", () => {

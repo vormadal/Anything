@@ -32,7 +32,9 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
     replace: jest.fn(),
+    back: jest.fn(),
   }),
+  usePathname: () => '/admin/recommendations',
 }));
 
 // Mock toast

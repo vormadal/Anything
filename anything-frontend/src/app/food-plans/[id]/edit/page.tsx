@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useFoodPlan, useUpdateFoodPlan } from "@/hooks/useFoodPlans";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { FoodPlan } from "@/lib/api-client/models/index";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -30,7 +31,7 @@ function daySetToBitmask(days: Set<number>): number {
 }
 
 function EditFoodPlanForm({ plan, planId }: { plan: FoodPlan; planId: number }) {
-  const router = useRouter();
+  const { navigateBack } = useSmartBack();
   const updateFoodPlan = useUpdateFoodPlan();
 
   const [name, setName] = useState(plan.name ?? "");
@@ -65,7 +66,7 @@ function EditFoodPlanForm({ plan, planId }: { plan: FoodPlan; planId: number }) 
         activeDays: daySetToBitmask(selectedDays),
       });
       toast.success("Food plan updated");
-      router.push(`/food-plans/${planId}`);
+      navigateBack(`/food-plans/${planId}`);
     } catch {
       toast.error("Failed to update food plan. Please try again.");
     }
@@ -75,7 +76,7 @@ function EditFoodPlanForm({ plan, planId }: { plan: FoodPlan; planId: number }) 
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <button
-          onClick={() => router.push(`/food-plans/${planId}`)}
+          onClick={() => navigateBack(`/food-plans/${planId}`)}
           className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 block"
         >
           &larr; Back to Food Plan

@@ -66,7 +66,8 @@ jest.mock('@/context/PageActionsContext', () => ({
 // Mock next/navigation
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  usePathname: () => '/recipes',
 }))
 
 // Mock toast

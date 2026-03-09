@@ -29,6 +29,7 @@ import {
   PageActionsProvider,
   useHeaderActions,
 } from "@/context/PageActionsContext";
+import { useSmartBack } from "@/hooks/useSmartBack";
 
 const PUBLIC_PATHS = ["/login", "/register"];
 
@@ -78,6 +79,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { headerActions, hideTitle, leftAction } = useHeaderActions();
+  const { navigateBack } = useSmartBack();
 
   const navigate = (path: string) => {
     setDrawerOpen(false);
@@ -102,7 +104,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push(leftAction.href)}
+              onClick={() => navigateBack(leftAction.href)}
               aria-label="Go back"
             >
               <ArrowLeft className="h-5 w-5" />

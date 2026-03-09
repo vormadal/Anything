@@ -2,7 +2,7 @@ import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PageActionsProvider, useHeaderActions } from '@/context/PageActionsContext'
-import { useRouter } from 'next/navigation'
+import { useSmartBack } from '@/hooks/useSmartBack'
 
 function HeaderActionsSlot() {
   const { headerActions } = useHeaderActions()
@@ -11,10 +11,10 @@ function HeaderActionsSlot() {
 
 function LeftActionSlot() {
   const { leftAction } = useHeaderActions()
-  const router = useRouter()
+  const { navigateBack } = useSmartBack()
   if (!leftAction || leftAction.type !== 'back') return null
   return (
-    <button aria-label="Go back" onClick={() => router.push(leftAction.href)} />
+    <button aria-label="Go back" onClick={() => navigateBack(leftAction.href)} />
   )
 }
 
