@@ -1,36 +1,17 @@
 import { ImageResponse } from "next/og";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-export default function AppleIcon() {
-  const fontSize = Math.round(180 * 0.45);
-  const radius = Math.round(180 * 0.2);
+const logoData = readFileSync(join(process.cwd(), "public/logo.png"));
+const logoSrc = `data:image/png;base64,${logoData.toString("base64")}`;
 
+export default function AppleIcon() {
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: 180,
-          height: 180,
-          background: "#0f172a",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: radius,
-        }}
-      >
-        <span
-          style={{
-            fontSize,
-            fontWeight: 700,
-            color: "#ffffff",
-            lineHeight: 1,
-          }}
-        >
-          A
-        </span>
-      </div>
+      <img src={logoSrc} width={180} height={180} alt="Anything App" />
     ),
     { width: 180, height: 180 }
   );
