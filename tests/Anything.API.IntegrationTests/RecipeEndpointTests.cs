@@ -507,10 +507,97 @@ public class RecipeEndpointTests : IntegrationTestBase
         return result!.Id;
     }
 
+    // --- Tags ---
+
+    [Fact]
+    public async Task Tags_CrudLifecycle_WorksCorrectly()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var recipe = await CreateRecipeAsync("Tagged Recipe", null, null);
+
+        // Initially empty
+        var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/tags");
+        Assert.Equal(HttpStatusCode.OK, emptyResponse.StatusCode);
+        var emptyTags = await emptyResponse.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions);
+        Assert.NotNull(emptyTags);
+        Assert.Empty(emptyTags);
+
+        // Add tags
+        var tag1 = await AddTagAsync(recipe.Id, "vegetarian");
+        Assert.True(tag1.Id > 0);
+        Assert.Equal(recipe.Id, tag1.RecipeId);
+        Assert.Equal("vegetarian", tag1.Name);
+
+        var tag2 = await AddTagAsync(recipe.Id, "cold");
+
+        // List returns both tags
+        var listResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/tags");
+        var tags = await listResponse.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions);
+        Assert.NotNull(tags);
+        Assert.Equal(2, tags.Length);
+
+        // Delete a tag
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/tags/{tag1.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        // Tag is no longer in the list
+        var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/tags");
+        var remainingTags = await afterDelete.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions);
+        Assert.NotNull(remainingTags);
+        Assert.Single(remainingTags);
+        Assert.Equal(tag2.Id, remainingTags[0].Id);
+    }
+
+    [Fact]
+    public async Task Tags_NotFoundScenarios()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        // Get tags for non-existent recipe
+        var getResponse = await client.GetAsync("/api/recipes/99999/tags");
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+
+        // Add tag to non-existent recipe
+        var addResponse = await client.PostAsJsonAsync("/api/recipes/99999/tags", new { name = "meat" });
+        Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
+
+        // Delete non-existent tag
+        var recipe = await CreateRecipeAsync("Recipe for Tag 404", null, null);
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/tags/99999");
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Tags_TagsBelongToRecipe_NotReturnedForOtherRecipes()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var recipe1 = await CreateRecipeAsync("Recipe 1", null, null);
+        var recipe2 = await CreateRecipeAsync("Recipe 2", null, null);
+
+        await AddTagAsync(recipe1.Id, "hot");
+
+        // Recipe 2 should have no tags
+        var response = await client.GetAsync($"/api/recipes/{recipe2.Id}/tags");
+        var tags = await response.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions);
+        Assert.NotNull(tags);
+        Assert.Empty(tags);
+    }
+
+    private async Task<TagDto> AddTagAsync(int recipeId, string name)
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync($"/api/recipes/{recipeId}/tags", new { name });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<TagDto>(JsonOptions);
+        Assert.NotNull(result);
+        return result;
+    }
+
     private record RecipeDto(int Id, string? Name, string? Link, string? Notes);
     private record IngredientDto(int Id, int RecipeId, string? Name, decimal? Amount, string? Unit, string? Group);
     private record StepDto(int Id, int RecipeId, string? Text, int Order);
     private record ImageDto(int Id, int RecipeId, string? Url);
+    private record TagDto(int Id, int RecipeId, string Name, DateTime CreatedOn);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
 }

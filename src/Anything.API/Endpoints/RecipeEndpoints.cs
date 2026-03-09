@@ -4,6 +4,7 @@ using Anything.Contracts.Recipes;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
+
 namespace Anything.API.Endpoints;
 
 public static class RecipeEndpoints
@@ -177,6 +178,29 @@ public static class RecipeEndpoints
         })
         .WithName("AddRecipeIngredientsToShoppingList")
         .WithParameterValidation()
+        .RequireAuthorization();
+
+        // Tags
+        group.MapGet("/{id}/tags", async (int id, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetRecipeTagsQuery(id));
+        })
+        .WithName("GetRecipeTags")
+        .RequireAuthorization();
+
+        group.MapPost("/{id}/tags", async (int id, CreateRecipeTagRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new AddRecipeTagCommand(id, request.Name));
+        })
+        .WithName("AddRecipeTag")
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapDelete("/{id}/tags/{tagId}", async (int id, int tagId, IMediator mediator) =>
+        {
+            return await mediator.Send(new DeleteRecipeTagCommand(id, tagId));
+        })
+        .WithName("DeleteRecipeTag")
         .RequireAuthorization();
     }
 }

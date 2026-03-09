@@ -310,3 +310,82 @@ export function useAddIngredientsToShoppingList(recipeId: number) {
     },
   });
 }
+
+export interface RecipeTag {
+  id: number;
+  recipeId: number;
+  name: string;
+  createdOn: string;
+}
+
+export function useRecipeTags(recipeId: number) {
+  return useQuery({
+    queryKey: ["recipeTags", recipeId],
+    queryFn: async (): Promise<RecipeTag[]> => {
+      const token =
+        typeof window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/recipes/${recipeId}/tags`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error(`Failed to fetch tags: ${response.status}`);
+      return response.json() as Promise<RecipeTag[]>;
+    },
+    enabled: recipeId > 0,
+  });
+}
+
+export function useAddRecipeTag(recipeId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (name: string): Promise<RecipeTag> => {
+      const token =
+        typeof window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/recipes/${recipeId}/tags`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name }),
+        }
+      );
+      if (!response.ok) throw new Error(`Failed to add tag: ${response.status}`);
+      return response.json() as Promise<RecipeTag>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipeTags", recipeId] });
+    },
+  });
+}
+
+export function useDeleteRecipeTag(recipeId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (tagId: number): Promise<void> => {
+      const token =
+        typeof window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/recipes/${recipeId}/tags/${tagId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!response.ok) throw new Error(`Failed to delete tag: ${response.status}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipeTags", recipeId] });
+    },
+  });
+}
