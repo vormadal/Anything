@@ -421,6 +421,19 @@ export default function RecipeDetailPage() {
               {recipe?.name ?? (isLoading ? "" : "Recipe")}
             </h1>
           )}
+          {/* Tags overlay — view mode only */}
+          {!isEditMode && tags && tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm"
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -511,19 +524,19 @@ export default function RecipeDetailPage() {
           )
         )}
 
-        {/* ── Tags ── */}
-        <div className="mb-8">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
-            Tags
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {tags?.map((tag) => (
-              <span
-                key={tag.id}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-              >
-                {tag.name}
-                {isEditMode && (
+        {/* ── Tags (edit mode only) ── */}
+        {isEditMode && (
+          <div className="mb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+              Tags
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {tags?.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
+                >
+                  {tag.name}
                   <button
                     type="button"
                     onClick={() => handleDeleteTag(tag.id)}
@@ -533,14 +546,9 @@ export default function RecipeDetailPage() {
                   >
                     <X className="h-3 w-3" />
                   </button>
-                )}
-              </span>
-            ))}
-            {(!tags || tags.length === 0) && !isEditMode && (
-              <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No tags yet.</p>
-            )}
-          </div>
-          {isEditMode && (
+                </span>
+              ))}
+            </div>
             <form onSubmit={handleAddTag} className="flex gap-2 mt-3">
               <input
                 type="text"
@@ -560,8 +568,8 @@ export default function RecipeDetailPage() {
                 Add
               </Button>
             </form>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* ── Ingredients ── */}
         <div className="mb-10">
