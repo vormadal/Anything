@@ -11,6 +11,7 @@ import {
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
@@ -49,8 +50,17 @@ function EntryBadge({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded px-2 py-0.5 text-xs text-blue-800 dark:text-blue-200 group">
-      <span className="flex-1 min-w-0 truncate">{entry.name}</span>
+    <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded px-2 py-1 text-sm text-blue-800 dark:text-blue-200 group">
+      {entry.recipeId ? (
+        <Link
+          href={`/recipes/${entry.recipeId}`}
+          className="flex-1 min-w-0 truncate hover:underline"
+        >
+          {entry.name}
+        </Link>
+      ) : (
+        <span className="flex-1 min-w-0 truncate">{entry.name}</span>
+      )}
       <button
         onClick={onDelete}
         className="shrink-0 ml-1 text-blue-400 hover:text-red-500 transition-colors"
@@ -173,7 +183,7 @@ function DayColumn({
   const dayEntries = entries.filter((e) => e.dayOfWeek === dayIndex);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2 min-h-[120px]">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2 min-h-[100px]">
       <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 text-center">
         {dayName}
       </h3>
