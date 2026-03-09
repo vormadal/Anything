@@ -1,1 +1,24 @@
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Dark background -->
+  <rect width="512" height="512" fill="#1c1c26"/>
+  <!-- Circular plate/disc -->
+  <circle cx="256" cy="256" r="215" fill="#2a2a3a" opacity="0.7"/>
+  <!-- Fork (left side) -->
+  <!-- Fork handle -->
+  <rect x="206" y="267" width="28" height="204" fill="#b9b9c3" rx="3"/>
+  <!-- Gap/bolster on fork -->
+  <rect x="206" y="236" width="28" height="28" fill="#323248" rx="1"/>
+  <!-- Fork neck -->
+  <rect x="203" y="195" width="33" height="45" fill="#b9b9c3" rx="2"/>
+  <!-- Fork tines -->
+  <rect x="200" y="72" width="10" height="128" fill="#b9b9c3" rx="4"/>
+  <rect x="216" y="72" width="10" height="128" fill="#b9b9c3" rx="4"/>
+  <rect x="232" y="72" width="10" height="128" fill="#b9b9c3" rx="4"/>
+  <!-- Knife (right side) -->
+  <!-- Knife handle -->
+  <rect x="268" y="256" width="36" height="215" fill="#b9b9c3" rx="3"/>
+  <!-- Bolster -->
+  <rect x="264" y="226" width="44" height="26" fill="#b9b9c3" rx="2"/>
+  <!-- Blade (tapers to point) -->
+  <path d="M268 226 L304 226 L310 72 L286 68 L268 72 Z" fill="#b9b9c3"/>
+</svg>
