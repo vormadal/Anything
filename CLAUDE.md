@@ -103,9 +103,9 @@ dotnet ef database update --project src/Anything.Database --startup-project src/
 ```bash
 cd anything-frontend
 npm install          # Install dependencies
-npm run build        # Production build
-npm run lint         # Run ESLint
-npm run test         # Run tests
+npm run build        # Production build - always run after finishing work
+npm run lint         # Run ESLint - always run after finishing work
+npm run test         # Run tests - always run after finishing work
 npm run test:watch   # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
 npm run generate:api # Generate API client from Swagger (API must be running)

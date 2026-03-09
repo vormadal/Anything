@@ -16,8 +16,8 @@ import { Check, X, Pencil } from "lucide-react";
 import { useState } from "react";
 
 type Recommendation = {
-  id: number | null;
-  name: string | null;
+  id?: number | null;
+  name?: string | null;
   preferredUnit?: string | null;
   isApproved?: boolean | null;
 };
