@@ -27,7 +27,7 @@ public class TokenServiceTests
     public void GenerateAccessToken_ContainsExpectedClaims()
     {
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero));
-        var user = new User { Id = 42, Email = "test@test.com", Name = "Test User", Role = "Admin" };
+        var user = new User { Id = 42, Email = "test@test.com", Name = "Test User", Role = "Admin", PasswordHash = "" };
 
         var token = CreateService().GenerateAccessToken(user);
 
@@ -45,7 +45,7 @@ public class TokenServiceTests
     {
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
-        var user = new User { Id = 1, Email = "a@b.com", Name = "A", Role = "User" };
+        var user = new User { Id = 1, Email = "a@b.com", Name = "A", Role = "User", PasswordHash = "" };
 
         var token = CreateService().GenerateAccessToken(user);
 
@@ -78,7 +78,7 @@ public class TokenServiceTests
     public void GetPrincipalFromToken_ValidToken_ReturnsPrincipalWithClaims()
     {
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero));
-        var user = new User { Id = 5, Email = "x@y.com", Name = "X", Role = "User" };
+        var user = new User { Id = 5, Email = "x@y.com", Name = "X", Role = "User", PasswordHash = "" };
         var service = CreateService();
 
         var token = service.GenerateAccessToken(user);
@@ -108,7 +108,7 @@ public class TokenServiceTests
             AccessTokenExpirationMinutes = 15
         };
         var differentService = new TokenService(Options.Create(differentSettings), _timeProvider);
-        var user = new User { Id = 1, Email = "a@b.com", Name = "A", Role = "User" };
+        var user = new User { Id = 1, Email = "a@b.com", Name = "A", Role = "User", PasswordHash = "" };
         var tokenFromDifferentKey = differentService.GenerateAccessToken(user);
 
         var principal = CreateService().GetPrincipalFromToken(tokenFromDifferentKey);
@@ -121,7 +121,7 @@ public class TokenServiceTests
     {
         // GetPrincipalFromToken uses ValidateLifetime = false, so expired tokens are still decoded
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero));
-        var user = new User { Id = 7, Email = "z@z.com", Name = "Z", Role = "User" };
+        var user = new User { Id = 7, Email = "z@z.com", Name = "Z", Role = "User", PasswordHash = "" };
         var service = CreateService();
 
         var token = service.GenerateAccessToken(user);
