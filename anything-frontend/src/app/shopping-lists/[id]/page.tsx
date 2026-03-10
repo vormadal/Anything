@@ -18,7 +18,7 @@ import {
 } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { Fragment, useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import type { ShoppingListItem, ShoppingList } from "@/lib/api-client/models/index";
 import { apiClient } from "@/lib/apiClient";
@@ -400,9 +400,9 @@ export default function ShoppingListDetailPage() {
 
         {sortedItems.length > 0 && (
           <ul className="space-y-1">
-            {sortedItems.map((item) => (
+            {sortedItems.map((item, index) => (
+              <Fragment key={item.id}>
               <li
-                key={item.id}
                 className={`flex items-center gap-2 py-2 px-3 border rounded-md transition-colors ${
                   item.isChecked
                     ? "border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/30"
@@ -537,20 +537,22 @@ export default function ShoppingListDetailPage() {
                   </Button>
                 )}
               </li>
+                {!isEditMode && !isCompleted && items && items.length > 0 &&
+                  (items.every((i) => i.isChecked) || isFewItems) &&
+                  (uncheckedItems.length === 0 ? index === sortedItems.length - 1 : index === uncheckedItems.length - 1) && (
+                  <li role="presentation" className="flex justify-end py-2">
+                    <Button
+                      onClick={handleCompleteList}
+                      disabled={completeList.isPending}
+                      size="sm"
+                    >
+                      {completeList.isPending ? "Completing..." : "Complete List"}
+                    </Button>
+                  </li>
+                )}
+              </Fragment>
             ))}
           </ul>
-        )}
-
-        {!isEditMode && !isCompleted && items && items.length > 0 && (items.every((i) => i.isChecked) || isFewItems) && (
-          <div className="mt-4 flex justify-end">
-            <Button
-              onClick={handleCompleteList}
-              disabled={completeList.isPending}
-              size="sm"
-            >
-              {completeList.isPending ? "Completing..." : "Complete List"}
-            </Button>
-          </div>
         )}
       </div>
     </div>
