@@ -11,13 +11,18 @@ public class PostgresContainerFixture : IAsyncLifetime
 
     public string ConnectionString => _container.GetConnectionString();
 
+    public AnythingApiFactory Factory { get; private set; } = null!;
+
     public async ValueTask InitializeAsync()
     {
         await _container.StartAsync();
+        Factory = new AnythingApiFactory(ConnectionString);
+        await Factory.EnsureDatabaseCreatedAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
+        await Factory.DisposeAsync();
         await _container.DisposeAsync();
     }
 }
