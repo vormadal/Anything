@@ -11,10 +11,8 @@ namespace Anything.API.IntegrationTests.Infrastructure;
 public abstract class IntegrationTestBase : IAsyncLifetime
 {
     protected readonly PostgresContainerFixture Postgres;
-    private AnythingApiFactory? _factory;
 
-    protected AnythingApiFactory Factory => _factory
-        ?? throw new InvalidOperationException("Factory not initialized. Call InitializeAsync first.");
+    protected AnythingApiFactory Factory => Postgres.Factory;
 
     protected AnythingApiClient Client { get; private set; } = null!;
     protected HttpClient HttpClient { get; private set; } = null!;
@@ -26,12 +24,10 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        _factory = new AnythingApiFactory(Postgres.ConnectionString);
-        await _factory.EnsureDatabaseCreatedAsync();
-        await _factory.ResetDatabaseAsync();
+        await Factory.ResetDatabaseAsync();
 
-        var httpClient = _factory.CreateClient();
-        HttpClient = _factory.CreateClient();
+        var httpClient = Factory.CreateClient();
+        HttpClient = Factory.CreateClient();
         var adapter = new HttpClientRequestAdapter(
             new AnonymousAuthenticationProvider(),
             httpClient: httpClient)
@@ -41,13 +37,8 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         Client = new AnythingApiClient(adapter);
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        if (_factory != null)
-            await _factory.DisposeAsync();
-    }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    // Helper method for authentication
     protected async Task<string> GetAdminTokenAsync()
     {
         var response = await HttpClient.PostAsJsonAsync("/api/auth/login", new
@@ -63,7 +54,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
     protected HttpClient GetAuthenticatedHttpClient(string token)
     {
-        var client = _factory!.CreateClient();
+        var client = Factory.CreateClient();
         client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
         return client;
     }
