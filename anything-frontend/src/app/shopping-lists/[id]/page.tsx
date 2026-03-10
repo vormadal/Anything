@@ -46,6 +46,9 @@ export default function ShoppingListDetailPage() {
   const cancelEditRef = useRef(false);
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
+  // Keep a ref to the delete handler so the header effect closure is always current
+  const handleDeleteListRef = useRef<() => void>(() => undefined);
+
   const { data: list } = useQuery({
     queryKey: ["shoppingList", listId],
     queryFn: () => apiClient.api.shoppingLists.byId(listId).get() as Promise<ShoppingList>,
@@ -60,6 +63,21 @@ export default function ShoppingListDetailPage() {
   const deleteList = useDeleteShoppingList();
   const updateList = useUpdateShoppingList();
   const { data: recommendations } = useApprovedRecommendations();
+
+  // Update the delete handler ref on every render so it always closes over the latest deleteList/listId/router.
+  // No dependency array is intentional: this is the mutable-ref pattern used to keep callbacks fresh
+  // without adding unstable references (mutation objects, router) to the header useEffect deps.
+  useEffect(() => {
+    handleDeleteListRef.current = async () => {
+      try {
+        await deleteList.mutateAsync(listId);
+        toast.success("Shopping list deleted");
+        router.push("/shopping-lists");
+      } catch {
+        toast.error("Failed to delete shopping list. Please try again.");
+      }
+    };
+  });
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
   const checkedItems = items?.filter((i) => i.isChecked) ?? [];
@@ -230,15 +248,7 @@ export default function ShoppingListDetailPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-                onSelect={async () => {
-                  try {
-                    await deleteList.mutateAsync(listId);
-                    toast.success("Shopping list deleted");
-                    router.push("/shopping-lists");
-                  } catch {
-                    toast.error("Failed to delete shopping list. Please try again.");
-                  }
-                }}
+                onSelect={() => handleDeleteListRef.current()}
               >
                 <Trash2 className="h-4 w-4" />
                 Delete list
@@ -252,7 +262,7 @@ export default function ShoppingListDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [isEditMode, isCompleted, setHeaderActions, setLeftAction, deleteList, listId, router]);
+  }, [isEditMode, isCompleted, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
