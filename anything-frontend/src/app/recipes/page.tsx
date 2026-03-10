@@ -1,7 +1,8 @@
 "use client";
 
 import { useRecipes, useRecipeImages, useRecipeTags } from "@/hooks/useRecipes";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { Search, X, CookingPot, Plus, CalendarPlus } from "lucide-react";
@@ -31,12 +32,12 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
       >
         <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
           {imageUrl && !imgError ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={imageUrl}
               alt={recipe.name ?? "Recipe"}
-              className="w-full h-full object-cover"
-              loading="lazy"
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
               onError={() => setImgError(true)}
             />
           ) : (
@@ -93,6 +94,13 @@ export default function RecipesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: recipes, isLoading, error } = useRecipes();
   const router = useRouter();
+  // Keep a ref to router so the header effect closure always uses the latest instance without
+  // adding router to effect deps (the test mock creates a new object on each render).
+  // No dependency array is intentional: same mutable-ref pattern as handleExitEditModeRef in recipes/[id]/page.
+  const routerRef = useRef(router);
+  useEffect(() => {
+    routerRef.current = router;
+  });
   const { setHeaderActions } = useHeaderActions();
 
   // TODO: Replace client-side filtering with API search when backend supports it
@@ -104,10 +112,10 @@ export default function RecipesPage() {
     return recipes.filter((r) => r.name?.toLowerCase().includes(query));
   }, [recipes, searchQuery]);
 
-  const handleCloseSearch = () => {
+  const handleCloseSearch = useCallback(() => {
     setSearchOpen(false);
     setSearchQuery("");
-  };
+  }, []);
 
   useEffect(() => {
     if (searchOpen) {
@@ -184,7 +192,7 @@ export default function RecipesPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/recipes/new")}
+            onClick={() => routerRef.current.push("/recipes/new")}
             aria-label="Create recipe"
           >
             <Plus className="h-5 w-5" />
@@ -195,8 +203,7 @@ export default function RecipesPage() {
     );
 
     return () => setHeaderActions(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchOpen, searchQuery, setHeaderActions]);
+  }, [searchOpen, searchQuery, setHeaderActions, handleCloseSearch]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">

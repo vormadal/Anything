@@ -41,6 +41,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function RecipeDetailPage() {
   const params = useParams();
@@ -383,11 +384,12 @@ export default function RecipeDetailPage() {
       {/* ── Hero: full-width image with overlaid controls and title ── */}
       <div className="relative w-full h-64 sm:h-80 md:h-96 bg-gray-100 dark:bg-gray-800 overflow-hidden">
         {heroImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={heroImageUrl}
             alt="Recipe image"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="100vw"
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = "none";
             }}
@@ -448,12 +450,13 @@ export default function RecipeDetailPage() {
           {images && images.length > 0 && (
             <div className="flex gap-2 mt-2 flex-wrap">
               {images.map((image) => (
-                <div key={image.id} className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                <div key={image.id} className="relative h-16 w-24">
+                  <Image
                     src={image.thumbnailUrl ?? ""}
                     alt="Recipe image"
-                    className="h-16 w-24 object-cover rounded border border-gray-200 dark:border-gray-700"
+                    fill
+                    sizes="96px"
+                    className="object-cover rounded border border-gray-200 dark:border-gray-700"
                   />
                   <Button
                     variant="ghost"
