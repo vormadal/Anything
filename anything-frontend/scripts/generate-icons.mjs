@@ -11,7 +11,15 @@ const logoPath = join(publicDir, "logo.png");
 
 mkdirSync(iconsDir, { recursive: true });
 
-const SAFE_ZONE_RATIO = 0.1; // 10% padding on each side for maskable safe zone
+// Logo background color — used as the maskable icon canvas so corners match
+// the logo itself rather than being white (white corners cause a ring artefact
+// when Android applies circular/rounded adaptive-icon masking).
+const LOGO_BG = { r: 0x1c, g: 0x1c, b: 0x26, alpha: 1 };
+
+// Safe zone: 20% padding on each side (Google/PWABuilder recommendation).
+// This ensures the fork+knife content sits comfortably inside the safe-zone
+// circle even on aggressive circular launchers.
+const SAFE_ZONE_RATIO = 0.2;
 
 async function generateIcon(size, filename) {
   await sharp(logoPath).resize(size, size).png().toFile(join(iconsDir, filename));
@@ -23,9 +31,10 @@ async function generateMaskableIcon(size, filename) {
   const padding = Math.floor((size - logoSize) / 2);
   const resizedLogo = await sharp(logoPath).resize(logoSize, logoSize).png().toBuffer();
   await sharp({
-    create: { width: size, height: size, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } },
+    create: { width: size, height: size, channels: 4, background: LOGO_BG },
   })
     .composite([{ input: resizedLogo, top: padding, left: padding }])
+    .flatten({ background: LOGO_BG })
     .png()
     .toFile(join(iconsDir, filename));
   console.log(`Generated: public/icons/${filename}`);
