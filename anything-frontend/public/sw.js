@@ -1,5 +1,13 @@
-const CACHE_NAME = "anything-app-v2";
-const STATIC_ASSETS = ["/", "/login"];
+const CACHE_NAME = "anything-app-v4";
+const STATIC_ASSETS = [
+  "/",
+  "/login",
+  "/manifest.webmanifest",
+  "/icons/icon-192.png",
+  "/icons/icon-192-maskable.png",
+  "/icons/icon-512.png",
+  "/icons/icon-512-maskable.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
