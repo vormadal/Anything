@@ -7,6 +7,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CountBadge } from "@/components/ui/count-badge";
 import { useShoppingLists, useCreateShoppingList, useCompletedShoppingLists } from "@/hooks/useShoppingLists";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -142,11 +143,7 @@ export default function ShoppingListsPage() {
                 <span className="text-gray-900 dark:text-white font-medium text-sm">
                   {list.name}
                 </span>
-                {(list.uncheckedItemCount ?? 0) > 0 && (
-                  <span className="ml-2 min-w-[1.25rem] h-5 px-1.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center shrink-0">
-                    {list.uncheckedItemCount}
-                  </span>
-                )}
+                <CountBadge count={list.uncheckedItemCount} />
               </button>
             </div>
           ))}

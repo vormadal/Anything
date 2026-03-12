@@ -15,13 +15,17 @@ public class GetShoppingListsHandler(IRepository<ShoppingList> listRepository, I
     {
         return await listRepository.Query()
             .Where(l => l.DeletedOn == null)
-            .Select(l => new ShoppingListResponse(
-                l.Id,
-                l.Name,
-                l.CreatedOn,
-                l.ModifiedOn,
-                l.DeletedOn,
-                itemRepository.Query().Count(i => i.ShoppingListId == l.Id && !i.IsChecked)))
+            .GroupJoin(
+                itemRepository.Query().Where(i => !i.IsChecked),
+                l => l.Id,
+                i => i.ShoppingListId,
+                (l, items) => new ShoppingListResponse(
+                    l.Id,
+                    l.Name,
+                    l.CreatedOn,
+                    l.ModifiedOn,
+                    l.DeletedOn,
+                    items.Count()))
             .ToListAsync(ct);
     }
 }
