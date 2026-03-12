@@ -189,7 +189,14 @@ export default function Home() {
                 onClick={() => router.push(`/shopping-lists/${list.id}`)}
               >
                 <span className="text-sm font-medium text-gray-900 dark:text-white">{list.name}</span>
-                <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+                <div className="flex items-center gap-2 shrink-0">
+                  {(list.uncheckedItemCount ?? 0) > 0 && (
+                    <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center">
+                      {list.uncheckedItemCount}
+                    </span>
+                  )}
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                </div>
               </button>
             ))}
             {(shoppingLists?.length ?? 0) > 2 && (

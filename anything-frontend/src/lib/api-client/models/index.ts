@@ -664,6 +664,7 @@ export function deserializeIntoShoppingList(shoppingList: Partial<ShoppingList> 
         "id": n => { shoppingList.id = n.getNumberValue(); },
         "modifiedOn": n => { shoppingList.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingList.name = n.getStringValue(); },
+        "uncheckedItemCount": n => { shoppingList.uncheckedItemCount = n.getNumberValue(); },
     }
 }
 /**
@@ -1224,6 +1225,7 @@ export function serializeShoppingList(writer: SerializationWriter, shoppingList:
     writer.writeNumberValue("id", shoppingList.id);
     writer.writeDateValue("modifiedOn", shoppingList.modifiedOn);
     writer.writeStringValue("name", shoppingList.name);
+    writer.writeNumberValue("uncheckedItemCount", shoppingList.uncheckedItemCount);
     writer.writeAdditionalData(shoppingList.additionalData);
 }
 /**
@@ -1404,6 +1406,10 @@ export interface ShoppingList extends AdditionalDataHolder, Parsable {
      * The name property
      */
     name?: string | null;
+    /**
+     * The uncheckedItemCount property
+     */
+    uncheckedItemCount?: number | null;
 }
 export interface ShoppingListItem extends AdditionalDataHolder, Parsable {
     /**

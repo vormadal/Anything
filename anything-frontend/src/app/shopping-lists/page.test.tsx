@@ -287,4 +287,37 @@ describe('ShoppingListsPage', () => {
 
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists/10')
   })
+
+  it('should display unchecked item count badge when count > 0', async () => {
+    const mockData = [
+      { id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z', uncheckedItemCount: 3 },
+      { id: 2, name: 'Hardware', createdOn: '2024-01-02T00:00:00Z', uncheckedItemCount: 0 },
+    ]
+    mockShoppingListsGet.mockResolvedValue(mockData)
+
+    render(<ShoppingListsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Groceries')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
+
+  it('should not display badge when uncheckedItemCount is 0 or absent', async () => {
+    const mockData = [
+      { id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z', uncheckedItemCount: 0 },
+      { id: 2, name: 'Hardware', createdOn: '2024-01-02T00:00:00Z' },
+    ]
+    mockShoppingListsGet.mockResolvedValue(mockData)
+
+    render(<ShoppingListsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Groceries')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
 })

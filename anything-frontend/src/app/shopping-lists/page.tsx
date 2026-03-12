@@ -136,12 +136,17 @@ export default function ShoppingListsPage() {
             <div key={list.id} className="flex items-center gap-2">
               <button
                 type="button"
-                className="flex-1 flex items-center px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onClick={() => router.push(`/shopping-lists/${list.id}`)}
               >
                 <span className="text-gray-900 dark:text-white font-medium text-sm">
                   {list.name}
                 </span>
+                {(list.uncheckedItemCount ?? 0) > 0 && (
+                  <span className="ml-2 min-w-[1.25rem] h-5 px-1.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center shrink-0">
+                    {list.uncheckedItemCount}
+                  </span>
+                )}
               </button>
             </div>
           ))}

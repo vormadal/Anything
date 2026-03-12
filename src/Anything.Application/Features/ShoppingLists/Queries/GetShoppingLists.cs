@@ -1,3 +1,4 @@
+using Anything.Contracts.ShoppingLists;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Mediator;
@@ -5,15 +6,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.ShoppingLists.Queries;
 
-public record GetShoppingListsQuery : IRequest<List<ShoppingList>>;
+public record GetShoppingListsQuery : IRequest<List<ShoppingListResponse>>;
 
-public class GetShoppingListsHandler(IRepository<ShoppingList> repository)
-    : IRequestHandler<GetShoppingListsQuery, List<ShoppingList>>
+public class GetShoppingListsHandler(IRepository<ShoppingList> listRepository, IRepository<ShoppingListItem> itemRepository)
+    : IRequestHandler<GetShoppingListsQuery, List<ShoppingListResponse>>
 {
-    public async Task<List<ShoppingList>> Handle(GetShoppingListsQuery query, CancellationToken ct = default)
+    public async Task<List<ShoppingListResponse>> Handle(GetShoppingListsQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        return await listRepository.Query()
             .Where(l => l.DeletedOn == null)
+            .Select(l => new ShoppingListResponse(
+                l.Id,
+                l.Name,
+                l.CreatedOn,
+                l.ModifiedOn,
+                l.DeletedOn,
+                itemRepository.Query().Count(i => i.ShoppingListId == l.Id && !i.IsChecked)))
             .ToListAsync(ct);
     }
 }

@@ -259,8 +259,9 @@ public class UpdateShoppingListItemHandlerTests
 public class GetShoppingListsHandlerTests
 {
     private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
+    private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
 
-    private GetShoppingListsHandler CreateHandler() => new(_repo);
+    private GetShoppingListsHandler CreateHandler() => new(_repo, _itemRepo);
 
     [Fact]
     public async Task Handle_ReturnsOnlyNonDeletedLists()
@@ -271,6 +272,7 @@ public class GetShoppingListsHandlerTests
             new() { Id = 2, Name = "Completed", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
         };
         _repo.Query().Returns(lists.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new GetShoppingListsQuery());
@@ -283,11 +285,35 @@ public class GetShoppingListsHandlerTests
     public async Task Handle_ReturnsEmptyWhenNoActiveLists()
     {
         _repo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new GetShoppingListsQuery());
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsCorrectUncheckedItemCount()
+    {
+        var lists = new List<ShoppingList>
+        {
+            new() { Id = 1, Name = "Groceries" }
+        };
+        var items = new List<ShoppingListItem>
+        {
+            new() { Id = 1, ShoppingListId = 1, Name = "Milk", IsChecked = false },
+            new() { Id = 2, ShoppingListId = 1, Name = "Bread", IsChecked = true },
+            new() { Id = 3, ShoppingListId = 1, Name = "Eggs", IsChecked = false },
+        };
+        _repo.Query().Returns(lists.AsAsyncQueryable());
+        _itemRepo.Query().Returns(items.AsQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new GetShoppingListsQuery());
+
+        Assert.Single(result);
+        Assert.Equal(2, result[0].UncheckedItemCount);
     }
 }
 
