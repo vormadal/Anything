@@ -6,6 +6,7 @@ import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ShoppingCart, Plus, ChevronRight } from "lucide-react";
+import { CountBadge } from "@/components/ui/count-badge";
 import type { FoodPlan } from "@/lib/api-client/models/index";
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -189,7 +190,10 @@ export default function Home() {
                 onClick={() => router.push(`/shopping-lists/${list.id}`)}
               >
                 <span className="text-sm font-medium text-gray-900 dark:text-white">{list.name}</span>
-                <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+                <div className="flex items-center gap-2 shrink-0">
+                  <CountBadge count={list.uncheckedItemCount} />
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                </div>
               </button>
             ))}
             {(shoppingLists?.length ?? 0) > 2 && (

@@ -7,6 +7,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CountBadge } from "@/components/ui/count-badge";
 import { useShoppingLists, useCreateShoppingList, useCompletedShoppingLists } from "@/hooks/useShoppingLists";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -136,12 +137,13 @@ export default function ShoppingListsPage() {
             <div key={list.id} className="flex items-center gap-2">
               <button
                 type="button"
-                className="flex-1 flex items-center px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onClick={() => router.push(`/shopping-lists/${list.id}`)}
               >
                 <span className="text-gray-900 dark:text-white font-medium text-sm">
                   {list.name}
                 </span>
+                <CountBadge count={list.uncheckedItemCount} />
               </button>
             </div>
           ))}

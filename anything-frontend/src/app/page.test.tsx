@@ -306,4 +306,22 @@ describe('Home Page Integration Tests', () => {
     await user.click(screen.getByRole('button', { name: 'All lists' }))
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists')
   })
+
+  it('should display unchecked item count badge on home page when count > 0', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlansGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([
+      { id: 1, name: 'Grocery List', uncheckedItemCount: 5 },
+      { id: 2, name: 'Hardware Store', uncheckedItemCount: 0 },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Grocery List')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('5')).toBeInTheDocument()
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
 })
