@@ -1,4 +1,4 @@
-const CACHE_NAME = "anything-app-v2";
+const CACHE_NAME = "anything-app-v3";
 const STATIC_ASSETS = ["/", "/login"];
 
 self.addEventListener("install", (event) => {
