@@ -1,8 +1,7 @@
-const CACHE_NAME = "anything-app-v4";
+const CACHE_NAME = "anything-app-v5";
 const STATIC_ASSETS = [
   "/",
   "/login",
-  "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-192-maskable.png",
   "/icons/icon-512.png",
@@ -42,6 +41,12 @@ self.addEventListener("fetch", (event) => {
 
   // Skip API requests — always go to network
   if (url.pathname.startsWith("/api/")) {
+    return;
+  }
+
+  // Never cache the manifest — Chrome's WebAPK update checker must always
+  // fetch a fresh copy to detect icon/name changes and update the installed app.
+  if (url.pathname === "/manifest.webmanifest") {
     return;
   }
 

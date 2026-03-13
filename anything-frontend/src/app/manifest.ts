@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Anything",
     description: "Create anything you want - todos, lists, inventory, and more",
     start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#1c1c26",
     theme_color: "#0f172a",
