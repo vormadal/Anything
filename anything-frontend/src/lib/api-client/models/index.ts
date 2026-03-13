@@ -362,6 +362,10 @@ export function createShoppingListRecommendationFromDiscriminatorValue(parseNode
 export function createUpdateRecommendationRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoUpdateRecommendationRequest;
 }
+// @ts-ignore
+export function createCreateRecommendationRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRecommendationRequest;
+}
 /**
  * The deserialization information for the current model
  * @param ChangePasswordRequest The instance to deserialize into.
@@ -746,6 +750,12 @@ export function deserializeIntoUpdateRecommendationRequest(updateRecommendationR
     return {
         "name": n => { updateRecommendationRequest.name = n.getStringValue(); },
         "preferredUnit": n => { updateRecommendationRequest.preferredUnit = n.getStringValue(); },
+    }
+}
+export function deserializeIntoCreateRecommendationRequest(createRecommendationRequest: Partial<CreateRecommendationRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { createRecommendationRequest.name = n.getStringValue(); },
+        "preferredUnit": n => { createRecommendationRequest.preferredUnit = n.getStringValue(); },
     }
 }
 export interface InventoryBox extends AdditionalDataHolder, Parsable {
@@ -1313,6 +1323,12 @@ export function serializeUpdateRecommendationRequest(writer: SerializationWriter
     writer.writeStringValue("preferredUnit", updateRecommendationRequest.preferredUnit);
     writer.writeAdditionalData(updateRecommendationRequest.additionalData);
 }
+export function serializeCreateRecommendationRequest(writer: SerializationWriter, createRecommendationRequest: Partial<CreateRecommendationRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRecommendationRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", createRecommendationRequest.name);
+    writer.writeStringValue("preferredUnit", createRecommendationRequest.preferredUnit);
+    writer.writeAdditionalData(createRecommendationRequest.additionalData);
+}
 export interface Something extends AdditionalDataHolder, Parsable {
     /**
      * The createdOn property
@@ -1532,6 +1548,20 @@ export interface ShoppingListRecommendation extends AdditionalDataHolder, Parsab
     preferredUnit?: string | null;
 }
 export interface UpdateRecommendationRequest extends AdditionalDataHolder, Parsable {
+    /**
+     * The additionalData property
+     */
+    additionalData?: Record<string, unknown>;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The preferredUnit property
+     */
+    preferredUnit?: string | null;
+}
+export interface CreateRecommendationRequest extends AdditionalDataHolder, Parsable {
     /**
      * The additionalData property
      */

@@ -9,6 +9,8 @@ const mockPendingGet = jest.fn();
 const mockAllGet = jest.fn();
 const mockApprovePost = jest.fn();
 const mockDeleteFn = jest.fn();
+const mockUpdatePut = jest.fn();
+const mockCreatePost = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
   apiClient: {
@@ -17,9 +19,11 @@ jest.mock("@/lib/apiClient", () => ({
         pending: { get: (...args: unknown[]) => mockPendingGet(...args) },
         all: { get: (...args: unknown[]) => mockAllGet(...args) },
         get: jest.fn().mockResolvedValue([]),
+        post: (...args: unknown[]) => mockCreatePost(...args),
         byId: (id: number) => ({
           approve: { post: (...args: unknown[]) => mockApprovePost(id, ...args) },
           delete: (...args: unknown[]) => mockDeleteFn(id, ...args),
+          put: (...args: unknown[]) => mockUpdatePut(id, ...args),
         }),
       },
     },
@@ -376,6 +380,182 @@ describe("AdminRecommendationsPage", () => {
           "Failed to remove recommendation."
         );
       });
+    });
+  });
+
+  describe("Search", () => {
+    beforeEach(() => {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" })
+      );
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("should filter pending recommendations by search query", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([
+        { id: 1, name: "Apple" },
+        { id: 2, name: "Banana" },
+        { id: 3, name: "Apricot" },
+      ]);
+      mockAllGet.mockResolvedValue([]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Apple")).toBeInTheDocument();
+      });
+
+      await user.type(screen.getByRole("textbox", { name: "Search recommendations" }), "ap");
+
+      await waitFor(() => {
+        expect(screen.getByText("Apple")).toBeInTheDocument();
+        expect(screen.getByText("Apricot")).toBeInTheDocument();
+        expect(screen.queryByText("Banana")).not.toBeInTheDocument();
+      });
+    });
+
+    it("should show empty state message when search yields no results", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([{ id: 1, name: "Apple" }]);
+      mockAllGet.mockResolvedValue([]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Apple")).toBeInTheDocument();
+      });
+
+      await user.type(screen.getByRole("textbox", { name: "Search recommendations" }), "xyz");
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("No recommendations match your search.")
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should reset search when switching tabs", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([
+        { id: 1, name: "Apple" },
+        { id: 2, name: "Banana" },
+      ]);
+      mockAllGet.mockResolvedValue([
+        { id: 1, name: "Apple", isApproved: true },
+        { id: 2, name: "Banana", isApproved: true },
+      ]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Apple")).toBeInTheDocument();
+      });
+
+      await user.type(screen.getByRole("textbox", { name: "Search recommendations" }), "app");
+
+      await waitFor(() => {
+        expect(screen.queryByText("Banana")).not.toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: /^All/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Apple")).toBeInTheDocument();
+        expect(screen.getByText("Banana")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Create Recommendation", () => {
+    beforeEach(() => {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" })
+      );
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("should show create form when clicking New button", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Create recommendation" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "Create recommendation" }));
+
+      expect(screen.getByPlaceholderText("Name")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Preferred unit (optional)")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save new recommendation" })).toBeInTheDocument();
+    });
+
+    it("should create a recommendation successfully", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([]);
+      mockCreatePost.mockResolvedValueOnce({ id: 10, name: "Milk", isApproved: true });
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Create recommendation" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "Create recommendation" }));
+      await user.type(screen.getByPlaceholderText("Name"), "Milk");
+      await user.click(screen.getByRole("button", { name: "Save new recommendation" }));
+
+      await waitFor(() => {
+        expect(mockCreatePost).toHaveBeenCalledWith({ name: "Milk", preferredUnit: null });
+        expect(toast.success).toHaveBeenCalledWith("Recommendation created.");
+      });
+    });
+
+    it("should show error toast when create fails", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([]);
+      mockCreatePost.mockRejectedValueOnce(new Error("Server error"));
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Create recommendation" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "Create recommendation" }));
+      await user.type(screen.getByPlaceholderText("Name"), "Milk");
+      await user.click(screen.getByRole("button", { name: "Save new recommendation" }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to create recommendation.");
+      });
+    });
+
+    it("should hide create form when clicking Cancel", async () => {
+      const user = userEvent.setup();
+      mockPendingGet.mockResolvedValue([]);
+      mockAllGet.mockResolvedValue([]);
+
+      renderWithClient(<AdminRecommendationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Create recommendation" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "Create recommendation" }));
+
+      expect(screen.getByPlaceholderText("Name")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(screen.queryByPlaceholderText("Name")).not.toBeInTheDocument();
     });
   });
 });

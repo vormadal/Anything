@@ -3,6 +3,7 @@ using Anything.Application.Features.Recommendations.Queries;
 using Anything.Contracts.Recommendations;
 using Anything.Core.Constants;
 using Anything.Mediator;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Anything.API.Endpoints;
 
@@ -18,6 +19,14 @@ public static class RecommendationEndpoints
         })
         .WithName("GetApprovedRecommendations")
         .RequireAuthorization();
+
+        group.MapPost("/", async ([FromBody] CreateRecommendationRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new CreateRecommendationCommand(request.Name, request.PreferredUnit));
+        })
+        .WithName("CreateRecommendation")
+        .WithParameterValidation()
+        .RequireAuthorization(UserRoles.Admin);
 
         group.MapGet("/all", async (IMediator mediator) =>
         {
