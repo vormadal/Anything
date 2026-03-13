@@ -159,12 +159,12 @@ export default function AdminRecommendationsPage() {
   const [editName, setEditName] = useState("");
   const [editPreferredUnit, setEditPreferredUnit] = useState("");
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createPreferredUnit, setCreatePreferredUnit] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const validPending = useMemo(
     () => (pendingRecommendations ?? []).filter((rec) => rec.id !== null && rec.name !== null),
@@ -282,6 +282,9 @@ export default function AdminRecommendationsPage() {
     setSearchQuery("");
     setCurrentPage(1);
     setEditingId(null);
+    setShowCreateForm(false);
+    setCreateName("");
+    setCreatePreferredUnit("");
   };
 
   const handleSearchChange = (value: string) => {
