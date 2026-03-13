@@ -1,11 +1,9 @@
-const CACHE_NAME = "anything-app-v5";
+const CACHE_NAME = "anything-app-v6";
 const STATIC_ASSETS = [
   "/",
   "/login",
   "/icons/icon-192.png",
-  "/icons/icon-192-maskable.png",
   "/icons/icon-512.png",
-  "/icons/icon-512-maskable.png",
 ];
 
 self.addEventListener("install", (event) => {

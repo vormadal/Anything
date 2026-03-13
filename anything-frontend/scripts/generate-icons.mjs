@@ -11,32 +11,8 @@ const logoPath = join(publicDir, "logo.png");
 
 mkdirSync(iconsDir, { recursive: true });
 
-// Logo background color — used as the maskable icon canvas so corners match
-// the logo itself rather than being white (white corners cause a ring artefact
-// when Android applies circular/rounded adaptive-icon masking).
-const LOGO_BG = { r: 0x1c, g: 0x1c, b: 0x26, alpha: 1 };
-
-// Safe zone: 20% padding on each side (Google/PWABuilder recommendation).
-// This ensures the fork+knife content sits comfortably inside the safe-zone
-// circle even on aggressive circular launchers.
-const SAFE_ZONE_RATIO = 0.2;
-
 async function generateIcon(size, filename) {
   await sharp(logoPath).resize(size, size).png().toFile(join(iconsDir, filename));
-  console.log(`Generated: public/icons/${filename}`);
-}
-
-async function generateMaskableIcon(size, filename) {
-  const logoSize = Math.round(size * (1 - SAFE_ZONE_RATIO * 2));
-  const padding = Math.floor((size - logoSize) / 2);
-  const resizedLogo = await sharp(logoPath).resize(logoSize, logoSize).png().toBuffer();
-  await sharp({
-    create: { width: size, height: size, channels: 4, background: LOGO_BG },
-  })
-    .composite([{ input: resizedLogo, top: padding, left: padding }])
-    .flatten({ background: LOGO_BG })
-    .png()
-    .toFile(join(iconsDir, filename));
   console.log(`Generated: public/icons/${filename}`);
 }
 
@@ -77,8 +53,6 @@ async function generateFavicon() {
 
 await generateIcon(192, "icon-192.png");
 await generateIcon(512, "icon-512.png");
-await generateMaskableIcon(192, "icon-192-maskable.png");
-await generateMaskableIcon(512, "icon-512-maskable.png");
 await generateIcon(180, "apple-icon-180.png");
 await generateFavicon();
 

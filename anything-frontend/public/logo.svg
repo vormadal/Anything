@@ -1,24 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Dark background -->
-  <rect width="512" height="512" fill="#1c1c26"/>
-  <!-- Circular plate/disc -->
-  <circle cx="256" cy="256" r="215" fill="#2a2a3a" opacity="0.7"/>
-  <!-- Fork (left side) -->
-  <!-- Fork handle -->
-  <rect x="206" y="267" width="28" height="204" fill="#b9b9c3" rx="3"/>
-  <!-- Gap/bolster on fork -->
-  <rect x="206" y="236" width="28" height="28" fill="#323248" rx="1"/>
-  <!-- Fork neck -->
-  <rect x="203" y="195" width="33" height="45" fill="#b9b9c3" rx="2"/>
-  <!-- Fork tines -->
-  <rect x="200" y="72" width="10" height="128" fill="#b9b9c3" rx="4"/>
-  <rect x="216" y="72" width="10" height="128" fill="#b9b9c3" rx="4"/>
-  <rect x="232" y="72" width="10" height="128" fill="#b9b9c3" rx="4"/>
-  <!-- Knife (right side) -->
-  <!-- Knife handle -->
-  <rect x="268" y="256" width="36" height="215" fill="#b9b9c3" rx="3"/>
-  <!-- Bolster -->
-  <rect x="264" y="226" width="44" height="26" fill="#b9b9c3" rx="2"/>
-  <!-- Blade (tapers to point) -->
-  <path d="M268 226 L304 226 L310 72 L286 68 L268 72 Z" fill="#b9b9c3"/>
+  <defs>
+    <clipPath id="circle-clip">
+      <circle cx="256" cy="256" r="248"/>
+    </clipPath>
+  </defs>
+
+  <!-- Border ring -->
+  <circle cx="256" cy="256" r="252" fill="#2a2648"/>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="248" fill="#1c1a2e"/>
+
+  <!-- Dark crimson blob: upper-left -->
+  <ellipse cx="148" cy="148" rx="188" ry="168" fill="#8c1c46" opacity="0.90"
+    transform="rotate(-15 148 148)" clip-path="url(#circle-clip)"/>
+
+  <!-- Teal blob: lower-center -->
+  <ellipse cx="244" cy="348" rx="220" ry="160" fill="#1e6b6b" opacity="0.94"
+    transform="rotate(10 244 348)" clip-path="url(#circle-clip)"/>
+
+  <!-- Orange ellipse: upper-right -->
+  <ellipse cx="318" cy="178" rx="88" ry="60" fill="#e8923a"
+    transform="rotate(-10 318 178)" clip-path="url(#circle-clip)"/>
+
+  <!-- Olive/golden circle: left of center -->
+  <circle cx="172" cy="310" r="48" fill="#8a7a20" clip-path="url(#circle-clip)"/>
+
+  <!-- Small yellow dot -->
+  <circle cx="332" cy="360" r="13" fill="#d4b444" clip-path="url(#circle-clip)"/>
+
+  <!-- Small teal-green dot -->
+  <circle cx="358" cy="336" r="9" fill="#4a9a9a" clip-path="url(#circle-clip)"/>
+
+  <!-- White "A" letter -->
+  <text x="256" y="308" font-family="Georgia, 'DejaVu Serif', serif" font-size="190" font-weight="bold"
+    fill="white" text-anchor="middle" clip-path="url(#circle-clip)">A</text>
+
+  <!-- Orange crossbar on the A -->
+  <rect x="182" y="268" width="148" height="18" fill="#e8923a" rx="3"
+    clip-path="url(#circle-clip)"/>
 </svg>
