@@ -141,7 +141,25 @@ namespace Anything.Database.Migrations
                 name: "IX_FoodPlanEntries_FoodPlanId",
                 table: "FoodPlanEntries");
 
-            // Make FoodPlanId non-nullable again (set orphans to 0 first - will fail if no plan with id=0)
+            // Re-link entries to their original FoodPlan by matching Date against WeekStart ranges
+            migrationBuilder.Sql("""
+                UPDATE "FoodPlanEntries" e
+                SET "FoodPlanId" = (
+                    SELECT fp."Id"
+                    FROM "FoodPlans" fp
+                    WHERE e."Date" >= fp."WeekStart"
+                      AND e."Date" < fp."WeekStart" + INTERVAL '7 days'
+                    ORDER BY fp."WeekStart" DESC
+                    LIMIT 1
+                );
+                """);
+
+            // Delete entries that could not be re-linked (no matching FoodPlan)
+            migrationBuilder.Sql("""
+                DELETE FROM "FoodPlanEntries" WHERE "FoodPlanId" IS NULL;
+                """);
+
+            // Make FoodPlanId non-nullable again
             migrationBuilder.AlterColumn<int>(
                 name: "FoodPlanId",
                 table: "FoodPlanEntries",

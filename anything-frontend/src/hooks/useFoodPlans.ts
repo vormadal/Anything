@@ -93,6 +93,8 @@ export function useDeleteFoodPlanEntry() {
 }
 
 export function useAddFoodPlanToShoppingList() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       shoppingListId,
@@ -111,5 +113,8 @@ export function useAddFoodPlanToShoppingList() {
         endDate,
         recipeMultipliers,
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
+    },
   });
 }

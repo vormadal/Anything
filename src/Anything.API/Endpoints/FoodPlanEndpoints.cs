@@ -39,7 +39,7 @@ public static class FoodPlanEndpoints
 
         group.MapPost("/entries", async (AddFoodPlanEntryRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new AddFoodPlanEntryCommand(request.Name, request.RecipeId, request.Date));
+            return await mediator.Send(new AddFoodPlanEntryCommand(request.Name, request.RecipeId, request.Date!.Value));
         })
         .WithName("AddFoodPlanEntry")
         .WithParameterValidation()
@@ -47,7 +47,7 @@ public static class FoodPlanEndpoints
 
         group.MapPut("/entries/{entryId}", async (int entryId, UpdateFoodPlanEntryRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateFoodPlanEntryCommand(entryId, request.Name, request.RecipeId, request.Date));
+            return await mediator.Send(new UpdateFoodPlanEntryCommand(entryId, request.Name, request.RecipeId, request.Date!.Value));
         })
         .WithName("UpdateFoodPlanEntry")
         .WithParameterValidation()
@@ -65,7 +65,7 @@ public static class FoodPlanEndpoints
         group.MapPost("/add-to-shopping-list", async (AddFoodPlanToShoppingListRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new AddFoodPlanToShoppingListCommand(
-                request.ShoppingListId, request.StartDate, request.EndDate, request.RecipeMultipliers));
+                request.ShoppingListId!.Value, request.StartDate!.Value, request.EndDate!.Value, request.RecipeMultipliers));
         })
         .WithName("AddFoodPlanToShoppingList")
         .WithParameterValidation()

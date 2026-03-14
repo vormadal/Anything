@@ -8,4 +8,4 @@ public record UpdateFoodPlanEntryRequest(
     string Name,
     int? RecipeId,
     [Required(ErrorMessage = "Date is required.")]
-    DateTime Date);
+    DateTime? Date);

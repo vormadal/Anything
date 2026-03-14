@@ -16,7 +16,7 @@ import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { useRouter } from "next/navigation";
 import { ShoppingCart, Plus, X, ChevronLeft, ChevronRight, Settings } from "lucide-react";
-import { ALL_DAYS, bitmaskToDaySet, toDateInputValue } from "@/lib/foodPlanUtils";
+import { ALL_DAYS, bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
 
 const DEFAULT_ACTIVE_DAYS = 31;
 const SUGGESTION_BLUR_DELAY_MS = 150;
@@ -26,7 +26,8 @@ function getMonday(date: Date): Date {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
+  // Zero out time in local timezone to avoid DST issues during date arithmetic
+  d.setHours(12, 0, 0, 0);
   return d;
 }
 
@@ -110,7 +111,7 @@ function AddEntryForm({
       await addEntry.mutateAsync({
         name: name.trim(),
         recipeId: selectedRecipeId,
-        date: new Date(toDateInputValue(date) + "T00:00:00Z"),
+        date: toUtcMidnight(date),
       });
       toast.success("Entry added");
       onClose();
@@ -260,8 +261,8 @@ function AddToShoppingListDialog({
       }));
       await addToShoppingList.mutateAsync({
         shoppingListId: listId,
-        startDate: new Date(toDateInputValue(startDate) + "T00:00:00Z"),
-        endDate: new Date(toDateInputValue(endDate) + "T00:00:00Z"),
+        startDate: toUtcMidnight(startDate),
+        endDate: toUtcMidnight(endDate),
         recipeMultipliers,
       });
       toast.success("Ingredients added to shopping list");
