@@ -1,6 +1,7 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Mediator;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.ShoppingLists.Commands;
 
@@ -11,7 +12,17 @@ public class CreateShoppingListHandler(IRepository<ShoppingList> repository, IUn
 {
     public async Task<ShoppingList> Handle(CreateShoppingListCommand command, CancellationToken ct = default)
     {
-        var list = new ShoppingList { Name = command.Name, CreatedOn = timeProvider.GetUtcNow().UtcDateTime };
+        var lastList = await repository.Query()
+            .Where(l => l.DeletedOn == null)
+            .OrderByDescending(l => l.SortOrder)
+            .FirstOrDefaultAsync(ct);
+
+        var list = new ShoppingList
+        {
+            Name = command.Name,
+            SortOrder = lastList == null ? 0 : lastList.SortOrder + 1,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
+        };
         repository.Add(list);
         await unitOfWork.SaveChanges(ct);
         return list;

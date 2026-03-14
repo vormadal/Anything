@@ -42,6 +42,14 @@ public static class ShoppingListEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPut("/reorder", async (ReorderShoppingListsRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ReorderShoppingListsCommand(request.Ids));
+        })
+        .WithName("ReorderShoppingLists")
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapPut("/{id}", async (int id, UpdateShoppingListRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new UpdateShoppingListCommand(id, request.Name));

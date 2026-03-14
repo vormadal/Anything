@@ -7,6 +7,8 @@ import { ShoppingListsCompletedRequestBuilderRequestsMetadata, type ShoppingList
 // @ts-ignore
 import { ShoppingListsItemRequestBuilderNavigationMetadata, ShoppingListsItemRequestBuilderRequestsMetadata, type ShoppingListsItemRequestBuilder } from './item/index';
 // @ts-ignore
+import { ShoppingListsReorderRequestBuilderRequestsMetadata, type ShoppingListsReorderRequestBuilder } from './reorder/index';
+// @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
@@ -17,6 +19,10 @@ export interface ShoppingListsRequestBuilder extends BaseRequestBuilder<Shopping
      * The completed property
      */
     get completed(): ShoppingListsCompletedRequestBuilder;
+    /**
+     * The reorder property
+     */
+    get reorder(): ShoppingListsReorderRequestBuilder;
     /**
      * Gets an item from the ApiSdk.api.shoppingLists.item collection
      * @param id Unique identifier of the item
@@ -56,6 +62,9 @@ export const ShoppingListsRequestBuilderUriTemplate = "{+baseurl}/api/shopping-l
 export const ShoppingListsRequestBuilderNavigationMetadata: Record<Exclude<keyof ShoppingListsRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
     completed: {
         requestsMetadata: ShoppingListsCompletedRequestBuilderRequestsMetadata,
+    },
+    reorder: {
+        requestsMetadata: ShoppingListsReorderRequestBuilderRequestsMetadata,
     },
     byId: {
         requestsMetadata: ShoppingListsItemRequestBuilderRequestsMetadata,

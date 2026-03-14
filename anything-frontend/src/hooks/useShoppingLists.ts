@@ -71,6 +71,30 @@ export function useCompleteShoppingList() {
   });
 }
 
+export function useReorderShoppingLists() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: number[]) =>
+      apiClient.api.shoppingLists.reorder.put({ ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: ["shoppingLists"] });
+      const previousLists = queryClient.getQueryData<ShoppingList[]>(["shoppingLists"]);
+      queryClient.setQueryData<ShoppingList[]>(["shoppingLists"], (old) => {
+        if (!old) return old;
+        return ids.map((id) => old.find((l) => l.id === id)).filter(Boolean) as ShoppingList[];
+      });
+      return { previousLists };
+    },
+    onError: (_err, _ids, context) => {
+      queryClient.setQueryData(["shoppingLists"], context?.previousLists);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+    },
+  });
+}
+
 export function useShoppingListItems(listId: number) {
   return useQuery({
     queryKey: ["shoppingListItems", listId],

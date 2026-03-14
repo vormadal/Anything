@@ -8,12 +8,71 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CountBadge } from "@/components/ui/count-badge";
-import { useShoppingLists, useCreateShoppingList, useCompletedShoppingLists } from "@/hooks/useShoppingLists";
+import { useShoppingLists, useCreateShoppingList, useCompletedShoppingLists, useReorderShoppingLists } from "@/hooks/useShoppingLists";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { MoreVertical, Plus } from "lucide-react";
+import { MoreVertical, Plus, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { ShoppingList } from "@/lib/api-client/models/index";
+
+function DraggableShoppingListItem({ list, onClick }: { list: ShoppingList; onClick: () => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: list.id! });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
+      <button
+        type="button"
+        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+        onClick={onClick}
+      >
+        <span className="text-gray-900 dark:text-white font-medium text-sm">
+          {list.name}
+        </span>
+        <CountBadge count={list.uncheckedItemCount} />
+      </button>
+    </div>
+  );
+}
 
 export default function ShoppingListsPage() {
   const [isCreating, setIsCreating] = useState(false);
@@ -23,8 +82,28 @@ export default function ShoppingListsPage() {
   const { data: lists, isLoading, error } = useShoppingLists();
   const { data: completedLists } = useCompletedShoppingLists();
   const createList = useCreateShoppingList();
+  const reorderLists = useReorderShoppingLists();
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !lists) return;
+
+    const oldIndex = lists.findIndex((l) => l.id === active.id);
+    const newIndex = lists.findIndex((l) => l.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(lists, oldIndex, newIndex);
+    reorderLists.mutate(reordered.map((l) => l.id!));
+  };
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,22 +211,26 @@ export default function ShoppingListsPage() {
       )}
 
       {hasActiveLists && (
-        <div className="space-y-1">
-          {lists.map((list) => (
-            <div key={list.id} className="flex items-center gap-2">
-              <button
-                type="button"
-                className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={() => router.push(`/shopping-lists/${list.id}`)}
-              >
-                <span className="text-gray-900 dark:text-white font-medium text-sm">
-                  {list.name}
-                </span>
-                <CountBadge count={list.uncheckedItemCount} />
-              </button>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={lists.map((l) => l.id!)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-1">
+              {lists.map((list) => (
+                <DraggableShoppingListItem
+                  key={list.id}
+                  list={list}
+                  onClick={() => router.push(`/shopping-lists/${list.id}`)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {showCompleted && (
