@@ -8,6 +8,6 @@ public class FoodPlanSettings
     /// Default 31 (0b0011111) = Monday–Friday.
     /// </summary>
     public int ActiveDays { get; set; } = 31;
-    public DateTime CreatedOn { get; set; }
+    public DateTime? CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
 }
