@@ -5,24 +5,18 @@ using Microsoft.AspNetCore.Http;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record AddFoodPlanEntryCommand(int FoodPlanId, string Name, int? RecipeId, int DayOfWeek) : IRequest<IResult>;
+public record AddFoodPlanEntryCommand(string Name, int? RecipeId, DateTime Date) : IRequest<IResult>;
 
 public class AddFoodPlanEntryHandler(
-    IRepository<FoodPlan> foodPlanRepository,
     IRepository<Recipe> recipeRepository,
     IRepository<FoodPlanEntry> entryRepository,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<AddFoodPlanEntryCommand, IResult>
 {
-    private const string FoodPlanNotFound = "Food plan not found.";
     private const string RecipeNotFound = "Recipe not found.";
 
     public async Task<IResult> Handle(AddFoodPlanEntryCommand command, CancellationToken ct = default)
     {
-        var plan = await foodPlanRepository.GetById(command.FoodPlanId);
-        if (plan is null || plan.DeletedOn != null)
-            return Results.NotFound(FoodPlanNotFound);
-
         int? recipeId = command.RecipeId;
         if (recipeId.HasValue)
         {
@@ -40,14 +34,14 @@ public class AddFoodPlanEntryHandler(
 
         var entry = new FoodPlanEntry
         {
-            FoodPlanId = command.FoodPlanId,
             Name = command.Name,
             RecipeId = recipeId,
-            DayOfWeek = command.DayOfWeek,
+            Date = command.Date,
+            DayOfWeek = ((int)command.Date.DayOfWeek + 6) % 7,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
         entryRepository.Add(entry);
         await unitOfWork.SaveChanges(ct);
-        return Results.Created($"/api/food-plans/{command.FoodPlanId}/entries/{entry.Id}", entry);
+        return Results.Created($"/api/food-plan/entries/{entry.Id}", entry);
     }
 }

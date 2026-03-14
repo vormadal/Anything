@@ -14,7 +14,7 @@ public class GetFoodPlanEntriesHandler(IRepository<FoodPlanEntry> repository)
     {
         return await repository.Query()
             .Where(e => e.FoodPlanId == query.FoodPlanId && e.DeletedOn == null)
-            .OrderBy(e => e.DayOfWeek)
+            .OrderBy(e => e.Date)
             .ToListAsync(ct);
     }
 }

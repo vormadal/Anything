@@ -2,89 +2,59 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { FoodPlan, FoodPlanEntry } from "@/lib/api-client/models/index";
+import type { FoodPlanEntry, FoodPlanSettings } from "@/lib/api-client/models/index";
 
-export function useFoodPlans() {
+export function useFoodPlanSettings() {
   return useQuery({
-    queryKey: ["foodPlans"],
-    queryFn: () => apiClient.api.foodPlans.get() as Promise<FoodPlan[]>,
+    queryKey: ["foodPlanSettings"],
+    queryFn: () => apiClient.api.foodPlan.settings.get() as Promise<FoodPlanSettings>,
   });
 }
 
-export function useFoodPlan(id: number) {
-  return useQuery({
-    queryKey: ["foodPlan", id],
-    queryFn: () => apiClient.api.foodPlans.byId(id).get() as Promise<FoodPlan>,
-    enabled: id > 0,
+export function useUpdateFoodPlanSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (settings: { activeDays: number }) =>
+      apiClient.api.foodPlan.settings.put({ activeDays: settings.activeDays }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["foodPlanSettings"] });
+    },
   });
 }
 
-export function useFoodPlanEntries(foodPlanId: number) {
+export function useFoodPlanEntries(startDate: string, endDate: string) {
   return useQuery({
-    queryKey: ["foodPlanEntries", foodPlanId],
+    queryKey: ["foodPlanEntries", startDate, endDate],
     queryFn: () =>
-      apiClient.api.foodPlans.byId(foodPlanId).entries.get() as Promise<FoodPlanEntry[]>,
-    enabled: foodPlanId > 0,
+      apiClient.api.foodPlan.entries.get({
+        queryParameters: { startDate, endDate },
+      }) as Promise<FoodPlanEntry[]>,
+    enabled: !!startDate && !!endDate,
   });
 }
 
-export function useCreateFoodPlan() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (plan: { name: string; weekStart: Date; activeDays?: number }) =>
-      apiClient.api.foodPlans.post({ name: plan.name, weekStart: plan.weekStart, activeDays: plan.activeDays ?? 31 }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["foodPlans"] });
-    },
-  });
-}
-
-export function useUpdateFoodPlan() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, name, weekStart, activeDays }: { id: number; name: string; weekStart: Date; activeDays?: number }) =>
-      apiClient.api.foodPlans.byId(id).put({ name, weekStart, activeDays: activeDays ?? 31 }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["foodPlans"] });
-      queryClient.invalidateQueries({ queryKey: ["foodPlan", variables.id] });
-    },
-  });
-}
-
-export function useDeleteFoodPlan() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => apiClient.api.foodPlans.byId(id).delete(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["foodPlans"] });
-    },
-  });
-}
-
-export function useAddFoodPlanEntry(foodPlanId: number) {
+export function useAddFoodPlanEntry() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (entry: {
       name: string;
       recipeId?: number | null;
-      dayOfWeek: number;
+      date: Date;
     }) =>
-      apiClient.api.foodPlans.byId(foodPlanId).entries.post({
+      apiClient.api.foodPlan.entries.post({
         name: entry.name,
         recipeId: entry.recipeId,
-        dayOfWeek: entry.dayOfWeek,
+        date: entry.date,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries", foodPlanId] });
+      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
     },
   });
 }
 
-export function useUpdateFoodPlanEntry(foodPlanId: number) {
+export function useUpdateFoodPlanEntry() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -92,65 +62,54 @@ export function useUpdateFoodPlanEntry(foodPlanId: number) {
       entryId,
       name,
       recipeId,
-      dayOfWeek,
+      date,
     }: {
       entryId: number;
       name: string;
       recipeId?: number | null;
-      dayOfWeek: number;
+      date: Date;
     }) =>
-      apiClient.api.foodPlans.byId(foodPlanId).entries.byId(entryId).put({
+      apiClient.api.foodPlan.entries.byId(entryId).put({
         name,
         recipeId,
-        dayOfWeek,
+        date,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries", foodPlanId] });
+      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
     },
   });
 }
 
-export function useDeleteFoodPlanEntry(foodPlanId: number) {
+export function useDeleteFoodPlanEntry() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (entryId: number) =>
-      apiClient.api.foodPlans.byId(foodPlanId).entries.byId(entryId).delete(),
+      apiClient.api.foodPlan.entries.byId(entryId).delete(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries", foodPlanId] });
+      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
     },
   });
 }
 
-export function useAddFoodPlanToShoppingList(foodPlanId: number) {
-  return useMutation({
-    mutationFn: ({ shoppingListId, recipeMultipliers }: { shoppingListId: number; recipeMultipliers?: { recipeId: number; multiplier: number }[] }) =>
-      apiClient.api.foodPlans.byId(foodPlanId).addToShoppingList.post({ shoppingListId, recipeMultipliers }),
-  });
-}
-
-export function useAddEntryToFoodPlan() {
-  const queryClient = useQueryClient();
-
+export function useAddFoodPlanToShoppingList() {
   return useMutation({
     mutationFn: ({
-      foodPlanId,
-      name,
-      recipeId,
-      dayOfWeek,
+      shoppingListId,
+      startDate,
+      endDate,
+      recipeMultipliers,
     }: {
-      foodPlanId: number;
-      name: string;
-      recipeId?: number | null;
-      dayOfWeek: number;
+      shoppingListId: number;
+      startDate: Date;
+      endDate: Date;
+      recipeMultipliers?: { recipeId: number; multiplier: number }[];
     }) =>
-      apiClient.api.foodPlans.byId(foodPlanId).entries.post({
-        name,
-        recipeId,
-        dayOfWeek,
+      apiClient.api.foodPlan.addToShoppingList.post({
+        shoppingListId,
+        startDate,
+        endDate,
+        recipeMultipliers,
       }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries", variables.foodPlanId] });
-    },
   });
 }

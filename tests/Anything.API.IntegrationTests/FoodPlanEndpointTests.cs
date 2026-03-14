@@ -19,7 +19,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     {
     }
 
-    private async Task<HttpClient> GetAuthenticatedHttpClientAsync()
+    private async Task<HttpClient> GetOrCreateAuthenticatedHttpClient()
     {
         if (_authenticatedHttpClient == null)
         {
@@ -29,186 +29,98 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         return _authenticatedHttpClient;
     }
 
-    // --- GET /api/food-plans ---
+    // --- GET /api/food-plan/settings ---
 
     [Fact]
-    public async Task GetFoodPlans_WhenEmpty_ReturnsEmptyList()
+    public async Task GetFoodPlanSettings_ReturnsDefaultSettings()
     {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/food-plans", TestContext.Current.CancellationToken);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.GetAsync("/api/food-plan/settings", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<FoodPlanDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<FoodPlanSettingsDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
-        Assert.Empty(result);
+        Assert.Equal(31, result.ActiveDays);
     }
 
     [Fact]
-    public async Task GetFoodPlans_RequiresAuthentication()
+    public async Task GetFoodPlanSettings_RequiresAuthentication()
     {
-        var response = await HttpClient.GetAsync("/api/food-plans", TestContext.Current.CancellationToken);
+        var response = await HttpClient.GetAsync("/api/food-plan/settings", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact]
-    public async Task GetFoodPlans_ReturnsCreatedFoodPlans()
-    {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        await CreateFoodPlanAsync("Week 1", weekStart);
-        await CreateFoodPlanAsync("Week 2", weekStart.AddDays(7));
-
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/food-plans", TestContext.Current.CancellationToken);
-        var result = await response.Content.ReadFromJsonAsync<FoodPlanDto[]>(JsonOptions, TestContext.Current.CancellationToken);
-
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Length);
-        Assert.Contains(result, p => p.Name == "Week 1");
-        Assert.Contains(result, p => p.Name == "Week 2");
-    }
+    // --- PUT /api/food-plan/settings ---
 
     [Fact]
-    public async Task GetFoodPlans_DoesNotReturnDeletedFoodPlans()
+    public async Task UpdateFoodPlanSettings_ReturnsUpdatedSettings()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Deleted Plan", weekStart);
-        var client = await GetAuthenticatedHttpClientAsync();
-        await client.DeleteAsync($"/api/food-plans/{plan.Id}", TestContext.Current.CancellationToken);
-
-        var response = await client.GetAsync("/api/food-plans", TestContext.Current.CancellationToken);
-        var result = await response.Content.ReadFromJsonAsync<FoodPlanDto[]>(JsonOptions, TestContext.Current.CancellationToken);
-
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    // --- GET /api/food-plans/{id} ---
-
-    [Fact]
-    public async Task GetFoodPlanById_ReturnsFoodPlan()
-    {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
-
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync($"/api/food-plans/{plan.Id}", TestContext.Current.CancellationToken);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.PutAsJsonAsync("/api/food-plan/settings",
+            new { activeDays = 127 }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<FoodPlanDto>(JsonOptions, TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<FoodPlanSettingsDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
-        Assert.Equal(plan.Id, result.Id);
-        Assert.Equal("Week Plan", result.Name);
+        Assert.Equal(127, result.ActiveDays);
     }
 
     [Fact]
-    public async Task GetFoodPlanById_WhenNotFound_Returns404()
+    public async Task UpdateFoodPlanSettings_PersistsChanges()
     {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/food-plans/99999", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        await client.PutAsJsonAsync("/api/food-plan/settings",
+            new { activeDays = 65 }, TestContext.Current.CancellationToken);
 
-    // --- POST /api/food-plans ---
-
-    [Fact]
-    public async Task CreateFoodPlan_ReturnsFoodPlan()
-    {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("New Plan", weekStart);
-
-        Assert.True(plan.Id > 0);
-        Assert.Equal("New Plan", plan.Name);
+        var getResponse = await client.GetAsync("/api/food-plan/settings", TestContext.Current.CancellationToken);
+        var result = await getResponse.Content.ReadFromJsonAsync<FoodPlanSettingsDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        Assert.Equal(65, result.ActiveDays);
     }
 
     [Fact]
-    public async Task CreateFoodPlan_WithEmptyName_Returns400()
+    public async Task UpdateFoodPlanSettings_WithInvalidActiveDays_Returns400()
     {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/food-plans",
-            new { name = "", weekStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc) }, TestContext.Current.CancellationToken);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.PutAsJsonAsync("/api/food-plan/settings",
+            new { activeDays = 0 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    // --- PUT /api/food-plans/{id} ---
-
-    [Fact]
-    public async Task UpdateFoodPlan_ReturnsNoContent()
-    {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Old Name", weekStart);
-
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PutAsJsonAsync($"/api/food-plans/{plan.Id}",
-            new { name = "New Name", weekStart = weekStart.AddDays(7) }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task UpdateFoodPlan_WhenNotFound_Returns404()
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PutAsJsonAsync("/api/food-plans/99999",
-            new { name = "Name", weekStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc) }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    // --- DELETE /api/food-plans/{id} ---
-
-    [Fact]
-    public async Task DeleteFoodPlan_ReturnsNoContent()
-    {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("To Delete", weekStart);
-
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.DeleteAsync($"/api/food-plans/{plan.Id}", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task DeleteFoodPlan_WhenNotFound_Returns404()
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.DeleteAsync("/api/food-plans/99999", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    // --- POST /api/food-plans/{id}/entries ---
+    // --- POST /api/food-plan/entries ---
 
     [Fact]
     public async Task AddFoodPlanEntry_WithRecipe_ReturnsCreated()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
-        var recipe = await CreateRecipeAsync("Pasta");
+        var recipe = await CreateRecipe("Pasta");
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
 
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Pasta Dinner", recipeId = recipe.Id, dayOfWeek = 0 }, TestContext.Current.CancellationToken);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Pasta Dinner", recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         var entry = await response.Content.ReadFromJsonAsync<FoodPlanEntryDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(entry);
         Assert.Equal(recipe.Id, entry.RecipeId);
-        Assert.Equal(0, entry.DayOfWeek);
+        Assert.Equal(date, entry.Date);
         Assert.Equal("Pasta Dinner", entry.Name);
     }
 
     [Fact]
     public async Task AddFoodPlanEntry_WithoutRecipeId_AutoCreatesRecipe()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
+        var date = new DateTime(2026, 3, 17, 0, 0, 0, DateTimeKind.Utc);
 
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Homemade Salad", dayOfWeek = 1 }, TestContext.Current.CancellationToken);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Homemade Salad", date }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         var entry = await response.Content.ReadFromJsonAsync<FoodPlanEntryDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(entry);
         Assert.Equal("Homemade Salad", entry.Name);
-        Assert.Equal(1, entry.DayOfWeek);
+        Assert.Equal(date, entry.Date);
         Assert.NotNull(entry.RecipeId);
 
         var recipeResponse = await client.GetAsync($"/api/recipes/{entry.RecipeId}", TestContext.Current.CancellationToken);
@@ -221,88 +133,168 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     [Fact]
     public async Task AddFoodPlanEntry_WithoutName_Returns400()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
 
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { dayOfWeek = 0 }, TestContext.Current.CancellationToken);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { date }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
-    public async Task AddFoodPlanEntry_WhenFoodPlanNotFound_Returns404()
+    public async Task AddFoodPlanEntry_RequiresAuthentication()
     {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/food-plans/99999/entries",
-            new { name = "Test", dayOfWeek = 0 }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        var response = await HttpClient.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Test", date }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    // --- GET /api/food-plans/{id}/entries ---
+    // --- GET /api/food-plan/entries?startDate=...&endDate=... ---
 
     [Fact]
-    public async Task GetFoodPlanEntries_ReturnsEntries()
+    public async Task GetFoodPlanEntries_ReturnsEntriesInDateRange()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
-        var recipe = await CreateRecipeAsync("Pizza");
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var recipe = await CreateRecipe("Pizza");
 
-        var client = await GetAuthenticatedHttpClientAsync();
-        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Pizza Dinner", recipeId = recipe.Id, dayOfWeek = 0 }, TestContext.Current.CancellationToken);
-        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Salad", dayOfWeek = 1 }, TestContext.Current.CancellationToken);
+        var monday = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        var tuesday = new DateTime(2026, 3, 17, 0, 0, 0, DateTimeKind.Utc);
+        var nextMonday = new DateTime(2026, 3, 23, 0, 0, 0, DateTimeKind.Utc);
 
-        var response = await client.GetAsync($"/api/food-plans/{plan.Id}/entries", TestContext.Current.CancellationToken);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Pizza Dinner", recipeId = recipe.Id, date = monday }, TestContext.Current.CancellationToken);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Salad", date = tuesday }, TestContext.Current.CancellationToken);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Next Week Meal", date = nextMonday }, TestContext.Current.CancellationToken);
+
+        var startDate = monday.ToString("O");
+        var endDate = new DateTime(2026, 3, 22, 0, 0, 0, DateTimeKind.Utc).ToString("O");
+        var response = await client.GetAsync($"/api/food-plan/entries?startDate={startDate}&endDate={endDate}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var entries = await response.Content.ReadFromJsonAsync<FoodPlanEntryDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(entries);
         Assert.Equal(2, entries.Length);
+        Assert.Contains(entries, e => e.Name == "Pizza Dinner");
+        Assert.Contains(entries, e => e.Name == "Salad");
     }
 
-    // --- DELETE /api/food-plans/{id}/entries/{entryId} ---
+    [Fact]
+    public async Task GetFoodPlanEntries_WhenEmpty_ReturnsEmptyList()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var startDate = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc).ToString("O");
+        var endDate = new DateTime(2026, 3, 22, 0, 0, 0, DateTimeKind.Utc).ToString("O");
+
+        var response = await client.GetAsync($"/api/food-plan/entries?startDate={startDate}&endDate={endDate}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var entries = await response.Content.ReadFromJsonAsync<FoodPlanEntryDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(entries);
+        Assert.Empty(entries);
+    }
+
+    [Fact]
+    public async Task GetFoodPlanEntries_DoesNotReturnDeletedEntries()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+
+        var createResponse = await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "To Delete", date }, TestContext.Current.CancellationToken);
+        var entry = await createResponse.Content.ReadFromJsonAsync<FoodPlanEntryDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(entry);
+
+        await client.DeleteAsync($"/api/food-plan/entries/{entry.Id}", TestContext.Current.CancellationToken);
+
+        var startDate = date.ToString("O");
+        var endDate = date.ToString("O");
+        var response = await client.GetAsync($"/api/food-plan/entries?startDate={startDate}&endDate={endDate}", TestContext.Current.CancellationToken);
+        var entries = await response.Content.ReadFromJsonAsync<FoodPlanEntryDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(entries);
+        Assert.Empty(entries);
+    }
+
+    // --- PUT /api/food-plan/entries/{entryId} ---
+
+    [Fact]
+    public async Task UpdateFoodPlanEntry_ReturnsNoContent()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        var newDate = new DateTime(2026, 3, 18, 0, 0, 0, DateTimeKind.Utc);
+
+        var createResponse = await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Old Name", date }, TestContext.Current.CancellationToken);
+        var entry = await createResponse.Content.ReadFromJsonAsync<FoodPlanEntryDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(entry);
+
+        var response = await client.PutAsJsonAsync($"/api/food-plan/entries/{entry.Id}",
+            new { name = "New Name", date = newDate }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateFoodPlanEntry_WhenNotFound_Returns404()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+
+        var response = await client.PutAsJsonAsync("/api/food-plan/entries/99999",
+            new { name = "Name", date }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- DELETE /api/food-plan/entries/{entryId} ---
 
     [Fact]
     public async Task DeleteFoodPlanEntry_ReturnsNoContent()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
 
-        var client = await GetAuthenticatedHttpClientAsync();
-        var createResponse = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Salad", dayOfWeek = 0 }, TestContext.Current.CancellationToken);
+        var createResponse = await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Salad", date }, TestContext.Current.CancellationToken);
         var entry = await createResponse.Content.ReadFromJsonAsync<FoodPlanEntryDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(entry);
 
-        var deleteResponse = await client.DeleteAsync($"/api/food-plans/{plan.Id}/entries/{entry.Id}", TestContext.Current.CancellationToken);
+        var deleteResponse = await client.DeleteAsync($"/api/food-plan/entries/{entry.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
     }
 
-    // --- POST /api/food-plans/{id}/add-to-shopping-list ---
+    [Fact]
+    public async Task DeleteFoodPlanEntry_WhenNotFound_Returns404()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.DeleteAsync("/api/food-plan/entries/99999", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- POST /api/food-plan/add-to-shopping-list ---
 
     [Fact]
     public async Task AddFoodPlanToShoppingList_AddsIngredients()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
-        var recipe = await CreateRecipeAsync("Spaghetti Bolognese");
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var recipe = await CreateRecipe("Spaghetti Bolognese");
 
-        var client = await GetAuthenticatedHttpClientAsync();
         await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
             new { name = "Spaghetti", amount = 200, unit = "g" }, TestContext.Current.CancellationToken);
         await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
             new { name = "Minced Beef", amount = 400, unit = "g" }, TestContext.Current.CancellationToken);
-        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Spaghetti Dinner", recipeId = recipe.Id, dayOfWeek = 0 }, TestContext.Current.CancellationToken);
+
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Spaghetti Dinner", recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
 
         var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(shoppingList);
 
-        var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/add-to-shopping-list",
-            new { shoppingListId = shoppingList.Id }, TestContext.Current.CancellationToken);
+        var response = await client.PostAsJsonAsync("/api/food-plan/add-to-shopping-list",
+            new { shoppingListId = shoppingList.Id, startDate = date, endDate = date }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
@@ -314,29 +306,59 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AddFoodPlanToShoppingList_WhenSameIngredientInMultipleRecipes_MergesQuantities()
+    public async Task AddFoodPlanToShoppingList_MarksEntriesAsAdded()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
-        var recipe1 = await CreateRecipeAsync("Pasta");
-        var recipe2 = await CreateRecipeAsync("Pizza");
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var recipe = await CreateRecipe("Pasta");
 
-        var client = await GetAuthenticatedHttpClientAsync();
-        await client.PostAsJsonAsync($"/api/recipes/{recipe1.Id}/ingredients",
-            new { name = "Flour", amount = 200, unit = "g" }, TestContext.Current.CancellationToken);
-        await client.PostAsJsonAsync($"/api/recipes/{recipe2.Id}/ingredients",
-            new { name = "Flour", amount = 300, unit = "g" }, TestContext.Current.CancellationToken);
-        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Monday", recipeId = recipe1.Id, dayOfWeek = 0 }, TestContext.Current.CancellationToken);
-        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Tuesday", recipeId = recipe2.Id, dayOfWeek = 1 }, TestContext.Current.CancellationToken);
+        await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
+            new { name = "Pasta", amount = 200, unit = "g" }, TestContext.Current.CancellationToken);
+
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Pasta Dinner", recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
 
         var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(shoppingList);
 
-        var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/add-to-shopping-list",
-            new { shoppingListId = shoppingList.Id }, TestContext.Current.CancellationToken);
+        await client.PostAsJsonAsync("/api/food-plan/add-to-shopping-list",
+            new { shoppingListId = shoppingList.Id, startDate = date, endDate = date }, TestContext.Current.CancellationToken);
+
+        var startDateStr = date.ToString("O");
+        var endDateStr = date.ToString("O");
+        var entriesResponse = await client.GetAsync($"/api/food-plan/entries?startDate={startDateStr}&endDate={endDateStr}", TestContext.Current.CancellationToken);
+        var entries = await entriesResponse.Content.ReadFromJsonAsync<FoodPlanEntryDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(entries);
+        Assert.Single(entries);
+        Assert.NotNull(entries[0].AddedToShoppingListOn);
+    }
+
+    [Fact]
+    public async Task AddFoodPlanToShoppingList_WhenSameIngredientInMultipleRecipes_MergesQuantities()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var recipe1 = await CreateRecipe("Pasta");
+        var recipe2 = await CreateRecipe("Pizza");
+
+        await client.PostAsJsonAsync($"/api/recipes/{recipe1.Id}/ingredients",
+            new { name = "Flour", amount = 200, unit = "g" }, TestContext.Current.CancellationToken);
+        await client.PostAsJsonAsync($"/api/recipes/{recipe2.Id}/ingredients",
+            new { name = "Flour", amount = 300, unit = "g" }, TestContext.Current.CancellationToken);
+
+        var monday = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        var tuesday = new DateTime(2026, 3, 17, 0, 0, 0, DateTimeKind.Utc);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Monday", recipeId = recipe1.Id, date = monday }, TestContext.Current.CancellationToken);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Tuesday", recipeId = recipe2.Id, date = tuesday }, TestContext.Current.CancellationToken);
+
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
+        var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(shoppingList);
+
+        var response = await client.PostAsJsonAsync("/api/food-plan/add-to-shopping-list",
+            new { shoppingListId = shoppingList.Id, startDate = monday, endDate = tuesday }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
@@ -351,27 +373,28 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     [Fact]
     public async Task AddFoodPlanToShoppingList_WhenSameNameDifferentUnit_AddsAsSeparateItems()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var plan = await CreateFoodPlanAsync("Week Plan", weekStart);
-        var recipe1 = await CreateRecipeAsync("Pasta");
-        var recipe2 = await CreateRecipeAsync("Pizza");
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var recipe1 = await CreateRecipe("Pasta");
+        var recipe2 = await CreateRecipe("Pizza");
 
-        var client = await GetAuthenticatedHttpClientAsync();
         await client.PostAsJsonAsync($"/api/recipes/{recipe1.Id}/ingredients",
             new { name = "Flour", amount = 200, unit = "g" }, TestContext.Current.CancellationToken);
         await client.PostAsJsonAsync($"/api/recipes/{recipe2.Id}/ingredients",
             new { name = "Flour", amount = 2, unit = "cups" }, TestContext.Current.CancellationToken);
-        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Monday", recipeId = recipe1.Id, dayOfWeek = 0 }, TestContext.Current.CancellationToken);
-        await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/entries",
-            new { name = "Tuesday", recipeId = recipe2.Id, dayOfWeek = 1 }, TestContext.Current.CancellationToken);
+
+        var monday = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        var tuesday = new DateTime(2026, 3, 17, 0, 0, 0, DateTimeKind.Utc);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Monday", recipeId = recipe1.Id, date = monday }, TestContext.Current.CancellationToken);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Tuesday", recipeId = recipe2.Id, date = tuesday }, TestContext.Current.CancellationToken);
 
         var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(shoppingList);
 
-        var response = await client.PostAsJsonAsync($"/api/food-plans/{plan.Id}/add-to-shopping-list",
-            new { shoppingListId = shoppingList.Id }, TestContext.Current.CancellationToken);
+        var response = await client.PostAsJsonAsync("/api/food-plan/add-to-shopping-list",
+            new { shoppingListId = shoppingList.Id, startDate = monday, endDate = tuesday }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
@@ -383,66 +406,57 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AddFoodPlanToShoppingList_WhenFoodPlanNotFound_Returns404()
+    public async Task AddFoodPlanToShoppingList_WhenShoppingListNotFound_Returns404()
     {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "My List" }, TestContext.Current.CancellationToken);
-        var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(shoppingList);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var startDate = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        var endDate = new DateTime(2026, 3, 22, 0, 0, 0, DateTimeKind.Utc);
 
-        var response = await client.PostAsJsonAsync("/api/food-plans/99999/add-to-shopping-list",
-            new { shoppingListId = shoppingList.Id }, TestContext.Current.CancellationToken);
+        var response = await client.PostAsJsonAsync("/api/food-plan/add-to-shopping-list",
+            new { shoppingListId = 99999, startDate, endDate }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    // --- AutoRenew ---
-
     [Fact]
-    public async Task CreateFoodPlan_WithAutoRenew_PersistsAutoRenewField()
+    public async Task AddFoodPlanToShoppingList_WithRecipeMultipliers_ScalesIngredients()
     {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/food-plans",
-            new { name = "Auto Plan", weekStart, autoRenew = true }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var recipe = await CreateRecipe("Pasta");
 
-        var plan = await response.Content.ReadFromJsonAsync<FoodPlanDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(plan);
-        Assert.True(plan.AutoRenew);
-    }
+        await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
+            new { name = "Spaghetti", amount = 200, unit = "g" }, TestContext.Current.CancellationToken);
 
-    [Fact]
-    public async Task UpdateFoodPlan_WithAutoRenew_PersistsAutoRenewField()
-    {
-        var weekStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
-        var client = await GetAuthenticatedHttpClientAsync();
-        var plan = await CreateFoodPlanAsync("Auto Plan", weekStart);
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Pasta Dinner", recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
 
-        var updateResponse = await client.PutAsJsonAsync($"/api/food-plans/{plan.Id}",
-            new { name = "Auto Plan", weekStart, autoRenew = true }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
+        var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(shoppingList);
 
-        var getResponse = await client.GetAsync($"/api/food-plans/{plan.Id}", TestContext.Current.CancellationToken);
-        var updated = await getResponse.Content.ReadFromJsonAsync<FoodPlanDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(updated);
-        Assert.True(updated.AutoRenew);
+        var response = await client.PostAsJsonAsync("/api/food-plan/add-to-shopping-list",
+            new
+            {
+                shoppingListId = shoppingList.Id,
+                startDate = date,
+                endDate = date,
+                recipeMultipliers = new[] { new { recipeId = recipe.Id, multiplier = 2.0 } }
+            }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(items);
+        Assert.Single(items);
+        Assert.Equal("Spaghetti", items[0].Name);
+        Assert.Equal(400, items[0].Amount);
     }
 
     // --- Helpers ---
 
-    private async Task<FoodPlanDto> CreateFoodPlanAsync(string name, DateTime weekStart)
+    private async Task<RecipeDto> CreateRecipe(string name)
     {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/food-plans", new { name, weekStart }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<FoodPlanDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(result);
-        return result;
-    }
-
-    private async Task<RecipeDto> CreateRecipeAsync(string name)
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
+        var client = await GetOrCreateAuthenticatedHttpClient();
         var response = await client.PostAsJsonAsync("/api/recipes", new { name }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
@@ -450,8 +464,8 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record FoodPlanDto(int Id, string? Name, DateTime WeekStart, int ActiveDays = 31, bool AutoRenew = false);
-    private record FoodPlanEntryDto(int Id, int FoodPlanId, int? RecipeId, string? Name, int DayOfWeek);
+    private record FoodPlanSettingsDto(int Id, int ActiveDays);
+    private record FoodPlanEntryDto(int Id, int? RecipeId, string? Name, DateTime Date, DateTime? AddedToShoppingListOn);
     private record RecipeDto(int Id, string? Name);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);

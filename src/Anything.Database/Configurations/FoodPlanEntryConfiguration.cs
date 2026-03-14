@@ -13,7 +13,8 @@ public class FoodPlanEntryConfiguration : IEntityTypeConfiguration<FoodPlanEntry
         builder.HasOne<FoodPlan>()
             .WithMany()
             .HasForeignKey(e => e.FoodPlanId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
         builder.HasOne<Recipe>()
             .WithMany()
             .HasForeignKey(e => e.RecipeId)

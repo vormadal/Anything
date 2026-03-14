@@ -1,5 +1,4 @@
 using Anything.Application.Configuration;
-using Anything.Application.Features.FoodPlans.Services;
 using Anything.Application.Services;
 using Anything.Core.Services;
 using Anything.Mediator;
@@ -37,9 +36,6 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.UserAgent.ParseAdd("AnythingApp/1.0 (recipe-parser)");
             client.Timeout = TimeSpan.FromSeconds(30);
         });
-
-        // Background services
-        services.AddHostedService<FoodPlanAutoRenewService>();
 
         // Configuration
         services.AddOptions<ImageSettings>()

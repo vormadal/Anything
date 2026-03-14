@@ -9,81 +9,63 @@ public static class FoodPlanEndpoints
 {
     public static void MapFoodPlanEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/food-plans");
+        var group = app.MapGroup("/api/food-plan");
 
-        group.MapGet("/", async (IMediator mediator) =>
+        // --- Settings ---
+
+        group.MapGet("/settings", async (IMediator mediator) =>
         {
-            return await mediator.Send(new GetFoodPlansQuery());
+            return await mediator.Send(new GetFoodPlanSettingsQuery());
         })
-        .WithName("GetFoodPlans")
+        .WithName("GetFoodPlanSettings")
         .RequireAuthorization();
 
-        group.MapGet("/{id}", async (int id, IMediator mediator) =>
+        group.MapPut("/settings", async (UpdateFoodPlanSettingsRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new GetFoodPlanByIdQuery(id));
+            return await mediator.Send(new UpdateFoodPlanSettingsCommand(request.ActiveDays));
         })
-        .WithName("GetFoodPlanById")
-        .RequireAuthorization();
-
-        group.MapPost("/", async (CreateFoodPlanRequest request, IMediator mediator) =>
-        {
-            var result = await mediator.Send(new CreateFoodPlanCommand(request.Name, request.WeekStart, request.ActiveDays, request.AutoRenew));
-            return Results.Created($"/api/food-plans/{result.Id}", result);
-        })
-        .WithName("CreateFoodPlan")
+        .WithName("UpdateFoodPlanSettings")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapPut("/{id}", async (int id, UpdateFoodPlanRequest request, IMediator mediator) =>
-        {
-            return await mediator.Send(new UpdateFoodPlanCommand(id, request.Name, request.WeekStart, request.ActiveDays, request.AutoRenew));
-        })
-        .WithName("UpdateFoodPlan")
-        .WithParameterValidation()
-        .RequireAuthorization();
+        // --- Entries ---
 
-        group.MapDelete("/{id}", async (int id, IMediator mediator) =>
+        group.MapGet("/entries", async (DateTime startDate, DateTime endDate, IMediator mediator) =>
         {
-            return await mediator.Send(new DeleteFoodPlanCommand(id));
-        })
-        .WithName("DeleteFoodPlan")
-        .RequireAuthorization();
-
-        // Entries
-        group.MapGet("/{id}/entries", async (int id, IMediator mediator) =>
-        {
-            return await mediator.Send(new GetFoodPlanEntriesQuery(id));
+            return await mediator.Send(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate));
         })
         .WithName("GetFoodPlanEntries")
         .RequireAuthorization();
 
-        group.MapPost("/{id}/entries", async (int id, AddFoodPlanEntryRequest request, IMediator mediator) =>
+        group.MapPost("/entries", async (AddFoodPlanEntryRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new AddFoodPlanEntryCommand(id, request.Name, request.RecipeId, request.DayOfWeek));
+            return await mediator.Send(new AddFoodPlanEntryCommand(request.Name, request.RecipeId, request.Date));
         })
         .WithName("AddFoodPlanEntry")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapPut("/{id}/entries/{entryId}", async (int id, int entryId, UpdateFoodPlanEntryRequest request, IMediator mediator) =>
+        group.MapPut("/entries/{entryId}", async (int entryId, UpdateFoodPlanEntryRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateFoodPlanEntryCommand(id, entryId, request.Name, request.RecipeId, request.DayOfWeek));
+            return await mediator.Send(new UpdateFoodPlanEntryCommand(entryId, request.Name, request.RecipeId, request.Date));
         })
         .WithName("UpdateFoodPlanEntry")
         .WithParameterValidation()
         .RequireAuthorization();
 
-        group.MapDelete("/{id}/entries/{entryId}", async (int id, int entryId, IMediator mediator) =>
+        group.MapDelete("/entries/{entryId}", async (int entryId, IMediator mediator) =>
         {
-            return await mediator.Send(new DeleteFoodPlanEntryCommand(id, entryId));
+            return await mediator.Send(new DeleteFoodPlanEntryCommand(entryId));
         })
         .WithName("DeleteFoodPlanEntry")
         .RequireAuthorization();
 
-        // Add food plan recipes to shopping list
-        group.MapPost("/{id}/add-to-shopping-list", async (int id, AddFoodPlanToShoppingListRequest request, IMediator mediator) =>
+        // --- Add to shopping list ---
+
+        group.MapPost("/add-to-shopping-list", async (AddFoodPlanToShoppingListRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new AddFoodPlanToShoppingListCommand(id, request.ShoppingListId, request.RecipeMultipliers));
+            return await mediator.Send(new AddFoodPlanToShoppingListCommand(
+                request.ShoppingListId, request.StartDate, request.EndDate, request.RecipeMultipliers));
         })
         .WithName("AddFoodPlanToShoppingList")
         .WithParameterValidation()

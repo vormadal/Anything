@@ -2,12 +2,9 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
 import {
-  useFoodPlans,
-  useFoodPlan,
+  useFoodPlanSettings,
+  useUpdateFoodPlanSettings,
   useFoodPlanEntries,
-  useCreateFoodPlan,
-  useUpdateFoodPlan,
-  useDeleteFoodPlan,
   useAddFoodPlanEntry,
   useUpdateFoodPlanEntry,
   useDeleteFoodPlanEntry,
@@ -15,33 +12,31 @@ import {
 } from '@/hooks/useFoodPlans'
 
 // Mock the apiClient module
-const mockGet = jest.fn()
-const mockPost = jest.fn()
-const mockPut = jest.fn()
-const mockDelete = jest.fn()
+const mockSettingsGet = jest.fn()
+const mockSettingsPut = jest.fn()
 const mockEntriesGet = jest.fn()
 const mockEntriesPost = jest.fn()
 const mockEntriesItemPut = jest.fn()
 const mockEntriesItemDelete = jest.fn()
 const mockEntriesItemById = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
-const mockEntries = { get: mockEntriesGet, post: mockEntriesPost, byId: mockEntriesItemById }
 const mockAddToShoppingListPost = jest.fn()
-const mockAddToShoppingList = { post: mockAddToShoppingListPost }
-const mockById = jest.fn(() => ({
-  get: mockGet,
-  put: mockPut,
-  delete: mockDelete,
-  entries: mockEntries,
-  addToShoppingList: mockAddToShoppingList,
-}))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
-      foodPlans: {
-        get: (...args: unknown[]) => mockGet(...args),
-        post: (...args: unknown[]) => mockPost(...args),
-        byId: (...args: unknown[]) => mockById(...args),
+      foodPlan: {
+        settings: {
+          get: (...args: unknown[]) => mockSettingsGet(...args),
+          put: (...args: unknown[]) => mockSettingsPut(...args),
+        },
+        entries: {
+          get: (...args: unknown[]) => mockEntriesGet(...args),
+          post: (...args: unknown[]) => mockEntriesPost(...args),
+          byId: (...args: unknown[]) => mockEntriesItemById(...args),
+        },
+        addToShoppingList: {
+          post: (...args: unknown[]) => mockAddToShoppingListPost(...args),
+        },
       },
     },
   },
@@ -66,28 +61,25 @@ describe('useFoodPlans hooks', () => {
     jest.clearAllMocks()
   })
 
-  describe('useFoodPlans', () => {
-    it('should fetch food plans successfully', async () => {
-      const mockData = [
-        { id: 1, name: 'Week 1', weekStart: '2026-03-02T00:00:00Z' },
-        { id: 2, name: 'Week 2', weekStart: '2026-03-09T00:00:00Z' },
-      ]
-      mockGet.mockResolvedValueOnce(mockData)
+  describe('useFoodPlanSettings', () => {
+    it('should fetch food plan settings successfully', async () => {
+      const mockData = { id: 1, activeDays: 31 }
+      mockSettingsGet.mockResolvedValueOnce(mockData)
 
-      const { result } = renderHook(() => useFoodPlans(), {
+      const { result } = renderHook(() => useFoodPlanSettings(), {
         wrapper: createWrapper(),
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockData)
-      expect(mockGet).toHaveBeenCalledTimes(1)
+      expect(mockSettingsGet).toHaveBeenCalledTimes(1)
     })
 
     it('should handle fetch error', async () => {
-      mockGet.mockRejectedValueOnce(new Error('Network error'))
+      mockSettingsGet.mockRejectedValueOnce(new Error('Network error'))
 
-      const { result } = renderHook(() => useFoodPlans(), {
+      const { result } = renderHook(() => useFoodPlanSettings(), {
         wrapper: createWrapper(),
       })
 
@@ -97,51 +89,50 @@ describe('useFoodPlans hooks', () => {
     })
   })
 
-  describe('useFoodPlan', () => {
-    it('should fetch a single food plan successfully', async () => {
-      const mockData = { id: 1, name: 'Week 1', weekStart: '2026-03-02T00:00:00Z' }
-      mockGet.mockResolvedValueOnce(mockData)
+  describe('useUpdateFoodPlanSettings', () => {
+    it('should update settings successfully', async () => {
+      mockSettingsPut.mockResolvedValueOnce(undefined)
 
-      const { result } = renderHook(() => useFoodPlan(1), {
+      const { result } = renderHook(() => useUpdateFoodPlanSettings(), {
         wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ activeDays: 127 })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(result.current.data).toEqual(mockData)
-      expect(mockById).toHaveBeenCalledWith(1)
-    })
-
-    it('should not fetch when id is 0', () => {
-      const { result } = renderHook(() => useFoodPlan(0), {
-        wrapper: createWrapper(),
-      })
-
-      expect(result.current.fetchStatus).toBe('idle')
-      expect(mockGet).not.toHaveBeenCalled()
+      expect(mockSettingsPut).toHaveBeenCalledWith({ activeDays: 127 })
     })
   })
 
   describe('useFoodPlanEntries', () => {
-    it('should fetch entries for a food plan', async () => {
+    it('should fetch entries by date range', async () => {
       const mockData = [
-        { id: 1, foodPlanId: 1, recipeId: 1, name: 'Pasta', dayOfWeek: 0 },
-        { id: 2, foodPlanId: 1, recipeId: null, name: 'Salad', dayOfWeek: 1 },
+        { id: 1, name: 'Pasta', date: '2026-03-09T00:00:00Z' },
+        { id: 2, name: 'Salad', date: '2026-03-10T00:00:00Z' },
       ]
       mockEntriesGet.mockResolvedValueOnce(mockData)
 
-      const { result } = renderHook(() => useFoodPlanEntries(1), {
-        wrapper: createWrapper(),
-      })
+      const { result } = renderHook(
+        () => useFoodPlanEntries('2026-03-09T00:00:00Z', '2026-03-15T23:59:59Z'),
+        { wrapper: createWrapper() }
+      )
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockData)
-      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockEntriesGet).toHaveBeenCalledWith({
+        queryParameters: {
+          startDate: '2026-03-09T00:00:00Z',
+          endDate: '2026-03-15T23:59:59Z',
+        },
+      })
     })
 
-    it('should not fetch when foodPlanId is 0', () => {
-      const { result } = renderHook(() => useFoodPlanEntries(0), {
+    it('should not fetch when dates are empty', () => {
+      const { result } = renderHook(() => useFoodPlanEntries('', ''), {
         wrapper: createWrapper(),
       })
 
@@ -150,92 +141,18 @@ describe('useFoodPlans hooks', () => {
     })
   })
 
-  describe('useCreateFoodPlan', () => {
-    it('should create a food plan successfully', async () => {
-      const mockResponse = { id: 1, name: 'Week 1', weekStart: '2026-03-02T00:00:00Z' }
-      mockPost.mockResolvedValueOnce(mockResponse)
-
-      const { result } = renderHook(() => useCreateFoodPlan(), {
-        wrapper: createWrapper(),
-      })
-
-      await act(async () => {
-        result.current.mutate({ name: 'Week 1', weekStart: new Date('2026-03-02T00:00:00Z'), activeDays: 31 })
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(mockPost).toHaveBeenCalledWith({
-        name: 'Week 1',
-        weekStart: new Date('2026-03-02T00:00:00Z'),
-        activeDays: 31,
-      })
-    })
-
-    it('should handle create error', async () => {
-      mockPost.mockRejectedValueOnce(new Error('Server error'))
-
-      const { result } = renderHook(() => useCreateFoodPlan(), {
-        wrapper: createWrapper(),
-      })
-
-      result.current.mutate({ name: 'Week 1', weekStart: new Date('2026-03-02T00:00:00Z'), activeDays: 31 })
-
-      await waitFor(() => expect(result.current.isError).toBe(true))
-
-      expect(result.current.error).toBeTruthy()
-    })
-  })
-
-  describe('useUpdateFoodPlan', () => {
-    it('should update a food plan successfully', async () => {
-      mockPut.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useUpdateFoodPlan(), {
-        wrapper: createWrapper(),
-      })
-
-      await act(async () => {
-        result.current.mutate({ id: 1, name: 'Updated Week', weekStart: new Date('2026-03-09T00:00:00Z'), activeDays: 31 })
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockPut).toHaveBeenCalledWith({ name: 'Updated Week', weekStart: new Date('2026-03-09T00:00:00Z'), activeDays: 31 })
-    })
-  })
-
-  describe('useDeleteFoodPlan', () => {
-    it('should delete a food plan successfully', async () => {
-      mockDelete.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useDeleteFoodPlan(), {
-        wrapper: createWrapper(),
-      })
-
-      await act(async () => {
-        result.current.mutate(1)
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockDelete).toHaveBeenCalled()
-    })
-  })
-
   describe('useAddFoodPlanEntry', () => {
     it('should add an entry with a recipe', async () => {
-      const mockEntry = { id: 1, foodPlanId: 1, recipeId: 5, name: 'Pasta', dayOfWeek: 0 }
+      const mockEntry = { id: 1, name: 'Pasta', recipeId: 5, date: '2026-03-09T00:00:00Z' }
       mockEntriesPost.mockResolvedValueOnce(mockEntry)
 
-      const { result } = renderHook(() => useAddFoodPlanEntry(1), {
+      const { result } = renderHook(() => useAddFoodPlanEntry(), {
         wrapper: createWrapper(),
       })
 
+      const date = new Date('2026-03-09T00:00:00Z')
       await act(async () => {
-        result.current.mutate({ name: 'Pasta', recipeId: 5, dayOfWeek: 0 })
+        result.current.mutate({ name: 'Pasta', recipeId: 5, date })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
@@ -243,20 +160,21 @@ describe('useFoodPlans hooks', () => {
       expect(mockEntriesPost).toHaveBeenCalledWith({
         name: 'Pasta',
         recipeId: 5,
-        dayOfWeek: 0,
+        date,
       })
     })
 
     it('should add an entry without a recipe', async () => {
-      const mockEntry = { id: 2, foodPlanId: 1, recipeId: null, name: 'Salad', dayOfWeek: 1 }
+      const mockEntry = { id: 2, name: 'Salad', date: '2026-03-10T00:00:00Z' }
       mockEntriesPost.mockResolvedValueOnce(mockEntry)
 
-      const { result } = renderHook(() => useAddFoodPlanEntry(1), {
+      const { result } = renderHook(() => useAddFoodPlanEntry(), {
         wrapper: createWrapper(),
       })
 
+      const date = new Date('2026-03-10T00:00:00Z')
       await act(async () => {
-        result.current.mutate({ name: 'Salad', dayOfWeek: 1 })
+        result.current.mutate({ name: 'Salad', date })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
@@ -264,7 +182,7 @@ describe('useFoodPlans hooks', () => {
       expect(mockEntriesPost).toHaveBeenCalledWith({
         name: 'Salad',
         recipeId: undefined,
-        dayOfWeek: 1,
+        date,
       })
     })
   })
@@ -273,12 +191,13 @@ describe('useFoodPlans hooks', () => {
     it('should update a food plan entry successfully', async () => {
       mockEntriesItemPut.mockResolvedValueOnce(undefined)
 
-      const { result } = renderHook(() => useUpdateFoodPlanEntry(1), {
+      const { result } = renderHook(() => useUpdateFoodPlanEntry(), {
         wrapper: createWrapper(),
       })
 
+      const date = new Date('2026-03-11T00:00:00Z')
       await act(async () => {
-        result.current.mutate({ entryId: 2, name: 'Updated Salad', dayOfWeek: 2 })
+        result.current.mutate({ entryId: 2, name: 'Updated Salad', date })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
@@ -287,7 +206,7 @@ describe('useFoodPlans hooks', () => {
       expect(mockEntriesItemPut).toHaveBeenCalledWith({
         name: 'Updated Salad',
         recipeId: undefined,
-        dayOfWeek: 2,
+        date,
       })
     })
   })
@@ -296,7 +215,7 @@ describe('useFoodPlans hooks', () => {
     it('should delete a food plan entry successfully', async () => {
       mockEntriesItemDelete.mockResolvedValueOnce(undefined)
 
-      const { result } = renderHook(() => useDeleteFoodPlanEntry(1), {
+      const { result } = renderHook(() => useDeleteFoodPlanEntry(), {
         wrapper: createWrapper(),
       })
 
@@ -315,18 +234,48 @@ describe('useFoodPlans hooks', () => {
     it('should add food plan ingredients to a shopping list', async () => {
       mockAddToShoppingListPost.mockResolvedValueOnce(undefined)
 
-      const { result } = renderHook(() => useAddFoodPlanToShoppingList(1), {
+      const { result } = renderHook(() => useAddFoodPlanToShoppingList(), {
         wrapper: createWrapper(),
       })
 
+      const startDate = new Date('2026-03-09T00:00:00Z')
+      const endDate = new Date('2026-03-15T00:00:00Z')
       await act(async () => {
-        result.current.mutate({ shoppingListId: 5 })
+        result.current.mutate({ shoppingListId: 5, startDate, endDate })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockAddToShoppingListPost).toHaveBeenCalledWith({ shoppingListId: 5 })
+      expect(mockAddToShoppingListPost).toHaveBeenCalledWith({
+        shoppingListId: 5,
+        startDate,
+        endDate,
+        recipeMultipliers: undefined,
+      })
+    })
+
+    it('should include recipe multipliers when provided', async () => {
+      mockAddToShoppingListPost.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useAddFoodPlanToShoppingList(), {
+        wrapper: createWrapper(),
+      })
+
+      const startDate = new Date('2026-03-09T00:00:00Z')
+      const endDate = new Date('2026-03-15T00:00:00Z')
+      const recipeMultipliers = [{ recipeId: 1, multiplier: 2 }]
+      await act(async () => {
+        result.current.mutate({ shoppingListId: 5, startDate, endDate, recipeMultipliers })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockAddToShoppingListPost).toHaveBeenCalledWith({
+        shoppingListId: 5,
+        startDate,
+        endDate,
+        recipeMultipliers,
+      })
     })
   })
 })

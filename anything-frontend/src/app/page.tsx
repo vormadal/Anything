@@ -1,15 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useFoodPlans, useFoodPlanEntries } from "@/hooks/useFoodPlans";
+import { useFoodPlanEntries } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ShoppingCart, Plus, ChevronRight } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
-import type { FoodPlan } from "@/lib/api-client/models/index";
-
-const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+import { toDateInputValue } from "@/lib/foodPlanUtils";
 
 function getTargetDate(): Date {
   const now = new Date();
@@ -21,39 +19,24 @@ function getTargetDate(): Date {
   return now;
 }
 
-function jsDayToPlanDay(jsDay: number): number {
-  return (jsDay + 6) % 7;
-}
-
-function findPlanForDate(plans: FoodPlan[], date: Date): FoodPlan | undefined {
-  return plans.find((plan) => {
-    if (!plan.weekStart) return false;
-    const weekStart = new Date(plan.weekStart);
-    weekStart.setHours(0, 0, 0, 0);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-    const target = new Date(date);
-    target.setHours(12, 0, 0, 0);
-    return target >= weekStart && target <= weekEnd;
-  });
-}
+const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function Home() {
   const router = useRouter();
   const targetDate = getTargetDate();
   const isShowingTomorrow = new Date().getHours() >= 18;
-  const planDayOfWeek = jsDayToPlanDay(targetDate.getDay());
 
-  const { data: plans, isLoading: plansLoading } = useFoodPlans();
+  const dateStr = toDateInputValue(targetDate);
+  const { data: entries, isLoading: entriesLoading } = useFoodPlanEntries(
+    dateStr + "T00:00:00Z",
+    dateStr + "T23:59:59Z"
+  );
   const { data: shoppingLists, isLoading: listsLoading } = useShoppingLists();
   const { data: recipes } = useRecipes();
 
-  const currentPlan = plans ? findPlanForDate(plans, targetDate) : undefined;
-  const { data: entries } = useFoodPlanEntries(currentPlan?.id ?? 0);
-
-  const todayEntries = entries?.filter((e) => e.dayOfWeek === planDayOfWeek) ?? [];
+  const todayEntries = entries ?? [];
   const topLists = shoppingLists?.slice(0, 5) ?? [];
+  const dayName = DAYS_OF_WEEK[targetDate.getDay()];
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-6">
@@ -66,51 +49,29 @@ export default function Home() {
               {isShowingTomorrow ? "Tomorrow's Menu" : "Today's Menu"}
             </h2>
           </div>
-          <div className="flex gap-1">
-            {currentPlan && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(`/food-plans/${currentPlan.id}`)}
-                className="text-xs"
-              >
-                Edit plan
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push("/food-plans")}
-              className="text-xs"
-            >
-              All plans
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/food-plans")}
+            className="text-xs"
+          >
+            Food plan
+          </Button>
         </div>
 
-        {plansLoading ? (
+        {entriesLoading ? (
           <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
-        ) : !currentPlan ? (
+        ) : todayEntries.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-              No food plan for {isShowingTomorrow ? "tomorrow" : "today"}.
-            </p>
-            <Button size="sm" onClick={() => router.push("/food-plans/new")}>
-              <Plus className="h-4 w-4 mr-1" />
-              Create plan
-            </Button>
-          </div>
-        ) : todayEntries.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-              No meals planned for {DAYS_OF_WEEK[planDayOfWeek]} in{" "}
-              <span className="font-medium">{currentPlan.name}</span>.
+              No meals planned for {dayName}.
             </p>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/food-plans/${currentPlan.id}`)}
+              onClick={() => router.push("/food-plans")}
             >
+              <Plus className="h-4 w-4 mr-1" />
               Add meals
             </Button>
           </div>
@@ -138,15 +99,6 @@ export default function Home() {
                 </div>
               );
             })}
-            <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500">
-              From plan:{" "}
-              <button
-                onClick={() => router.push(`/food-plans/${currentPlan.id}`)}
-                className="underline hover:text-blue-600 dark:hover:text-blue-400"
-              >
-                {currentPlan.name}
-              </button>
-            </div>
           </div>
         )}
       </section>

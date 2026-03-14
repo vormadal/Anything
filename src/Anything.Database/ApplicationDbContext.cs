@@ -27,6 +27,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RecipeTag> RecipeTags => Set<RecipeTag>();
     public DbSet<FoodPlan> FoodPlans => Set<FoodPlan>();
     public DbSet<FoodPlanEntry> FoodPlanEntries => Set<FoodPlanEntry>();
+    public DbSet<FoodPlanSettings> FoodPlanSettings => Set<FoodPlanSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

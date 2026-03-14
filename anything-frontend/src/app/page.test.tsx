@@ -4,22 +4,21 @@ import { render } from '@/__tests__/utils/test-utils'
 import Home from './page'
 
 // Mock the apiClient module
-const mockFoodPlansGet = jest.fn()
 const mockFoodPlanEntriesGet = jest.fn()
-const mockFoodPlansByIdEntriesGet = jest.fn()
-const mockFoodPlansById = jest.fn(() => ({
-  get: jest.fn(),
-  entries: { get: mockFoodPlansByIdEntriesGet },
-}))
 const mockShoppingListsGet = jest.fn()
 const mockRecipesGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
-      foodPlans: {
-        get: (...args: unknown[]) => mockFoodPlansGet(...args),
-        byId: (...args: unknown[]) => mockFoodPlansById(...args),
+      foodPlan: {
+        settings: { get: jest.fn().mockResolvedValue({ activeDays: 31 }), put: jest.fn() },
+        entries: {
+          get: (...args: unknown[]) => mockFoodPlanEntriesGet(...args),
+          post: jest.fn(),
+          byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })),
+        },
+        addToShoppingList: { post: jest.fn() },
       },
       shoppingLists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
@@ -41,27 +40,10 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/',
 }))
 
-// Helper to get a Monday date that contains "today"
-function getMondayOfCurrentWeek(): Date {
-  const now = new Date()
-  const day = now.getDay() // 0=Sunday
-  const diff = (day === 0 ? -6 : 1 - day) // adjust to Monday
-  const monday = new Date(now)
-  monday.setDate(now.getDate() + diff)
-  monday.setHours(0, 0, 0, 0)
-  return monday
-}
-
-// Convert JS day (0=Sunday) to plan day (0=Monday)
-function jsDayToPlanDay(jsDay: number): number {
-  return (jsDay + 6) % 7
-}
-
 describe('Home Page Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockFoodPlanEntriesGet.mockResolvedValue([])
-    mockFoodPlansByIdEntriesGet.mockResolvedValue([])
     mockRecipesGet.mockResolvedValue([])
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
@@ -74,7 +56,6 @@ describe('Home Page Integration Tests', () => {
 
   it('should render "Today\'s Menu" heading when hour is before 18', () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
@@ -84,7 +65,6 @@ describe('Home Page Integration Tests', () => {
 
   it('should render "Tomorrow\'s Menu" heading when hour is 18 or later', () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T18:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
@@ -92,27 +72,22 @@ describe('Home Page Integration Tests', () => {
     expect(screen.getByText("Tomorrow's Menu")).toBeInTheDocument()
   })
 
-  it('should show "no food plan" message when no plan covers today', async () => {
+  it('should show "no meals planned" message when no entries for today', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
+    mockFoodPlanEntriesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByText(/No food plan for today/i)).toBeInTheDocument()
+      expect(screen.getByText(/No meals planned for Monday/i)).toBeInTheDocument()
     })
   })
 
-  it('should show meal entries when a plan covers today', async () => {
+  it('should show meal entries when entries exist for today', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00')) // Monday
-    const monday = new Date('2025-06-16T00:00:00')
-    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay()) // 0 (Monday)
-
-    const mockPlan = { id: 42, name: 'Week Plan', weekStart: monday.toISOString() }
-    mockFoodPlansGet.mockResolvedValue([mockPlan])
-    mockFoodPlansByIdEntriesGet.mockResolvedValue([
-      { id: 1, dayOfWeek: planDayOfWeek, name: 'Pasta', recipeId: null },
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z' },
     ])
     mockShoppingListsGet.mockResolvedValue([])
 
@@ -123,16 +98,10 @@ describe('Home Page Integration Tests', () => {
     })
   })
 
-  it('should show recipe name for plan entry linked to a recipe', async () => {
+  it('should show recipe name for entry linked to a recipe', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    const monday = new Date('2025-06-16T00:00:00')
-    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay())
-
-    mockFoodPlansGet.mockResolvedValue([
-      { id: 10, name: 'My Plan', weekStart: monday.toISOString() },
-    ])
-    mockFoodPlansByIdEntriesGet.mockResolvedValue([
-      { id: 1, dayOfWeek: planDayOfWeek, name: null, recipeId: 5 },
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 1, name: null, recipeId: 5, date: '2025-06-16T00:00:00Z' },
     ])
     mockRecipesGet.mockResolvedValue([{ id: 5, name: 'Lasagna' }])
     mockShoppingListsGet.mockResolvedValue([])
@@ -147,14 +116,8 @@ describe('Home Page Integration Tests', () => {
   it('should navigate to recipe detail when a recipe-linked entry is clicked', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    const monday = new Date('2025-06-16T00:00:00')
-    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay())
-
-    mockFoodPlansGet.mockResolvedValue([
-      { id: 10, name: 'My Plan', weekStart: monday.toISOString() },
-    ])
-    mockFoodPlansByIdEntriesGet.mockResolvedValue([
-      { id: 1, dayOfWeek: planDayOfWeek, name: null, recipeId: 5 },
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 1, name: null, recipeId: 5, date: '2025-06-16T00:00:00Z' },
     ])
     mockRecipesGet.mockResolvedValue([{ id: 5, name: 'Lasagna' }])
     mockShoppingListsGet.mockResolvedValue([])
@@ -169,16 +132,10 @@ describe('Home Page Integration Tests', () => {
     expect(mockPush).toHaveBeenCalledWith('/recipes/5')
   })
 
-  it('should not be clickable for plan entries without a recipe', async () => {
+  it('should not be clickable for entries without a recipe', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    const monday = new Date('2025-06-16T00:00:00')
-    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay())
-
-    mockFoodPlansGet.mockResolvedValue([
-      { id: 10, name: 'My Plan', weekStart: monday.toISOString() },
-    ])
-    mockFoodPlansByIdEntriesGet.mockResolvedValue([
-      { id: 2, dayOfWeek: planDayOfWeek, name: 'Homemade Soup', recipeId: null },
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 2, name: 'Homemade Soup', recipeId: null, date: '2025-06-16T00:00:00Z' },
     ])
     mockRecipesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
@@ -193,49 +150,25 @@ describe('Home Page Integration Tests', () => {
     expect(screen.queryByRole('button', { name: 'Homemade Soup' })).not.toBeInTheDocument()
   })
 
-  it('should navigate to food plan detail when "Edit plan" is clicked', async () => {
+  it('should navigate to food plan when "Food plan" is clicked', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    const monday = new Date('2025-06-16T00:00:00')
-    const planDayOfWeek = jsDayToPlanDay(new Date('2025-06-16T10:00:00').getDay())
-
-    mockFoodPlansGet.mockResolvedValue([
-      { id: 7, name: 'Test Plan', weekStart: monday.toISOString() },
-    ])
-    mockFoodPlansByIdEntriesGet.mockResolvedValue([
-      { id: 1, dayOfWeek: planDayOfWeek, mealType: null, customName: 'Soup', recipeId: null },
-    ])
+    mockFoodPlanEntriesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit plan' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Food plan' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit plan' }))
-    expect(mockPush).toHaveBeenCalledWith('/food-plans/7')
-  })
-
-  it('should navigate to all food plans when "All plans" is clicked', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
-    mockShoppingListsGet.mockResolvedValue([])
-
-    render(<Home />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'All plans' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'All plans' }))
+    await user.click(screen.getByRole('button', { name: 'Food plan' }))
     expect(mockPush).toHaveBeenCalledWith('/food-plans')
   })
 
   it('should show top 5 shopping lists', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
+    mockFoodPlanEntriesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([
       { id: 1, name: 'Grocery List' },
       { id: 2, name: 'Party Supplies' },
@@ -263,7 +196,7 @@ describe('Home Page Integration Tests', () => {
 
   it('should show empty state when no shopping lists exist', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
+    mockFoodPlanEntriesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
@@ -276,7 +209,7 @@ describe('Home Page Integration Tests', () => {
   it('should navigate to shopping list detail when a list is clicked', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
+    mockFoodPlanEntriesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([
       { id: 3, name: 'My List' },
     ])
@@ -294,7 +227,7 @@ describe('Home Page Integration Tests', () => {
   it('should navigate to all shopping lists when "All lists" is clicked', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
+    mockFoodPlanEntriesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
@@ -309,7 +242,7 @@ describe('Home Page Integration Tests', () => {
 
   it('should display unchecked item count badge on home page when count > 0', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlansGet.mockResolvedValue([])
+    mockFoodPlanEntriesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([
       { id: 1, name: 'Grocery List', uncheckedItemCount: 5 },
       { id: 2, name: 'Hardware Store', uncheckedItemCount: 0 },

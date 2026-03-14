@@ -1929,6 +1929,10 @@ export function createFoodPlanEntryFromDiscriminatorValue(parseNode: ParseNode |
     return deserializeIntoFoodPlanEntry;
 }
 // @ts-ignore
+export function createFoodPlanSettingsFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoFoodPlanSettings;
+}
+// @ts-ignore
 export function createCreateFoodPlanRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoCreateFoodPlanRequest;
 }
@@ -1966,9 +1970,18 @@ export interface FoodPlanEntry extends AdditionalDataHolder, Parsable {
     recipeId?: number | null;
     name?: string | null;
     dayOfWeek?: number | null;
+    date?: Date | null;
+    addedToShoppingListOn?: Date | null;
     createdOn?: Date | null;
     modifiedOn?: Date | null;
     deletedOn?: Date | null;
+}
+export interface FoodPlanSettings extends AdditionalDataHolder, Parsable {
+    additionalData?: Record<string, unknown>;
+    id?: number | null;
+    activeDays?: number | null;
+    createdOn?: Date | null;
+    modifiedOn?: Date | null;
 }
 export interface CreateFoodPlanRequest extends AdditionalDataHolder, Parsable {
     additionalData?: Record<string, unknown>;
@@ -1986,13 +1999,13 @@ export interface AddFoodPlanEntryRequest extends AdditionalDataHolder, Parsable 
     additionalData?: Record<string, unknown>;
     name?: string | null;
     recipeId?: number | null;
-    dayOfWeek?: number | null;
+    date?: Date | null;
 }
 export interface UpdateFoodPlanEntryRequest extends AdditionalDataHolder, Parsable {
     additionalData?: Record<string, unknown>;
     name?: string | null;
     recipeId?: number | null;
-    dayOfWeek?: number | null;
+    date?: Date | null;
 }
 export interface RecipeMultiplierItem extends AdditionalDataHolder, Parsable {
     additionalData?: Record<string, unknown>;
@@ -2000,10 +2013,16 @@ export interface RecipeMultiplierItem extends AdditionalDataHolder, Parsable {
     recipeId?: number | null;
 }
 
+export interface UpdateFoodPlanSettingsRequest extends AdditionalDataHolder, Parsable {
+    additionalData?: Record<string, unknown>;
+    activeDays?: number | null;
+}
 export interface AddFoodPlanToShoppingListRequest extends AdditionalDataHolder, Parsable {
     additionalData?: Record<string, unknown>;
     recipeMultipliers?: RecipeMultiplierItem[] | null;
     shoppingListId?: number | null;
+    startDate?: Date | null;
+    endDate?: Date | null;
 }
 
 // @ts-ignore
@@ -2026,9 +2045,20 @@ export function deserializeIntoFoodPlanEntry(foodPlanEntry: Partial<FoodPlanEntr
         "recipeId": n => { foodPlanEntry.recipeId = n.getNumberValue(); },
         "name": n => { foodPlanEntry.name = n.getStringValue(); },
         "dayOfWeek": n => { foodPlanEntry.dayOfWeek = n.getNumberValue(); },
+        "date": n => { foodPlanEntry.date = n.getDateValue(); },
+        "addedToShoppingListOn": n => { foodPlanEntry.addedToShoppingListOn = n.getDateValue(); },
         "createdOn": n => { foodPlanEntry.createdOn = n.getDateValue(); },
         "modifiedOn": n => { foodPlanEntry.modifiedOn = n.getDateValue(); },
         "deletedOn": n => { foodPlanEntry.deletedOn = n.getDateValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoFoodPlanSettings(settings: Partial<FoodPlanSettings> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "id": n => { settings.id = n.getNumberValue(); },
+        "activeDays": n => { settings.activeDays = n.getNumberValue(); },
+        "createdOn": n => { settings.createdOn = n.getDateValue(); },
+        "modifiedOn": n => { settings.modifiedOn = n.getDateValue(); },
     }
 }
 // @ts-ignore
@@ -2052,7 +2082,7 @@ export function deserializeIntoAddFoodPlanEntryRequest(req: Partial<AddFoodPlanE
     return {
         "name": n => { req.name = n.getStringValue(); },
         "recipeId": n => { req.recipeId = n.getNumberValue(); },
-        "dayOfWeek": n => { req.dayOfWeek = n.getNumberValue(); },
+        "date": n => { req.date = n.getDateValue(); },
     }
 }
 // @ts-ignore
@@ -2060,13 +2090,21 @@ export function deserializeIntoUpdateFoodPlanEntryRequest(req: Partial<UpdateFoo
     return {
         "name": n => { req.name = n.getStringValue(); },
         "recipeId": n => { req.recipeId = n.getNumberValue(); },
-        "dayOfWeek": n => { req.dayOfWeek = n.getNumberValue(); },
+        "date": n => { req.date = n.getDateValue(); },
     }
 }
 // @ts-ignore
 export function deserializeIntoAddFoodPlanToShoppingListRequest(req: Partial<AddFoodPlanToShoppingListRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "shoppingListId": n => { req.shoppingListId = n.getNumberValue(); },
+        "startDate": n => { req.startDate = n.getDateValue(); },
+        "endDate": n => { req.endDate = n.getDateValue(); },
+    }
+}
+// @ts-ignore
+export function deserializeIntoUpdateFoodPlanSettingsRequest(req: Partial<UpdateFoodPlanSettingsRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "activeDays": n => { req.activeDays = n.getNumberValue(); },
     }
 }
 // @ts-ignore
@@ -2089,10 +2127,21 @@ export function serializeFoodPlanEntry(writer: SerializationWriter, foodPlanEntr
     writer.writeNumberValue("recipeId", foodPlanEntry.recipeId);
     writer.writeStringValue("name", foodPlanEntry.name);
     writer.writeNumberValue("dayOfWeek", foodPlanEntry.dayOfWeek);
+    writer.writeDateValue("date", foodPlanEntry.date);
+    writer.writeDateValue("addedToShoppingListOn", foodPlanEntry.addedToShoppingListOn);
     writer.writeDateValue("createdOn", foodPlanEntry.createdOn);
     writer.writeDateValue("modifiedOn", foodPlanEntry.modifiedOn);
     writer.writeDateValue("deletedOn", foodPlanEntry.deletedOn);
     writer.writeAdditionalData(foodPlanEntry.additionalData);
+}
+// @ts-ignore
+export function serializeFoodPlanSettings(writer: SerializationWriter, settings: Partial<FoodPlanSettings> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!settings || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("id", settings.id);
+    writer.writeNumberValue("activeDays", settings.activeDays);
+    writer.writeDateValue("createdOn", settings.createdOn);
+    writer.writeDateValue("modifiedOn", settings.modifiedOn);
+    writer.writeAdditionalData(settings.additionalData);
 }
 // @ts-ignore
 export function serializeCreateFoodPlanRequest(writer: SerializationWriter, req: Partial<CreateFoodPlanRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
@@ -2115,7 +2164,7 @@ export function serializeAddFoodPlanEntryRequest(writer: SerializationWriter, re
     if (!req || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", req.name);
     writer.writeNumberValue("recipeId", req.recipeId);
-    writer.writeNumberValue("dayOfWeek", req.dayOfWeek);
+    writer.writeDateValue("date", req.date);
     writer.writeAdditionalData(req.additionalData);
 }
 // @ts-ignore
@@ -2123,7 +2172,7 @@ export function serializeUpdateFoodPlanEntryRequest(writer: SerializationWriter,
     if (!req || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", req.name);
     writer.writeNumberValue("recipeId", req.recipeId);
-    writer.writeNumberValue("dayOfWeek", req.dayOfWeek);
+    writer.writeDateValue("date", req.date);
     writer.writeAdditionalData(req.additionalData);
 }
 // @ts-ignore
@@ -2137,7 +2186,15 @@ export function serializeRecipeMultiplierItem(writer: SerializationWriter, item:
 export function serializeAddFoodPlanToShoppingListRequest(writer: SerializationWriter, req: Partial<AddFoodPlanToShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!req || isSerializingDerivedType) { return; }
     writer.writeNumberValue("shoppingListId", req.shoppingListId);
+    writer.writeDateValue("startDate", req.startDate);
+    writer.writeDateValue("endDate", req.endDate);
     writer.writeCollectionOfObjectValues<RecipeMultiplierItem>("recipeMultipliers", req.recipeMultipliers, serializeRecipeMultiplierItem);
+    writer.writeAdditionalData(req.additionalData);
+}
+// @ts-ignore
+export function serializeUpdateFoodPlanSettingsRequest(writer: SerializationWriter, req: Partial<UpdateFoodPlanSettingsRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!req || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("activeDays", req.activeDays);
     writer.writeAdditionalData(req.additionalData);
 }
 /* tslint:enable */

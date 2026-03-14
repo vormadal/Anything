@@ -6,10 +6,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record AddFoodPlanToShoppingListCommand(int FoodPlanId, int ShoppingListId, IReadOnlyList<Anything.Contracts.FoodPlans.RecipeMultiplier>? RecipeMultipliers = null) : IRequest<IResult>;
+public record AddFoodPlanToShoppingListCommand(
+    int ShoppingListId,
+    DateTime StartDate,
+    DateTime EndDate,
+    IReadOnlyList<Anything.Contracts.FoodPlans.RecipeMultiplier>? RecipeMultipliers = null) : IRequest<IResult>;
 
 public class AddFoodPlanToShoppingListHandler(
-    IRepository<FoodPlan> foodPlanRepository,
     IRepository<FoodPlanEntry> entryRepository,
     IRepository<RecipeIngredient> ingredientRepository,
     IRepository<ShoppingList> shoppingListRepository,
@@ -18,24 +21,22 @@ public class AddFoodPlanToShoppingListHandler(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<AddFoodPlanToShoppingListCommand, IResult>
 {
-    private const string FoodPlanNotFound = "Food plan not found.";
     private const string ShoppingListNotFound = "Shopping list not found.";
 
     public async Task<IResult> Handle(AddFoodPlanToShoppingListCommand command, CancellationToken ct = default)
     {
-        var plan = await foodPlanRepository.GetById(command.FoodPlanId);
-        if (plan is null || plan.DeletedOn != null)
-            return Results.NotFound(FoodPlanNotFound);
-
         var shoppingList = await shoppingListRepository.GetById(command.ShoppingListId);
         if (shoppingList is null || shoppingList.DeletedOn != null)
             return Results.NotFound(ShoppingListNotFound);
 
-        var recipeIds = await entryRepository.Query()
-            .Where(e => e.FoodPlanId == command.FoodPlanId && e.DeletedOn == null && e.RecipeId != null)
+        var entries = await entryRepository.Query()
+            .Where(e => e.DeletedOn == null && e.Date >= command.StartDate && e.Date <= command.EndDate && e.RecipeId != null)
+            .ToListAsync(ct);
+
+        var recipeIds = entries
             .Select(e => e.RecipeId!.Value)
             .Distinct()
-            .ToListAsync(ct);
+            .ToList();
 
         var ingredients = await ingredientRepository.Query()
             .Where(i => recipeIds.Contains(i.RecipeId) && i.DeletedOn == null)
@@ -104,6 +105,14 @@ public class AddFoodPlanToShoppingListHandler(
                 });
                 existingRecommendations.Add(nameKey);
             }
+        }
+
+        // Mark entries as added to shopping list
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        foreach (var entry in entries)
+        {
+            entry.AddedToShoppingListOn = now;
+            entryRepository.Update(entry);
         }
 
         await unitOfWork.SaveChanges(ct);
