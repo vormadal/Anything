@@ -20,5 +20,6 @@ public class FoodPlanEntryConfiguration : IEntityTypeConfiguration<FoodPlanEntry
             .HasForeignKey(e => e.RecipeId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
+        builder.HasIndex(e => e.Date);
     }
 }
