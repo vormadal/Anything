@@ -35,11 +35,6 @@ namespace Anything.Database.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(31);
 
-                    b.Property<bool>("AutoRenew")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -85,9 +80,6 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("FoodPlanId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -102,8 +94,6 @@ namespace Anything.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Date");
-
-                    b.HasIndex("FoodPlanId");
 
                     b.HasIndex("RecipeId");
 
@@ -659,11 +649,6 @@ namespace Anything.Database.Migrations
 
             modelBuilder.Entity("Anything.Core.Entities.FoodPlanEntry", b =>
                 {
-                    b.HasOne("Anything.Core.Entities.FoodPlan", null)
-                        .WithMany()
-                        .HasForeignKey("FoodPlanId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("Anything.Core.Entities.Recipe", null)
                         .WithMany()
                         .HasForeignKey("RecipeId")

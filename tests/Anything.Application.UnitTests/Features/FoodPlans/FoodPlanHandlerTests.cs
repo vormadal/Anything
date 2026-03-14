@@ -26,12 +26,11 @@ public class CreateFoodPlanHandlerTests
         var weekStart = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
         var handler = new CreateFoodPlanHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateFoodPlanCommand("Week 1", weekStart, 31, true));
+        var result = await handler.Handle(new CreateFoodPlanCommand("Week 1", weekStart, 31));
 
         Assert.Equal("Week 1", result.Name);
         Assert.Equal(weekStart, result.WeekStart);
         Assert.Equal(31, result.ActiveDays);
-        Assert.True(result.AutoRenew);
         _repo.Received(1).Add(Arg.Is<FoodPlan>(p => p.Name == "Week 1"));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -70,13 +69,12 @@ public class UpdateFoodPlanHandlerTests
         var newWeekStart = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
 
         var result = await new UpdateFoodPlanHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateFoodPlanCommand(1, "New", newWeekStart, 63, true));
+            .Handle(new UpdateFoodPlanCommand(1, "New", newWeekStart, 63));
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Name);
         Assert.Equal(newWeekStart, entity.WeekStart);
         Assert.Equal(63, entity.ActiveDays);
-        Assert.True(entity.AutoRenew);
         Assert.Equal(now.UtcDateTime, entity.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -368,27 +366,6 @@ public class GetFoodPlanByIdHandlerTests
 
         var ok = Assert.IsType<Ok<FoodPlan>>(result);
         Assert.Equal("Week 1", ok.Value!.Name);
-    }
-}
-
-public class GetFoodPlanEntriesHandlerTests
-{
-    private readonly IRepository<FoodPlanEntry> _repo = Substitute.For<IRepository<FoodPlanEntry>>();
-
-    [Fact]
-    public async Task Handle_ReturnsOnlyEntriesForSpecifiedPlan()
-    {
-        _repo.Query().Returns(new List<FoodPlanEntry>
-        {
-            new() { Id = 1, FoodPlanId = 1, Name = "Pasta", DayOfWeek = 0, Date = DateTime.UtcNow },
-            new() { Id = 2, FoodPlanId = 2, Name = "Other Plan Entry", DayOfWeek = 0, Date = DateTime.UtcNow },
-            new() { Id = 3, FoodPlanId = 1, Name = "Deleted", DayOfWeek = 1, Date = DateTime.UtcNow, DeletedOn = DateTime.UtcNow }
-        }.AsAsyncQueryable());
-
-        var result = await new GetFoodPlanEntriesHandler(_repo).Handle(new GetFoodPlanEntriesQuery(1));
-
-        Assert.Single(result);
-        Assert.Equal("Pasta", result[0].Name);
     }
 }
 
