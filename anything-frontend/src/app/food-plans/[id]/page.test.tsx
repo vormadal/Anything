@@ -1,22 +1,22 @@
 import { render } from '@/__tests__/utils/test-utils'
-import EditFoodPlanPage from './page'
+import FoodPlanDetailPage from './page'
 
 // Mock next/navigation
 const mockReplace = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace, push: jest.fn(), back: jest.fn() }),
   useParams: () => ({ id: '1' }),
-  usePathname: () => '/food-plans/1/edit',
+  usePathname: () => '/food-plans/1',
 }))
 
-describe('EditFoodPlanPage', () => {
+describe('FoodPlanDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  it('should redirect to settings page', () => {
-    render(<EditFoodPlanPage />)
+  it('should redirect to /food-plans', () => {
+    render(<FoodPlanDetailPage />)
 
-    expect(mockReplace).toHaveBeenCalledWith('/food-plans/settings')
+    expect(mockReplace).toHaveBeenCalledWith('/food-plans')
   })
 })

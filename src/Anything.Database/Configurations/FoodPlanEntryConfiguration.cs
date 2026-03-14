@@ -10,14 +10,11 @@ public class FoodPlanEntryConfiguration : IEntityTypeConfiguration<FoodPlanEntry
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
-        builder.HasOne<FoodPlan>()
-            .WithMany()
-            .HasForeignKey(e => e.FoodPlanId)
-            .OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<Recipe>()
             .WithMany()
             .HasForeignKey(e => e.RecipeId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
+        builder.HasIndex(e => e.Date);
     }
 }

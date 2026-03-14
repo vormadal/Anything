@@ -22,46 +22,6 @@ namespace Anything.Database.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Anything.Core.Entities.FoodPlan", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActiveDays")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(31);
-
-                    b.Property<bool>("AutoRenew")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedOn")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ModifiedOn")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("WeekStart")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("FoodPlans");
-                });
-
             modelBuilder.Entity("Anything.Core.Entities.FoodPlanEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -70,7 +30,13 @@ namespace Anything.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("AddedToShoppingListOn")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("DayOfWeek")
@@ -78,9 +44,6 @@ namespace Anything.Database.Migrations
 
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("FoodPlanId")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
@@ -95,11 +58,35 @@ namespace Anything.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FoodPlanId");
+                    b.HasIndex("Date");
 
                     b.HasIndex("RecipeId");
 
                     b.ToTable("FoodPlanEntries");
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.FoodPlanSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActiveDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(31);
+
+                    b.Property<DateTime?>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FoodPlanSettings");
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.InventoryBox", b =>
@@ -632,12 +619,6 @@ namespace Anything.Database.Migrations
 
             modelBuilder.Entity("Anything.Core.Entities.FoodPlanEntry", b =>
                 {
-                    b.HasOne("Anything.Core.Entities.FoodPlan", null)
-                        .WithMany()
-                        .HasForeignKey("FoodPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Anything.Core.Entities.Recipe", null)
                         .WithMany()
                         .HasForeignKey("RecipeId")
