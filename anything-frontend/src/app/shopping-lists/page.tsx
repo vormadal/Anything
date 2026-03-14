@@ -33,7 +33,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { ShoppingList } from "@/lib/api-client/models/index";
 
-function SortableShoppingListItem({ list, onClick }: { list: ShoppingList; onClick: () => void }) {
+function DraggableShoppingListItem({ list, onClick }: { list: ShoppingList; onClick: () => void }) {
   const {
     attributes,
     listeners,
@@ -222,7 +222,7 @@ export default function ShoppingListsPage() {
           >
             <div className="space-y-1">
               {lists.map((list) => (
-                <SortableShoppingListItem
+                <DraggableShoppingListItem
                   key={list.id}
                   list={list}
                   onClick={() => router.push(`/shopping-lists/${list.id}`)}
