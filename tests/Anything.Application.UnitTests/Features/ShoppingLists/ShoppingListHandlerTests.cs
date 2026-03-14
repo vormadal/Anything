@@ -21,6 +21,7 @@ public class CreateShoppingListHandlerTests
     public CreateShoppingListHandlerTests()
     {
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        _repo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
     }
 
     [Fact]
@@ -44,6 +45,31 @@ public class CreateShoppingListHandlerTests
         var result = await handler.Handle(new CreateShoppingListCommand("List"));
 
         Assert.Equal(now.UtcDateTime, result.CreatedOn);
+    }
+
+    [Fact]
+    public async Task Handle_WhenNoExistingLists_SetsSortOrderToZero()
+    {
+        var handler = CreateHandler();
+        var result = await handler.Handle(new CreateShoppingListCommand("First"));
+
+        Assert.Equal(0, result.SortOrder);
+    }
+
+    [Fact]
+    public async Task Handle_WhenExistingLists_SetsSortOrderToMaxPlusOne()
+    {
+        var existing = new List<ShoppingList>
+        {
+            new() { Id = 1, Name = "A", SortOrder = 0 },
+            new() { Id = 2, Name = "B", SortOrder = 1 },
+        };
+        _repo.Query().Returns(existing.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new CreateShoppingListCommand("New"));
+
+        Assert.Equal(2, result.SortOrder);
     }
 }
 
@@ -400,5 +426,51 @@ public class GetCompletedShoppingListsHandlerTests
 
         Assert.Equal("NewerList", result[0].Name);
         Assert.Equal("OlderList", result[1].Name);
+    }
+}
+
+public class ReorderShoppingListsHandlerTests
+{
+    private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+
+    private ReorderShoppingListsHandler CreateHandler() => new(_repo, _unitOfWork);
+
+    [Fact]
+    public async Task Handle_UpdatesSortOrderForAllMatchingLists()
+    {
+        var lists = new List<ShoppingList>
+        {
+            new() { Id = 1, Name = "A", SortOrder = 0 },
+            new() { Id = 2, Name = "B", SortOrder = 1 },
+            new() { Id = 3, Name = "C", SortOrder = 2 },
+        };
+        _repo.Query().Returns(lists.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new ReorderShoppingListsCommand([3, 1, 2]));
+
+        Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.NoContent>(result);
+        Assert.Equal(0, lists.First(l => l.Id == 3).SortOrder);
+        Assert.Equal(1, lists.First(l => l.Id == 1).SortOrder);
+        Assert.Equal(2, lists.First(l => l.Id == 2).SortOrder);
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_IgnoresIdsNotInRepository()
+    {
+        var lists = new List<ShoppingList>
+        {
+            new() { Id = 1, Name = "A", SortOrder = 0 },
+        };
+        _repo.Query().Returns(lists.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new ReorderShoppingListsCommand([99, 1]));
+
+        Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.NoContent>(result);
+        Assert.Equal(1, lists[0].SortOrder);
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
 }
