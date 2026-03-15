@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import FoodPlanPage from './page'
 import { toast } from 'sonner'
+import { format } from 'date-fns'
+import { da } from 'date-fns/locale'
 
 // Helper: get the Monday of the current week
 function getMonday(date: Date): Date {
@@ -163,7 +165,7 @@ describe('FoodPlanPage', () => {
 
     render(<FoodPlanPage />)
 
-    expect(screen.queryByText('Monday')).not.toBeInTheDocument()
+    expect(screen.queryByText('mandag')).not.toBeInTheDocument()
   })
 
   // ------- 2. Day columns for default activeDays=31 (Mon-Fri) -------
@@ -171,15 +173,15 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const expectedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    const expectedDays = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag']
     for (const day of expectedDays) {
       expect(screen.getByText(day)).toBeInTheDocument()
     }
-    expect(screen.queryByText('Saturday')).not.toBeInTheDocument()
-    expect(screen.queryByText('Sunday')).not.toBeInTheDocument()
+    expect(screen.queryByText('lørdag')).not.toBeInTheDocument()
+    expect(screen.queryByText('søndag')).not.toBeInTheDocument()
   })
 
   it('should render all 7 day columns when activeDays=127', async () => {
@@ -188,10 +190,10 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    const allDays = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag']
     for (const day of allDays) {
       expect(screen.getByText(day)).toBeInTheDocument()
     }
@@ -204,20 +206,20 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Wednesday')).toBeInTheDocument()
-    expect(screen.queryByText('Tuesday')).not.toBeInTheDocument()
-    expect(screen.queryByText('Thursday')).not.toBeInTheDocument()
-    expect(screen.queryByText('Friday')).not.toBeInTheDocument()
+    expect(screen.getByText('onsdag')).toBeInTheDocument()
+    expect(screen.queryByText('tirsdag')).not.toBeInTheDocument()
+    expect(screen.queryByText('torsdag')).not.toBeInTheDocument()
+    expect(screen.queryByText('fredag')).not.toBeInTheDocument()
   })
 
   it('should show an Add button for each active day', async () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
@@ -264,12 +266,11 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const mondayDayNum = currentMonday.getDate()
-    const mondayMonth = currentMonday.toLocaleDateString(undefined, { month: 'short' })
-    expect(screen.getByText(`${mondayMonth} ${mondayDayNum}`)).toBeInTheDocument()
+    const mondayDateStr = format(currentMonday, 'd. MMMM', { locale: da })
+    expect(screen.getByText(mondayDateStr)).toBeInTheDocument()
   })
 
   // ------- 4. Week navigation -------
@@ -289,7 +290,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const prevButton = screen.getByRole('button', { name: 'Previous week' })
@@ -309,7 +310,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const nextButton = screen.getByRole('button', { name: 'Next week' })
@@ -329,7 +330,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const prevButton = screen.getByRole('button', { name: 'Previous week' })
@@ -380,7 +381,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByText('Add')
@@ -398,7 +399,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByText('Add')
@@ -427,7 +428,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByText('Add')
@@ -446,7 +447,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByText('Add')
@@ -463,7 +464,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByText('Add')
@@ -492,7 +493,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByText('Add')
@@ -517,7 +518,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByText('Add')
@@ -554,7 +555,7 @@ describe('FoodPlanPage', () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
     const addButtons = screen.getAllByText('Add')

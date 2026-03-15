@@ -16,7 +16,9 @@ import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { useRouter } from "next/navigation";
 import { ShoppingCart, Plus, X, ChevronLeft, ChevronRight, Settings } from "lucide-react";
-import { ALL_DAYS, bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
+import { bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
+import { format, isSameDay, addDays as dateFnsAddDays } from "date-fns";
+import { da } from "date-fns/locale";
 
 const DEFAULT_ACTIVE_DAYS = 31;
 const SUGGESTION_BLUR_DELAY_MS = 150;
@@ -32,9 +34,23 @@ function getMonday(date: Date): Date {
 }
 
 function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+  return dateFnsAddDays(date, days);
+}
+
+function getDayLabel(date: Date, today: Date): { relative: string | null; weekday: string; dateStr: string } {
+  const isToday = isSameDay(date, today);
+  const isTomorrow = isSameDay(date, dateFnsAddDays(today, 1));
+  const isYesterday = isSameDay(date, dateFnsAddDays(today, -1));
+
+  let relative: string | null = null;
+  if (isToday) relative = "i dag";
+  else if (isTomorrow) relative = "i morgen";
+  else if (isYesterday) relative = "i går";
+
+  const weekday = format(date, "EEEE", { locale: da });
+  const dateStr = format(date, "d. MMMM", { locale: da });
+
+  return { relative, weekday, dateStr };
 }
 
 function EntryBadge({
@@ -163,13 +179,13 @@ function AddEntryForm({
 
 function DayColumn({
   date,
-  dayName,
+  today,
   entries,
   recipes,
   onDeleteEntry,
 }: {
   date: Date;
-  dayName: string;
+  today: Date;
   entries: FoodPlanEntry[];
   recipes: Recipe[] | undefined;
   onDeleteEntry: (entryId: number) => void;
@@ -182,17 +198,34 @@ function DayColumn({
     return toDateInputValue(entryDate) === dateStr;
   });
 
-  const dayNum = date.getDate();
-  const monthShort = date.toLocaleDateString(undefined, { month: "short" });
+  const { relative, weekday, dateStr: formattedDate } = getDayLabel(date, today);
+  const isToday = relative === "i dag";
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2 min-h-[100px]">
-      <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 text-center">
-        {dayName}
-      </h3>
-      <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center mb-2">
-        {monthShort} {dayNum}
-      </p>
+    <div className={`rounded-lg border p-2 min-h-[100px] ${
+      isToday
+        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
+        : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+    }`}>
+      <div className="flex items-center justify-between mb-1 gap-1">
+        <h3 className={`text-xs font-semibold capitalize truncate ${
+          isToday ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-300"
+        }`}>
+          {weekday}
+        </h3>
+        <p className={`text-[10px] shrink-0 ${
+          isToday ? "text-blue-500 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
+        }`}>
+          {formattedDate}
+        </p>
+      </div>
+      {relative && (
+        <p className={`text-[10px] text-center mb-1 font-medium ${
+          isToday ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
+        }`}>
+          {relative}
+        </p>
+      )}
       <div className="space-y-1">
         {dayEntries.map((entry) => (
           <EntryBadge
@@ -212,7 +245,7 @@ function DayColumn({
         <button
           onClick={() => setShowAddForm(true)}
           className="mt-1 w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50"
-          aria-label={`Add meal for ${dayName}`}
+          aria-label={`Add meal for ${weekday}`}
         >
           <Plus className="h-3 w-3" />
           Add
@@ -354,11 +387,12 @@ export default function FoodPlanPage() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
   const { setHeaderActions } = useHeaderActions();
+  const today = useMemo(() => new Date(), []);
 
   const monday = useMemo(() => {
-    const m = getMonday(new Date());
+    const m = getMonday(today);
     return addDays(m, weekOffset * 7);
-  }, [weekOffset]);
+  }, [weekOffset, today]);
 
   const sunday = useMemo(() => addDays(monday, 6), [monday]);
 
@@ -381,7 +415,6 @@ export default function FoodPlanPage() {
       .filter((i) => activeDaySet.has(i))
       .map((i) => ({
         index: i,
-        name: ALL_DAYS[i],
         date: addDays(monday, i),
       }));
   }, [monday, activeDaySet]);
@@ -471,11 +504,11 @@ export default function FoodPlanPage() {
 
       {!isLoading && (
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${lgColsClass[orderedDays.length] ?? "lg:grid-cols-5"} gap-2`}>
-          {orderedDays.map(({ index, name: dayName, date }) => (
+          {orderedDays.map(({ index, date }) => (
             <DayColumn
               key={`${startDateStr}-${index}`}
               date={date}
-              dayName={dayName}
+              today={today}
               entries={entries ?? []}
               recipes={recipes}
               onDeleteEntry={handleDeleteEntry}
