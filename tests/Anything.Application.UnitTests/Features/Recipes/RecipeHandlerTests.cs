@@ -3,8 +3,10 @@ using Anything.Application.Features.Recipes.Queries;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
+using System.Net.Http;
 using Xunit;
 
 namespace Anything.Application.UnitTests.Features.Recipes;
@@ -123,10 +125,13 @@ public class ImportRecipeHandlerTests
     private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
     private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
+    private readonly IRepository<RecipeImage> _imageRepo = Substitute.For<IRepository<RecipeImage>>();
+    private readonly IImageStorageService _imageStorageService = Substitute.For<IImageStorageService>();
+    private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
     private ImportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _unitOfWork);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _imageStorageService, _httpClientFactory, _unitOfWork);
 
     [Fact]
     public async Task Handle_CreatesRecipeWithIngredientsAndSteps()
@@ -144,7 +149,8 @@ public class ImportRecipeHandlerTests
             {
                 new("Chop carrots", 1),
                 new("Add salt", 2)
-            });
+            },
+            null);
 
         var result = await CreateHandler().Handle(command);
 
@@ -165,7 +171,8 @@ public class ImportRecipeHandlerTests
             {
                 new("Salt", -5m, "tsp", null)
             },
-            new List<ImportRecipeStep>());
+            new List<ImportRecipeStep>(),
+            null);
 
         await CreateHandler().Handle(command);
 
@@ -178,7 +185,8 @@ public class ImportRecipeHandlerTests
     {
         var command = new ImportRecipeCommand("Simple Recipe", null, null,
             new List<ImportRecipeIngredient>(),
-            new List<ImportRecipeStep>());
+            new List<ImportRecipeStep>(),
+            null);
 
         var result = await CreateHandler().Handle(command);
 
