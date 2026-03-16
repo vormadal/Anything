@@ -54,11 +54,11 @@ export default function RecipeDetailPage() {
   const isSafeUrl = (url: string) =>
     url.startsWith("http://") || url.startsWith("https://");
 
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(() => searchParams.get("edit") === "true");
 
-  const [editName, setEditName] = useState("");
-  const [editLink, setEditLink] = useState("");
-  const [editNotes, setEditNotes] = useState("");
+  const [editName, setEditName] = useState<string | null>(null);
+  const [editLink, setEditLink] = useState<string | null>(null);
+  const [editNotes, setEditNotes] = useState<string | null>(null);
 
   const [newIngredientName, setNewIngredientName] = useState("");
   const [newIngredientAmount, setNewIngredientAmount] = useState("");
@@ -87,6 +87,10 @@ export default function RecipeDetailPage() {
   const { data: shoppingLists } = useShoppingLists();
   const { data: recommendations } = useApprovedRecommendations();
 
+  const effectiveEditName = editName ?? (recipe?.name ?? "");
+  const effectiveEditLink = editLink ?? (recipe?.link ?? "");
+  const effectiveEditNotes = editNotes ?? (recipe?.notes ?? "");
+
   const updateRecipe = useUpdateRecipe();
   const deleteRecipe = useDeleteRecipe();
   const addIngredient = useAddRecipeIngredient(recipeId);
@@ -101,35 +105,34 @@ export default function RecipeDetailPage() {
   const deleteTag = useDeleteRecipeTag(recipeId);
 
   const handleEnterEditMode = useCallback(() => {
-    setEditName(recipe?.name ?? "");
-    setEditLink(recipe?.link ?? "");
-    setEditNotes(recipe?.notes ?? "");
+    setEditName(null);
+    setEditLink(null);
+    setEditNotes(null);
     setEditingIngredients({});
     setEditingSteps({});
     setIsEditMode(true);
-  }, [recipe?.name, recipe?.link, recipe?.notes]);
+  }, []);
 
-  // Auto-enter edit mode when navigated with ?edit=true
-  const hasAutoEnteredEdit = useRef(false);
+  // Clean up the ?edit=true param from the URL without triggering a re-render loop
+  const hasCleanedEditParam = useRef(false);
   useEffect(() => {
-    if (recipe && searchParams.get("edit") === "true" && !hasAutoEnteredEdit.current) {
-      hasAutoEnteredEdit.current = true;
-      handleEnterEditMode();
+    if (searchParams.get("edit") === "true" && !hasCleanedEditParam.current) {
+      hasCleanedEditParam.current = true;
       router.replace(`/recipes/${recipeId}`);
     }
-  }, [recipe, searchParams, recipeId, router, handleEnterEditMode]);
+  }, [searchParams, recipeId, router]);
 
   const handleExitEditMode = async () => {
-    const nameChanged = editName !== (recipe?.name ?? "");
-    const linkChanged = editLink !== (recipe?.link ?? "");
-    const notesChanged = editNotes !== (recipe?.notes ?? "");
+    const nameChanged = effectiveEditName !== (recipe?.name ?? "");
+    const linkChanged = effectiveEditLink !== (recipe?.link ?? "");
+    const notesChanged = effectiveEditNotes !== (recipe?.notes ?? "");
     if (nameChanged || linkChanged || notesChanged) {
       try {
         await updateRecipe.mutateAsync({
           id: recipeId,
-          name: editName,
-          link: editLink || null,
-          notes: editNotes || null,
+          name: effectiveEditName,
+          link: effectiveEditLink || null,
+          notes: effectiveEditNotes || null,
         });
         toast.success("Recipe updated");
       } catch {
@@ -137,6 +140,9 @@ export default function RecipeDetailPage() {
       }
     }
     setIsEditMode(false);
+    setEditName(null);
+    setEditLink(null);
+    setEditNotes(null);
     setEditingIngredients({});
     setEditingSteps({});
   };
@@ -463,7 +469,7 @@ export default function RecipeDetailPage() {
           {isEditMode ? (
             <input
               type="text"
-              value={editName}
+              value={effectiveEditName}
               onChange={(e) => setEditName(e.target.value)}
               placeholder="Recipe name"
               className="w-full bg-transparent text-white text-2xl font-bold placeholder-white/50 focus:outline-none border-b border-white/40 pb-0.5"
@@ -542,13 +548,13 @@ export default function RecipeDetailPage() {
           <div className="space-y-2 mb-8">
             <input
               type="url"
-              value={editLink}
+              value={effectiveEditLink}
               onChange={(e) => setEditLink(e.target.value)}
               placeholder="Recipe link (optional)"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
             />
             <textarea
-              value={editNotes}
+              value={effectiveEditNotes}
               onChange={(e) => setEditNotes(e.target.value)}
               placeholder="Notes (optional)"
               rows={3}
