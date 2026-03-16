@@ -6,7 +6,6 @@ import {
   useImportRecipe,
   useParseRecipeFromUrl,
 } from "@/hooks/useRecipes";
-import type { ParsedIngredient, ParsedStep } from "@/hooks/useRecipes";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -26,9 +25,6 @@ export default function NewRecipePage() {
   const [link, setLink] = useState("");
   const [notes, setNotes] = useState("");
   const [urlInput, setUrlInput] = useState("");
-  const [parsedIngredients, setParsedIngredients] = useState<ParsedIngredient[]>([]);
-  const [parsedSteps, setParsedSteps] = useState<ParsedStep[]>([]);
-  const [isParsed, setIsParsed] = useState(false);
 
   const createRecipe = useCreateRecipe();
   const importRecipe = useImportRecipe();
@@ -47,11 +43,15 @@ export default function NewRecipePage() {
     try {
       const result = await parseFromUrl.mutateAsync(urlInput.trim());
       if (result) {
-        setName(result.name ?? "");
-        setLink(urlInput.trim());
-        setParsedIngredients(result.ingredients ?? []);
-        setParsedSteps(result.steps ?? []);
-        setIsParsed(true);
+        const imported = await importRecipe.mutateAsync({
+          name: result.name ?? "",
+          link: urlInput.trim(),
+          notes: null,
+          ingredients: result.ingredients ?? [],
+          steps: result.steps ?? [],
+        });
+        toast.success("Recipe imported");
+        router.push(`/recipes/${imported.id}?edit=true`);
       }
     } catch (err) {
       const parseError = err as { status?: number };
@@ -69,24 +69,13 @@ export default function NewRecipePage() {
     e.preventDefault();
     if (!name.trim()) return;
     try {
-      if (isParsed) {
-        const result = await importRecipe.mutateAsync({
-          name,
-          link: link || null,
-          notes: notes || null,
-          ingredients: parsedIngredients,
-          steps: parsedSteps,
-        });
-        router.push(`/recipes/${result.id}`);
-      } else {
-        const newRecipe = await createRecipe.mutateAsync({
-          name,
-          link: link || undefined,
-          notes: notes || undefined,
-        });
-        router.push(newRecipe?.id ? `/recipes/${newRecipe.id}` : "/recipes");
-      }
+      const newRecipe = await createRecipe.mutateAsync({
+        name,
+        link: link || undefined,
+        notes: notes || undefined,
+      });
       toast.success("Recipe created");
+      router.push(newRecipe?.id ? `/recipes/${newRecipe.id}?edit=true` : "/recipes");
     } catch {
       toast.error("Failed to create recipe. Please try again.");
     }
@@ -94,7 +83,6 @@ export default function NewRecipePage() {
 
   const resetToSelect = () => {
     setMode("select");
-    setIsParsed(false);
   };
 
   if (mode === "select") {
@@ -147,7 +135,7 @@ export default function NewRecipePage() {
           {mode === "url" ? "Import from URL" : "New Recipe"}
         </h2>
 
-        {mode === "url" && !isParsed && (
+        {mode === "url" && (
           <form onSubmit={handleParse} className="space-y-4">
             <div>
               <label htmlFor="parse-url" className={LABEL_CLASS}>
@@ -166,27 +154,17 @@ export default function NewRecipePage() {
                 />
                 <Button
                   type="submit"
-                  disabled={parseFromUrl.isPending || !urlInput.trim()}
+                  disabled={parseFromUrl.isPending || importRecipe.isPending || !urlInput.trim()}
                 >
-                  {parseFromUrl.isPending ? "Parsing..." : "Parse"}
+                  {parseFromUrl.isPending || importRecipe.isPending ? "Importing..." : "Import"}
                 </Button>
               </div>
             </div>
           </form>
         )}
 
-        {(mode === "manual" || isParsed) && (
+        {mode === "manual" && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isParsed && (
-              <button
-                type="button"
-                onClick={() => setIsParsed(false)}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                &larr; Re-enter URL
-              </button>
-            )}
-
             <div>
               <label htmlFor="recipe-name" className={LABEL_CLASS}>
                 Name
@@ -198,7 +176,7 @@ export default function NewRecipePage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Recipe name"
                 className={INPUT_CLASS}
-                autoFocus={mode === "manual"}
+                autoFocus
                 required
               />
             </div>
@@ -231,41 +209,12 @@ export default function NewRecipePage() {
               />
             </div>
 
-            {isParsed && parsedIngredients.length > 0 && (
-              <div>
-                <p className={LABEL_CLASS}>
-                  Ingredients ({parsedIngredients.length})
-                </p>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                  {parsedIngredients.map((ing, i) => (
-                    <li key={i}>
-                      {ing.amount} {ing.unit ? `${ing.unit} ` : ""}
-                      {ing.name}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {isParsed && parsedSteps.length > 0 && (
-              <div>
-                <p className={LABEL_CLASS}>Steps ({parsedSteps.length})</p>
-                <ol className="text-sm text-gray-600 dark:text-gray-400 space-y-1 max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                  {parsedSteps.map((step) => (
-                    <li key={step.order}>
-                      {step.order}. {step.text}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-
             <Button
               type="submit"
-              disabled={createRecipe.isPending || importRecipe.isPending}
+              disabled={createRecipe.isPending}
               className="w-full"
             >
-              {createRecipe.isPending || importRecipe.isPending ? "Creating..." : "Create Recipe"}
+              {createRecipe.isPending ? "Creating..." : "Create Recipe"}
             </Button>
           </form>
         )}

@@ -90,6 +90,9 @@ public class RecipeParserServiceTests
     [InlineData("3 eggs", 3.0, null, "eggs")]
     [InlineData("1.5 oz chocolate", 1.5, "oz", "chocolate")]
     [InlineData("salt to taste", null, null, "salt to taste")]
+    [InlineData("2 tsk salt", 2.0, "tsk", "salt")]
+    [InlineData("1 spsk olive oil", 1.0, "spsk", "olive oil")]
+    [InlineData("3 stk carrots", 3.0, "stk", "carrots")]
     public async Task ParseFromUrl_ParsesIngredient(
         string ingredient, double? expectedAmount, string? expectedUnit, string expectedName)
     {

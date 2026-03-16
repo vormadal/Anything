@@ -70,9 +70,10 @@ jest.mock('@/lib/apiClient', () => ({
 // Mock next/navigation
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: jest.fn(), replace: jest.fn() }),
   useParams: () => ({ id: '1' }),
   usePathname: () => '/recipes/1',
+  useSearchParams: () => ({ get: jest.fn().mockReturnValue(null) }),
 }))
 
 // Mock useAuth
