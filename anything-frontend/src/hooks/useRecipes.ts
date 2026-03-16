@@ -123,6 +123,92 @@ export function useDeleteRecipeIngredient(recipeId: number) {
   });
 }
 
+export function useReorderRecipeIngredients(recipeId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids: number[]): Promise<void> => {
+      const token =
+        typeof window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/recipes/${recipeId}/ingredients/reorder`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ ids }),
+        }
+      );
+      if (!response.ok) throw new Error(`Failed to reorder ingredients: ${response.status}`);
+    },
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: ["recipeIngredients", recipeId] });
+      const previous = queryClient.getQueryData<RecipeIngredient[]>(["recipeIngredients", recipeId]);
+      queryClient.setQueryData<RecipeIngredient[]>(
+        ["recipeIngredients", recipeId],
+        (old) => {
+          if (!old) return old;
+          return ids.map((id) => old.find((i) => i.id === id)).filter(Boolean) as RecipeIngredient[];
+        }
+      );
+      return { previous };
+    },
+    onError: (_err, _ids, context) => {
+      queryClient.setQueryData(["recipeIngredients", recipeId], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
+    },
+  });
+}
+
+export function useReorderRecipeSteps(recipeId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids: number[]): Promise<void> => {
+      const token =
+        typeof window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/recipes/${recipeId}/steps/reorder`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ ids }),
+        }
+      );
+      if (!response.ok) throw new Error(`Failed to reorder steps: ${response.status}`);
+    },
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: ["recipeSteps", recipeId] });
+      const previous = queryClient.getQueryData<RecipeStep[]>(["recipeSteps", recipeId]);
+      queryClient.setQueryData<RecipeStep[]>(
+        ["recipeSteps", recipeId],
+        (old) => {
+          if (!old) return old;
+          return ids.map((id) => old.find((s) => s.id === id)).filter(Boolean) as RecipeStep[];
+        }
+      );
+      return { previous };
+    },
+    onError: (_err, _ids, context) => {
+      queryClient.setQueryData(["recipeSteps", recipeId], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
+    },
+  });
+}
+
 export function useAddRecipeStep(recipeId: number) {
   const queryClient = useQueryClient();
 

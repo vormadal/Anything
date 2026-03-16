@@ -99,6 +99,14 @@ public static class RecipeEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPut("/{id}/ingredients/reorder", async (int id, ReorderRecipeIngredientsRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ReorderRecipeIngredientsCommand(id, request.Ids));
+        })
+        .WithName("ReorderRecipeIngredients")
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapDelete("/{id}/ingredients/{ingredientId}", async (int id, int ingredientId, IMediator mediator) =>
         {
             return await mediator.Send(new DeleteRecipeIngredientCommand(id, ingredientId));
@@ -127,6 +135,14 @@ public static class RecipeEndpoints
             return await mediator.Send(new UpdateRecipeStepCommand(id, stepId, request.Text, request.Order));
         })
         .WithName("UpdateRecipeStep")
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapPut("/{id}/steps/reorder", async (int id, ReorderRecipeStepsRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ReorderRecipeStepsCommand(id, request.Ids));
+        })
+        .WithName("ReorderRecipeSteps")
         .WithParameterValidation()
         .RequireAuthorization();
 

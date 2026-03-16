@@ -2,6 +2,7 @@ using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Recipes.Commands;
 
@@ -21,6 +22,11 @@ public class AddRecipeIngredientHandler(
         if (recipe is null || recipe.DeletedOn != null)
             return Results.NotFound(RecipeNotFound);
 
+        var maxSortOrder = await ingredientRepository.Query()
+            .Where(i => i.RecipeId == command.RecipeId && i.DeletedOn == null)
+            .Select(i => (int?)i.SortOrder)
+            .MaxAsync(ct) ?? -1;
+
         var ingredient = new RecipeIngredient
         {
             RecipeId = command.RecipeId,
@@ -28,6 +34,7 @@ public class AddRecipeIngredientHandler(
             Amount = command.Amount,
             Unit = command.Unit,
             Group = command.Group,
+            SortOrder = maxSortOrder + 1,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 

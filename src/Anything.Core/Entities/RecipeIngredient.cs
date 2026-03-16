@@ -8,6 +8,7 @@ public class RecipeIngredient
     public decimal? Amount { get; set; }
     public string? Unit { get; set; }
     public string? Group { get; set; }
+    public int SortOrder { get; set; }
     public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }

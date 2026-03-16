@@ -12,6 +12,7 @@ public class RecipeIngredientConfiguration : IEntityTypeConfiguration<RecipeIngr
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.Property(e => e.Unit).HasMaxLength(100);
         builder.Property(e => e.Group).HasMaxLength(200);
+        builder.Property(e => e.SortOrder).HasDefaultValue(0);
         builder.HasOne<Recipe>()
             .WithMany()
             .HasForeignKey(e => e.RecipeId)
