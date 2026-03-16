@@ -22,7 +22,7 @@ public class ReorderRecipeStepsHandler(IRepository<RecipeStep> repository, IUnit
             var step = steps.FirstOrDefault(s => s.Id == command.Ids[i]);
             if (step != null)
             {
-                step.Order = i + 1;
+                step.Order = i;
             }
         }
 
