@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X, GripVertical } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   useRecipe,
   useRecipeIngredients,
@@ -33,6 +50,8 @@ import {
   useRecipeTags,
   useAddRecipeTag,
   useDeleteRecipeTag,
+  useReorderRecipeIngredients,
+  useReorderRecipeSteps,
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
@@ -43,6 +62,153 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
+import type { RecipeIngredient, RecipeStep } from "@/lib/api-client/models/index";
+
+interface SortableIngredientItemProps {
+  id: number;
+  ingredient: RecipeIngredient;
+  edits?: { name: string; amount: string; unit: string };
+  onFieldChange: (id: number, field: "name" | "amount" | "unit", value: string) => void;
+  onSave: (id: number) => void;
+  onDelete: (id: number) => void;
+  isSavePending: boolean;
+  isDeletePending: boolean;
+}
+
+function SortableIngredientItem({
+  id,
+  ingredient,
+  edits,
+  onFieldChange,
+  onSave,
+  onDelete,
+  isSavePending,
+  isDeletePending,
+}: SortableIngredientItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
+  return (
+    <li ref={setNodeRef} style={style} className="flex items-center gap-1 py-1">
+      <button
+        type="button"
+        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none shrink-0"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <input
+        type="text"
+        value={edits?.name ?? (ingredient.name ?? "")}
+        onChange={(e) => onFieldChange(id, "name", e.target.value)}
+        placeholder="Ingredient name"
+        aria-label="Ingredient name"
+        className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+      />
+      <input
+        type="number"
+        value={edits?.amount ?? String(ingredient.amount ?? "")}
+        onChange={(e) => onFieldChange(id, "amount", e.target.value)}
+        placeholder="Qty"
+        aria-label="Ingredient quantity"
+        className="w-14 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+        step="any"
+      />
+      <input
+        type="text"
+        value={edits?.unit ?? (ingredient.unit ?? "")}
+        onChange={(e) => onFieldChange(id, "unit", e.target.value)}
+        placeholder="Unit"
+        aria-label="Ingredient unit"
+        className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+      />
+      {edits && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onSave(id)}
+          disabled={isSavePending}
+          aria-label="Save ingredient"
+          className="shrink-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+        >
+          <Check className="h-4 w-4" />
+        </Button>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => onDelete(id)}
+        disabled={isDeletePending}
+        aria-label="Remove ingredient"
+        className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </li>
+  );
+}
+
+interface SortableStepItemProps {
+  step: RecipeStep;
+  index: number;
+  editText?: string;
+  onTextChange: (text: string) => void;
+  onBlur: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onDelete: () => void;
+  isDeletePending: boolean;
+}
+
+function SortableStepItem({
+  step,
+  index,
+  editText,
+  onTextChange,
+  onBlur,
+  onKeyDown,
+  onDelete,
+  isDeletePending,
+}: SortableStepItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id! });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
+  return (
+    <li ref={setNodeRef} style={style} className="flex items-start gap-2">
+      <button
+        type="button"
+        className="flex items-center justify-center p-1 mt-0.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none shrink-0"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-1.5">
+        {index + 1}.
+      </span>
+      <input
+        type="text"
+        value={editText ?? step.text ?? ""}
+        onChange={(e) => onTextChange(e.target.value)}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
+        className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+      />
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onDelete}
+        disabled={isDeletePending}
+        aria-label="Remove step"
+        className="h-7 w-7 mt-0.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </li>
+  );
+}
 
 export default function RecipeDetailPage() {
   const params = useParams();
@@ -103,6 +269,35 @@ export default function RecipeDetailPage() {
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
   const addTag = useAddRecipeTag(recipeId);
   const deleteTag = useDeleteRecipeTag(recipeId);
+  const reorderIngredients = useReorderRecipeIngredients(recipeId);
+  const reorderSteps = useReorderRecipeSteps(recipeId);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleIngredientDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !ingredients) return;
+    const oldIndex = ingredients.findIndex((i) => i.id === active.id);
+    const newIndex = ingredients.findIndex((i) => i.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(ingredients, oldIndex, newIndex);
+    reorderIngredients.mutate(reordered.map((i) => i.id!));
+  };
+
+  const handleStepDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = sortedSteps.findIndex((s) => s.id === active.id);
+    const newIndex = sortedSteps.findIndex((s) => s.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(sortedSteps, oldIndex, newIndex);
+    reorderSteps.mutate(reordered.map((s) => s.id!));
+  };
 
   const handleEnterEditMode = useCallback(() => {
     setEditName(null);
@@ -275,23 +470,6 @@ export default function RecipeDetailPage() {
       toast.success("Step updated");
     } catch {
       toast.error("Failed to update step. Please try again.");
-    }
-  };
-
-  const handleMoveStep = async (stepId: number, direction: "up" | "down") => {
-    const index = sortedSteps.findIndex((s) => s.id === stepId);
-    if (direction === "up" && index === 0) return;
-    if (direction === "down" && index === sortedSteps.length - 1) return;
-
-    const swapIndex = direction === "up" ? index - 1 : index + 1;
-    const current = sortedSteps[index];
-    const swap = sortedSteps[swapIndex];
-
-    try {
-      await updateStep.mutateAsync({ stepId: current.id!, text: current.text!, order: swap.order! });
-      await updateStep.mutateAsync({ stepId: swap.id!, text: swap.text!, order: current.order! });
-    } catch {
-      toast.error("Failed to reorder steps. Please try again.");
     }
   };
 
@@ -644,62 +822,40 @@ export default function RecipeDetailPage() {
 
           {ingredients && ingredients.length > 0 && (
             <ul className="space-y-0.5">
-              {ingredients.map((ingredient) => {
-                const id = ingredient.id!;
-                const edits = editingIngredients[id];
-                return (
-                  <li key={id} className="flex items-center gap-1 py-1">
-                    {isEditMode ? (
-                      <>
-                        <input
-                          type="text"
-                          value={edits?.name ?? (ingredient.name ?? "")}
-                          onChange={(e) => handleIngredientFieldChange(id, "name", e.target.value)}
-                          placeholder="Ingredient name"
-                          aria-label="Ingredient name"
-                          className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+              {isEditMode ? (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleIngredientDragEnd}
+                >
+                  <SortableContext
+                    items={ingredients.map((i) => i.id!)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {ingredients.map((ingredient) => {
+                      const id = ingredient.id!;
+                      const edits = editingIngredients[id];
+                      return (
+                        <SortableIngredientItem
+                          key={id}
+                          id={id}
+                          ingredient={ingredient}
+                          edits={edits}
+                          onFieldChange={handleIngredientFieldChange}
+                          onSave={handleSaveIngredient}
+                          onDelete={handleDeleteIngredient}
+                          isSavePending={updateIngredient.isPending}
+                          isDeletePending={deleteIngredient.isPending}
                         />
-                        <input
-                          type="number"
-                          value={edits?.amount ?? String(ingredient.amount ?? "")}
-                          onChange={(e) => handleIngredientFieldChange(id, "amount", e.target.value)}
-                          placeholder="Qty"
-                          aria-label="Ingredient quantity"
-                          className="w-14 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                          step="any"
-                        />
-                        <input
-                          type="text"
-                          value={edits?.unit ?? (ingredient.unit ?? "")}
-                          onChange={(e) => handleIngredientFieldChange(id, "unit", e.target.value)}
-                          placeholder="Unit"
-                          aria-label="Ingredient unit"
-                          className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                        />
-                        {edits && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleSaveIngredient(id)}
-                            disabled={updateIngredient.isPending}
-                            aria-label="Save ingredient"
-                            className="shrink-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteIngredient(id)}
-                          disabled={deleteIngredient.isPending}
-                          aria-label="Remove ingredient"
-                          className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : (
+                      );
+                    })}
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                ingredients.map((ingredient) => {
+                  const id = ingredient.id!;
+                  return (
+                    <li key={id} className="flex items-center gap-1 py-1">
                       <span className="text-gray-800 dark:text-gray-200 text-sm">
                         {(() => {
                           const hasAmountOrUnit = ingredient.amount != null || !!ingredient.unit;
@@ -713,10 +869,10 @@ export default function RecipeDetailPage() {
                         })()}
                         {ingredient.name}
                       </span>
-                    )}
-                  </li>
-                );
-              })}
+                    </li>
+                  );
+                })
+              )}
             </ul>
           )}
 
@@ -843,80 +999,62 @@ export default function RecipeDetailPage() {
 
           {sortedSteps.length > 0 && (
             <ol className="space-y-3">
-              {sortedSteps.map((step, index) => (
-                <li key={step.id} className="flex items-start gap-3">
-                  <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-0.5">
-                    {index + 1}.
-                  </span>
-                  {isEditMode ? (
-                    <input
-                      type="text"
-                      value={editingSteps[step.id!] ?? step.text ?? ""}
-                      onChange={(e) =>
-                        setEditingSteps((prev) => ({ ...prev, [step.id!]: e.target.value }))
-                      }
-                      onBlur={() => {
-                        const current = editingSteps[step.id!];
-                        if (current === undefined) return;
-                        if (current === step.text) {
-                          setEditingSteps((prev) => {
-                            const next = { ...prev };
-                            delete next[step.id!];
-                            return next;
-                          });
-                        } else {
-                          handleSaveStep(step.id!, step.order!);
+              {isEditMode ? (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleStepDragEnd}
+                >
+                  <SortableContext
+                    items={sortedSteps.map((s) => s.id!)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {sortedSteps.map((step, index) => (
+                      <SortableStepItem
+                        key={step.id}
+                        step={step}
+                        index={index}
+                        editText={editingSteps[step.id!]}
+                        onTextChange={(text) =>
+                          setEditingSteps((prev) => ({ ...prev, [step.id!]: text }))
                         }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleSaveStep(step.id!, step.order!);
-                        }
-                      }}
-                      className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                    />
-                  ) : (
+                        onBlur={() => {
+                          const current = editingSteps[step.id!];
+                          if (current === undefined) return;
+                          if (current === step.text) {
+                            setEditingSteps((prev) => {
+                              const next = { ...prev };
+                              delete next[step.id!];
+                              return next;
+                            });
+                          } else {
+                            handleSaveStep(step.id!, step.order!);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSaveStep(step.id!, step.order!);
+                          }
+                        }}
+                        onDelete={() => handleDeleteStep(step.id!)}
+                        isDeletePending={deleteStep.isPending}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                sortedSteps.map((step, index) => (
+                  <li key={step.id} className="flex items-start gap-3">
+                    <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-0.5">
+                      {index + 1}.
+                    </span>
                     <span className="flex-1 min-w-0 text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
                       {step.text}
                     </span>
-                  )}
-                  {isEditMode && (
-                    <div className="flex shrink-0 gap-0.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleMoveStep(step.id!, "up")}
-                        disabled={index === 0 || updateStep.isPending}
-                        aria-label="Move step up"
-                        className="h-7 w-7"
-                      >
-                        <ChevronUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleMoveStep(step.id!, "down")}
-                        disabled={index === sortedSteps.length - 1 || updateStep.isPending}
-                        aria-label="Move step down"
-                        className="h-7 w-7"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteStep(step.id!)}
-                        disabled={deleteStep.isPending}
-                        aria-label="Remove step"
-                        className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </li>
-              ))}
+                  </li>
+                ))
+              )}
             </ol>
           )}
 

@@ -21,6 +21,12 @@ public class AddRecipeIngredientHandler(
         if (recipe is null || recipe.DeletedOn != null)
             return Results.NotFound(RecipeNotFound);
 
+        var existing = await ingredientRepository.GetAll();
+        var maxSortOrder = (existing ?? [])
+            .Where(i => i.RecipeId == command.RecipeId && i.DeletedOn == null)
+            .Select(i => (int?)i.SortOrder)
+            .Max() ?? -1;
+
         var ingredient = new RecipeIngredient
         {
             RecipeId = command.RecipeId,
@@ -28,6 +34,7 @@ public class AddRecipeIngredientHandler(
             Amount = command.Amount,
             Unit = command.Unit,
             Group = command.Group,
+            SortOrder = maxSortOrder + 1,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 

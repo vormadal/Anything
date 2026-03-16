@@ -22,6 +22,8 @@ public class GetRecipeIngredientsHandler(
 
         var ingredients = await ingredientRepository.Query()
             .Where(i => i.RecipeId == query.RecipeId && i.DeletedOn == null)
+            .OrderBy(i => i.SortOrder)
+            .ThenBy(i => i.CreatedOn)
             .ToListAsync(ct);
         return Results.Ok(ingredients);
     }
