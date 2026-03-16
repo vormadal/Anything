@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X } from "lucide-react";
+import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X, ChevronUp, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ import {
   useUpdateRecipeIngredient,
   useDeleteRecipeIngredient,
   useAddRecipeStep,
+  useUpdateRecipeStep,
   useDeleteRecipeStep,
   useDeleteRecipeImage,
   useAddIngredientsToShoppingList,
@@ -37,7 +38,7 @@ import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import { RecipeImageUpload } from "@/components/RecipeImageUpload";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
@@ -46,17 +47,18 @@ import Image from "next/image";
 export default function RecipeDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const recipeId = Number(params.id);
 
   const isSafeUrl = (url: string) =>
     url.startsWith("http://") || url.startsWith("https://");
 
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(() => searchParams.get("edit") === "true");
 
-  const [editName, setEditName] = useState("");
-  const [editLink, setEditLink] = useState("");
-  const [editNotes, setEditNotes] = useState("");
+  const [editName, setEditName] = useState<string | null>(null);
+  const [editLink, setEditLink] = useState<string | null>(null);
+  const [editNotes, setEditNotes] = useState<string | null>(null);
 
   const [newIngredientName, setNewIngredientName] = useState("");
   const [newIngredientAmount, setNewIngredientAmount] = useState("");
@@ -67,6 +69,7 @@ export default function RecipeDetailPage() {
   >({});
 
   const [newStepText, setNewStepText] = useState("");
+  const [editingSteps, setEditingSteps] = useState<Record<number, string>>({});
   const [newTagName, setNewTagName] = useState("");
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
@@ -84,12 +87,17 @@ export default function RecipeDetailPage() {
   const { data: shoppingLists } = useShoppingLists();
   const { data: recommendations } = useApprovedRecommendations();
 
+  const effectiveEditName = editName ?? (recipe?.name ?? "");
+  const effectiveEditLink = editLink ?? (recipe?.link ?? "");
+  const effectiveEditNotes = editNotes ?? (recipe?.notes ?? "");
+
   const updateRecipe = useUpdateRecipe();
   const deleteRecipe = useDeleteRecipe();
   const addIngredient = useAddRecipeIngredient(recipeId);
   const updateIngredient = useUpdateRecipeIngredient(recipeId);
   const deleteIngredient = useDeleteRecipeIngredient(recipeId);
   const addStep = useAddRecipeStep(recipeId);
+  const updateStep = useUpdateRecipeStep(recipeId);
   const deleteStep = useDeleteRecipeStep(recipeId);
   const deleteImage = useDeleteRecipeImage(recipeId);
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
@@ -97,24 +105,34 @@ export default function RecipeDetailPage() {
   const deleteTag = useDeleteRecipeTag(recipeId);
 
   const handleEnterEditMode = useCallback(() => {
-    setEditName(recipe?.name ?? "");
-    setEditLink(recipe?.link ?? "");
-    setEditNotes(recipe?.notes ?? "");
+    setEditName(null);
+    setEditLink(null);
+    setEditNotes(null);
     setEditingIngredients({});
+    setEditingSteps({});
     setIsEditMode(true);
-  }, [recipe?.name, recipe?.link, recipe?.notes]);
+  }, []);
+
+  // Clean up the ?edit=true param from the URL without triggering a re-render loop
+  const hasCleanedEditParam = useRef(false);
+  useEffect(() => {
+    if (searchParams.get("edit") === "true" && !hasCleanedEditParam.current) {
+      hasCleanedEditParam.current = true;
+      router.replace(`/recipes/${recipeId}`);
+    }
+  }, [searchParams, recipeId, router]);
 
   const handleExitEditMode = async () => {
-    const nameChanged = editName !== (recipe?.name ?? "");
-    const linkChanged = editLink !== (recipe?.link ?? "");
-    const notesChanged = editNotes !== (recipe?.notes ?? "");
+    const nameChanged = effectiveEditName !== (recipe?.name ?? "");
+    const linkChanged = effectiveEditLink !== (recipe?.link ?? "");
+    const notesChanged = effectiveEditNotes !== (recipe?.notes ?? "");
     if (nameChanged || linkChanged || notesChanged) {
       try {
         await updateRecipe.mutateAsync({
           id: recipeId,
-          name: editName,
-          link: editLink || null,
-          notes: editNotes || null,
+          name: effectiveEditName,
+          link: effectiveEditLink || null,
+          notes: effectiveEditNotes || null,
         });
         toast.success("Recipe updated");
       } catch {
@@ -122,7 +140,11 @@ export default function RecipeDetailPage() {
       }
     }
     setIsEditMode(false);
+    setEditName(null);
+    setEditLink(null);
+    setEditNotes(null);
     setEditingIngredients({});
+    setEditingSteps({});
   };
 
   const handleIngredientFieldChange = (
@@ -236,6 +258,40 @@ export default function RecipeDetailPage() {
       toast.success("Step removed");
     } catch {
       toast.error("Failed to remove step. Please try again.");
+    }
+  };
+
+  const handleSaveStep = async (stepId: number, order: number) => {
+    const text = editingSteps[stepId];
+    if (text === undefined) return;
+    if (!text.trim()) return;
+    try {
+      await updateStep.mutateAsync({ stepId, text, order });
+      setEditingSteps((prev) => {
+        const next = { ...prev };
+        delete next[stepId];
+        return next;
+      });
+      toast.success("Step updated");
+    } catch {
+      toast.error("Failed to update step. Please try again.");
+    }
+  };
+
+  const handleMoveStep = async (stepId: number, direction: "up" | "down") => {
+    const index = sortedSteps.findIndex((s) => s.id === stepId);
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === sortedSteps.length - 1) return;
+
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    const current = sortedSteps[index];
+    const swap = sortedSteps[swapIndex];
+
+    try {
+      await updateStep.mutateAsync({ stepId: current.id!, text: current.text!, order: swap.order! });
+      await updateStep.mutateAsync({ stepId: swap.id!, text: swap.text!, order: current.order! });
+    } catch {
+      toast.error("Failed to reorder steps. Please try again.");
     }
   };
 
@@ -413,7 +469,7 @@ export default function RecipeDetailPage() {
           {isEditMode ? (
             <input
               type="text"
-              value={editName}
+              value={effectiveEditName}
               onChange={(e) => setEditName(e.target.value)}
               placeholder="Recipe name"
               className="w-full bg-transparent text-white text-2xl font-bold placeholder-white/50 focus:outline-none border-b border-white/40 pb-0.5"
@@ -492,13 +548,13 @@ export default function RecipeDetailPage() {
           <div className="space-y-2 mb-8">
             <input
               type="url"
-              value={editLink}
+              value={effectiveEditLink}
               onChange={(e) => setEditLink(e.target.value)}
               placeholder="Recipe link (optional)"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
             />
             <textarea
-              value={editNotes}
+              value={effectiveEditNotes}
               onChange={(e) => setEditNotes(e.target.value)}
               placeholder="Notes (optional)"
               rows={3}
@@ -792,20 +848,72 @@ export default function RecipeDetailPage() {
                   <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-0.5">
                     {index + 1}.
                   </span>
-                  <span className="flex-1 min-w-0 text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
-                    {step.text}
-                  </span>
+                  {isEditMode ? (
+                    <input
+                      type="text"
+                      value={editingSteps[step.id!] ?? step.text ?? ""}
+                      onChange={(e) =>
+                        setEditingSteps((prev) => ({ ...prev, [step.id!]: e.target.value }))
+                      }
+                      onBlur={() => {
+                        const current = editingSteps[step.id!];
+                        if (current === undefined) return;
+                        if (current === step.text) {
+                          setEditingSteps((prev) => {
+                            const next = { ...prev };
+                            delete next[step.id!];
+                            return next;
+                          });
+                        } else {
+                          handleSaveStep(step.id!, step.order!);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSaveStep(step.id!, step.order!);
+                        }
+                      }}
+                      className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                    />
+                  ) : (
+                    <span className="flex-1 min-w-0 text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
+                      {step.text}
+                    </span>
+                  )}
                   {isEditMode && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteStep(step.id!)}
-                      disabled={deleteStep.isPending}
-                      aria-label="Remove step"
-                      className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex shrink-0 gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleMoveStep(step.id!, "up")}
+                        disabled={index === 0 || updateStep.isPending}
+                        aria-label="Move step up"
+                        className="h-7 w-7"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleMoveStep(step.id!, "down")}
+                        disabled={index === sortedSteps.length - 1 || updateStep.isPending}
+                        aria-label="Move step down"
+                        className="h-7 w-7"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteStep(step.id!)}
+                        disabled={deleteStep.isPending}
+                        aria-label="Remove step"
+                        className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </li>
               ))}

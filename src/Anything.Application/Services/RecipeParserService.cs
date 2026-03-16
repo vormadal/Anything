@@ -17,7 +17,8 @@ public class RecipeParserService(HttpClient httpClient) : IRecipeParserService
         "kg", "kilogram", "kilograms", "ml", "milliliter", "milliliters", "l", "liter", "liters",
         "clove", "cloves", "can", "cans", "package", "packages", "pkg", "bunch", "bunches",
         "slice", "slices", "piece", "pieces", "pinch", "handful", "dash",
-        "head", "stalk", "stalks", "sprig", "sprigs"
+        "head", "stalk", "stalks", "sprig", "sprigs",
+        "tsk", "spsk", "stk"
     };
 
     public async Task<ParsedRecipeResponse?> ParseFromUrl(string url, CancellationToken ct = default)
