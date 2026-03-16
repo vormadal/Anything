@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
     <ProjectReference Include="..\Anything.Core\Anything.Core.csproj" />
     <ProjectReference Include="..\Anything.Contracts\Anything.Contracts.csproj" />
     <ProjectReference Include="..\Anything.Mediator\Anything.Mediator.csproj" />
