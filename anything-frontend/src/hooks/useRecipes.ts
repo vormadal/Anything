@@ -177,6 +177,7 @@ export interface ParsedRecipeResponse {
   link?: string | null;
   ingredients: ParsedIngredient[];
   steps: ParsedStep[];
+  imageUrl?: string | null;
 }
 
 export function useParseRecipeFromUrl() {
@@ -212,6 +213,7 @@ export interface ImportRecipePayload {
   notes?: string | null;
   ingredients: ParsedIngredient[];
   steps: ParsedStep[];
+  imageUrl?: string | null;
 }
 
 export function useImportRecipe() {
@@ -243,6 +245,7 @@ export function useImportRecipe() {
             text: s.text,
             order: s.order,
           })),
+          imageUrl: payload.imageUrl ?? null,
         }),
       });
       if (!response.ok) {

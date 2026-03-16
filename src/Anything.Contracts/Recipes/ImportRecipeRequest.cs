@@ -27,4 +27,6 @@ public record ImportRecipeRequest(
     [StringLength(5000, ErrorMessage = "Notes must be at most 5000 characters.")]
     string? Notes,
     List<ImportRecipeIngredientRequest>? Ingredients,
-    List<ImportRecipeStepRequest>? Steps);
+    List<ImportRecipeStepRequest>? Steps,
+    [Url(ErrorMessage = "ImageUrl must be a valid URL.")]
+    string? ImageUrl);
