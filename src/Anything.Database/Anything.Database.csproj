@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <ProjectReference Include="..\Anything.Core\Anything.Core.csproj" />
   </ItemGroup>
 
