@@ -119,7 +119,29 @@ public class RecipeParserService(HttpClient httpClient) : IRecipeParserService
         if (recipe.TryGetProperty("recipeInstructions", out var instructions))
             steps = ParseInstructions(instructions);
 
-        return new ParsedRecipeResponse(name, url, ingredients, steps);
+        var imageUrl = recipe.TryGetProperty("image", out var image) ? ExtractImageUrl(image) : null;
+
+        return new ParsedRecipeResponse(name, url, ingredients, steps, imageUrl);
+    }
+
+    private static string? ExtractImageUrl(JsonElement image)
+    {
+        if (image.ValueKind == JsonValueKind.String)
+            return image.GetString();
+
+        if (image.ValueKind == JsonValueKind.Object)
+            return image.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null;
+
+        if (image.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in image.EnumerateArray())
+            {
+                var url = ExtractImageUrl(item);
+                if (url != null) return url;
+            }
+        }
+
+        return null;
     }
 
     private static List<ParsedStep> ParseInstructions(JsonElement instructions)

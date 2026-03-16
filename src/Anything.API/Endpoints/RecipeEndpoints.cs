@@ -53,7 +53,7 @@ public static class RecipeEndpoints
                 .Select(s => new ImportRecipeStep(s.Text, s.Order))
                 .ToList();
             var result = await mediator.Send(new ImportRecipeCommand(
-                request.Name, request.Link, request.Notes, ingredients, steps));
+                request.Name, request.Link, request.Notes, ingredients, steps, request.ImageUrl));
             return Results.Created($"/api/recipes/{result.Id}", result);
         })
         .WithName("ImportRecipe")

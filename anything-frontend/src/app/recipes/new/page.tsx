@@ -49,6 +49,7 @@ export default function NewRecipePage() {
           notes: null,
           ingredients: result.ingredients ?? [],
           steps: result.steps ?? [],
+          imageUrl: result.imageUrl ?? null,
         });
         toast.success("Recipe imported");
         router.push(`/recipes/${imported.id}?edit=true`);
