@@ -19,14 +19,11 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    remotePatterns: [
-      {
-        // imgproxy in development (Aspire assigns the host port dynamically)
-        protocol: "http",
-        hostname: "localhost",
-        pathname: "/**",
-      },
-    ],
+    // imgproxy already handles all resizing and format conversion (webp).
+    // Disabling Next.js image optimization avoids redundant double-processing
+    // and removes the remotePatterns hostname allowlist restriction, which
+    // would otherwise block production imgproxy URLs from displaying.
+    unoptimized: true,
   },
 };
 
