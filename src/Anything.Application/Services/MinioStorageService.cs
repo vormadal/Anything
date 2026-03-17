@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using Anything.Application.Configuration;
 using Anything.Core.Services;
 using Microsoft.Extensions.Logging;
@@ -10,9 +11,6 @@ namespace Anything.Application.Services;
 
 public class MinioStorageService : IImageStorageService
 {
-    private const string PublicReadPolicyTemplate =
-        """{{"Version":"2012-10-17","Statement":[{{"Effect":"Allow","Principal":{{"AWS":["*"]}},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::{0}/*"]}}]}}""";
-
     private readonly ImageSettings _settings;
     private readonly IMinioClient _client;
     private readonly ILogger<MinioStorageService> _logger;
@@ -42,12 +40,29 @@ public class MinioStorageService : IImageStorageService
             }
         }
 
-        var policy = string.Format(PublicReadPolicyTemplate, _settings.BucketName);
+        var policy = JsonSerializer.Serialize(new
+        {
+            Version = "2012-10-17",
+            Statement = new[]
+            {
+                new
+                {
+                    Effect = "Allow",
+                    Principal = new { AWS = new[] { "*" } },
+                    Action = new[] { "s3:GetObject" },
+                    Resource = new[] { $"arn:aws:s3:::{_settings.BucketName}/*" }
+                }
+            }
+        });
+
+        _logger.LogDebug("Setting bucket policy for {BucketName}: {Policy}", _settings.BucketName, policy);
+
         try
         {
             await _client.SetPolicyAsync(new SetPolicyArgs()
                 .WithBucket(_settings.BucketName)
                 .WithPolicy(policy));
+            _logger.LogInformation("Bucket policy set successfully for {BucketName}", _settings.BucketName);
         }
         catch (Exception ex)
         {
