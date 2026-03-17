@@ -17,7 +17,8 @@ public class UploadRecipeImageHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<RecipeImage> imageRepository,
     IImageStorageService imageStorageService,
-    IUnitOfWork unitOfWork) : IRequestHandler<UploadRecipeImageCommand, IResult>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : IRequestHandler<UploadRecipeImageCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
     private const string InvalidFile = "No file uploaded or file is empty.";
@@ -41,7 +42,8 @@ public class UploadRecipeImageHandler(
         var image = new RecipeImage
         {
             RecipeId = command.RecipeId,
-            StorageKey = storageKey
+            StorageKey = storageKey,
+            CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         imageRepository.Add(image);

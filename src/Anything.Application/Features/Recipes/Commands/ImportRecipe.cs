@@ -2,6 +2,7 @@ using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
 using Anything.Mediator;
+using Microsoft.Extensions.Logging;
 using System.Net.Http;
 
 namespace Anything.Application.Features.Recipes.Commands;
@@ -25,7 +26,9 @@ public class ImportRecipeHandler(
     IRepository<RecipeImage> imageRepository,
     IImageStorageService imageStorageService,
     IHttpClientFactory httpClientFactory,
-    IUnitOfWork unitOfWork) : IRequestHandler<ImportRecipeCommand, Recipe>
+    IUnitOfWork unitOfWork,
+    ILogger<ImportRecipeHandler> logger,
+    TimeProvider timeProvider) : IRequestHandler<ImportRecipeCommand, Recipe>
 {
     public async Task<Recipe> Handle(ImportRecipeCommand command, CancellationToken ct = default)
     {
@@ -66,7 +69,8 @@ public class ImportRecipeHandler(
                 imageRepository.Add(new RecipeImage
                 {
                     RecipeId = recipe.Id,
-                    StorageKey = storageKey
+                    StorageKey = storageKey,
+                    CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
             }
         }
@@ -97,8 +101,9 @@ public class ImportRecipeHandler(
 
             return await imageStorageService.Upload(buffer, fileName, contentType, buffer.Length, ct);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Failed to download image from {ImageUrl}", imageUrl);
             return null;
         }
     }

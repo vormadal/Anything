@@ -685,13 +685,15 @@ export default function RecipeDetailPage() {
             <div className="flex gap-2 mt-2 flex-wrap">
               {images.map((image) => (
                 <div key={image.id} className="relative h-16 w-24">
-                  <Image
-                    src={image.thumbnailUrl ?? ""}
-                    alt="Recipe image"
-                    fill
-                    sizes="96px"
-                    className="object-cover rounded border border-gray-200 dark:border-gray-700"
-                  />
+                  {image.thumbnailUrl && (
+                    <Image
+                      src={image.thumbnailUrl}
+                      alt="Recipe image"
+                      fill
+                      sizes="96px"
+                      className="object-cover rounded border border-gray-200 dark:border-gray-700"
+                    />
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
