@@ -5,6 +5,7 @@ using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using System.Net.Http;
 using Xunit;
@@ -129,9 +130,11 @@ public class ImportRecipeHandlerTests
     private readonly IImageStorageService _imageStorageService = Substitute.For<IImageStorageService>();
     private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly ILogger<ImportRecipeHandler> _logger = Substitute.For<ILogger<ImportRecipeHandler>>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private ImportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _imageStorageService, _httpClientFactory, _unitOfWork);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _imageStorageService, _httpClientFactory, _unitOfWork, _logger, _timeProvider);
 
     [Fact]
     public async Task Handle_CreatesRecipeWithIngredientsAndSteps()
