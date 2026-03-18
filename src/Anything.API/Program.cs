@@ -54,10 +54,14 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(UserRoles.Admin, policy => policy.RequireRole(UserRoles.Admin));
 });
 
-// Allow large file uploads
+// Allow large file uploads (up to 50 MB)
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50 MB
+});
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 20 * 1024 * 1024; // 20 MB
+    options.MultipartBodyLengthLimit = 50 * 1024 * 1024; // 50 MB
 });
 
 // Add OpenAPI/Swagger
