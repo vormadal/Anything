@@ -349,7 +349,7 @@ export function useImportRecipe() {
   });
 }
 
-const MAX_IMAGE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export function useUploadRecipeImage(recipeId: number) {
   const queryClient = useQueryClient();
@@ -358,7 +358,7 @@ export function useUploadRecipeImage(recipeId: number) {
     mutationFn: async (file: File) => {
       if (file.size > MAX_IMAGE_SIZE_BYTES) {
         throw new Error(
-          `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is 50 MB.`
+          `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is 10 MB.`
         );
       }
 
@@ -378,7 +378,7 @@ export function useUploadRecipeImage(recipeId: number) {
 
       if (!response.ok) {
         if (response.status === 413) {
-          throw new Error("File is too large. Please use an image under 50 MB.");
+          throw new Error("File is too large. Please use an image under 10 MB.");
         }
         if (response.status === 401 || response.status === 403) {
           throw new Error("You are not authorised to upload images.");
