@@ -54,7 +54,7 @@ public class AddFoodPlanToShoppingListHandler(
                 {
                     var mult = multiplierLookup.TryGetValue(i.RecipeId, out var m) ? m : 1.0;
                     return i.Amount * (decimal)mult;
-                }),
+                }) is var s && s > 0 ? s : (decimal?)null,
                 Unit: string.IsNullOrWhiteSpace(g.First().Unit) ? null : g.First().Unit?.Trim()
             ))
             .ToList();
@@ -79,7 +79,7 @@ public class AddFoodPlanToShoppingListHandler(
 
             if (existing != null)
             {
-                existing.Amount = (existing.Amount ?? 0) + amount;
+                existing.Amount = amount == null ? existing.Amount : (existing.Amount ?? 0) + amount;
                 existing.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
                 shoppingListItemRepository.Update(existing);
             }

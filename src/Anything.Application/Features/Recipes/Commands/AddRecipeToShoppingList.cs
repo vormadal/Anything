@@ -39,7 +39,7 @@ public class AddRecipeToShoppingListHandler(
             .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower()))
             .Select(g => (
                 Name: g.First().Name.Trim(),
-                Amount: g.Sum(i => (i.Amount ?? 0) * (decimal)multiplier),
+                Amount: g.Sum(i => (i.Amount ?? 0) * (decimal)multiplier) is var s && s > 0 ? s : (decimal?)null,
                 Unit: string.IsNullOrWhiteSpace(g.First().Unit) ? null : g.First().Unit?.Trim()
             ))
             .ToList();
@@ -64,7 +64,7 @@ public class AddRecipeToShoppingListHandler(
 
             if (existing != null)
             {
-                existing.Amount = (existing.Amount ?? 0) + amount;
+                existing.Amount = amount == null ? existing.Amount : (existing.Amount ?? 0) + amount;
                 existing.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
                 shoppingListItemRepository.Update(existing);
             }
