@@ -155,7 +155,7 @@ export default function ShoppingListDetailPage() {
         itemId: item.id!,
         name: item.name!,
         isChecked: !item.isChecked,
-        amount: item.amount ?? null,
+        amount: item.amount != null && item.amount > 0 ? item.amount : null,
         unit: item.unit ?? null,
       });
     } catch {
