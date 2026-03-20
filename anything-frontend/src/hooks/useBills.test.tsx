@@ -14,47 +14,20 @@ import {
   useDeleteBillPrice,
 } from '@/hooks/useBills'
 
-const mockBillsGet = jest.fn()
-const mockBillPost = jest.fn()
-const mockSummaryGet = jest.fn()
-const mockBillByIdGet = jest.fn()
-const mockBillByIdPut = jest.fn()
-const mockBillByIdDelete = jest.fn()
-const mockPriceHistoryGet = jest.fn()
-const mockPriceHistoryPost = jest.fn()
-const mockPriceHistoryByIdPut = jest.fn()
-const mockPriceHistoryByIdDelete = jest.fn()
-
-const mockPriceHistoryById = jest.fn(() => ({
-  put: mockPriceHistoryByIdPut,
-  delete: mockPriceHistoryByIdDelete,
-}))
-
-const mockPriceHistory = {
-  get: (...args: unknown[]) => mockPriceHistoryGet(...args),
-  post: (...args: unknown[]) => mockPriceHistoryPost(...args),
-  byId: (...args: unknown[]) => mockPriceHistoryById(...args),
-}
-
-const mockBillById = jest.fn(() => ({
-  get: mockBillByIdGet,
-  put: mockBillByIdPut,
-  delete: mockBillByIdDelete,
-  priceHistory: mockPriceHistory,
-}))
+const mockAuthenticatedFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
-  apiClient: {
-    api: {
-      bills: {
-        get: (...args: unknown[]) => mockBillsGet(...args),
-        post: (...args: unknown[]) => mockBillPost(...args),
-        summary: { get: (...args: unknown[]) => mockSummaryGet(...args) },
-        byId: (...args: unknown[]) => mockBillById(...args),
-      },
-    },
-  },
+  API_BASE_URL: 'http://localhost:5238',
+  authenticatedFetch: (...args: unknown[]) => mockAuthenticatedFetch(...args),
 }))
+
+function jsonRes(data: unknown) {
+  return Promise.resolve({ ok: true, status: 200, json: async () => data })
+}
+
+function noContent() {
+  return Promise.resolve({ ok: true, status: 204, json: async () => undefined })
+}
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -92,18 +65,21 @@ describe('useBills hooks', () => {
 
   describe('useBills', () => {
     it('should fetch bills successfully', async () => {
-      mockBillsGet.mockResolvedValueOnce([mockBill])
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes([mockBill]))
 
       const { result } = renderHook(() => useBills(), { wrapper: createWrapper() })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual([mockBill])
-      expect(mockBillsGet).toHaveBeenCalledTimes(1)
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/bills',
+        expect.any(Object)
+      )
     })
 
     it('should handle fetch error', async () => {
-      mockBillsGet.mockRejectedValueOnce(new Error('Network error'))
+      mockAuthenticatedFetch.mockRejectedValueOnce(new Error('Network error'))
 
       const { result } = renderHook(() => useBills(), { wrapper: createWrapper() })
 
@@ -115,7 +91,7 @@ describe('useBills hooks', () => {
   describe('useBillSummary', () => {
     it('should fetch bill summary successfully', async () => {
       const mockSummary = { totalBills: 3, totalMonthlyEquivalent: 250, automatedCount: 2, manualCount: 1 }
-      mockSummaryGet.mockResolvedValueOnce(mockSummary)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockSummary))
 
       const { result } = renderHook(() => useBillSummary(), { wrapper: createWrapper() })
 
@@ -127,21 +103,24 @@ describe('useBills hooks', () => {
 
   describe('useBill', () => {
     it('should fetch a single bill successfully', async () => {
-      mockBillByIdGet.mockResolvedValueOnce(mockBill)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockBill))
 
       const { result } = renderHook(() => useBill(1), { wrapper: createWrapper() })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockBill)
-      expect(mockBillById).toHaveBeenCalledWith(1)
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/bills/1',
+        expect.any(Object)
+      )
     })
 
     it('should not fetch when id is 0', async () => {
       const { result } = renderHook(() => useBill(0), { wrapper: createWrapper() })
 
       expect(result.current.fetchStatus).toBe('idle')
-      expect(mockBillById).not.toHaveBeenCalled()
+      expect(mockAuthenticatedFetch).not.toHaveBeenCalled()
     })
   })
 
@@ -151,20 +130,23 @@ describe('useBills hooks', () => {
         { id: 1, billId: 1, amount: 99, effectiveDate: '2024-01-01T00:00:00Z', createdOn: '2024-01-01T00:00:00Z' },
         { id: 2, billId: 1, amount: 89, effectiveDate: '2023-01-01T00:00:00Z', previousAmount: null, createdOn: '2023-01-01T00:00:00Z' },
       ]
-      mockPriceHistoryGet.mockResolvedValueOnce(mockHistory)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockHistory))
 
       const { result } = renderHook(() => useBillPriceHistory(1), { wrapper: createWrapper() })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockHistory)
-      expect(mockBillById).toHaveBeenCalledWith(1)
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/bills/1/price-history',
+        expect.any(Object)
+      )
     })
   })
 
   describe('useCreateBill', () => {
     it('should create a bill successfully', async () => {
-      mockBillPost.mockResolvedValueOnce(mockBill)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockBill))
 
       const { result } = renderHook(() => useCreateBill(), { wrapper: createWrapper() })
 
@@ -179,16 +161,20 @@ describe('useBills hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockBillPost).toHaveBeenCalledWith(expect.objectContaining({
+      const [url, options] = mockAuthenticatedFetch.mock.calls[0]
+      expect(url).toBe('http://localhost:5238/api/bills')
+      expect(options.method).toBe('POST')
+      const body = JSON.parse(options.body as string)
+      expect(body).toMatchObject({
         name: 'Netflix',
         frequency: 'Monthly',
         isAutomated: true,
         initialAmount: 99,
-      }))
+      })
     })
 
     it('should handle create error', async () => {
-      mockBillPost.mockRejectedValueOnce(new Error('Server error'))
+      mockAuthenticatedFetch.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useCreateBill(), { wrapper: createWrapper() })
 
@@ -201,7 +187,7 @@ describe('useBills hooks', () => {
 
   describe('useUpdateBill', () => {
     it('should update a bill successfully', async () => {
-      mockBillByIdPut.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
 
       const { result } = renderHook(() => useUpdateBill(), { wrapper: createWrapper() })
 
@@ -211,14 +197,17 @@ describe('useBills hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockBillById).toHaveBeenCalledWith(1)
-      expect(mockBillByIdPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Netflix HD' }))
+      const [url, options] = mockAuthenticatedFetch.mock.calls[0]
+      expect(url).toBe('http://localhost:5238/api/bills/1')
+      expect(options.method).toBe('PUT')
+      const body = JSON.parse(options.body as string)
+      expect(body).toMatchObject({ name: 'Netflix HD' })
     })
   })
 
   describe('useDeleteBill', () => {
     it('should delete a bill successfully', async () => {
-      mockBillByIdDelete.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
 
       const { result } = renderHook(() => useDeleteBill(), { wrapper: createWrapper() })
 
@@ -228,14 +217,17 @@ describe('useBills hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockBillById).toHaveBeenCalledWith(1)
-      expect(mockBillByIdDelete).toHaveBeenCalled()
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/bills/1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
     })
   })
 
   describe('useAddBillPrice', () => {
     it('should add a price entry successfully', async () => {
-      mockPriceHistoryPost.mockResolvedValueOnce({ id: 3, billId: 1, amount: 109, effectiveDate: '2025-01-01T00:00:00Z', createdOn: '2025-01-01T00:00:00Z' })
+      const newEntry = { id: 3, billId: 1, amount: 109, effectiveDate: '2025-01-01T00:00:00Z', createdOn: '2025-01-01T00:00:00Z' }
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(newEntry))
 
       const { result } = renderHook(() => useAddBillPrice(), { wrapper: createWrapper() })
 
@@ -245,14 +237,17 @@ describe('useBills hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockBillById).toHaveBeenCalledWith(1)
-      expect(mockPriceHistoryPost).toHaveBeenCalledWith(expect.objectContaining({ amount: 109 }))
+      const [url, options] = mockAuthenticatedFetch.mock.calls[0]
+      expect(url).toBe('http://localhost:5238/api/bills/1/price-history')
+      expect(options.method).toBe('POST')
+      const body = JSON.parse(options.body as string)
+      expect(body).toMatchObject({ amount: 109 })
     })
   })
 
   describe('useDeleteBillPrice', () => {
     it('should delete a price entry successfully', async () => {
-      mockPriceHistoryByIdDelete.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
 
       const { result } = renderHook(() => useDeleteBillPrice(), { wrapper: createWrapper() })
 
@@ -262,15 +257,16 @@ describe('useBills hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockBillById).toHaveBeenCalledWith(1)
-      expect(mockPriceHistoryById).toHaveBeenCalledWith(2)
-      expect(mockPriceHistoryByIdDelete).toHaveBeenCalled()
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/bills/1/price-history/2',
+        expect.objectContaining({ method: 'DELETE' })
+      )
     })
   })
 
   describe('useUpdateBillPrice', () => {
     it('should update a price entry successfully', async () => {
-      mockPriceHistoryByIdPut.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
 
       const { result } = renderHook(() => useUpdateBillPrice(), { wrapper: createWrapper() })
 
@@ -280,13 +276,15 @@ describe('useBills hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockBillById).toHaveBeenCalledWith(1)
-      expect(mockPriceHistoryById).toHaveBeenCalledWith(2)
-      expect(mockPriceHistoryByIdPut).toHaveBeenCalledWith(expect.objectContaining({ amount: 119, effectiveDate: '2025-06-01T00:00:00Z' }))
+      const [url, options] = mockAuthenticatedFetch.mock.calls[0]
+      expect(url).toBe('http://localhost:5238/api/bills/1/price-history/2')
+      expect(options.method).toBe('PUT')
+      const body = JSON.parse(options.body as string)
+      expect(body).toMatchObject({ amount: 119, effectiveDate: '2025-06-01T00:00:00Z' })
     })
 
     it('should invalidate related query caches on success', async () => {
-      mockPriceHistoryByIdPut.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
       const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
       const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
 
@@ -310,7 +308,7 @@ describe('useBills hooks', () => {
     })
 
     it('should handle update error', async () => {
-      mockPriceHistoryByIdPut.mockRejectedValueOnce(new Error('Server error'))
+      mockAuthenticatedFetch.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useUpdateBillPrice(), { wrapper: createWrapper() })
 

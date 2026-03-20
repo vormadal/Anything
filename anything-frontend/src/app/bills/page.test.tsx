@@ -3,20 +3,11 @@ import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { render } from '@/__tests__/utils/test-utils'
 import BillsPage from './page'
 
-// Mock apiClient
-const mockBillsGet = jest.fn()
+const mockAuthenticatedFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
-  apiClient: {
-    api: {
-      bills: {
-        get: (...args: unknown[]) => mockBillsGet(...args),
-        post: jest.fn(),
-        summary: { get: jest.fn() },
-        byId: jest.fn(() => ({ get: jest.fn(), put: jest.fn(), delete: jest.fn(), priceHistory: { get: jest.fn(), post: jest.fn(), byId: jest.fn() } })),
-      },
-    },
-  },
+  API_BASE_URL: 'http://localhost:5238',
+  authenticatedFetch: (...args: unknown[]) => mockAuthenticatedFetch(...args),
 }))
 
 const mockPush = jest.fn()
@@ -53,6 +44,10 @@ const mockBill = {
   createdOn: '2024-01-01T00:00:00Z',
 }
 
+function billsResponse(bills: unknown[]) {
+  return Promise.resolve({ ok: true, status: 200, json: async () => bills })
+}
+
 describe('BillsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -65,7 +60,7 @@ describe('BillsPage', () => {
   })
 
   it('should display loading state initially', () => {
-    mockBillsGet.mockImplementation(() => new Promise(() => { /* never resolves */ }))
+    mockAuthenticatedFetch.mockImplementation(() => new Promise(() => { /* never resolves */ }))
 
     render(<BillsPage />)
 
@@ -73,7 +68,7 @@ describe('BillsPage', () => {
   })
 
   it('should display empty state when no bills exist', async () => {
-    mockBillsGet.mockResolvedValue([])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([]))
 
     render(<BillsPage />)
 
@@ -83,7 +78,7 @@ describe('BillsPage', () => {
   })
 
   it('should display bills when data is loaded', async () => {
-    mockBillsGet.mockResolvedValue([mockBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([mockBill]))
 
     render(<BillsPage />)
 
@@ -93,7 +88,7 @@ describe('BillsPage', () => {
   })
 
   it('should display summary stats when bills are loaded', async () => {
-    mockBillsGet.mockResolvedValue([mockBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([mockBill]))
 
     render(<BillsPage />)
 
@@ -106,7 +101,7 @@ describe('BillsPage', () => {
   })
 
   it('should navigate to bill detail when a bill row is clicked', async () => {
-    mockBillsGet.mockResolvedValue([mockBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([mockBill]))
 
     render(<BillsPage />)
 
@@ -122,7 +117,7 @@ describe('BillsPage', () => {
   })
 
   it('should navigate to new bill page when add button is clicked', async () => {
-    mockBillsGet.mockResolvedValue([])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([]))
 
     render(<BillsPage />)
 
@@ -134,7 +129,7 @@ describe('BillsPage', () => {
   })
 
   it('should render management URL link for bill with valid managementUrl', async () => {
-    mockBillsGet.mockResolvedValue([mockBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([mockBill]))
 
     render(<BillsPage />)
 
@@ -147,7 +142,7 @@ describe('BillsPage', () => {
 
   it('should not render management URL link when managementUrl is unsafe', async () => {
     const unsafeBill = { ...mockBill, managementUrl: 'javascript:alert(1)' }
-    mockBillsGet.mockResolvedValue([unsafeBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([unsafeBill]))
 
     render(<BillsPage />)
 
@@ -158,7 +153,7 @@ describe('BillsPage', () => {
 
   it('should show priceIncreased indicator for bills with increased prices', async () => {
     const increasedBill = { ...mockBill, priceIncreased: true }
-    mockBillsGet.mockResolvedValue([increasedBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([increasedBill]))
 
     render(<BillsPage />)
 
@@ -170,7 +165,7 @@ describe('BillsPage', () => {
 
   it('should show manual icon for non-automated bills', async () => {
     const manualBill = { ...mockBill, isAutomated: false }
-    mockBillsGet.mockResolvedValue([manualBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([manualBill]))
 
     render(<BillsPage />)
 
@@ -181,7 +176,7 @@ describe('BillsPage', () => {
 
   it('should show no price text when bill has no currentAmount', async () => {
     const noPriceBill = { ...mockBill, currentAmount: undefined, monthlyEquivalent: undefined }
-    mockBillsGet.mockResolvedValue([noPriceBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([noPriceBill]))
 
     render(<BillsPage />)
 
@@ -192,7 +187,7 @@ describe('BillsPage', () => {
 
   it('should show location and category filters when multiple values exist', async () => {
     const bill2 = { ...mockBill, id: 2, name: 'Spotify', locationName: 'Work', category: 'Music' }
-    mockBillsGet.mockResolvedValue([mockBill, bill2])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([mockBill, bill2]))
 
     render(<BillsPage />)
 
@@ -207,7 +202,7 @@ describe('BillsPage', () => {
 
   it('should filter bills by location when a location filter is clicked', async () => {
     const bill2 = { ...mockBill, id: 2, name: 'Spotify', locationName: 'Work', category: 'Music' }
-    mockBillsGet.mockResolvedValue([mockBill, bill2])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([mockBill, bill2]))
 
     render(<BillsPage />)
 
@@ -222,7 +217,7 @@ describe('BillsPage', () => {
   })
 
   it('should display matching text when filters produce no results', async () => {
-    mockBillsGet.mockResolvedValue([mockBill])
+    mockAuthenticatedFetch.mockReturnValue(billsResponse([mockBill]))
 
     render(<BillsPage />)
 

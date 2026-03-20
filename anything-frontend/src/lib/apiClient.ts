@@ -13,7 +13,7 @@ import {
 import { DefaultRequestAdapter } from "@microsoft/kiota-bundle";
 import { createApiClient } from "@/lib/api-client/apiClient";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
 const USER_KEY = "user";
@@ -142,3 +142,29 @@ const adapter = new DefaultRequestAdapter(
 adapter.baseUrl = API_BASE_URL;
 
 export const apiClient = createApiClient(adapter);
+
+export async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  const headers = new Headers(options.headers as HeadersInit | undefined);
+  if (options.body !== undefined && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  let response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401 && !url.includes("/api/auth/")) {
+    const newToken = await attemptTokenRefresh();
+    if (newToken) {
+      headers.set("Authorization", `Bearer ${newToken}`);
+      response = await fetch(url, { ...options, headers });
+    } else if (typeof window !== "undefined") {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      window.dispatchEvent(new Event("auth:unauthorized"));
+    }
+  }
+
+  return response;
+}

@@ -1,22 +1,14 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
+import { authenticatedFetch, API_BASE_URL } from "@/lib/apiClient";
 
-// NOTE: locations route is not yet in the generated Kiota client.
-// Until `npm run generate:api` is run against the updated backend, this route
-// must be accessed via a cast. The interface below mirrors the contract type.
-interface LocationByIdShape {
-  put: (body: { name: string }) => Promise<void>;
-  delete: () => Promise<void>;
+async function locationsFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await authenticatedFetch(`${API_BASE_URL}${path}`, options);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (response.status === 204) return undefined as T;
+  return response.json();
 }
-interface LocationsApiShape {
-  get: () => Promise<Location[]>;
-  post: (body: { name: string }) => Promise<Location>;
-  byId: (id: number) => LocationByIdShape;
-}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const locationsApi = (apiClient.api as any).locations as LocationsApiShape;
 
 export interface Location {
   id: number;
@@ -29,8 +21,7 @@ export interface Location {
 export function useLocations() {
   return useQuery({
     queryKey: ["locations"],
-    queryFn: () =>
-      locationsApi.get() as Promise<Location[]>,
+    queryFn: () => locationsFetch<Location[]>("/api/locations"),
   });
 }
 
@@ -38,7 +29,10 @@ export function useCreateLocation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (name: string) =>
-      locationsApi.post({ name }),
+      locationsFetch<Location>("/api/locations", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
     },
@@ -49,7 +43,10 @@ export function useUpdateLocation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) =>
-      locationsApi.byId(id).put({ name }),
+      locationsFetch<void>(`/api/locations/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ name }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
     },
@@ -60,7 +57,7 @@ export function useDeleteLocation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      locationsApi.byId(id).delete(),
+      locationsFetch<void>(`/api/locations/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
     },

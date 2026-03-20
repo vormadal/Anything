@@ -3,38 +3,11 @@ import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { render } from '@/__tests__/utils/test-utils'
 import EditBillPage from './page'
 
-// Mock apiClient
-const mockBillByIdGet = jest.fn()
-const mockBillByIdPut = jest.fn()
-const mockLocationsGet = jest.fn()
-const mockVendorsGet = jest.fn()
+const mockAuthenticatedFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
-  apiClient: {
-    api: {
-      bills: {
-        get: jest.fn(),
-        post: jest.fn(),
-        summary: { get: jest.fn() },
-        byId: jest.fn(() => ({
-          get: mockBillByIdGet,
-          put: mockBillByIdPut,
-          delete: jest.fn(),
-          priceHistory: { get: jest.fn(), post: jest.fn(), byId: jest.fn() },
-        })),
-      },
-      locations: {
-        get: (...args: unknown[]) => mockLocationsGet(...args),
-        post: jest.fn(),
-        byId: jest.fn(),
-      },
-      vendors: {
-        get: (...args: unknown[]) => mockVendorsGet(...args),
-        post: jest.fn(),
-        byId: jest.fn(),
-      },
-    },
-  },
+  API_BASE_URL: 'http://localhost:5238',
+  authenticatedFetch: (...args: unknown[]) => mockAuthenticatedFetch(...args),
 }))
 
 const mockPush = jest.fn()
@@ -68,11 +41,30 @@ const mockBill = {
   createdOn: '2024-01-01T00:00:00Z',
 }
 
+const mockLocations = [{ id: 1, name: 'Home', createdOn: '2024-01-01T00:00:00Z' }]
+const mockVendors = [{ id: 1, name: 'Netflix Inc.', createdOn: '2024-01-01T00:00:00Z' }]
+
+function setupFetch(billData: unknown) {
+  mockAuthenticatedFetch.mockImplementation((url: string, options?: RequestInit) => {
+    const method = (options?.method ?? 'GET').toUpperCase()
+    if (method !== 'GET') {
+      return Promise.resolve({ ok: true, status: 204, json: async () => undefined })
+    }
+    if (url.includes('/api/locations')) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => mockLocations })
+    }
+    if (url.includes('/api/vendors')) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => mockVendors })
+    }
+    // /api/bills/1
+    return Promise.resolve({ ok: true, status: 200, json: async () => billData })
+  })
+}
+
 describe('EditBillPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockLocationsGet.mockResolvedValue([{ id: 1, name: 'Home', createdOn: '2024-01-01T00:00:00Z' }])
-    mockVendorsGet.mockResolvedValue([{ id: 1, name: 'Netflix Inc.', createdOn: '2024-01-01T00:00:00Z' }])
+    setupFetch(mockBill)
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
   })
@@ -82,7 +74,12 @@ describe('EditBillPage', () => {
   })
 
   it('should display loading state initially', () => {
-    mockBillByIdGet.mockImplementation(() => new Promise(() => { /* never resolves */ }))
+    mockAuthenticatedFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/locations') || url.includes('/api/vendors')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+      }
+      return new Promise(() => { /* never resolves */ })
+    })
 
     render(<EditBillPage />)
 
@@ -90,7 +87,7 @@ describe('EditBillPage', () => {
   })
 
   it('should display bill not found when bill is null', async () => {
-    mockBillByIdGet.mockResolvedValue(null)
+    setupFetch(null)
 
     render(<EditBillPage />)
 
@@ -100,8 +97,6 @@ describe('EditBillPage', () => {
   })
 
   it('should render form with bill data', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-
     render(<EditBillPage />)
 
     await waitFor(() => {
@@ -111,8 +106,6 @@ describe('EditBillPage', () => {
   })
 
   it('should render management URL field', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-
     render(<EditBillPage />)
 
     await waitFor(() => {
@@ -122,8 +115,6 @@ describe('EditBillPage', () => {
   })
 
   it('should render frequency options', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-
     render(<EditBillPage />)
 
     await waitFor(() => {
@@ -132,9 +123,6 @@ describe('EditBillPage', () => {
   })
 
   it('should submit form and navigate back on success', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockBillByIdPut.mockResolvedValue(undefined)
-
     render(<EditBillPage />)
 
     await waitFor(() => expect(screen.getByDisplayValue('Netflix')).toBeInTheDocument())
@@ -144,14 +132,15 @@ describe('EditBillPage', () => {
     if (form) fireEvent.submit(form)
 
     await waitFor(() => {
-      expect(mockBillByIdPut).toHaveBeenCalled()
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/bills/1',
+        expect.objectContaining({ method: 'PUT' })
+      )
       expect(mockPush).toHaveBeenCalledWith('/bills/1')
     })
   })
 
   it('should navigate back when cancel is clicked', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-
     render(<EditBillPage />)
 
     await waitFor(() => expect(screen.getByText('Cancel')).toBeInTheDocument())

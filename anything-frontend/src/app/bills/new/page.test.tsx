@@ -2,32 +2,11 @@ import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { render } from '@/__tests__/utils/test-utils'
 import NewBillPage from './page'
 
-// Mock apiClient
-const mockBillPost = jest.fn()
-const mockLocationsGet = jest.fn()
-const mockVendorsGet = jest.fn()
+const mockAuthenticatedFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
-  apiClient: {
-    api: {
-      bills: {
-        get: jest.fn(),
-        post: (...args: unknown[]) => mockBillPost(...args),
-        summary: { get: jest.fn() },
-        byId: jest.fn(),
-      },
-      locations: {
-        get: (...args: unknown[]) => mockLocationsGet(...args),
-        post: jest.fn(),
-        byId: jest.fn(),
-      },
-      vendors: {
-        get: (...args: unknown[]) => mockVendorsGet(...args),
-        post: jest.fn(),
-        byId: jest.fn(),
-      },
-    },
-  },
+  API_BASE_URL: 'http://localhost:5238',
+  authenticatedFetch: (...args: unknown[]) => mockAuthenticatedFetch(...args),
 }))
 
 const mockPush = jest.fn()
@@ -41,11 +20,29 @@ jest.mock('sonner', () => ({
   Toaster: () => null,
 }))
 
+const mockLocations = [{ id: 1, name: 'Home', createdOn: '2024-01-01T00:00:00Z' }]
+const mockVendors = [{ id: 1, name: 'Netflix Inc.', createdOn: '2024-01-01T00:00:00Z' }]
+
+function setupDefaultFetch() {
+  mockAuthenticatedFetch.mockImplementation((url: string, options?: RequestInit) => {
+    const method = (options?.method ?? 'GET').toUpperCase()
+    if (method === 'POST') {
+      return Promise.resolve({ ok: true, status: 201, json: async () => ({ id: 1, name: 'Netflix' }) })
+    }
+    if (url.includes('/api/locations')) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => mockLocations })
+    }
+    if (url.includes('/api/vendors')) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => mockVendors })
+    }
+    return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+  })
+}
+
 describe('NewBillPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockLocationsGet.mockResolvedValue([{ id: 1, name: 'Home', createdOn: '2024-01-01T00:00:00Z' }])
-    mockVendorsGet.mockResolvedValue([{ id: 1, name: 'Netflix Inc.', createdOn: '2024-01-01T00:00:00Z' }])
+    setupDefaultFetch()
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
   })
@@ -71,8 +68,6 @@ describe('NewBillPage', () => {
   })
 
   it('should navigate to bills on successful create', async () => {
-    mockBillPost.mockResolvedValue({ id: 1, name: 'Netflix' })
-
     render(<NewBillPage />)
 
     await waitFor(() => expect(screen.getByPlaceholderText('e.g. Netflix, Electricity')).toBeInTheDocument())
@@ -84,7 +79,10 @@ describe('NewBillPage', () => {
     if (form) fireEvent.submit(form)
 
     await waitFor(() => {
-      expect(mockBillPost).toHaveBeenCalled()
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/bills',
+        expect.objectContaining({ method: 'POST' })
+      )
       expect(mockPush).toHaveBeenCalledWith('/bills')
     })
   })
@@ -97,7 +95,10 @@ describe('NewBillPage', () => {
     const form = screen.getByText('Add bill').closest('form')
     if (form) fireEvent.submit(form)
 
-    expect(mockBillPost).not.toHaveBeenCalled()
+    const postCalls = mockAuthenticatedFetch.mock.calls.filter(
+      ([, opts]: [string, RequestInit | undefined]) => opts?.method === 'POST'
+    )
+    expect(postCalls).toHaveLength(0)
   })
 
   it('should navigate back when cancel is clicked', async () => {

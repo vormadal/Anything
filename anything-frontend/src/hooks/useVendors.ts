@@ -1,22 +1,14 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
+import { authenticatedFetch, API_BASE_URL } from "@/lib/apiClient";
 
-// NOTE: vendors route is not yet in the generated Kiota client.
-// Until `npm run generate:api` is run against the updated backend, this route
-// must be accessed via a cast. The interface below mirrors the contract type.
-interface VendorByIdShape {
-  put: (body: { name: string; website?: string | null }) => Promise<void>;
-  delete: () => Promise<void>;
+async function vendorsFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await authenticatedFetch(`${API_BASE_URL}${path}`, options);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (response.status === 204) return undefined as T;
+  return response.json();
 }
-interface VendorsApiShape {
-  get: () => Promise<Vendor[]>;
-  post: (body: { name: string; website?: string | null }) => Promise<Vendor>;
-  byId: (id: number) => VendorByIdShape;
-}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const vendorsApi = (apiClient.api as any).vendors as VendorsApiShape;
 
 export interface Vendor {
   id: number;
@@ -30,8 +22,7 @@ export interface Vendor {
 export function useVendors() {
   return useQuery({
     queryKey: ["vendors"],
-    queryFn: () =>
-      vendorsApi.get() as Promise<Vendor[]>,
+    queryFn: () => vendorsFetch<Vendor[]>("/api/vendors"),
   });
 }
 
@@ -39,7 +30,10 @@ export function useCreateVendor() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ name, website }: { name: string; website?: string }) =>
-      vendorsApi.post({ name, website: website ?? null }),
+      vendorsFetch<Vendor>("/api/vendors", {
+        method: "POST",
+        body: JSON.stringify({ name, website: website ?? null }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendors"] });
     },
@@ -49,16 +43,11 @@ export function useCreateVendor() {
 export function useUpdateVendor() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      name,
-      website,
-    }: {
-      id: number;
-      name: string;
-      website?: string;
-    }) =>
-      vendorsApi.byId(id).put({ name, website: website ?? null }),
+    mutationFn: ({ id, name, website }: { id: number; name: string; website?: string }) =>
+      vendorsFetch<void>(`/api/vendors/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ name, website: website ?? null }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendors"] });
     },
@@ -69,7 +58,7 @@ export function useDeleteVendor() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      vendorsApi.byId(id).delete(),
+      vendorsFetch<void>(`/api/vendors/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendors"] });
     },

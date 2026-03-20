@@ -8,23 +8,20 @@ import {
   useDeleteLocation,
 } from '@/hooks/useLocations'
 
-const mockGet = jest.fn()
-const mockPost = jest.fn()
-const mockByIdPut = jest.fn()
-const mockByIdDelete = jest.fn()
-const mockById = jest.fn(() => ({ put: mockByIdPut, delete: mockByIdDelete }))
+const mockAuthenticatedFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
-  apiClient: {
-    api: {
-      locations: {
-        get: (...args: unknown[]) => mockGet(...args),
-        post: (...args: unknown[]) => mockPost(...args),
-        byId: (...args: unknown[]) => mockById(...args),
-      },
-    },
-  },
+  API_BASE_URL: 'http://localhost:5238',
+  authenticatedFetch: (...args: unknown[]) => mockAuthenticatedFetch(...args),
 }))
+
+function jsonRes(data: unknown) {
+  return Promise.resolve({ ok: true, status: 200, json: async () => data })
+}
+
+function noContent() {
+  return Promise.resolve({ ok: true, status: 204, json: async () => undefined })
+}
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -51,18 +48,21 @@ describe('useLocations hooks', () => {
         { id: 1, name: 'Home', createdOn: '2024-01-01T00:00:00Z' },
         { id: 2, name: 'Summerhouse', createdOn: '2024-01-02T00:00:00Z' },
       ]
-      mockGet.mockResolvedValueOnce(mockData)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockData))
 
       const { result } = renderHook(() => useLocations(), { wrapper: createWrapper() })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockData)
-      expect(mockGet).toHaveBeenCalledTimes(1)
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/locations',
+        expect.any(Object)
+      )
     })
 
     it('should handle fetch error', async () => {
-      mockGet.mockRejectedValueOnce(new Error('Network error'))
+      mockAuthenticatedFetch.mockRejectedValueOnce(new Error('Network error'))
 
       const { result } = renderHook(() => useLocations(), { wrapper: createWrapper() })
 
@@ -74,7 +74,7 @@ describe('useLocations hooks', () => {
   describe('useCreateLocation', () => {
     it('should create a location successfully', async () => {
       const mockResponse = { id: 1, name: 'Home', createdOn: '2024-01-01T00:00:00Z' }
-      mockPost.mockResolvedValueOnce(mockResponse)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockResponse))
 
       const { result } = renderHook(() => useCreateLocation(), { wrapper: createWrapper() })
 
@@ -83,11 +83,15 @@ describe('useLocations hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockPost).toHaveBeenCalledWith({ name: 'Home' })
+
+      const [url, options] = mockAuthenticatedFetch.mock.calls[0]
+      expect(url).toBe('http://localhost:5238/api/locations')
+      expect(options.method).toBe('POST')
+      expect(JSON.parse(options.body as string)).toMatchObject({ name: 'Home' })
     })
 
     it('should handle create error', async () => {
-      mockPost.mockRejectedValueOnce(new Error('Server error'))
+      mockAuthenticatedFetch.mockRejectedValueOnce(new Error('Server error'))
 
       const { result } = renderHook(() => useCreateLocation(), { wrapper: createWrapper() })
 
@@ -100,7 +104,7 @@ describe('useLocations hooks', () => {
 
   describe('useUpdateLocation', () => {
     it('should update a location successfully', async () => {
-      mockByIdPut.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
 
       const { result } = renderHook(() => useUpdateLocation(), { wrapper: createWrapper() })
 
@@ -109,14 +113,17 @@ describe('useLocations hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockByIdPut).toHaveBeenCalledWith({ name: 'Updated Home' })
+
+      const [url, options] = mockAuthenticatedFetch.mock.calls[0]
+      expect(url).toBe('http://localhost:5238/api/locations/1')
+      expect(options.method).toBe('PUT')
+      expect(JSON.parse(options.body as string)).toMatchObject({ name: 'Updated Home' })
     })
   })
 
   describe('useDeleteLocation', () => {
     it('should delete a location successfully', async () => {
-      mockByIdDelete.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
 
       const { result } = renderHook(() => useDeleteLocation(), { wrapper: createWrapper() })
 
@@ -125,8 +132,11 @@ describe('useLocations hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockByIdDelete).toHaveBeenCalled()
+
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/locations/1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
     })
   })
 })

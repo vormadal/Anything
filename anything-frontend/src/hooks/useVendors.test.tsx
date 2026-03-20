@@ -8,23 +8,20 @@ import {
   useDeleteVendor,
 } from '@/hooks/useVendors'
 
-const mockGet = jest.fn()
-const mockPost = jest.fn()
-const mockByIdPut = jest.fn()
-const mockByIdDelete = jest.fn()
-const mockById = jest.fn(() => ({ put: mockByIdPut, delete: mockByIdDelete }))
+const mockAuthenticatedFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
-  apiClient: {
-    api: {
-      vendors: {
-        get: (...args: unknown[]) => mockGet(...args),
-        post: (...args: unknown[]) => mockPost(...args),
-        byId: (...args: unknown[]) => mockById(...args),
-      },
-    },
-  },
+  API_BASE_URL: 'http://localhost:5238',
+  authenticatedFetch: (...args: unknown[]) => mockAuthenticatedFetch(...args),
 }))
+
+function jsonRes(data: unknown) {
+  return Promise.resolve({ ok: true, status: 200, json: async () => data })
+}
+
+function noContent() {
+  return Promise.resolve({ ok: true, status: 204, json: async () => undefined })
+}
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -51,18 +48,21 @@ describe('useVendors hooks', () => {
         { id: 1, name: 'Netflix', website: 'https://netflix.com', createdOn: '2024-01-01T00:00:00Z' },
         { id: 2, name: 'Spotify', createdOn: '2024-01-02T00:00:00Z' },
       ]
-      mockGet.mockResolvedValueOnce(mockData)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockData))
 
       const { result } = renderHook(() => useVendors(), { wrapper: createWrapper() })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockData)
-      expect(mockGet).toHaveBeenCalledTimes(1)
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/vendors',
+        expect.any(Object)
+      )
     })
 
     it('should handle fetch error', async () => {
-      mockGet.mockRejectedValueOnce(new Error('Network error'))
+      mockAuthenticatedFetch.mockRejectedValueOnce(new Error('Network error'))
 
       const { result } = renderHook(() => useVendors(), { wrapper: createWrapper() })
 
@@ -74,7 +74,7 @@ describe('useVendors hooks', () => {
   describe('useCreateVendor', () => {
     it('should create a vendor successfully', async () => {
       const mockResponse = { id: 1, name: 'Netflix', website: 'https://netflix.com', createdOn: '2024-01-01T00:00:00Z' }
-      mockPost.mockResolvedValueOnce(mockResponse)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockResponse))
 
       const { result } = renderHook(() => useCreateVendor(), { wrapper: createWrapper() })
 
@@ -83,12 +83,16 @@ describe('useVendors hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockPost).toHaveBeenCalledWith({ name: 'Netflix', website: 'https://netflix.com' })
+
+      const [url, options] = mockAuthenticatedFetch.mock.calls[0]
+      expect(url).toBe('http://localhost:5238/api/vendors')
+      expect(options.method).toBe('POST')
+      expect(JSON.parse(options.body as string)).toMatchObject({ name: 'Netflix', website: 'https://netflix.com' })
     })
 
     it('should create a vendor without website', async () => {
       const mockResponse = { id: 2, name: 'Local Utilities', createdOn: '2024-01-01T00:00:00Z' }
-      mockPost.mockResolvedValueOnce(mockResponse)
+      mockAuthenticatedFetch.mockReturnValueOnce(jsonRes(mockResponse))
 
       const { result } = renderHook(() => useCreateVendor(), { wrapper: createWrapper() })
 
@@ -97,13 +101,15 @@ describe('useVendors hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockPost).toHaveBeenCalledWith({ name: 'Local Utilities', website: null })
+
+      const body = JSON.parse(mockAuthenticatedFetch.mock.calls[0][1].body as string)
+      expect(body).toMatchObject({ name: 'Local Utilities', website: null })
     })
   })
 
   describe('useUpdateVendor', () => {
     it('should update a vendor successfully', async () => {
-      mockByIdPut.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
 
       const { result } = renderHook(() => useUpdateVendor(), { wrapper: createWrapper() })
 
@@ -112,14 +118,17 @@ describe('useVendors hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockByIdPut).toHaveBeenCalledWith({ name: 'Netflix Inc.', website: 'https://netflix.com' })
+
+      const [url, options] = mockAuthenticatedFetch.mock.calls[0]
+      expect(url).toBe('http://localhost:5238/api/vendors/1')
+      expect(options.method).toBe('PUT')
+      expect(JSON.parse(options.body as string)).toMatchObject({ name: 'Netflix Inc.', website: 'https://netflix.com' })
     })
   })
 
   describe('useDeleteVendor', () => {
     it('should delete a vendor successfully', async () => {
-      mockByIdDelete.mockResolvedValueOnce(undefined)
+      mockAuthenticatedFetch.mockReturnValueOnce(noContent())
 
       const { result } = renderHook(() => useDeleteVendor(), { wrapper: createWrapper() })
 
@@ -128,8 +137,11 @@ describe('useVendors hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockByIdDelete).toHaveBeenCalled()
+
+      expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
+        'http://localhost:5238/api/vendors/1',
+        expect.objectContaining({ method: 'DELETE' })
+      )
     })
   })
 })

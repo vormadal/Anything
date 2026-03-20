@@ -3,38 +3,11 @@ import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { render } from '@/__tests__/utils/test-utils'
 import BillDetailPage from './page'
 
-// Mock apiClient
-const mockBillByIdGet = jest.fn()
-const mockBillByIdDelete = jest.fn()
-const mockPriceHistoryGet = jest.fn()
-const mockPriceHistoryPost = jest.fn()
-const mockPriceHistoryByIdDelete = jest.fn()
-const mockPriceHistoryById = jest.fn(() => ({
-  put: jest.fn(),
-  delete: mockPriceHistoryByIdDelete,
-}))
-const mockBillById = jest.fn(() => ({
-  get: mockBillByIdGet,
-  put: jest.fn(),
-  delete: mockBillByIdDelete,
-  priceHistory: {
-    get: mockPriceHistoryGet,
-    post: mockPriceHistoryPost,
-    byId: mockPriceHistoryById,
-  },
-}))
+const mockAuthenticatedFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
-  apiClient: {
-    api: {
-      bills: {
-        get: jest.fn(),
-        post: jest.fn(),
-        summary: { get: jest.fn() },
-        byId: (...args: unknown[]) => mockBillById(...args),
-      },
-    },
-  },
+  API_BASE_URL: 'http://localhost:5238',
+  authenticatedFetch: (...args: unknown[]) => mockAuthenticatedFetch(...args),
 }))
 
 const mockPush = jest.fn()
@@ -81,6 +54,19 @@ const mockPriceHistory = [
   { id: 2, billId: 1, amount: 89, effectiveDate: '2024-01-01T00:00:00Z', previousAmount: 89, createdOn: '2024-01-01T00:00:00Z' },
 ]
 
+function setupFetch(billData: unknown, priceHistoryData: unknown[] = []) {
+  mockAuthenticatedFetch.mockImplementation((url: string, options?: RequestInit) => {
+    const method = (options?.method ?? 'GET').toUpperCase()
+    if (method !== 'GET') {
+      return Promise.resolve({ ok: true, status: 204, json: async () => undefined })
+    }
+    if (url.includes('/price-history')) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => priceHistoryData })
+    }
+    return Promise.resolve({ ok: true, status: 200, json: async () => billData })
+  })
+}
+
 describe('BillDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -93,8 +79,12 @@ describe('BillDetailPage', () => {
   })
 
   it('should display loading state initially', () => {
-    mockBillByIdGet.mockImplementation(() => new Promise(() => { /* never resolves */ }))
-    mockPriceHistoryGet.mockResolvedValue([])
+    mockAuthenticatedFetch.mockImplementation((url: string) => {
+      if (url.includes('/price-history')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+      }
+      return new Promise(() => { /* never resolves */ })
+    })
 
     render(<BillDetailPage />)
 
@@ -102,8 +92,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should display bill not found when bill is null', async () => {
-    mockBillByIdGet.mockResolvedValue(null)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(null)
 
     render(<BillDetailPage />)
 
@@ -113,8 +102,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should display bill details when loaded', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue(mockPriceHistory)
+    setupFetch(mockBill, mockPriceHistory)
 
     render(<BillDetailPage />)
 
@@ -127,8 +115,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should display vendor website link when vendorWebsite is safe', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(mockBill)
 
     render(<BillDetailPage />)
 
@@ -140,8 +127,7 @@ describe('BillDetailPage', () => {
 
   it('should not render vendor website link when vendorWebsite is unsafe', async () => {
     const unsafeBill = { ...mockBill, vendorWebsite: 'javascript:alert(1)' }
-    mockBillByIdGet.mockResolvedValue(unsafeBill)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(unsafeBill)
 
     render(<BillDetailPage />)
 
@@ -152,8 +138,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should display management URL link when managementUrl is safe', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(mockBill)
 
     render(<BillDetailPage />)
 
@@ -165,8 +150,7 @@ describe('BillDetailPage', () => {
 
   it('should not display management URL link when managementUrl is unsafe', async () => {
     const unsafeBill = { ...mockBill, managementUrl: 'javascript:void(0)' }
-    mockBillByIdGet.mockResolvedValue(unsafeBill)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(unsafeBill)
 
     render(<BillDetailPage />)
 
@@ -176,8 +160,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should display price history entries', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue(mockPriceHistory)
+    setupFetch(mockBill, mockPriceHistory)
 
     render(<BillDetailPage />)
 
@@ -187,8 +170,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should show empty price history message when no entries', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(mockBill, [])
 
     render(<BillDetailPage />)
 
@@ -198,8 +180,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should show add price form when Add entry is clicked', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(mockBill, [])
 
     render(<BillDetailPage />)
 
@@ -211,9 +192,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should navigate to bills list after deleting a bill', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue([])
-    mockBillByIdDelete.mockResolvedValue(undefined)
+    setupFetch(mockBill, [])
     jest.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<BillDetailPage />)
@@ -228,11 +207,10 @@ describe('BillDetailPage', () => {
   })
 
   it('should show PriceChangeBadge for price history with previous amount', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
     const historyWithPrevious = [
       { id: 1, billId: 1, amount: 99, effectiveDate: '2024-06-01T00:00:00Z', previousAmount: 89, createdOn: '2024-06-01T00:00:00Z' },
     ]
-    mockPriceHistoryGet.mockResolvedValue(historyWithPrevious)
+    setupFetch(mockBill, historyWithPrevious)
 
     render(<BillDetailPage />)
 
@@ -243,11 +221,10 @@ describe('BillDetailPage', () => {
   })
 
   it('should not show PriceChangeBadge when previous amount is null', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
     const historyNoPrevious = [
       { id: 1, billId: 1, amount: 99, effectiveDate: '2024-06-01T00:00:00Z', previousAmount: null, createdOn: '2024-06-01T00:00:00Z' },
     ]
-    mockPriceHistoryGet.mockResolvedValue(historyNoPrevious)
+    setupFetch(mockBill, historyNoPrevious)
 
     render(<BillDetailPage />)
 
@@ -260,8 +237,7 @@ describe('BillDetailPage', () => {
 
   it('should show manual badge when bill is not automated', async () => {
     const manualBill = { ...mockBill, isAutomated: false }
-    mockBillByIdGet.mockResolvedValue(manualBill)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(manualBill, [])
 
     render(<BillDetailPage />)
 
@@ -271,8 +247,7 @@ describe('BillDetailPage', () => {
   })
 
   it('should show automated badge when bill is automated', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue([])
+    setupFetch(mockBill, [])
 
     render(<BillDetailPage />)
 
