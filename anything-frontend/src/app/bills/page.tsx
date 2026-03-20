@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { useBills, FREQUENCY_LABELS } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
+import { isSafeUrl } from "@/lib/utils";
 import {
   Plus,
   ChevronRight,
@@ -140,11 +141,13 @@ export default function BillsPage() {
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
           {filtered.map((bill) => (
-            <button
+            <div
               key={bill.id}
-              type="button"
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+              role="button"
+              tabIndex={0}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left cursor-pointer"
               onClick={() => router.push(`/bills/${bill.id}`)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(`/bills/${bill.id}`); }}
             >
               <div className="flex-1 min-w-0 mr-3">
                 <div className="flex items-center gap-2 mb-0.5">
@@ -174,7 +177,7 @@ export default function BillsPage() {
                   ) : (
                     <span title="Manual"><Hand className="h-3 w-3 text-orange-400" /></span>
                   )}
-                  {bill.managementUrl && (
+                  {bill.managementUrl && isSafeUrl(bill.managementUrl) && (
                     <a
                       href={bill.managementUrl}
                       target="_blank"
@@ -209,7 +212,7 @@ export default function BillsPage() {
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-400" />
               </div>
-            </button>
+            </div>
           ))}
         </div>
       )}

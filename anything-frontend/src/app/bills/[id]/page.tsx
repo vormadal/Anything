@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import {
   useBill,
@@ -13,6 +13,7 @@ import {
 } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { isSafeUrl } from "@/lib/utils";
 import {
   ExternalLink,
   Pencil,
@@ -48,8 +49,34 @@ function PriceChangeBadge({
   current: number;
   previous?: number;
 }) {
-  if (!previous) return null;
+  // Treat only null/undefined as "missing"; 0 is a valid previous value.
+  if (previous == null) return null;
+
   const diff = current - previous;
+
+  // Avoid division by zero when previous is 0.
+  if (previous === 0) {
+    if (diff === 0) {
+      return (
+        <span className="inline-flex items-center gap-0.5 text-xs text-gray-400">
+          <Minus className="h-3 w-3" />0%
+        </span>
+      );
+    }
+    if (diff > 0) {
+      return (
+        <span className="inline-flex items-center gap-0.5 text-xs text-red-500">
+          <TrendingUp className="h-3 w-3" />+{formatCurrency(Math.abs(diff))}
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-green-500">
+        <TrendingDown className="h-3 w-3" />-{formatCurrency(Math.abs(diff))}
+      </span>
+    );
+  }
+
   const pct = Math.abs((diff / previous) * 100).toFixed(1);
   if (diff > 0)
     return (
@@ -70,13 +97,9 @@ function PriceChangeBadge({
   );
 }
 
-export default function BillDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const billId = Number(id);
+export default function BillDetailPage() {
+  const params = useParams();
+  const billId = Number(params.id);
   const router = useRouter();
   const { data: bill, isLoading } = useBill(billId);
   const { data: history, isLoading: historyLoading } = useBillPriceHistory(billId);
@@ -211,7 +234,7 @@ export default function BillDetailPage({
             <>
               <span className="text-gray-500 dark:text-gray-400">Vendor</span>
               <span className="text-gray-900 dark:text-white font-medium">
-                {bill.vendorWebsite ? (
+                {bill.vendorWebsite && isSafeUrl(bill.vendorWebsite) ? (
                   <a
                     href={bill.vendorWebsite}
                     target="_blank"
@@ -239,7 +262,7 @@ export default function BillDetailPage({
               <span className="text-gray-900 dark:text-white">{bill.category}</span>
             </>
           )}
-          {bill.managementUrl && (
+          {bill.managementUrl && isSafeUrl(bill.managementUrl) && (
             <>
               <span className="text-gray-500 dark:text-gray-400">Manage</span>
               <a

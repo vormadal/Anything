@@ -21,6 +21,9 @@ public class DeleteBillPriceHandler(
         if (entry is null)
             return Results.NotFound();
 
+        // NOTE: BillPriceHistory is intentionally hard-deleted here.
+        // Most entities in the system use a soft-delete pattern (via DeletedOn),
+        // but price history entries are treated as truly removable records.
         priceHistoryRepository.Remove(entry);
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

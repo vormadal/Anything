@@ -3,8 +3,33 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 
+// NOTE: bills/vendors/locations routes are not yet in the generated Kiota client.
+// Until `npm run generate:api` is run against the updated backend, these routes
+// must be accessed via a cast. The interfaces below mirror the contract types.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const api = apiClient.api as any;
+const billsApi = (apiClient.api as any).bills as BillsApiShape;
+
+interface PriceHistoryByIdShape {
+  put: (body: { amount: number; effectiveDate: string; notes?: string | null }) => Promise<void>;
+  delete: () => Promise<void>;
+}
+interface PriceHistoryShape {
+  get: () => Promise<BillPriceHistoryResponse[]>;
+  post: (body: { amount: number; effectiveDate: string; notes?: string | null }) => Promise<BillPriceHistoryResponse>;
+  byId: (id: number) => PriceHistoryByIdShape;
+}
+interface BillByIdShape {
+  get: () => Promise<BillResponse>;
+  put: (body: object) => Promise<void>;
+  delete: () => Promise<void>;
+  priceHistory: PriceHistoryShape;
+}
+interface BillsApiShape {
+  get: () => Promise<BillResponse[]>;
+  post: (body: object) => Promise<BillResponse>;
+  summary: { get: () => Promise<BillSummaryResponse> };
+  byId: (id: number) => BillByIdShape;
+}
 
 export type PaymentFrequency =
   | "Weekly"
@@ -74,7 +99,7 @@ export function useBills() {
   return useQuery({
     queryKey: ["bills"],
     queryFn: () =>
-      api.bills.get() as Promise<BillResponse[]>,
+      billsApi.get(),
   });
 }
 
@@ -82,7 +107,7 @@ export function useBillSummary() {
   return useQuery({
     queryKey: ["billSummary"],
     queryFn: () =>
-      api.bills.summary.get() as Promise<BillSummaryResponse>,
+      billsApi.summary.get(),
   });
 }
 
@@ -90,7 +115,7 @@ export function useBill(id: number) {
   return useQuery({
     queryKey: ["bill", id],
     queryFn: () =>
-      api.bills.byId(id).get() as Promise<BillResponse>,
+      billsApi.byId(id).get(),
     enabled: !!id,
   });
 }
@@ -99,9 +124,9 @@ export function useBillPriceHistory(billId: number) {
   return useQuery({
     queryKey: ["billPriceHistory", billId],
     queryFn: () =>
-      api.bills
+      billsApi
         .byId(billId)
-        .priceHistory.get() as Promise<BillPriceHistoryResponse[]>,
+        .priceHistory.get(),
     enabled: !!billId,
   });
 }
@@ -121,7 +146,7 @@ export function useCreateBill() {
       initialAmount?: number;
       initialEffectiveDate?: string;
     }) =>
-      api.bills.post({
+      billsApi.post({
         name: data.name,
         vendorId: data.vendorId ?? null,
         frequency: data.frequency,
@@ -154,7 +179,7 @@ export function useUpdateBill() {
       category?: string;
       notes?: string;
     }) =>
-      api.bills.byId(data.id).put({
+      billsApi.byId(data.id).put({
         name: data.name,
         vendorId: data.vendorId ?? null,
         frequency: data.frequency,
@@ -176,7 +201,7 @@ export function useDeleteBill() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      api.bills.byId(id).delete(),
+      billsApi.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["billSummary"] });
@@ -193,7 +218,7 @@ export function useAddBillPrice() {
       effectiveDate: string;
       notes?: string;
     }) =>
-      api.bills.byId(data.billId).priceHistory.post({
+      billsApi.byId(data.billId).priceHistory.post({
         amount: data.amount,
         effectiveDate: data.effectiveDate,
         notes: data.notes ?? null,
@@ -217,7 +242,7 @@ export function useUpdateBillPrice() {
       effectiveDate: string;
       notes?: string;
     }) =>
-      api.bills
+      billsApi
         .byId(data.billId)
         .priceHistory.byId(data.historyId)
         .put({
@@ -238,7 +263,7 @@ export function useDeleteBillPrice() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { billId: number; historyId: number }) =>
-      api.bills
+      billsApi
         .byId(data.billId)
         .priceHistory.byId(data.historyId)
         .delete(),

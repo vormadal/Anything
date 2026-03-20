@@ -32,16 +32,27 @@ public class GetBillsHandler(
             .Where(ph => billIds.Contains(ph.BillId))
             .ToListAsync(ct);
 
-        var locations = await locationRepository.Query()
-            .Where(l => l.DeletedOn == null)
-            .ToListAsync(ct);
+        var locationIds = bills.Where(b => b.LocationId.HasValue).Select(b => b.LocationId!.Value).Distinct().ToList();
+        var vendorIds = bills.Where(b => b.VendorId.HasValue).Select(b => b.VendorId!.Value).Distinct().ToList();
 
-        var vendors = await vendorRepository.Query()
-            .Where(v => v.DeletedOn == null)
-            .ToListAsync(ct);
+        var locations = locationIds.Count > 0
+            ? await locationRepository.Query()
+                .Where(l => l.DeletedOn == null && locationIds.Contains(l.Id))
+                .ToListAsync(ct)
+            : [];
+
+        var vendors = vendorIds.Count > 0
+            ? await vendorRepository.Query()
+                .Where(v => v.DeletedOn == null && vendorIds.Contains(v.Id))
+                .ToListAsync(ct)
+            : [];
+
+        var priceHistoriesByBillId = priceHistories.ToLookup(ph => ph.BillId);
+        var locationsById = locations.ToDictionary(l => l.Id);
+        var vendorsById = vendors.ToDictionary(v => v.Id);
 
         return bills
-            .Select(b => BillHelpers.ToBillResponse(b, priceHistories, locations, vendors))
+            .Select(b => BillHelpers.ToBillResponse(b, priceHistoriesByBillId, locationsById, vendorsById))
             .ToList();
     }
 }
