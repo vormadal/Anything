@@ -4,37 +4,20 @@
 
 **Anything** is a monorepo for creating flexible list-based items ("Somethings") — checklists, grocery lists, inventories, expense trackers, etc. It has a .NET 10 backend API and a Next.js 15 frontend.
 
+**If `dotnet`, `ef`, `aspire` is not available**:
+- Do NOT attempt workarounds (manual IL, csc, msbuild invocations, etc.)
+- STOP and inform the user that the tool is missing and another approach is required
+
 ## Repository Structure
 
 ```
 Anything/
 ├── src/                              # Backend (.NET)
 │   ├── Anything.API/                 # Minimal API — thin endpoint dispatchers
-│   │   ├── Program.cs                # App entry point, JWT, CORS, Swagger, admin seeding
-│   │   ├── Endpoints/                # Thin endpoint groups (dispatch to mediator)
-│   │   └── Properties/              # Launch settings
 │   ├── Anything.Application/         # Application layer — commands, queries, handlers, services
-│   │   ├── Configuration/            # JwtSettings, AdminSettings
-│   │   ├── Services/                 # PasswordService, TokenService implementations
-│   │   ├── Features/                 # Command/query handlers organized by feature
-│   │   └── DependencyInjection.cs    # AddApplication() extension method
 │   ├── Anything.Core/                # Domain layer — entities, interfaces (no dependencies)
-│   │   ├── Constants/                # UserRoles
-│   │   ├── Entities/                 # 14 entity POCOs
-│   │   ├── Repositories/             # IRepository<T>, IUnitOfWork
-│   │   └── Services/                 # IPasswordService, ITokenService
 │   ├── Anything.Contracts/           # API contracts — request/response DTOs with validation
-│   │   ├── Auth/                     # Auth DTOs
-│   │   ├── Somethings/               # Something DTOs
-│   │   ├── Inventory/                # Inventory DTOs
-│   │   ├── ShoppingLists/            # Shopping list DTOs
-│   │   └── Recipes/                  # Recipe DTOs
 │   ├── Anything.Database/            # Infrastructure — EF Core DbContext, repositories, migrations
-│   │   ├── ApplicationDbContext.cs    # DbContext with ApplyConfigurationsFromAssembly
-│   │   ├── Configurations/           # 14 IEntityTypeConfiguration<T> classes
-│   │   ├── Repositories/             # Repository<T>, UnitOfWork implementations
-│   │   ├── Migrations/               # EF Core migrations
-│   │   └── DependencyInjection.cs    # AddDatabase(), AddRepositories() extension methods
 │   ├── Anything.Mediator/            # Simple mediator pattern (IRequest, IRequestHandler, IMediator)
 │   ├── Anything.AppHost/            # Aspire orchestrator (manages PostgreSQL)
 │   └── Anything.ServiceDefaults/    # Shared service config (telemetry, health checks)
@@ -49,35 +32,6 @@ Anything/
 │       └── lib/                     # Utilities and generated API client
 └── Anything.slnx                    # .NET solution file
 ```
-
-## Architecture
-
-### Clean Architecture Layers
-
-```
-Anything.Mediator  (standalone — IRequest, IRequestHandler, IMediator)
-Anything.Core      (standalone — entities, repository/service interfaces)
-Anything.Contracts (standalone — request/response DTOs with validation)
-Anything.Application → Core, Contracts, Mediator (handlers, services, configuration)
-Anything.Database    → Core (DbContext, repositories, migrations)
-Anything.API         → Application, Database, Contracts, ServiceDefaults (thin endpoints)
-```
-
-### Mediator Pattern
-
-Each API operation follows: **Endpoint → Command/Query → Handler → Repository → Database**
-
-- Endpoints are thin dispatchers that create a command/query and call `mediator.Send()`
-- Commands/queries implement `IRequest<TResponse>` from `Anything.Mediator`
-- Handlers implement `IRequestHandler<TRequest, TResponse>` and contain all business logic
-- Handlers are colocated with their command/query in a single `.cs` file under `Features/`
-- Handlers are auto-registered via Scrutor assembly scanning
-
-### Repository Pattern
-
-- `IRepository<T>` — generic interface with `GetById`, `GetAll`, `Query()` (IQueryable), `Add`, `Update`, `Remove`
-- `IUnitOfWork` — wraps `DbContext.SaveChangesAsync`
-- Open generic registration: `typeof(IRepository<>)` → `typeof(Repository<>)` — no per-entity registration needed
 
 ## Tech Stack
 
@@ -106,7 +60,6 @@ npm install          # Install dependencies
 npm run build        # Production build - always run after finishing work
 npm run lint         # Run ESLint - always run after finishing work
 npm run test         # Run tests - always run after finishing work
-npm run test:watch   # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
 npm run generate:api # Generate API client from Swagger (API must be running)
 ```
@@ -156,12 +109,12 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 ### Rules to Follow
 
 **General (all languages):**
-- Do not leave unused variables or imports (S1481, S1128).
-- Do not shadow variables from an outer scope — use distinct names (S1117). E.g., use `err` in catch blocks when `error` is already in scope.
-- Do not duplicate string literals — extract repeated strings into constants (S1192).
+- Do not leave unused variables or imports.
+- Do not shadow variables from an outer scope — use distinct names. E.g., use `err` in catch blocks when `error` is already in scope.
+- Do not duplicate string literals — extract repeated strings into constants.
 - Do not duplicate logic — extract shared code into helper methods.
-- Keep functions and methods focused; avoid high cognitive complexity (S3776).
-- Remove dead code and commented-out code blocks (S1854, S125).
+- Keep functions and methods focused; avoid high cognitive complexity
+- Remove dead code and commented-out code blocks
 
 **Backend (C#):**
 - Use `private const` fields for repeated string literals in handler classes.
@@ -172,12 +125,7 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 - Avoid variable shadowing — use `err` (not `error`) in catch blocks when a component already has an `error` variable in scope.
 - Prefer structured error handling over `console.error` in production code when possible.
 - Ensure all declared variables and imports are used.
-
-### SonarCloud Configuration
-
-- **Backend CI:** `.github/workflows/backend-ci.yml` — scans `src/`, excludes `**/Program.cs`, `**/Migrations/**`, `**/bin/**`, `**/obj/**`
-- **Frontend CI:** `.github/workflows/frontend-ci.yml` — scans `anything-frontend/src/`, excludes test files, `node_modules`, `.next`, `public`, `lib/api-client`
-- **Frontend sonar config:** `anything-frontend/sonar-project.properties`
+- never cast to `any`
 
 ## Development Notes
 
@@ -186,32 +134,3 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 - The solution file is `.slnx` format (new XML-based solution format).
 - Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
 - always run linter, build and tests before committing changes.
-
-## Testing
-
-### Backend Integration Tests
-
-Located in `tests/Anything.API.IntegrationTests/`. Uses **xUnit** + **Testcontainers** (spins up a PostgreSQL 17 container automatically — Docker required).
-
-```bash
-dotnet test tests/Anything.API.IntegrationTests/Anything.API.IntegrationTests.csproj
-```
-
-- Tests are grouped by endpoint area (e.g., `SomethingEndpointTests`, `FoodPlanEndpointTests`).
-- Each test resets the database to a clean state via `ResetDatabaseAsync()`, then re-seeds the admin user.
-- A Kiota-generated typed `AnythingApiClient` in `ApiClient/` is used for HTTP calls — regenerate it with `kiota update` when the API changes (do not edit generated files manually).
-
-### Frontend Tests
-
-Located alongside source files (`*.test.tsx` / `*.test.ts`). Uses **Jest** and **React Testing Library**.
-
-```bash
-cd anything-frontend
-npm test              # Run all tests once
-npm run test:watch    # Watch mode
-npm run test:coverage # With coverage report
-```
-
-- Hook tests mock `@/lib/apiClient`; component tests use `renderWithClient` from `@/__tests__/utils/test-utils`.
-- Coverage reports are written to `coverage/` (LCOV format) and fed to SonarCloud.
-- CI runs tests automatically on every PR and push to main/develop.

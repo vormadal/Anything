@@ -5,8 +5,61 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  deploy-e2e:
     runs-on: ubuntu-latest
+    environment: E2E
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - run: npm install -g caprover
+      - name: Deploy to CapRover (e2e)
+        run: >
+          caprover deploy
+          -b main
+          -h https://captain.caprover.vormadal.com
+          -a anything-e2e
+          --appToken ${{ secrets.CAPROVER_E2E_APP_TOKEN }}
+      - name: Verify e2e deploy
+        env:
+          APP_NAME: anything-e2e
+          CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
+        run: node .github/scripts/verify-deploy.js
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: deploy-e2e
+    defaults:
+      run:
+        working-directory: ./anything-frontend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: anything-frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run e2e tests
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: anything-frontend/playwright-report/
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: e2e-tests
     environment: Production
     steps:
       - uses: actions/checkout@v6
@@ -14,14 +67,14 @@ jobs:
         with:
           node-version: 22
       - run: npm install -g caprover
-      - name: Deploy to CapRover
+      - name: Deploy to CapRover (production)
         run: >
           caprover deploy
           -b main
           -h https://captain.caprover.vormadal.com
           -a anything
           --appToken ${{ secrets.CAPROVER_APP_TOKEN }}
-      - name: Verify deploy
+      - name: Verify production deploy
         env:
           APP_NAME: anything
           CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}

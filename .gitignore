@@ -89,3 +89,7 @@ Thumbs.db
 # Generated API artifacts
 swagger.json
 .kiota.log
+anything-frontend/playwright-report/
+anything-frontend/test-results/
+.playwright-mcp/
+.aspire/
