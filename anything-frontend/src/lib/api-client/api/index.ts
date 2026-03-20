@@ -4,7 +4,7 @@
 // @ts-ignore
 import { AuthRequestBuilderNavigationMetadata, type AuthRequestBuilder } from './auth/index';
 // @ts-ignore
-import { FoodPlansRequestBuilderNavigationMetadata, FoodPlansRequestBuilderRequestsMetadata, type FoodPlansRequestBuilder } from './foodPlans/index';
+import { BillsRequestBuilderNavigationMetadata, BillsRequestBuilderRequestsMetadata, type BillsRequestBuilder } from './bills/index';
 // @ts-ignore
 import { FoodPlanRequestBuilderNavigationMetadata, type FoodPlanRequestBuilder } from './foodPlan/index';
 // @ts-ignore
@@ -14,13 +14,17 @@ import { InventoryItemsRequestBuilderNavigationMetadata, InventoryItemsRequestBu
 // @ts-ignore
 import { InventoryStorageUnitsRequestBuilderNavigationMetadata, InventoryStorageUnitsRequestBuilderRequestsMetadata, type InventoryStorageUnitsRequestBuilder } from './inventoryStorageUnits/index';
 // @ts-ignore
-import { RecipesRequestBuilderNavigationMetadata, RecipesRequestBuilderRequestsMetadata, type RecipesRequestBuilder } from './recipes/index';
+import { LocationsRequestBuilderNavigationMetadata, LocationsRequestBuilderRequestsMetadata, type LocationsRequestBuilder } from './locations/index';
 // @ts-ignore
-import { ShoppingListsRequestBuilderNavigationMetadata, ShoppingListsRequestBuilderRequestsMetadata, type ShoppingListsRequestBuilder } from './shoppingLists/index';
+import { RecipesRequestBuilderNavigationMetadata, RecipesRequestBuilderRequestsMetadata, type RecipesRequestBuilder } from './recipes/index';
 // @ts-ignore
 import { ShoppingListRecommendationsRequestBuilderNavigationMetadata, ShoppingListRecommendationsRequestBuilderRequestsMetadata, type ShoppingListRecommendationsRequestBuilder } from './shoppingListRecommendations/index';
 // @ts-ignore
+import { ShoppingListsRequestBuilderNavigationMetadata, ShoppingListsRequestBuilderRequestsMetadata, type ShoppingListsRequestBuilder } from './shoppingLists/index';
+// @ts-ignore
 import { SomethingsRequestBuilderNavigationMetadata, SomethingsRequestBuilderRequestsMetadata, type SomethingsRequestBuilder } from './somethings/index';
+// @ts-ignore
+import { type VendorsRequestBuilder, VendorsRequestBuilderNavigationMetadata, VendorsRequestBuilderRequestsMetadata } from './vendors/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata } from '@microsoft/kiota-abstractions';
 
@@ -33,13 +37,13 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      */
     get auth(): AuthRequestBuilder;
     /**
+     * The bills property
+     */
+    get bills(): BillsRequestBuilder;
+    /**
      * The foodPlan property
      */
     get foodPlan(): FoodPlanRequestBuilder;
-    /**
-     * The foodPlans property
-     */
-    get foodPlans(): FoodPlansRequestBuilder;
     /**
      * The inventoryBoxes property
      */
@@ -53,21 +57,29 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      */
     get inventoryStorageUnits(): InventoryStorageUnitsRequestBuilder;
     /**
+     * The locations property
+     */
+    get locations(): LocationsRequestBuilder;
+    /**
      * The recipes property
      */
     get recipes(): RecipesRequestBuilder;
-    /**
-     * The shoppingLists property
-     */
-    get shoppingLists(): ShoppingListsRequestBuilder;
     /**
      * The shoppingListRecommendations property
      */
     get shoppingListRecommendations(): ShoppingListRecommendationsRequestBuilder;
     /**
+     * The shoppingLists property
+     */
+    get shoppingLists(): ShoppingListsRequestBuilder;
+    /**
      * The somethings property
      */
     get somethings(): SomethingsRequestBuilder;
+    /**
+     * The vendors property
+     */
+    get vendors(): VendorsRequestBuilder;
 }
 /**
  * Uri template for the request builder.
@@ -80,12 +92,12 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     auth: {
         navigationMetadata: AuthRequestBuilderNavigationMetadata,
     },
+    bills: {
+        requestsMetadata: BillsRequestBuilderRequestsMetadata,
+        navigationMetadata: BillsRequestBuilderNavigationMetadata,
+    },
     foodPlan: {
         navigationMetadata: FoodPlanRequestBuilderNavigationMetadata,
-    },
-    foodPlans: {
-        requestsMetadata: FoodPlansRequestBuilderRequestsMetadata,
-        navigationMetadata: FoodPlansRequestBuilderNavigationMetadata,
     },
     inventoryBoxes: {
         requestsMetadata: InventoryBoxesRequestBuilderRequestsMetadata,
@@ -99,21 +111,29 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
         requestsMetadata: InventoryStorageUnitsRequestBuilderRequestsMetadata,
         navigationMetadata: InventoryStorageUnitsRequestBuilderNavigationMetadata,
     },
+    locations: {
+        requestsMetadata: LocationsRequestBuilderRequestsMetadata,
+        navigationMetadata: LocationsRequestBuilderNavigationMetadata,
+    },
     recipes: {
         requestsMetadata: RecipesRequestBuilderRequestsMetadata,
         navigationMetadata: RecipesRequestBuilderNavigationMetadata,
-    },
-    shoppingLists: {
-        requestsMetadata: ShoppingListsRequestBuilderRequestsMetadata,
-        navigationMetadata: ShoppingListsRequestBuilderNavigationMetadata,
     },
     shoppingListRecommendations: {
         requestsMetadata: ShoppingListRecommendationsRequestBuilderRequestsMetadata,
         navigationMetadata: ShoppingListRecommendationsRequestBuilderNavigationMetadata,
     },
+    shoppingLists: {
+        requestsMetadata: ShoppingListsRequestBuilderRequestsMetadata,
+        navigationMetadata: ShoppingListsRequestBuilderNavigationMetadata,
+    },
     somethings: {
         requestsMetadata: SomethingsRequestBuilderRequestsMetadata,
         navigationMetadata: SomethingsRequestBuilderNavigationMetadata,
+    },
+    vendors: {
+        requestsMetadata: VendorsRequestBuilderRequestsMetadata,
+        navigationMetadata: VendorsRequestBuilderNavigationMetadata,
     },
 };
 /* tslint:enable */

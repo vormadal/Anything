@@ -18,7 +18,7 @@ const mockById = jest.fn(() => ({
   items: {
     get: mockItemsGet,
     post: mockItemsPost,
-    byId: mockItemsItemById,
+    byItemId: mockItemsItemById,
   },
   complete: { post: mockCompletePost },
 }))
@@ -877,7 +877,7 @@ describe('ShoppingListDetailPage', () => {
       items: {
         get: mockItemsGet,
         post: mockItemsPost,
-        byId: mockItemsItemById,
+        byItemId: mockItemsItemById,
       },
       complete: { post: mockCompletePost },
     })
@@ -914,7 +914,7 @@ describe('ShoppingListDetailPage', () => {
       items: {
         get: mockItemsGet,
         post: mockItemsPost,
-        byId: mockItemsItemById,
+        byItemId: mockItemsItemById,
       },
       complete: { post: mockCompletePost },
     })

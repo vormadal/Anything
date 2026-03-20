@@ -1,6 +1,7 @@
 using Anything.Application.Features.ShoppingLists.Commands;
 using Anything.Application.Features.ShoppingLists.Queries;
 using Anything.Contracts.ShoppingLists;
+using Anything.Core.Entities;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
@@ -39,6 +40,7 @@ public static class ShoppingListEndpoints
             return Results.Created($"/api/shopping-lists/{result.Id}", result);
         })
         .WithName("CreateShoppingList")
+        .Produces<ShoppingList>(StatusCodes.Status201Created)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -70,6 +72,7 @@ public static class ShoppingListEndpoints
             return await mediator.Send(new GetShoppingListItemsQuery(id));
         })
         .WithName("GetShoppingListItems")
+        .Produces<List<ShoppingListItem>>()
         .RequireAuthorization();
 
         group.MapPost("/{id}/items", async (int id, CreateShoppingListItemRequest request, IMediator mediator) =>

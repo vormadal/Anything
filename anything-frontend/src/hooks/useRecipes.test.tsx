@@ -29,15 +29,15 @@ const mockIngredientsPost = jest.fn()
 const mockIngredientsItemPut = jest.fn()
 const mockIngredientsItemDelete = jest.fn()
 const mockIngredientsItemById = jest.fn(() => ({ put: mockIngredientsItemPut, delete: mockIngredientsItemDelete }))
-const mockIngredients = { get: mockIngredientsGet, post: mockIngredientsPost, byId: mockIngredientsItemById }
+const mockIngredients = { get: mockIngredientsGet, post: mockIngredientsPost, byIngredientId: mockIngredientsItemById }
 const mockStepsGet = jest.fn()
 const mockStepsPost = jest.fn()
 const mockStepsItemById = jest.fn(() => ({ put: jest.fn(), delete: jest.fn() }))
-const mockSteps = { get: mockStepsGet, post: mockStepsPost, byId: mockStepsItemById }
+const mockSteps = { get: mockStepsGet, post: mockStepsPost, byStepId: mockStepsItemById }
 const mockImagesGet = jest.fn()
 const mockImagesPost = jest.fn()
 const mockImagesItemById = jest.fn(() => ({ delete: jest.fn() }))
-const mockImages = { get: mockImagesGet, post: mockImagesPost, byId: mockImagesItemById }
+const mockImages = { get: mockImagesGet, post: mockImagesPost, byImageId: mockImagesItemById }
 const mockAddToShoppingListPost = jest.fn()
 const mockAddToShoppingList = { post: mockAddToShoppingListPost }
 const mockById = jest.fn(() => ({
