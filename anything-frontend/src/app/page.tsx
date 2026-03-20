@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useFoodPlanEntries } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
+import { useBillSummary } from "@/hooks/useBills";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ShoppingCart, Plus, ChevronRight } from "lucide-react";
+import { CalendarDays, ShoppingCart, Plus, ChevronRight, Receipt, Zap, Hand } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 
@@ -33,6 +34,7 @@ export default function Home() {
   );
   const { data: shoppingLists, isLoading: listsLoading } = useShoppingLists();
   const { data: recipes } = useRecipes();
+  const { data: billSummary } = useBillSummary();
 
   const todayEntries = entries ?? [];
   const topLists = shoppingLists?.slice(0, 5) ?? [];
@@ -102,6 +104,55 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* Bills summary */}
+      {billSummary && billSummary.totalBills > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-indigo-600" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bills</h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/bills")}
+              className="text-xs"
+            >
+              All bills
+            </Button>
+          </div>
+          <button
+            type="button"
+            className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+            onClick={() => router.push("/bills")}
+          >
+            <div className="space-y-1">
+              <p className="text-xl font-bold text-gray-900 dark:text-white">
+                {new Intl.NumberFormat("da-DK", {
+                  style: "currency",
+                  currency: "DKK",
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(Math.round(billSummary.totalMonthlyEquivalent))}
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-1">/mo</span>
+              </p>
+              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3 text-green-500" />
+                  {billSummary.automatedCount} auto
+                </span>
+                <span className="flex items-center gap-1">
+                  <Hand className="h-3 w-3 text-orange-400" />
+                  {billSummary.manualCount} manual
+                </span>
+                <span>{billSummary.totalBills} bills total</span>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+          </button>
+        </section>
+      )}
 
       {/* Shopping Lists */}
       <section>

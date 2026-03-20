@@ -24,6 +24,7 @@ import {
   UserPlus,
   ListChecks,
   CalendarDays,
+  Receipt,
 } from "lucide-react";
 import {
   PageActionsProvider,
@@ -38,6 +39,7 @@ const NAV_ITEMS = [
   { label: "Shopping Lists", path: "/shopping-lists", icon: ShoppingCart },
   { label: "Recipes", path: "/recipes", icon: CookingPot },
   { label: "Food Plan", path: "/food-plans", icon: CalendarDays },
+  { label: "Bills", path: "/bills", icon: Receipt },
 ];
 
 function getPageTitle(pathname: string): string {
@@ -50,6 +52,10 @@ function getPageTitle(pathname: string): string {
   if (pathname === "/food-plans") return "Food Plan";
   if (pathname === "/food-plans/new") return "New Food Plan";
   if (pathname.startsWith("/food-plans/")) return "Food Plan";
+  if (pathname === "/bills") return "Bills";
+  if (pathname === "/bills/new") return "New Bill";
+  if (pathname.startsWith("/bills/") && pathname.endsWith("/edit")) return "Edit Bill";
+  if (pathname.startsWith("/bills/")) return "Bill";
   if (pathname === "/admin/invite") return "Invite Users";
   if (pathname === "/admin/recommendations") return "Recommendations";
   if (pathname.startsWith("/admin")) return "Admin";
