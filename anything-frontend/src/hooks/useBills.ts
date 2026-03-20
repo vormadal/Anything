@@ -2,34 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-
-// NOTE: bills/vendors/locations routes are not yet in the generated Kiota client.
-// Until `npm run generate:api` is run against the updated backend, these routes
-// must be accessed via a cast. The interfaces below mirror the contract types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const billsApi = (apiClient.api as any).bills as BillsApiShape;
-
-interface PriceHistoryByIdShape {
-  put: (body: { amount: number; effectiveDate: string; notes?: string | null }) => Promise<void>;
-  delete: () => Promise<void>;
-}
-interface PriceHistoryShape {
-  get: () => Promise<BillPriceHistoryResponse[]>;
-  post: (body: { amount: number; effectiveDate: string; notes?: string | null }) => Promise<BillPriceHistoryResponse>;
-  byId: (id: number) => PriceHistoryByIdShape;
-}
-interface BillByIdShape {
-  get: () => Promise<BillResponse>;
-  put: (body: object) => Promise<void>;
-  delete: () => Promise<void>;
-  priceHistory: PriceHistoryShape;
-}
-interface BillsApiShape {
-  get: () => Promise<BillResponse[]>;
-  post: (body: object) => Promise<BillResponse>;
-  summary: { get: () => Promise<BillSummaryResponse> };
-  byId: (id: number) => BillByIdShape;
-}
+import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest } from "@/lib/api-client/models/index";
 
 export type PaymentFrequency =
   | "Weekly"
@@ -99,7 +72,7 @@ export function useBills() {
   return useQuery({
     queryKey: ["bills"],
     queryFn: () =>
-      billsApi.get(),
+      apiClient.api.bills.get() as unknown as Promise<BillResponse[]>,
   });
 }
 
@@ -107,7 +80,7 @@ export function useBillSummary() {
   return useQuery({
     queryKey: ["billSummary"],
     queryFn: () =>
-      billsApi.summary.get(),
+      apiClient.api.bills.summary.get() as unknown as Promise<BillSummaryResponse>,
   });
 }
 
@@ -115,7 +88,7 @@ export function useBill(id: number) {
   return useQuery({
     queryKey: ["bill", id],
     queryFn: () =>
-      billsApi.byId(id).get(),
+      apiClient.api.bills.byId(id).get() as unknown as Promise<BillResponse>,
     enabled: !!id,
   });
 }
@@ -124,9 +97,9 @@ export function useBillPriceHistory(billId: number) {
   return useQuery({
     queryKey: ["billPriceHistory", billId],
     queryFn: () =>
-      billsApi
+      apiClient.api.bills
         .byId(billId)
-        .priceHistory.get(),
+        .priceHistory.get() as unknown as Promise<BillPriceHistoryResponse[]>,
     enabled: !!billId,
   });
 }
@@ -145,8 +118,8 @@ export function useCreateBill() {
       notes?: string;
       initialAmount?: number;
       initialEffectiveDate?: string;
-    }) =>
-      billsApi.post({
+    }) => {
+      const body: CreateBillRequest = {
         name: data.name,
         vendorId: data.vendorId ?? null,
         frequency: data.frequency,
@@ -156,8 +129,10 @@ export function useCreateBill() {
         category: data.category ?? null,
         notes: data.notes ?? null,
         initialAmount: data.initialAmount ?? null,
-        initialEffectiveDate: data.initialEffectiveDate ?? null,
-      }),
+        initialEffectiveDate: data.initialEffectiveDate ? new Date(data.initialEffectiveDate) : null,
+      };
+      return apiClient.api.bills.post(body);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["billSummary"] });
@@ -178,8 +153,8 @@ export function useUpdateBill() {
       managementUrl?: string;
       category?: string;
       notes?: string;
-    }) =>
-      billsApi.byId(data.id).put({
+    }) => {
+      const body: UpdateBillRequest = {
         name: data.name,
         vendorId: data.vendorId ?? null,
         frequency: data.frequency,
@@ -188,7 +163,9 @@ export function useUpdateBill() {
         managementUrl: data.managementUrl ?? null,
         category: data.category ?? null,
         notes: data.notes ?? null,
-      }),
+      };
+      return apiClient.api.bills.byId(data.id).put(body);
+    },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["bill", variables.id] });
@@ -201,7 +178,7 @@ export function useDeleteBill() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      billsApi.byId(id).delete(),
+      apiClient.api.bills.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["billSummary"] });
@@ -217,12 +194,14 @@ export function useAddBillPrice() {
       amount: number;
       effectiveDate: string;
       notes?: string;
-    }) =>
-      billsApi.byId(data.billId).priceHistory.post({
+    }) => {
+      const body: AddBillPriceRequest = {
         amount: data.amount,
-        effectiveDate: data.effectiveDate,
+        effectiveDate: new Date(data.effectiveDate),
         notes: data.notes ?? null,
-      }),
+      };
+      return apiClient.api.bills.byId(data.billId).priceHistory.post(body);
+    },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billPriceHistory", variables.billId] });
       queryClient.invalidateQueries({ queryKey: ["bill", variables.billId] });
@@ -241,15 +220,17 @@ export function useUpdateBillPrice() {
       amount: number;
       effectiveDate: string;
       notes?: string;
-    }) =>
-      billsApi
+    }) => {
+      const body: UpdateBillPriceRequest = {
+        amount: data.amount,
+        effectiveDate: new Date(data.effectiveDate),
+        notes: data.notes ?? null,
+      };
+      return apiClient.api.bills
         .byId(data.billId)
-        .priceHistory.byId(data.historyId)
-        .put({
-          amount: data.amount,
-          effectiveDate: data.effectiveDate,
-          notes: data.notes ?? null,
-        }),
+        .priceHistory.byHistoryId(data.historyId)
+        .put(body);
+    },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billPriceHistory", variables.billId] });
       queryClient.invalidateQueries({ queryKey: ["bill", variables.billId] });
@@ -263,9 +244,9 @@ export function useDeleteBillPrice() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { billId: number; historyId: number }) =>
-      billsApi
+      apiClient.api.bills
         .byId(data.billId)
-        .priceHistory.byId(data.historyId)
+        .priceHistory.byHistoryId(data.historyId)
         .delete(),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billPriceHistory", variables.billId] });

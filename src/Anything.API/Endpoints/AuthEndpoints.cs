@@ -17,6 +17,7 @@ public static class AuthEndpoints
             return await mediator.Send(new LoginCommand(request.Email, request.Password));
         })
         .WithName("Login")
+        .Produces<LoginResponse>()
         .WithParameterValidation()
         .AllowAnonymous();
 
@@ -25,6 +26,7 @@ public static class AuthEndpoints
             return await mediator.Send(new RefreshTokenCommand(request.RefreshToken));
         })
         .WithName("RefreshToken")
+        .Produces<RefreshTokenResponse>()
         .WithParameterValidation()
         .AllowAnonymous();
 
@@ -42,6 +44,7 @@ public static class AuthEndpoints
             return await mediator.Send(new GetInvitesQuery(userRole));
         })
         .WithName("GetInvites")
+        .Produces<List<InviteResponse>>()
         .RequireAuthorization();
 
         group.MapPost("/invites", async (CreateInviteRequest request, ClaimsPrincipal user, IMediator mediator) =>
@@ -52,6 +55,7 @@ public static class AuthEndpoints
             return await mediator.Send(new CreateInviteCommand(request.Email, userId, userRole));
         })
         .WithName("CreateInvite")
+        .Produces<CreateInviteResponse>()
         .WithParameterValidation()
         .RequireAuthorization();
 

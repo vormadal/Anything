@@ -31,9 +31,9 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { ShoppingList } from "@/lib/api-client/models/index";
+import type { ShoppingListResponse } from "@/lib/api-client/models/index";
 
-function DraggableShoppingListItem({ list, onClick }: { list: ShoppingList; onClick: () => void }) {
+function DraggableShoppingListItem({ list, onClick }: { list: ShoppingListResponse; onClick: () => void }) {
   const {
     attributes,
     listeners,

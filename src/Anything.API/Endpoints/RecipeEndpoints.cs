@@ -1,6 +1,7 @@
 using Anything.Application.Features.Recipes.Commands;
 using Anything.Application.Features.Recipes.Queries;
 using Anything.Contracts.Recipes;
+using Anything.Core.Entities;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
@@ -33,6 +34,7 @@ public static class RecipeEndpoints
             return Results.Created($"/api/recipes/{result.Id}", result);
         })
         .WithName("CreateRecipe")
+        .Produces<Recipe>(StatusCodes.Status201Created)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -81,6 +83,7 @@ public static class RecipeEndpoints
             return await mediator.Send(new GetRecipeIngredientsQuery(id));
         })
         .WithName("GetRecipeIngredients")
+        .Produces<List<RecipeIngredient>>()
         .RequireAuthorization();
 
         group.MapPost("/{id}/ingredients", async (int id, CreateRecipeIngredientRequest request, IMediator mediator) =>
@@ -120,6 +123,7 @@ public static class RecipeEndpoints
             return await mediator.Send(new GetRecipeStepsQuery(id));
         })
         .WithName("GetRecipeSteps")
+        .Produces<List<RecipeStep>>()
         .RequireAuthorization();
 
         group.MapPost("/{id}/steps", async (int id, CreateRecipeStepRequest request, IMediator mediator) =>
@@ -159,6 +163,7 @@ public static class RecipeEndpoints
             return await mediator.Send(new GetRecipeImagesQuery(id));
         })
         .WithName("GetRecipeImages")
+        .Produces<List<RecipeImageResponse>>()
         .RequireAuthorization();
 
         group.MapPost("/{id}/images", async (int id, AddRecipeImageRequest request, IMediator mediator) =>

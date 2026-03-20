@@ -33,7 +33,7 @@ const mockPriceHistoryById = jest.fn(() => ({
 const mockPriceHistory = {
   get: (...args: unknown[]) => mockPriceHistoryGet(...args),
   post: (...args: unknown[]) => mockPriceHistoryPost(...args),
-  byId: (...args: unknown[]) => mockPriceHistoryById(...args),
+  byHistoryId: (...args: unknown[]) => mockPriceHistoryById(...args),
 }
 
 const mockBillById = jest.fn(() => ({
@@ -282,7 +282,7 @@ describe('useBills hooks', () => {
 
       expect(mockBillById).toHaveBeenCalledWith(1)
       expect(mockPriceHistoryById).toHaveBeenCalledWith(2)
-      expect(mockPriceHistoryByIdPut).toHaveBeenCalledWith(expect.objectContaining({ amount: 119, effectiveDate: '2025-06-01T00:00:00Z' }))
+      expect(mockPriceHistoryByIdPut).toHaveBeenCalledWith(expect.objectContaining({ amount: 119, effectiveDate: new Date('2025-06-01T00:00:00Z') }))
     })
 
     it('should invalidate related query caches on success', async () => {

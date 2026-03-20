@@ -28,7 +28,7 @@ export function useFoodPlanEntries(startDate: string, endDate: string) {
     queryKey: ["foodPlanEntries", startDate, endDate],
     queryFn: () =>
       apiClient.api.foodPlan.entries.get({
-        queryParameters: { startDate, endDate },
+        queryParameters: { startDate: new Date(startDate), endDate: new Date(endDate) },
       }) as Promise<FoodPlanEntry[]>,
     enabled: !!startDate && !!endDate,
   });
@@ -69,7 +69,7 @@ export function useUpdateFoodPlanEntry() {
       recipeId?: number | null;
       date: Date;
     }) =>
-      apiClient.api.foodPlan.entries.byId(entryId).put({
+      apiClient.api.foodPlan.entries.byEntryId(entryId).put({
         name,
         recipeId,
         date,
@@ -85,7 +85,7 @@ export function useDeleteFoodPlanEntry() {
 
   return useMutation({
     mutationFn: (entryId: number) =>
-      apiClient.api.foodPlan.entries.byId(entryId).delete(),
+      apiClient.api.foodPlan.entries.byEntryId(entryId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
     },
