@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type { Recipe, RecipeIngredient, RecipeStep, RecipeImageResponse } from "@/lib/api-client/models/index";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
+
 export function useRecipes() {
   return useQuery({
     queryKey: ["recipes"],
@@ -244,8 +246,6 @@ export function useDeleteRecipeStep(recipeId: number) {
     },
   });
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 
 export interface ParsedIngredient {
   amount?: number | null;

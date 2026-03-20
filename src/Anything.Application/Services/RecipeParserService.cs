@@ -52,12 +52,15 @@ public class RecipeParserService(HttpClient httpClient) : IRecipeParserService
             var start = html.IndexOf(marker, pos, StringComparison.OrdinalIgnoreCase);
             if (start < 0) yield break;
 
-            var contentStart = html.IndexOf('>', start) + 1;
+            var gtPos = html.IndexOf('>', start);
+            if (gtPos < 0) yield break;
+
+            var contentStart = gtPos + 1;
             var contentEnd = html.IndexOf("</script>", contentStart, StringComparison.OrdinalIgnoreCase);
-            if (contentStart > 0 && contentEnd > contentStart)
+            if (contentEnd >= 0)
                 yield return html[contentStart..contentEnd].Trim();
 
-            pos = contentEnd > 0 ? contentEnd : start + 1;
+            pos = contentEnd >= 0 ? contentEnd + 1 : contentStart;
         }
     }
 

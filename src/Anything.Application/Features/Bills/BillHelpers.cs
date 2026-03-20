@@ -65,11 +65,14 @@ internal static class BillHelpers
 
     internal static bool TryParseFrequency(string value, out PaymentFrequency frequency)
     {
-        if (string.IsNullOrWhiteSpace(value) || char.IsDigit(value.TrimStart()[0]))
-        {
-            frequency = default;
+        frequency = default;
+        if (string.IsNullOrWhiteSpace(value))
             return false;
-        }
+
+        var trimmed = value.TrimStart();
+        if (trimmed.Length == 0 || char.IsDigit(trimmed[0]))
+            return false;
+
         return Enum.TryParse(value, ignoreCase: true, out frequency)
             && Enum.IsDefined(frequency);
     }

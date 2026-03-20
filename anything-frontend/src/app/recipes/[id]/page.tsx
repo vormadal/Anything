@@ -171,7 +171,7 @@ function SortableStepItem({
   onDelete,
   isDeletePending,
 }: SortableStepItemProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id! });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id ?? 0 });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
   return (
@@ -286,7 +286,7 @@ export default function RecipeDetailPage() {
     const newIndex = ingredients.findIndex((i) => i.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(ingredients, oldIndex, newIndex);
-    reorderIngredients.mutate(reordered.map((i) => i.id!));
+    reorderIngredients.mutate(reordered.map((i) => i.id ?? 0));
   };
 
   const handleStepDragEnd = (event: DragEndEvent) => {
@@ -296,7 +296,7 @@ export default function RecipeDetailPage() {
     const newIndex = sortedSteps.findIndex((s) => s.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(sortedSteps, oldIndex, newIndex);
-    reorderSteps.mutate(reordered.map((s) => s.id!));
+    reorderSteps.mutate(reordered.map((s) => s.id ?? 0));
   };
 
   const handleEnterEditMode = useCallback(() => {
@@ -365,7 +365,7 @@ export default function RecipeDetailPage() {
     if (!edits) return;
     if (!edits.name.trim()) return;
     const parsedAmount = edits.amount ? Number(edits.amount) : null;
-    if (edits.amount && (isNaN(parsedAmount!) || parsedAmount! < 0)) return;
+    if (parsedAmount !== null && (isNaN(parsedAmount) || parsedAmount < 0)) return;
 
     try {
       await updateIngredient.mutateAsync({
@@ -406,7 +406,7 @@ export default function RecipeDetailPage() {
     e.preventDefault();
     if (!newIngredientName.trim()) return;
     const parsedAmount = newIngredientAmount ? Number(newIngredientAmount) : null;
-    if (newIngredientAmount && (isNaN(parsedAmount!) || parsedAmount! < 0)) return;
+    if (parsedAmount !== null && (isNaN(parsedAmount) || parsedAmount < 0)) return;
 
     try {
       await addIngredient.mutateAsync({
@@ -698,7 +698,7 @@ export default function RecipeDetailPage() {
                     variant="ghost"
                     size="icon"
                     className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 hover:bg-red-600 text-white rounded-full"
-                    onClick={() => handleDeleteImage(image.id!)}
+                    onClick={() => handleDeleteImage(image.id ?? 0)}
                     disabled={deleteImage.isPending}
                     aria-label="Remove image"
                   >
@@ -831,11 +831,11 @@ export default function RecipeDetailPage() {
                   onDragEnd={handleIngredientDragEnd}
                 >
                   <SortableContext
-                    items={ingredients.map((i) => i.id!)}
+                    items={ingredients.map((i) => i.id ?? 0)}
                     strategy={verticalListSortingStrategy}
                   >
                     {ingredients.map((ingredient) => {
-                      const id = ingredient.id!;
+                      const id = ingredient.id ?? 0;
                       const edits = editingIngredients[id];
                       return (
                         <SortableIngredientItem
@@ -855,7 +855,7 @@ export default function RecipeDetailPage() {
                 </DndContext>
               ) : (
                 ingredients.map((ingredient) => {
-                  const id = ingredient.id!;
+                  const id = ingredient.id ?? 0;
                   return (
                     <li key={id} className="flex items-center gap-1 py-1">
                       <span className="text-gray-800 dark:text-gray-200 text-sm">
@@ -904,7 +904,7 @@ export default function RecipeDetailPage() {
                         <li key={suggestion.id}>
                           <button
                             type="button"
-                            onMouseDown={() => handleSelectIngredientSuggestion(suggestion.name!, suggestion.preferredUnit)}
+                            onMouseDown={() => handleSelectIngredientSuggestion(suggestion.name ?? "", suggestion.preferredUnit)}
                             className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
                           >
                             {suggestion.name}
@@ -974,7 +974,7 @@ export default function RecipeDetailPage() {
                     {(shoppingLists ?? []).map((list) => (
                       <li key={list.id}>
                         <button
-                          onClick={() => handleAddToShoppingList(list.id!)}
+                          onClick={() => handleAddToShoppingList(list.id ?? 0)}
                           disabled={addToShoppingList.isPending}
                           className="w-full text-left px-4 py-3 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium transition-colors disabled:opacity-50"
                         >
@@ -1008,7 +1008,7 @@ export default function RecipeDetailPage() {
                   onDragEnd={handleStepDragEnd}
                 >
                   <SortableContext
-                    items={sortedSteps.map((s) => s.id!)}
+                    items={sortedSteps.map((s) => s.id ?? 0)}
                     strategy={verticalListSortingStrategy}
                   >
                     {sortedSteps.map((step, index) => (
@@ -1016,30 +1016,30 @@ export default function RecipeDetailPage() {
                         key={step.id}
                         step={step}
                         index={index}
-                        editText={editingSteps[step.id!]}
+                        editText={editingSteps[step.id ?? 0]}
                         onTextChange={(text) =>
-                          setEditingSteps((prev) => ({ ...prev, [step.id!]: text }))
+                          setEditingSteps((prev) => ({ ...prev, [step.id ?? 0]: text }))
                         }
                         onBlur={() => {
-                          const current = editingSteps[step.id!];
+                          const current = editingSteps[step.id ?? 0];
                           if (current === undefined) return;
                           if (current === step.text) {
                             setEditingSteps((prev) => {
                               const next = { ...prev };
-                              delete next[step.id!];
+                              delete next[step.id ?? 0];
                               return next;
                             });
                           } else {
-                            handleSaveStep(step.id!, step.order!);
+                            handleSaveStep(step.id ?? 0, step.order ?? 0);
                           }
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            handleSaveStep(step.id!, step.order!);
+                            handleSaveStep(step.id ?? 0, step.order ?? 0);
                           }
                         }}
-                        onDelete={() => handleDeleteStep(step.id!)}
+                        onDelete={() => handleDeleteStep(step.id ?? 0)}
                         isDeletePending={deleteStep.isPending}
                       />
                     ))}
