@@ -22,12 +22,11 @@ internal static class BillHelpers
 
     internal static BillResponse ToBillResponse(
         Bill bill,
-        List<BillPriceHistory> priceHistories,
-        List<Location> locations,
-        List<Vendor> vendors)
+        ILookup<int, BillPriceHistory> priceHistoriesByBillId,
+        Dictionary<int, Location> locationsById,
+        Dictionary<int, Vendor> vendorsById)
     {
-        var ordered = priceHistories
-            .Where(ph => ph.BillId == bill.Id)
+        var ordered = priceHistoriesByBillId[bill.Id]
             .OrderByDescending(ph => ph.EffectiveDate)
             .ToList();
 
@@ -35,10 +34,10 @@ internal static class BillHelpers
         var previous = ordered.Count > 1 ? ordered[1] : null;
 
         var location = bill.LocationId.HasValue
-            ? locations.FirstOrDefault(l => l.Id == bill.LocationId)
+            ? locationsById.GetValueOrDefault(bill.LocationId.Value)
             : null;
         var vendor = bill.VendorId.HasValue
-            ? vendors.FirstOrDefault(v => v.Id == bill.VendorId)
+            ? vendorsById.GetValueOrDefault(bill.VendorId.Value)
             : null;
 
         var priceIncreased = current is not null && previous is not null
@@ -65,5 +64,13 @@ internal static class BillHelpers
     }
 
     internal static bool TryParseFrequency(string value, out PaymentFrequency frequency)
-        => Enum.TryParse(value, ignoreCase: true, out frequency);
+    {
+        if (string.IsNullOrWhiteSpace(value) || char.IsDigit(value.TrimStart()[0]))
+        {
+            frequency = default;
+            return false;
+        }
+        return Enum.TryParse(value, ignoreCase: true, out frequency)
+            && Enum.IsDefined(frequency);
+    }
 }

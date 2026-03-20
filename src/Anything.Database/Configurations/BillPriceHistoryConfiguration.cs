@@ -12,7 +12,7 @@ public class BillPriceHistoryConfiguration : IEntityTypeConfiguration<BillPriceH
         builder.Property(e => e.Amount).IsRequired().HasColumnType("decimal(18,2)");
         builder.Property(e => e.Notes).HasMaxLength(500);
 
-        builder.HasOne<Bill>()
+        builder.HasOne(e => e.Bill)
             .WithMany()
             .HasForeignKey(e => e.BillId)
             .OnDelete(DeleteBehavior.Cascade);

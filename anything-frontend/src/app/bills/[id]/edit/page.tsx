@@ -1,18 +1,13 @@
 "use client";
 
-import { use } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useBill, BillResponse, useUpdateBill, PAYMENT_FREQUENCIES, FREQUENCY_LABELS, PaymentFrequency } from "@/hooks/useBills";
 import { useLocations } from "@/hooks/useLocations";
 import { useVendors } from "@/hooks/useVendors";
 
-export default function EditBillPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const billId = Number(id);
+export default function EditBillPage() {
+  const params = useParams();
+  const billId = Number(params.id);
   const { data: bill, isLoading } = useBill(billId);
 
   if (isLoading) {
@@ -40,11 +35,6 @@ function EditBillForm({ bill, billId }: { bill: BillResponse; billId: number }) 
   const { data: vendors } = useVendors();
   const updateBill = useUpdateBill();
 
-  const [name, setName] = [
-    bill.name,
-    (v: string) => { void v; },
-  ];
-
   // Use uncontrolled form with defaultValue so no useEffect needed
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,9 +61,6 @@ function EditBillForm({ bill, billId }: { bill: BillResponse; billId: number }) 
       toast.error("Failed to update bill");
     }
   };
-
-  void name;
-  void setName;
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">

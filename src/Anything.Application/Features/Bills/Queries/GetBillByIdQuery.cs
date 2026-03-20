@@ -26,14 +26,20 @@ public class GetBillByIdHandler(
             .Where(ph => ph.BillId == bill.Id)
             .ToListAsync(ct);
 
-        var locations = await locationRepository.Query()
-            .Where(l => l.DeletedOn == null)
-            .ToListAsync(ct);
+        var priceHistoriesByBillId = priceHistories.ToLookup(ph => ph.BillId);
 
-        var vendors = await vendorRepository.Query()
-            .Where(v => v.DeletedOn == null)
-            .ToListAsync(ct);
+        var locationsById = bill.LocationId.HasValue
+            ? await locationRepository.Query()
+                .Where(l => l.DeletedOn == null && l.Id == bill.LocationId.Value)
+                .ToDictionaryAsync(l => l.Id, ct)
+            : [];
 
-        return Results.Ok(BillHelpers.ToBillResponse(bill, priceHistories, locations, vendors));
+        var vendorsById = bill.VendorId.HasValue
+            ? await vendorRepository.Query()
+                .Where(v => v.DeletedOn == null && v.Id == bill.VendorId.Value)
+                .ToDictionaryAsync(v => v.Id, ct)
+            : [];
+
+        return Results.Ok(BillHelpers.ToBillResponse(bill, priceHistoriesByBillId, locationsById, vendorsById));
     }
 }

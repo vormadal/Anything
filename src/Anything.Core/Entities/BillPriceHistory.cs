@@ -4,6 +4,7 @@ public class BillPriceHistory
 {
     public int Id { get; set; }
     public int BillId { get; set; }
+    public Bill? Bill { get; set; }
     public decimal Amount { get; set; }
     public DateTime EffectiveDate { get; set; }
     public string? Notes { get; set; }

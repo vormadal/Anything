@@ -45,20 +45,20 @@ public class CreateBillHandler(
         };
 
         billRepository.Add(bill);
-        await unitOfWork.SaveChanges(ct);
 
         if (command.InitialAmount is not null)
         {
             var priceEntry = new BillPriceHistory
             {
-                BillId = bill.Id,
+                Bill = bill,
                 Amount = command.InitialAmount.Value,
                 EffectiveDate = command.InitialEffectiveDate?.ToUniversalTime() ?? now,
                 CreatedOn = now
             };
             priceHistoryRepository.Add(priceEntry);
-            await unitOfWork.SaveChanges(ct);
         }
+
+        await unitOfWork.SaveChanges(ct);
 
         return Results.Created($"/api/bills/{bill.Id}", bill);
     }
