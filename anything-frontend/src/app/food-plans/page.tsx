@@ -231,7 +231,7 @@ function DayColumn({
           <EntryBadge
             key={entry.id}
             entry={entry}
-            onDelete={() => onDeleteEntry(entry.id!)}
+            onDelete={() => onDeleteEntry(entry.id ?? 0)}
           />
         ))}
       </div>
@@ -272,7 +272,7 @@ function AddToShoppingListDialog({
   const addToShoppingList = useAddFoodPlanToShoppingList();
 
   const recipeEntries = (entries ?? []).filter((e) => e.recipeId != null);
-  const uniqueRecipeIds = [...new Set(recipeEntries.map((e) => e.recipeId!))];
+  const uniqueRecipeIds = [...new Set(recipeEntries.map((e) => e.recipeId ?? 0))];
   const recipeMap = new Map((recipes ?? []).map((r) => [r.id, r]));
 
   const [multipliers, setMultipliers] = useState<Record<number, number>>(() =>

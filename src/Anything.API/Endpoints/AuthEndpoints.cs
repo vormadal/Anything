@@ -46,7 +46,8 @@ public static class AuthEndpoints
 
         group.MapPost("/invites", async (CreateInviteRequest request, ClaimsPrincipal user, IMediator mediator) =>
         {
-            var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (!int.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+                return Results.Unauthorized();
             var userRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
             return await mediator.Send(new CreateInviteCommand(request.Email, userId, userRole));
         })
@@ -64,7 +65,8 @@ public static class AuthEndpoints
 
         group.MapPut("/profile", async (UpdateProfileRequest request, ClaimsPrincipal user, IMediator mediator) =>
         {
-            var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (!int.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+                return Results.Unauthorized();
             return await mediator.Send(new UpdateProfileCommand(userId, request.Name));
         })
         .WithName("UpdateProfile")
@@ -73,7 +75,8 @@ public static class AuthEndpoints
 
         group.MapPut("/profile/password", async (ChangePasswordRequest request, ClaimsPrincipal user, IMediator mediator) =>
         {
-            var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (!int.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+                return Results.Unauthorized();
             return await mediator.Send(new ChangePasswordCommand(userId, request.CurrentPassword, request.NewPassword));
         })
         .WithName("ChangePassword")

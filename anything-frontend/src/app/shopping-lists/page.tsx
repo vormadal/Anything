@@ -41,7 +41,7 @@ function DraggableShoppingListItem({ list, onClick }: { list: ShoppingList; onCl
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: list.id! });
+  } = useSortable({ id: list.id ?? 0 });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -102,7 +102,7 @@ export default function ShoppingListsPage() {
     if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(lists, oldIndex, newIndex);
-    reorderLists.mutate(reordered.map((l) => l.id!));
+    reorderLists.mutate(reordered.map((l) => l.id ?? 0));
   };
 
   const handleCreateList = async (e: React.FormEvent) => {
@@ -217,7 +217,7 @@ export default function ShoppingListsPage() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={lists.map((l) => l.id!)}
+            items={lists.map((l) => l.id ?? 0)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-1">
