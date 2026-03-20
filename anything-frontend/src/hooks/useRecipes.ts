@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { Recipe, RecipeIngredient, RecipeStep, RecipeImage } from "@/lib/api-client/models/index";
+import type { Recipe, RecipeIngredient, RecipeStep, RecipeImageResponse } from "@/lib/api-client/models/index";
 
 export function useRecipes() {
   return useQuery({
@@ -41,7 +41,7 @@ export function useRecipeImages(recipeId: number) {
   return useQuery({
     queryKey: ["recipeImages", recipeId],
     queryFn: () =>
-      apiClient.api.recipes.byId(recipeId).images.get() as Promise<RecipeImage[]>,
+      apiClient.api.recipes.byId(recipeId).images.get() as Promise<RecipeImageResponse[]>,
     enabled: recipeId > 0,
   });
 }
@@ -104,7 +104,7 @@ export function useUpdateRecipeIngredient(recipeId: number) {
 
   return useMutation({
     mutationFn: ({ ingredientId, name, amount, unit, group }: { ingredientId: number; name: string; amount?: number | null; unit?: string | null; group?: string | null }) =>
-      apiClient.api.recipes.byId(recipeId).ingredients.byId(ingredientId).put({ name, amount, unit, group }),
+      apiClient.api.recipes.byId(recipeId).ingredients.byIngredientId(ingredientId).put({ name, amount, unit, group }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
     },
@@ -116,7 +116,7 @@ export function useDeleteRecipeIngredient(recipeId: number) {
 
   return useMutation({
     mutationFn: (ingredientId: number) =>
-      apiClient.api.recipes.byId(recipeId).ingredients.byId(ingredientId).delete(),
+      apiClient.api.recipes.byId(recipeId).ingredients.byIngredientId(ingredientId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
     },
@@ -226,7 +226,7 @@ export function useUpdateRecipeStep(recipeId: number) {
 
   return useMutation({
     mutationFn: ({ stepId, text, order }: { stepId: number; text: string; order: number }) =>
-      apiClient.api.recipes.byId(recipeId).steps.byId(stepId).put({ text, order }),
+      apiClient.api.recipes.byId(recipeId).steps.byStepId(stepId).put({ text, order }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
     },
@@ -238,7 +238,7 @@ export function useDeleteRecipeStep(recipeId: number) {
 
   return useMutation({
     mutationFn: (stepId: number) =>
-      apiClient.api.recipes.byId(recipeId).steps.byId(stepId).delete(),
+      apiClient.api.recipes.byId(recipeId).steps.byStepId(stepId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
     },
@@ -397,7 +397,7 @@ export function useDeleteRecipeImage(recipeId: number) {
 
   return useMutation({
     mutationFn: (imageId: number) =>
-      apiClient.api.recipes.byId(recipeId).images.byId(imageId).delete(),
+      apiClient.api.recipes.byId(recipeId).images.byImageId(imageId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeImages", recipeId] });
     },

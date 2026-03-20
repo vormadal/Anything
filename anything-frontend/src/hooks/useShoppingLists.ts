@@ -2,13 +2,13 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { ShoppingList, ShoppingListItem } from "@/lib/api-client/models/index";
+import type { ShoppingListResponse, ShoppingListItem } from "@/lib/api-client/models/index";
 
 export function useCompletedShoppingLists() {
   return useQuery({
     queryKey: ["completedShoppingLists"],
     queryFn: () =>
-      apiClient.api.shoppingLists.completed.get() as Promise<ShoppingList[]>,
+      apiClient.api.shoppingLists.completed.get() as unknown as Promise<ShoppingListResponse[]>,
   });
 }
 
@@ -16,7 +16,7 @@ export function useShoppingLists() {
   return useQuery({
     queryKey: ["shoppingLists"],
     queryFn: () =>
-      apiClient.api.shoppingLists.get() as Promise<ShoppingList[]>,
+      apiClient.api.shoppingLists.get() as unknown as Promise<ShoppingListResponse[]>,
   });
 }
 
@@ -62,7 +62,7 @@ export function useCompleteShoppingList() {
 
   return useMutation({
     mutationFn: (id: number) =>
-      apiClient.api.shoppingLists.byId(id).complete.post() as Promise<ShoppingList>,
+      apiClient.api.shoppingLists.byId(id).complete.post() as unknown as Promise<ShoppingListResponse>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["completedShoppingLists"] });
@@ -79,10 +79,10 @@ export function useReorderShoppingLists() {
       apiClient.api.shoppingLists.reorder.put({ ids }),
     onMutate: async (ids) => {
       await queryClient.cancelQueries({ queryKey: ["shoppingLists"] });
-      const previousLists = queryClient.getQueryData<ShoppingList[]>(["shoppingLists"]);
-      queryClient.setQueryData<ShoppingList[]>(["shoppingLists"], (old) => {
+      const previousLists = queryClient.getQueryData<ShoppingListResponse[]>(["shoppingLists"]);
+      queryClient.setQueryData<ShoppingListResponse[]>(["shoppingLists"], (old) => {
         if (!old) return old;
-        return ids.map((id) => old.find((l) => l.id === id)).filter(Boolean) as ShoppingList[];
+        return ids.map((id) => old.find((l) => l.id === id)).filter(Boolean) as ShoppingListResponse[];
       });
       return { previousLists };
     },
@@ -121,7 +121,7 @@ export function useUpdateShoppingListItem(listId: number) {
 
   return useMutation({
     mutationFn: ({ itemId, name, isChecked, amount, unit }: { itemId: number; name: string; isChecked: boolean; amount?: number | null; unit?: string | null }) =>
-      apiClient.api.shoppingLists.byId(listId).items.byId(itemId).put({ name, isChecked, amount, unit }),
+      apiClient.api.shoppingLists.byId(listId).items.byItemId(itemId).put({ name, isChecked, amount, unit }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
     },
@@ -133,7 +133,7 @@ export function useRemoveShoppingListItem(listId: number) {
 
   return useMutation({
     mutationFn: (itemId: number) =>
-      apiClient.api.shoppingLists.byId(listId).items.byId(itemId).delete(),
+      apiClient.api.shoppingLists.byId(listId).items.byItemId(itemId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
     },

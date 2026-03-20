@@ -2,21 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-
-// NOTE: locations route is not yet in the generated Kiota client.
-// Until `npm run generate:api` is run against the updated backend, this route
-// must be accessed via a cast. The interface below mirrors the contract type.
-interface LocationByIdShape {
-  put: (body: { name: string }) => Promise<void>;
-  delete: () => Promise<void>;
-}
-interface LocationsApiShape {
-  get: () => Promise<Location[]>;
-  post: (body: { name: string }) => Promise<Location>;
-  byId: (id: number) => LocationByIdShape;
-}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const locationsApi = (apiClient.api as any).locations as LocationsApiShape;
+import type { CreateLocationRequest, UpdateLocationRequest } from "@/lib/api-client/models/index";
 
 export interface Location {
   id: number;
@@ -30,15 +16,17 @@ export function useLocations() {
   return useQuery({
     queryKey: ["locations"],
     queryFn: () =>
-      locationsApi.get() as Promise<Location[]>,
+      apiClient.api.locations.get() as unknown as Promise<Location[]>,
   });
 }
 
 export function useCreateLocation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) =>
-      locationsApi.post({ name }),
+    mutationFn: (name: string) => {
+      const body: CreateLocationRequest = { name };
+      return apiClient.api.locations.post(body);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
     },
@@ -48,8 +36,10 @@ export function useCreateLocation() {
 export function useUpdateLocation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: number; name: string }) =>
-      locationsApi.byId(id).put({ name }),
+    mutationFn: ({ id, name }: { id: number; name: string }) => {
+      const body: UpdateLocationRequest = { name };
+      return apiClient.api.locations.byId(id).put(body);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
     },
@@ -60,7 +50,7 @@ export function useDeleteLocation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      locationsApi.byId(id).delete(),
+      apiClient.api.locations.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
     },

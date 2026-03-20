@@ -28,9 +28,9 @@ const mockById = jest.fn(() => ({
   get: mockRecipeGet,
   put: mockRecipePut,
   delete: mockRecipeDelete,
-  ingredients: { get: mockIngredientsGet, post: mockIngredientsPost, byId: mockIngredientById },
-  steps: { get: mockStepsGet, post: mockStepsPost, byId: mockStepById },
-  images: { get: mockImagesGet, post: mockImagesPost, byId: mockImageById },
+  ingredients: { get: mockIngredientsGet, post: mockIngredientsPost, byIngredientId: mockIngredientById },
+  steps: { get: mockStepsGet, post: mockStepsPost, byStepId: mockStepById },
+  images: { get: mockImagesGet, post: mockImagesPost, byImageId: mockImageById },
   addToShoppingList: { post: mockAddToShoppingListPost },
 }))
 
@@ -48,7 +48,7 @@ jest.mock('@/lib/apiClient', () => ({
         byId: jest.fn(() => ({
           get: jest.fn(),
           delete: jest.fn(),
-          items: { get: jest.fn(), post: jest.fn(), byId: jest.fn() },
+          items: { get: jest.fn(), post: jest.fn(), byItemId: jest.fn() },
           complete: { post: jest.fn() },
         })),
       },
@@ -59,7 +59,7 @@ jest.mock('@/lib/apiClient', () => ({
           get: jest.fn(),
           put: jest.fn(),
           delete: jest.fn(),
-          entries: { get: jest.fn(), post: jest.fn(), byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
+          entries: { get: jest.fn(), post: jest.fn(), byEntryId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
           addToShoppingList: { post: jest.fn() },
         })),
       },

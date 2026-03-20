@@ -32,7 +32,7 @@ jest.mock('@/lib/apiClient', () => ({
         entries: {
           get: (...args: unknown[]) => mockEntriesGet(...args),
           post: (...args: unknown[]) => mockEntriesPost(...args),
-          byId: (...args: unknown[]) => mockEntriesItemById(...args),
+          byEntryId: (...args: unknown[]) => mockEntriesItemById(...args),
         },
         addToShoppingList: {
           post: (...args: unknown[]) => mockAddToShoppingListPost(...args),
@@ -125,8 +125,8 @@ describe('useFoodPlans hooks', () => {
       expect(result.current.data).toEqual(mockData)
       expect(mockEntriesGet).toHaveBeenCalledWith({
         queryParameters: {
-          startDate: '2026-03-09T00:00:00Z',
-          endDate: '2026-03-15T23:59:59Z',
+          startDate: new Date('2026-03-09T00:00:00Z'),
+          endDate: new Date('2026-03-15T23:59:59Z'),
         },
       })
     })
