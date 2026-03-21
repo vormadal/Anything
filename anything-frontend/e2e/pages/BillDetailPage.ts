@@ -15,14 +15,20 @@ export class BillDetailPage {
   }
 
   attachmentLink(name: string) {
-    return this.page.getByRole("link", { name, exact: true });
+    return this.page
+      .getByRole("link", { name, exact: true })
+      .or(this.page.getByRole("button", { name, exact: true }));
   }
 
   async deleteAttachment(name: string) {
     const row = this.page
       .locator("div.px-4.py-3")
-      .filter({ has: this.page.getByRole("link", { name, exact: true }) });
-    this.page.once("dialog", (dialog) => dialog.accept());
-    await row.getByRole("button", { name: "Delete attachment" }).click();
+      .filter({
+        has: this.page
+          .getByRole("link", { name, exact: true })
+          .or(this.page.getByRole("button", { name, exact: true })),
+      });
+    await row.getByRole("button", { name: "Attachment options" }).click();
+    await this.page.getByRole("button", { name: "Delete attachment" }).click();
   }
 }
