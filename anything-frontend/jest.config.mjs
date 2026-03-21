@@ -30,6 +30,7 @@ const config = {
     '/node_modules/',
     '/.next/',
     '/src/__tests__/utils/',
+    '/e2e/',
   ],
 }
  

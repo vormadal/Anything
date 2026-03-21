@@ -43,7 +43,7 @@ public static class BillEndpoints
                 request.InitialAmount,
                 request.InitialEffectiveDate)))
             .WithName("CreateBill")
-            .Produces<Bill>(StatusCodes.Status201Created)
+            .Produces<BillResponse>(StatusCodes.Status201Created)
             .Produces(400)
             .WithParameterValidation()
             .RequireAuthorization();

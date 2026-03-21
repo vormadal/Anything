@@ -205,7 +205,7 @@ public class CreateBillHandlerTests
         _billRepo.Received(1).Add(Arg.Is<Bill>(b => b.Name == "Netflix" && b.Frequency == PaymentFrequency.Monthly));
         _priceRepo.DidNotReceive().Add(Arg.Any<BillPriceHistory>());
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
-        var created = Assert.IsType<Created<Bill>>(result);
+        var created = Assert.IsType<Created<BillResponse>>(result);
         Assert.Equal("Netflix", created.Value!.Name);
     }
 
