@@ -52,15 +52,11 @@ public class GetBillSummaryHandler(
 
         var currentMonthEntries = allPriceEntries
             .Where(ph => ph.EffectiveDate.Month == currentMonth && ph.EffectiveDate.Year == currentYear)
-            .GroupBy(ph => ph.BillId)
-            .Select(g => g.OrderByDescending(ph => ph.EffectiveDate).First().Amount)
-            .Sum();
+            .Sum(ph => ph.Amount);
 
         var currentYearEntries = allPriceEntries
             .Where(ph => ph.EffectiveDate.Year == currentYear)
-            .GroupBy(ph => ph.BillId)
-            .Select(g => g.OrderByDescending(ph => ph.EffectiveDate).First().Amount)
-            .Sum();
+            .Sum(ph => ph.Amount);
 
         return new BillSummaryResponse(
             bills.Count,

@@ -45,7 +45,11 @@ public class UploadBillAttachmentHandler(
         {
             BillId = command.BillId,
             StorageKey = storageKey,
-            Name = command.AttachmentName ?? Path.GetFileNameWithoutExtension(command.FileName),
+            Name = !string.IsNullOrWhiteSpace(command.AttachmentName)
+                ? command.AttachmentName
+                : !string.IsNullOrWhiteSpace(Path.GetFileNameWithoutExtension(command.FileName))
+                    ? Path.GetFileNameWithoutExtension(command.FileName)
+                    : Path.GetFileName(command.FileName),
             ContentType = command.ContentType,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
