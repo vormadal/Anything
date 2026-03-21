@@ -25,19 +25,22 @@ test("create shopping list, add items, and complete it", async ({ page }) => {
   // Enter edit mode to add items
   await page.getByRole("button", { name: "Edit list" }).click();
 
-  // Add first item
+  // Add first item and wait for the form to clear (confirms the API call completed)
   await page.getByPlaceholder("Add an item...").fill("Milk");
   await page.getByRole("button", { name: "Add item" }).click();
+  await expect(page.getByPlaceholder("Add an item...")).toHaveValue("");
 
   // Add second item with amount and unit
   await page.getByPlaceholder("Add an item...").fill("Bread");
   await page.getByPlaceholder("Qty").fill("2");
   await page.getByPlaceholder("Unit").fill("loaves");
   await page.getByRole("button", { name: "Add item" }).click();
+  await expect(page.getByPlaceholder("Add an item...")).toHaveValue("");
 
   // Add third item
   await page.getByPlaceholder("Add an item...").fill("Eggs");
   await page.getByRole("button", { name: "Add item" }).click();
+  await expect(page.getByPlaceholder("Add an item...")).toHaveValue("");
 
   // Exit edit mode
   await page.getByRole("button", { name: "Done editing" }).click();
