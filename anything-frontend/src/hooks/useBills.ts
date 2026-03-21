@@ -302,9 +302,9 @@ export function useUploadBillAttachment() {
     mutationFn: async (data: { billId: number; file: File; name?: string }) => {
       const formData = new FormData();
       formData.append("file", data.file);
-      const url = new URL(`${API_BASE_URL}/api/bills/${data.billId}/attachments`);
-      if (data.name) url.searchParams.set("name", data.name);
-      const res = await fetch(url.toString(), {
+      const baseUrl = `${API_BASE_URL}/api/bills/${data.billId}/attachments`;
+      const url = data.name ? `${baseUrl}?name=${encodeURIComponent(data.name)}` : baseUrl;
+      const res = await fetch(url, {
         method: "POST",
         headers: { Authorization: `Bearer ${getAccessToken()}` },
         body: formData,
