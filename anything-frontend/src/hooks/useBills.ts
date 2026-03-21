@@ -309,7 +309,10 @@ export function useUploadBillAttachment() {
         headers: { Authorization: `Bearer ${getAccessToken()}` },
         body: formData,
       });
-      if (!res.ok) throw new Error("Failed to upload attachment");
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Failed to upload attachment");
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billAttachments", variables.billId] });
