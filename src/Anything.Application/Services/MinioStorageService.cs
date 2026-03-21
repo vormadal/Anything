@@ -86,6 +86,9 @@ public class MinioStorageService : IImageStorageService
         return objectKey;
     }
 
+    public string GetFileUrl(string storageKey) =>
+        $"{_settings.Endpoint.TrimEnd('/')}/{_settings.BucketName}/{storageKey}";
+
     public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill")
     {
         var sourceUrl = $"{_settings.MinioSourceEndpoint}/{_settings.BucketName}/{storageKey}";

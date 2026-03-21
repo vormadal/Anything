@@ -42,7 +42,7 @@ public class GetBillAttachmentsHandler(
             }
             else
             {
-                url = a.StorageKey;
+                url = imageStorageService.GetFileUrl(a.StorageKey);
                 thumbnailUrl = null;
             }
 

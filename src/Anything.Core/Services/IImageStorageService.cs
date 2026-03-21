@@ -9,5 +9,7 @@ public interface IImageStorageService
 
     string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill");
 
+    string GetFileUrl(string storageKey);
+
     Task Delete(string storageKey, CancellationToken ct = default);
 }
