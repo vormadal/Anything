@@ -6,12 +6,16 @@ import {
   useBillSummary,
   useBill,
   useBillPriceHistory,
+  useBillAttachments,
   useCreateBill,
   useUpdateBill,
   useUpdateBillPrice,
   useDeleteBill,
   useAddBillPrice,
   useDeleteBillPrice,
+  useUploadBillAttachment,
+  useUpdateBillAttachment,
+  useDeleteBillAttachment,
 } from '@/hooks/useBills'
 
 const mockBillsGet = jest.fn()
@@ -318,6 +322,91 @@ describe('useBills hooks', () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true))
       expect(result.current.error).toBeTruthy()
+    })
+  })
+
+  describe('useBillAttachments', () => {
+    it('should fetch attachments via fetch API', async () => {
+      const mockAttachment = {
+        id: 1,
+        billId: 1,
+        name: 'Invoice',
+        contentType: 'application/pdf',
+        url: 'http://minio/bills/doc.pdf',
+        thumbnailUrl: null,
+        createdOn: '2024-01-01T00:00:00Z',
+      }
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([mockAttachment]),
+      } as Response)
+
+      const { result } = renderHook(() => useBillAttachments(1), { wrapper: createWrapper() })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(result.current.data).toHaveLength(1)
+      expect(result.current.data![0].name).toBe('Invoice')
+    })
+  })
+
+  describe('useUploadBillAttachment', () => {
+    it('should upload attachment successfully', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({}),
+      } as Response)
+
+      const { result } = renderHook(() => useUploadBillAttachment(), { wrapper: createWrapper() })
+
+      await act(async () => {
+        result.current.mutate({ billId: 1, file: new File(['content'], 'invoice.pdf', { type: 'application/pdf' }) })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    })
+
+    it('should handle upload error', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: false,
+      } as Response)
+
+      const { result } = renderHook(() => useUploadBillAttachment(), { wrapper: createWrapper() })
+
+      result.current.mutate({ billId: 1, file: new File(['content'], 'invoice.pdf', { type: 'application/pdf' }) })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+    })
+  })
+
+  describe('useDeleteBillAttachment', () => {
+    it('should delete attachment successfully', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+      } as Response)
+
+      const { result } = renderHook(() => useDeleteBillAttachment(), { wrapper: createWrapper() })
+
+      await act(async () => {
+        result.current.mutate({ billId: 1, attachmentId: 5 })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    })
+  })
+
+  describe('useUpdateBillAttachment', () => {
+    it('should update attachment name successfully', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+      } as Response)
+
+      const { result } = renderHook(() => useUpdateBillAttachment(), { wrapper: createWrapper() })
+
+      await act(async () => {
+        result.current.mutate({ billId: 1, attachmentId: 5, name: 'New Name' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
     })
   })
 })

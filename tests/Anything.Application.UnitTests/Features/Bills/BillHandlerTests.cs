@@ -5,6 +5,7 @@ using Anything.Application.UnitTests.Helpers;
 using Anything.Contracts.Bills;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -903,5 +904,337 @@ public class GetBillPriceHistoryHandlerTests
 
         var ok = Assert.IsType<Ok<List<BillPriceHistoryResponse>>>(result);
         Assert.Null(ok.Value![0].PreviousAmount);
+    }
+}
+
+public class BillHelpers_NoneFrequencyTests
+{
+    [Fact]
+    public void ComputeMonthlyEquivalent_NoneFrequency_ReturnsNull()
+    {
+        var result = BillHelpers.ComputeMonthlyEquivalent(PaymentFrequency.None, 500m);
+
+        Assert.Null(result);
+    }
+
+    [Theory]
+    [InlineData("None", true, PaymentFrequency.None)]
+    [InlineData("none", true, PaymentFrequency.None)]
+    [InlineData("NONE", true, PaymentFrequency.None)]
+    public void TryParseFrequency_NoneVariants_ReturnsTrue(string value, bool expectedResult, PaymentFrequency expectedFrequency)
+    {
+        var result = BillHelpers.TryParseFrequency(value, out var frequency);
+
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedFrequency, frequency);
+    }
+}
+
+public class GetBillSummaryHandler_NoneFrequencyTests
+{
+    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
+    private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
+
+    private GetBillSummaryHandler CreateHandler() => new(_billRepo, _priceRepo);
+
+    [Fact]
+    public async Task Handle_NoneFrequencyBill_ExcludedFromMonthlyEquivalent()
+    {
+        var now = DateTime.UtcNow;
+        var bills = new List<Bill>
+        {
+            new() { Id = 1, Name = "One-time expense", Frequency = PaymentFrequency.None, IsAutomated = false },
+            new() { Id = 2, Name = "Monthly Bill", Frequency = PaymentFrequency.Monthly, IsAutomated = true }
+        };
+        _billRepo.Query().Returns(bills.AsAsyncQueryable());
+
+        var priceData = new List<BillPriceHistory>
+        {
+            new() { Id = 1, BillId = 1, Amount = 500m, EffectiveDate = now },
+            new() { Id = 2, BillId = 2, Amount = 100m, EffectiveDate = now }
+        };
+        _priceRepo.Query().Returns(priceData.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
+
+        // None frequency bill (500) has no monthly equivalent; only Monthly bill (100) counts
+        Assert.Equal(100m, result.TotalMonthlyEquivalent);
+        Assert.Equal(2, result.TotalBills);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsCurrentMonthAndYearAmounts()
+    {
+        var now = DateTime.UtcNow;
+        var bills = new List<Bill>
+        {
+            new() { Id = 1, Name = "Bill A", Frequency = PaymentFrequency.Monthly, IsAutomated = true }
+        };
+        _billRepo.Query().Returns(bills.AsAsyncQueryable());
+
+        var priceData = new List<BillPriceHistory>
+        {
+            new() { Id = 1, BillId = 1, Amount = 100m, EffectiveDate = now }
+        };
+        _priceRepo.Query().Returns(priceData.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(100m, result.TotalCurrentMonthAmount);
+        Assert.Equal(100m, result.TotalCurrentYearAmount);
+    }
+
+    [Fact]
+    public async Task Handle_OldPriceEntryNotInCurrentMonth_ZeroCurrentMonth()
+    {
+        var now = DateTime.UtcNow;
+        var bills = new List<Bill>
+        {
+            new() { Id = 1, Name = "Bill A", Frequency = PaymentFrequency.Monthly, IsAutomated = true }
+        };
+        _billRepo.Query().Returns(bills.AsAsyncQueryable());
+
+        var priceData = new List<BillPriceHistory>
+        {
+            new() { Id = 1, BillId = 1, Amount = 100m, EffectiveDate = now.AddMonths(-2) }
+        };
+        _priceRepo.Query().Returns(priceData.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(0m, result.TotalCurrentMonthAmount);
+    }
+
+    [Fact]
+    public async Task Handle_NoBills_ZeroCurrentMonthAndYear()
+    {
+        _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(0m, result.TotalCurrentMonthAmount);
+        Assert.Equal(0m, result.TotalCurrentYearAmount);
+    }
+}
+
+public class UploadBillAttachmentHandlerTests
+{
+    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
+    private readonly IRepository<BillAttachment> _attachmentRepo = Substitute.For<IRepository<BillAttachment>>();
+    private readonly IImageStorageService _storageService = Substitute.For<IImageStorageService>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+
+    private UploadBillAttachmentHandler CreateHandler() =>
+        new(_billRepo, _attachmentRepo, _storageService, _unitOfWork, _timeProvider);
+
+    [Fact]
+    public async Task Handle_BillNotFound_ReturnsNotFound()
+    {
+        _billRepo.GetById(1).Returns((Bill?)null);
+
+        var command = new UploadBillAttachmentCommand(1, Stream.Null, "file.pdf", "application/pdf", 100);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_EmptyFile_ReturnsBadRequest()
+    {
+        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+
+        var command = new UploadBillAttachmentCommand(1, Stream.Null, "file.pdf", "application/pdf", 0);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_ValidUpload_ReturnsCreated()
+    {
+        var now = DateTime.UtcNow;
+        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        _storageService.Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), Arg.Any<string>())
+            .Returns("bills/test.pdf");
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(now));
+
+        var command = new UploadBillAttachmentCommand(1, new MemoryStream(new byte[10]), "invoice.pdf", "application/pdf", 10);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created>(result);
+        _attachmentRepo.Received(1).Add(Arg.Is<BillAttachment>(a =>
+            a.BillId == 1 &&
+            a.Name == "invoice" &&
+            a.ContentType == "application/pdf"));
+    }
+
+    [Fact]
+    public async Task Handle_CustomAttachmentName_UsesProvidedName()
+    {
+        var now = DateTime.UtcNow;
+        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        _storageService.Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), Arg.Any<string>())
+            .Returns("bills/test.pdf");
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(now));
+
+        var command = new UploadBillAttachmentCommand(1, new MemoryStream(new byte[10]), "invoice.pdf", "application/pdf", 10, AttachmentName: "My Receipt");
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created>(result);
+        _attachmentRepo.Received(1).Add(Arg.Is<BillAttachment>(a => a.Name == "My Receipt"));
+    }
+}
+
+public class DeleteBillAttachmentHandlerTests
+{
+    private readonly IRepository<BillAttachment> _attachmentRepo = Substitute.For<IRepository<BillAttachment>>();
+    private readonly IImageStorageService _storageService = Substitute.For<IImageStorageService>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+
+    private DeleteBillAttachmentHandler CreateHandler() =>
+        new(_attachmentRepo, _storageService, _unitOfWork, _timeProvider);
+
+    [Fact]
+    public async Task Handle_AttachmentNotFound_ReturnsNotFound()
+    {
+        _attachmentRepo.GetById(1).Returns((BillAttachment?)null);
+
+        var result = await CreateHandler().Handle(new DeleteBillAttachmentCommand(1, 1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_AttachmentBelongsToDifferentBill_ReturnsNotFound()
+    {
+        _attachmentRepo.GetById(1).Returns(new BillAttachment
+        {
+            Id = 1, BillId = 99, StorageKey = "bills/file.pdf", Name = "File", ContentType = "application/pdf", CreatedOn = DateTime.UtcNow
+        });
+
+        var result = await CreateHandler().Handle(new DeleteBillAttachmentCommand(1, 1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_ValidAttachment_DeletesAndReturnsNoContent()
+    {
+        var now = DateTime.UtcNow;
+        var attachment = new BillAttachment
+        {
+            Id = 1, BillId = 1, StorageKey = "bills/file.pdf", Name = "File", ContentType = "application/pdf", CreatedOn = now
+        };
+        _attachmentRepo.GetById(1).Returns(attachment);
+        _storageService.Delete(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(now));
+
+        var result = await CreateHandler().Handle(new DeleteBillAttachmentCommand(1, 1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.NotNull(attachment.DeletedOn);
+        await _storageService.Received(1).Delete("bills/file.pdf", Arg.Any<CancellationToken>());
+    }
+}
+
+public class UpdateBillAttachmentHandlerTests
+{
+    private readonly IRepository<BillAttachment> _attachmentRepo = Substitute.For<IRepository<BillAttachment>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+
+    private UpdateBillAttachmentHandler CreateHandler() =>
+        new(_attachmentRepo, _unitOfWork, _timeProvider);
+
+    [Fact]
+    public async Task Handle_AttachmentNotFound_ReturnsNotFound()
+    {
+        _attachmentRepo.GetById(1).Returns((BillAttachment?)null);
+
+        var result = await CreateHandler().Handle(new UpdateBillAttachmentCommand(1, 1, "New Name"), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_ValidUpdate_UpdatesNameAndReturnsNoContent()
+    {
+        var now = DateTime.UtcNow;
+        var attachment = new BillAttachment
+        {
+            Id = 1, BillId = 1, StorageKey = "bills/file.pdf", Name = "Old Name", ContentType = "application/pdf", CreatedOn = now
+        };
+        _attachmentRepo.GetById(1).Returns(attachment);
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(now));
+
+        var result = await CreateHandler().Handle(new UpdateBillAttachmentCommand(1, 1, "New Name"), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal("New Name", attachment.Name);
+        Assert.NotNull(attachment.ModifiedOn);
+    }
+}
+
+public class GetBillAttachmentsHandlerTests
+{
+    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
+    private readonly IRepository<BillAttachment> _attachmentRepo = Substitute.For<IRepository<BillAttachment>>();
+    private readonly IImageStorageService _storageService = Substitute.For<IImageStorageService>();
+
+    private GetBillAttachmentsHandler CreateHandler() =>
+        new(_billRepo, _attachmentRepo, _storageService);
+
+    [Fact]
+    public async Task Handle_BillNotFound_ReturnsNotFound()
+    {
+        _billRepo.GetById(1).Returns((Bill?)null);
+
+        var result = await CreateHandler().Handle(new GetBillAttachmentsQuery(1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_ImageAttachment_UsesThumbnailUrl()
+    {
+        var now = DateTime.UtcNow;
+        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        var attachments = new List<BillAttachment>
+        {
+            new() { Id = 1, BillId = 1, StorageKey = "bills/img.jpg", Name = "Photo", ContentType = "image/jpeg", CreatedOn = now }
+        };
+        _attachmentRepo.Query().Returns(attachments.AsAsyncQueryable());
+        _storageService.GetImageUrl("bills/img.jpg", 150, 150, "fill").Returns("http://proxy/thumb.jpg");
+        _storageService.GetImageUrl("bills/img.jpg", 1920, 1080, "fit").Returns("http://proxy/full.jpg");
+
+        var result = await CreateHandler().Handle(new GetBillAttachmentsQuery(1), TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<IEnumerable<BillAttachmentResponse>>>(result);
+        var list = ok.Value!.ToList();
+        Assert.Single(list);
+        Assert.Equal("http://proxy/thumb.jpg", list[0].ThumbnailUrl);
+        Assert.Equal("http://proxy/full.jpg", list[0].Url);
+    }
+
+    [Fact]
+    public async Task Handle_NonImageAttachment_NullThumbnailUrl()
+    {
+        var now = DateTime.UtcNow;
+        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        var attachments = new List<BillAttachment>
+        {
+            new() { Id = 1, BillId = 1, StorageKey = "bills/doc.pdf", Name = "Invoice", ContentType = "application/pdf", CreatedOn = now }
+        };
+        _attachmentRepo.Query().Returns(attachments.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetBillAttachmentsQuery(1), TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<IEnumerable<BillAttachmentResponse>>>(result);
+        var list = ok.Value!.ToList();
+        Assert.Single(list);
+        Assert.Null(list[0].ThumbnailUrl);
+        Assert.Equal("bills/doc.pdf", list[0].Url);
     }
 }

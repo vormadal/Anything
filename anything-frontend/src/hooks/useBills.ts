@@ -4,7 +4,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest } from "@/lib/api-client/models/index";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
+
+function getAccessToken(): string {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("accessToken") ?? "";
+  }
+  return "";
+}
+
 export type PaymentFrequency =
+  | "None"
   | "Weekly"
   | "BiWeekly"
   | "Monthly"
@@ -13,6 +23,7 @@ export type PaymentFrequency =
   | "Annually";
 
 export const PAYMENT_FREQUENCIES: PaymentFrequency[] = [
+  "None",
   "Weekly",
   "BiWeekly",
   "Monthly",
@@ -22,6 +33,7 @@ export const PAYMENT_FREQUENCIES: PaymentFrequency[] = [
 ];
 
 export const FREQUENCY_LABELS: Record<PaymentFrequency, string> = {
+  None: "One-time",
   Weekly: "Weekly",
   BiWeekly: "Every 2 weeks",
   Monthly: "Monthly",
@@ -55,6 +67,8 @@ export interface BillSummaryResponse {
   totalMonthlyEquivalent: number;
   automatedCount: number;
   manualCount: number;
+  totalCurrentMonthAmount: number;
+  totalCurrentYearAmount: number;
 }
 
 export interface BillPriceHistoryResponse {
@@ -64,6 +78,17 @@ export interface BillPriceHistoryResponse {
   effectiveDate: string;
   notes?: string;
   previousAmount?: number;
+  createdOn: string;
+  modifiedOn?: string;
+}
+
+export interface BillAttachmentResponse {
+  id: number;
+  billId: number;
+  name: string;
+  contentType: string;
+  url: string;
+  thumbnailUrl?: string;
   createdOn: string;
   modifiedOn?: string;
 }
@@ -100,6 +125,20 @@ export function useBillPriceHistory(billId: number) {
       apiClient.api.bills
         .byId(billId)
         .priceHistory.get() as unknown as Promise<BillPriceHistoryResponse[]>,
+    enabled: !!billId,
+  });
+}
+
+export function useBillAttachments(billId: number) {
+  return useQuery({
+    queryKey: ["billAttachments", billId],
+    queryFn: async (): Promise<BillAttachmentResponse[]> => {
+      const res = await fetch(`${API_BASE_URL}/api/bills/${billId}/attachments`, {
+        headers: { Authorization: `Bearer ${getAccessToken()}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch attachments");
+      return res.json() as Promise<BillAttachmentResponse[]>;
+    },
     enabled: !!billId,
   });
 }
@@ -256,3 +295,61 @@ export function useDeleteBillPrice() {
     },
   });
 }
+
+export function useUploadBillAttachment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { billId: number; file: File; name?: string }) => {
+      const formData = new FormData();
+      formData.append("file", data.file);
+      const url = new URL(`${API_BASE_URL}/api/bills/${data.billId}/attachments`);
+      if (data.name) url.searchParams.set("name", data.name);
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Failed to upload attachment");
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["billAttachments", variables.billId] });
+    },
+  });
+}
+
+export function useUpdateBillAttachment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { billId: number; attachmentId: number; name: string }) => {
+      const res = await fetch(`${API_BASE_URL}/api/bills/${data.billId}/attachments/${data.attachmentId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAccessToken()}`,
+        },
+        body: JSON.stringify({ name: data.name }),
+      });
+      if (!res.ok) throw new Error("Failed to update attachment");
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["billAttachments", variables.billId] });
+    },
+  });
+}
+
+export function useDeleteBillAttachment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { billId: number; attachmentId: number }) => {
+      const res = await fetch(`${API_BASE_URL}/api/bills/${data.billId}/attachments/${data.attachmentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getAccessToken()}` },
+      });
+      if (!res.ok) throw new Error("Failed to delete attachment");
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["billAttachments", variables.billId] });
+    },
+  });
+}
+

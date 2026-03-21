@@ -150,6 +150,20 @@ export default function Home() {
                 </span>
                 <span>{billSummary.totalBills} bills total</span>
               </div>
+              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 pt-0.5">
+                <span>
+                  {new Date().toLocaleString("default", { month: "short" })}:{" "}
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {new Intl.NumberFormat("da-DK", { style: "currency", currency: "DKK", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(billSummary.totalCurrentMonthAmount))}
+                  </span>
+                </span>
+                <span>
+                  {new Date().getFullYear()}:{" "}
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {new Intl.NumberFormat("da-DK", { style: "currency", currency: "DKK", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(billSummary.totalCurrentYearAmount))}
+                  </span>
+                </span>
+              </div>
             </div>
             <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
           </button>

@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import {
   useBill,
   useBillPriceHistory,
+  useBillAttachments,
   useDeleteBill,
   useAddBillPrice,
   useDeleteBillPrice,
+  useUploadBillAttachment,
+  useUpdateBillAttachment,
+  useDeleteBillAttachment,
   FREQUENCY_LABELS,
 } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
@@ -25,7 +29,11 @@ import {
   Plus,
   Zap,
   Hand,
+  Paperclip,
+  FileText,
+  Image as ImageIconLucide,
 } from "lucide-react";
+import Image from "next/image";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("da-DK", {
@@ -104,15 +112,22 @@ export default function BillDetailPage() {
   const router = useRouter();
   const { data: bill, isLoading } = useBill(billId);
   const { data: history, isLoading: historyLoading } = useBillPriceHistory(billId);
+  const { data: attachments, isLoading: attachmentsLoading } = useBillAttachments(billId);
   const deleteBill = useDeleteBill();
   const addPrice = useAddBillPrice();
   const deletePrice = useDeleteBillPrice();
+  const uploadAttachment = useUploadBillAttachment();
+  const updateAttachment = useUpdateBillAttachment();
+  const deleteAttachment = useDeleteBillAttachment();
   const { setHeaderActions } = useHeaderActions();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showAddPrice, setShowAddPrice] = useState(false);
   const [newAmount, setNewAmount] = useState("");
   const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
   const [newNotes, setNewNotes] = useState("");
+  const [editingAttachmentId, setEditingAttachmentId] = useState<number | null>(null);
+  const [editingAttachmentName, setEditingAttachmentName] = useState("");
 
   useEffect(() => {
     setHeaderActions(
@@ -166,6 +181,44 @@ export default function BillDetailPage() {
       toast.success("Price entry removed");
     } catch {
       toast.error("Failed to remove price entry");
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await uploadAttachment.mutateAsync({ billId, file });
+      toast.success("Attachment uploaded");
+    } catch {
+      toast.error("Failed to upload attachment");
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleStartEditAttachment = (id: number, name: string) => {
+    setEditingAttachmentId(id);
+    setEditingAttachmentName(name);
+  };
+
+  const handleSaveAttachmentName = async (attachmentId: number) => {
+    if (!editingAttachmentName.trim()) return;
+    try {
+      await updateAttachment.mutateAsync({ billId, attachmentId, name: editingAttachmentName.trim() });
+      toast.success("Attachment renamed");
+      setEditingAttachmentId(null);
+    } catch {
+      toast.error("Failed to rename attachment");
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number) => {
+    if (!confirm("Delete this attachment?")) return;
+    try {
+      await deleteAttachment.mutateAsync({ billId, attachmentId });
+      toast.success("Attachment deleted");
+    } catch {
+      toast.error("Failed to delete attachment");
     }
   };
 
@@ -406,6 +459,122 @@ export default function BillDetailPage() {
                 </button>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Attachments */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+            <Paperclip className="h-4 w-4" />
+            Attachments
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadAttachment.isPending}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            {uploadAttachment.isPending ? "Uploading..." : "Add file"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="*/*"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+        </div>
+
+        {attachmentsLoading && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
+        )}
+        {!attachmentsLoading && (attachments ?? []).length === 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">No attachments yet.</p>
+          </div>
+        )}
+        {!attachmentsLoading && (attachments ?? []).length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+            {(attachments ?? []).map((att) => {
+              const isImage = att.contentType.startsWith("image/");
+              return (
+                <div key={att.id} className="px-4 py-3 flex items-center gap-3">
+                  {/* Thumbnail or icon */}
+                  <div className="w-12 h-12 rounded overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center">
+                    {isImage && att.thumbnailUrl ? (
+                      <Image
+                        src={att.thumbnailUrl}
+                        alt={att.name}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <FileText className="h-6 w-6 text-gray-400" />
+                    )}
+                  </div>
+                  {/* Name / edit */}
+                  <div className="flex-1 min-w-0">
+                    {editingAttachmentId === att.id ? (
+                      <form
+                        onSubmit={(e) => { e.preventDefault(); void handleSaveAttachmentName(att.id); }}
+                        className="flex items-center gap-1"
+                      >
+                        <input
+                          type="text"
+                          value={editingAttachmentName}
+                          onChange={(e) => setEditingAttachmentName(e.target.value)}
+                          className="flex-1 px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                        />
+                        <Button type="submit" size="sm" variant="ghost" className="text-xs px-2">Save</Button>
+                        <Button type="button" size="sm" variant="ghost" className="text-xs px-2" onClick={() => setEditingAttachmentId(null)}>Cancel</Button>
+                      </form>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate"
+                        >
+                          {att.name}
+                        </a>
+                        {isImage ? (
+                          <ImageIconLucide className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                        ) : (
+                          <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                        )}
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{att.contentType}</p>
+                  </div>
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEditAttachment(att.id, att.name)}
+                      className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"
+                      aria-label="Rename attachment"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAttachment(att.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                      aria-label="Delete attachment"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

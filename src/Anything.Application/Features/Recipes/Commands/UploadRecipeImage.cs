@@ -37,7 +37,8 @@ public class UploadRecipeImageHandler(
             command.FileName,
             command.ContentType,
             command.ContentLength,
-            ct);
+            ct,
+            folder: "recipes");
 
         var image = new RecipeImage
         {

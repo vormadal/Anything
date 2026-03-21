@@ -10,6 +10,7 @@ internal static class BillHelpers
         if (amount is null) return null;
         return frequency switch
         {
+            PaymentFrequency.None => null,
             PaymentFrequency.Weekly => Math.Round(amount.Value * 52m / 12m, 2),
             PaymentFrequency.BiWeekly => Math.Round(amount.Value * 26m / 12m, 2),
             PaymentFrequency.Monthly => amount.Value,

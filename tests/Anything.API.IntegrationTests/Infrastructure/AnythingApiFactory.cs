@@ -100,7 +100,7 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
 file class NoOpImageStorageService : IImageStorageService
 {
     public Task Initialize(bool ensureBucketExists = false, CancellationToken ct = default) => Task.CompletedTask;
-    public Task<string> Upload(Stream stream, string fileName, string contentType, long contentLength, CancellationToken ct = default) => Task.FromResult(fileName);
+    public Task<string> Upload(Stream stream, string fileName, string contentType, long contentLength, CancellationToken ct = default, string folder = "files") => Task.FromResult(fileName);
     public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill") => storageKey;
     public Task Delete(string storageKey, CancellationToken ct = default) => Task.CompletedTask;
 }

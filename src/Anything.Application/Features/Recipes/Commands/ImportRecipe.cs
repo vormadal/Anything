@@ -99,7 +99,7 @@ public class ImportRecipeHandler(
             await imageStream.CopyToAsync(buffer, ct);
             buffer.Position = 0;
 
-            return await imageStorageService.Upload(buffer, fileName, contentType, buffer.Length, ct);
+            return await imageStorageService.Upload(buffer, fileName, contentType, buffer.Length, ct, folder: "recipes");
         }
         catch (Exception ex)
         {

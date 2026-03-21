@@ -31,6 +31,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<Bill> Bills => Set<Bill>();
     public DbSet<BillPriceHistory> BillPriceHistories => Set<BillPriceHistory>();
+    public DbSet<BillAttachment> BillAttachments => Set<BillAttachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -20,6 +20,7 @@ public static class BillEndpoints
         group.MapGet("/summary", async (IMediator mediator) =>
             await mediator.Send(new GetBillSummaryQuery()))
             .WithName("GetBillSummary")
+            .Produces<BillSummaryResponse>()
             .RequireAuthorization();
 
         group.MapGet("/{id}", async (int id, IMediator mediator) =>
@@ -99,6 +100,45 @@ public static class BillEndpoints
         group.MapDelete("/{id}/price-history/{historyId}", async (int id, int historyId, IMediator mediator) =>
             await mediator.Send(new DeleteBillPriceCommand(id, historyId)))
             .WithName("DeleteBillPrice")
+            .Produces(204)
+            .Produces(404)
+            .RequireAuthorization();
+
+        group.MapGet("/{id}/attachments", async (int id, IMediator mediator) =>
+            await mediator.Send(new GetBillAttachmentsQuery(id)))
+            .WithName("GetBillAttachments")
+            .Produces<BillAttachmentResponse[]>()
+            .Produces(404)
+            .RequireAuthorization();
+
+        group.MapPost("/{id}/attachments", async (int id, IFormFile? file, string? name, IMediator mediator) =>
+        {
+            if (file is null || file.Length == 0)
+                return Results.BadRequest("No file uploaded or file is empty.");
+            await using var stream = file.OpenReadStream();
+            return await mediator.Send(new UploadBillAttachmentCommand(
+                id, stream, file.FileName, file.ContentType, file.Length, name));
+        })
+        .WithName("UploadBillAttachment")
+        .Produces(StatusCodes.Status201Created)
+        .Produces(400)
+        .Produces(404)
+        .DisableAntiforgery()
+        .RequireAuthorization();
+
+        group.MapPut("/{id}/attachments/{attachmentId}", async (
+            int id, int attachmentId, UpdateBillAttachmentRequest request, IMediator mediator) =>
+            await mediator.Send(new UpdateBillAttachmentCommand(id, attachmentId, request.Name)))
+            .WithName("UpdateBillAttachment")
+            .Produces(204)
+            .Produces(400)
+            .Produces(404)
+            .WithParameterValidation()
+            .RequireAuthorization();
+
+        group.MapDelete("/{id}/attachments/{attachmentId}", async (int id, int attachmentId, IMediator mediator) =>
+            await mediator.Send(new DeleteBillAttachmentCommand(id, attachmentId)))
+            .WithName("DeleteBillAttachment")
             .Produces(204)
             .Produces(404)
             .RequireAuthorization();
