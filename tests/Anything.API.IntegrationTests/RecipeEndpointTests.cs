@@ -335,45 +335,76 @@ public class RecipeEndpointTests : IntegrationTestBase
     // --- Images ---
 
     [Fact]
-    public async Task Images_CrudLifecycle()
+    public async Task Images_Upload_FullLifecycle()
     {
         var recipe = await CreateRecipeAsync("Steak", null, null);
         var client = await GetAuthenticatedHttpClientAsync();
 
         // Empty initially
         var emptyResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/images", TestContext.Current.CancellationToken);
-        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<ImageDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        var emptyResult = await emptyResponse.Content.ReadFromJsonAsync<RecipeImageDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(emptyResult);
         Assert.Empty(emptyResult);
 
-        // Add image
-        var image = await AddImageAsync(recipe.Id, "https://example.com/steak.jpg");
-        Assert.True(image.Id > 0);
-        Assert.Equal("https://example.com/steak.jpg", image.Url);
+        // Upload a JPEG image file
+        using var uploadContent = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF }); // JPEG magic bytes
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        uploadContent.Add(fileContent, "file", "steak.jpg");
 
-        // Delete
-        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/images/{image.Id}", TestContext.Current.CancellationToken);
+        var uploadResponse = await client.PostAsync($"/api/recipes/{recipe.Id}/images/upload", uploadContent, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+
+        // Retrieve images — verifies upload is stored and all URL variants are returned
+        var listResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/images", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        var images = await listResponse.Content.ReadFromJsonAsync<RecipeImageDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(images);
+        Assert.Single(images);
+        Assert.True(images[0].Id > 0);
+        Assert.Equal(recipe.Id, images[0].RecipeId);
+        Assert.NotEmpty(images[0].ThumbnailUrl);
+        Assert.NotEmpty(images[0].MediumUrl);
+        Assert.NotEmpty(images[0].OriginalUrl);
+
+        // Delete the image
+        var deleteResponse = await client.DeleteAsync($"/api/recipes/{recipe.Id}/images/{images[0].Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
+        // Verify deleted
         var afterDelete = await client.GetAsync($"/api/recipes/{recipe.Id}/images", TestContext.Current.CancellationToken);
-        var remaining = await afterDelete.Content.ReadFromJsonAsync<ImageDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        var remaining = await afterDelete.Content.ReadFromJsonAsync<RecipeImageDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(remaining);
         Assert.Empty(remaining);
     }
 
     [Fact]
-    public async Task Images_ValidationAndNotFound()
+    public async Task Images_Upload_BadRequest_WhenFileEmpty()
     {
-        var recipe = await CreateRecipeAsync("Test", null, null);
+        var recipe = await CreateRecipeAsync("Pasta", null, null);
         var client = await GetAuthenticatedHttpClientAsync();
 
-        var invalidUrl = await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/images",
-            new { url = "not-a-url" }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.BadRequest, invalidUrl.StatusCode);
+        using var emptyContent = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(Array.Empty<byte>());
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        emptyContent.Add(fileContent, "file", "empty.jpg");
 
-        var notFound = await client.PostAsJsonAsync("/api/recipes/99999/images",
-            new { url = "https://example.com/img.jpg" }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
+        var response = await client.PostAsync($"/api/recipes/{recipe.Id}/images/upload", emptyContent, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Images_Upload_NotFound_WhenRecipeDoesNotExist()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF });
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        content.Add(fileContent, "file", "photo.jpg");
+
+        var response = await client.PostAsync("/api/recipes/99999/images/upload", content, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     // --- Add to Shopping List ---
@@ -488,17 +519,6 @@ public class RecipeEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private async Task<ImageDto> AddImageAsync(int recipeId, string url)
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync($"/api/recipes/{recipeId}/images",
-            new { url }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ImageDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(result);
-        return result;
-    }
-
     private async Task<int> CreateShoppingListAsync(string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
@@ -596,7 +616,7 @@ public class RecipeEndpointTests : IntegrationTestBase
     private record RecipeDto(int Id, string? Name, string? Link, string? Notes);
     private record IngredientDto(int Id, int RecipeId, string? Name, decimal? Amount, string? Unit, string? Group);
     private record StepDto(int Id, int RecipeId, string? Text, int Order);
-    private record ImageDto(int Id, int RecipeId, string? Url);
+    private record RecipeImageDto(int Id, int RecipeId, string ThumbnailUrl, string MediumUrl, string OriginalUrl, DateTime CreatedOn);
     private record TagDto(int Id, int RecipeId, string Name, DateTime CreatedOn);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
