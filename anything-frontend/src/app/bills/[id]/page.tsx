@@ -190,8 +190,8 @@ export default function BillDetailPage() {
     try {
       await uploadAttachment.mutateAsync({ billId, file });
       toast.success("Attachment uploaded");
-    } catch {
-      toast.error("Failed to upload attachment");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload attachment");
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
