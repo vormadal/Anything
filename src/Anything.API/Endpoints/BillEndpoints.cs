@@ -76,6 +76,8 @@ public static class BillEndpoints
         group.MapGet("/{id}/price-history", async (int id, IMediator mediator) =>
             await mediator.Send(new GetBillPriceHistoryQuery(id)))
             .WithName("GetBillPriceHistory")
+            .Produces<BillPriceHistoryResponse[]>()
+            .Produces(404)
             .RequireAuthorization();
 
         group.MapPost("/{id}/price-history", async (int id, AddBillPriceRequest request, IMediator mediator) =>
