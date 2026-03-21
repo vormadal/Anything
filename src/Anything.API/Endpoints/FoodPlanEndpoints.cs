@@ -1,6 +1,7 @@
 using Anything.Application.Features.FoodPlans.Commands;
 using Anything.Application.Features.FoodPlans.Queries;
 using Anything.Contracts.FoodPlans;
+using Anything.Core.Entities;
 using Anything.Mediator;
 
 namespace Anything.API.Endpoints;
@@ -25,6 +26,7 @@ public static class FoodPlanEndpoints
             return await mediator.Send(new UpdateFoodPlanSettingsCommand(request.ActiveDays));
         })
         .WithName("UpdateFoodPlanSettings")
+        .Produces<FoodPlanSettings>()
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -42,6 +44,8 @@ public static class FoodPlanEndpoints
             return await mediator.Send(new AddFoodPlanEntryCommand(request.Name, request.RecipeId, request.Date!.Value));
         })
         .WithName("AddFoodPlanEntry")
+        .Produces<FoodPlanEntry>(StatusCodes.Status201Created)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -50,6 +54,8 @@ public static class FoodPlanEndpoints
             return await mediator.Send(new UpdateFoodPlanEntryCommand(entryId, request.Name, request.RecipeId, request.Date!.Value));
         })
         .WithName("UpdateFoodPlanEntry")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -58,6 +64,8 @@ public static class FoodPlanEndpoints
             return await mediator.Send(new DeleteFoodPlanEntryCommand(entryId));
         })
         .WithName("DeleteFoodPlanEntry")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
 
         // --- Add to shopping list ---
@@ -68,6 +76,8 @@ public static class FoodPlanEndpoints
                 request.ShoppingListId!.Value, request.StartDate!.Value, request.EndDate!.Value, request.RecipeMultipliers));
         })
         .WithName("AddFoodPlanToShoppingList")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
     }

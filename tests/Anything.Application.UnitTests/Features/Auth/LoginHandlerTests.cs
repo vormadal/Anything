@@ -36,7 +36,7 @@ public class LoginHandlerTests
         _tokenService.GenerateRefreshToken().Returns("refresh-token");
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new LoginCommand("test@test.com", "password123"));
+        var result = await handler.Handle(new LoginCommand("test@test.com", "password123"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Ok<Contracts.Auth.LoginResponse>>(result);
         var okResult = (Ok<Contracts.Auth.LoginResponse>)result;
@@ -58,7 +58,7 @@ public class LoginHandlerTests
         _passwordService.VerifyPassword("wrong", "hash").Returns(false);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new LoginCommand("test@test.com", "wrong"));
+        var result = await handler.Handle(new LoginCommand("test@test.com", "wrong"), TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -69,7 +69,7 @@ public class LoginHandlerTests
         _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new LoginCommand("nobody@test.com", "password"));
+        var result = await handler.Handle(new LoginCommand("nobody@test.com", "password"), TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -86,7 +86,7 @@ public class LoginHandlerTests
         _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new LoginCommand("test@test.com", "password"));
+        var result = await handler.Handle(new LoginCommand("test@test.com", "password"), TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -104,7 +104,7 @@ public class LoginHandlerTests
         _tokenService.GenerateRefreshToken().Returns("rt");
 
         var handler = CreateHandler();
-        await handler.Handle(new LoginCommand("test@test.com", "password"));
+        await handler.Handle(new LoginCommand("test@test.com", "password"), TestContext.Current.CancellationToken);
 
         _refreshTokenRepo.Received(1).Add(Arg.Is<RefreshToken>(rt =>
             rt.ExpiresAt == now.AddDays(7).UtcDateTime));

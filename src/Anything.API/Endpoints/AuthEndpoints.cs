@@ -35,6 +35,8 @@ public static class AuthEndpoints
             return await mediator.Send(new RegisterCommand(request.Email, request.Password, request.Name, request.InviteToken));
         })
         .WithName("Register")
+        .Produces(201)
+        .Produces(400)
         .WithParameterValidation()
         .AllowAnonymous();
 
@@ -65,6 +67,8 @@ public static class AuthEndpoints
             return await mediator.Send(new DeleteInviteCommand(id, userRole));
         })
         .WithName("DeleteInvite")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
 
         group.MapPut("/profile", async (UpdateProfileRequest request, ClaimsPrincipal user, IMediator mediator) =>
@@ -74,6 +78,9 @@ public static class AuthEndpoints
             return await mediator.Send(new UpdateProfileCommand(userId, request.Name));
         })
         .WithName("UpdateProfile")
+        .Produces(204)
+        .Produces(401)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -84,6 +91,10 @@ public static class AuthEndpoints
             return await mediator.Send(new ChangePasswordCommand(userId, request.CurrentPassword, request.NewPassword));
         })
         .WithName("ChangePassword")
+        .Produces(204)
+        .Produces(400)
+        .Produces(401)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
     }

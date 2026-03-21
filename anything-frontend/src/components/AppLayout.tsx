@@ -2,7 +2,7 @@
 
 import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { isAdmin } from "@/lib/roles";
 import { toast } from "sonner";
 import {
@@ -31,8 +31,10 @@ import {
   useHeaderActions,
 } from "@/context/PageActionsContext";
 import { useSmartBack } from "@/hooks/useSmartBack";
+import { useIsAuthenticated } from "@/hooks/useAuth";
 
 const PUBLIC_PATHS = ["/login", "/register"];
+
 
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home },
@@ -42,26 +44,6 @@ const NAV_ITEMS = [
   { label: "Bills", path: "/bills", icon: Receipt },
 ];
 
-function getPageTitle(pathname: string): string {
-  if (pathname === "/") return "Anything";
-  if (pathname === "/shopping-lists") return "Shopping Lists";
-  if (pathname.startsWith("/shopping-lists/")) return "Shopping List";
-  if (pathname === "/recipes") return "Recipes";
-  if (pathname === "/recipes/new") return "New Recipe";
-  if (pathname.startsWith("/recipes/")) return "Recipe";
-  if (pathname === "/food-plans") return "Food Plan";
-  if (pathname === "/food-plans/new") return "New Food Plan";
-  if (pathname.startsWith("/food-plans/")) return "Food Plan";
-  if (pathname === "/bills") return "Bills";
-  if (pathname === "/bills/new") return "New Bill";
-  if (pathname.startsWith("/bills/") && pathname.endsWith("/edit")) return "Edit Bill";
-  if (pathname.startsWith("/bills/")) return "Bill";
-  if (pathname === "/admin/invite") return "Invite Users";
-  if (pathname === "/admin/recommendations") return "Recommendations";
-  if (pathname.startsWith("/admin")) return "Admin";
-  if (pathname === "/profile") return "Profile";
-  return "Anything";
-}
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -84,7 +66,18 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const router = useRouter();
   const pathname = usePathname();
-  const { headerActions, hideTitle, leftAction } = useHeaderActions();
+  const isAuthenticated = useIsAuthenticated();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isAuthenticated, router]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
+  const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
   const { navigateBack } = useSmartBack();
 
   const navigate = (path: string) => {
@@ -127,7 +120,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           )}
           {!hideTitle && (
             <h1 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white truncate flex-1">
-              {getPageTitle(pathname)}
+              {title || "Anything"}
             </h1>
           )}
           {headerActions}

@@ -25,7 +25,7 @@ public class CreateVendorHandlerTests
     {
         var handler = new CreateVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateVendorCommand("Acme Corp", "https://acme.com"));
+        var result = await handler.Handle(new CreateVendorCommand("Acme Corp", "https://acme.com"), TestContext.Current.CancellationToken);
 
         Assert.Equal("Acme Corp", result.Name);
         Assert.Equal("https://acme.com", result.Website);
@@ -38,7 +38,7 @@ public class CreateVendorHandlerTests
     {
         var handler = new CreateVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateVendorCommand("No-Web Vendor", null));
+        var result = await handler.Handle(new CreateVendorCommand("No-Web Vendor", null), TestContext.Current.CancellationToken);
 
         Assert.Equal("No-Web Vendor", result.Name);
         Assert.Null(result.Website);
@@ -52,7 +52,7 @@ public class CreateVendorHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
         var handler = new CreateVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateVendorCommand("Supplier Z", null));
+        var result = await handler.Handle(new CreateVendorCommand("Supplier Z", null), TestContext.Current.CancellationToken);
 
         Assert.Equal(now.UtcDateTime, result.CreatedOn);
     }
@@ -62,7 +62,7 @@ public class CreateVendorHandlerTests
     {
         var handler = new CreateVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateVendorCommand("Tech Shop", "https://techshop.io"));
+        var result = await handler.Handle(new CreateVendorCommand("Tech Shop", "https://techshop.io"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Vendor>(result);
         Assert.Equal("Tech Shop", result.Name);
@@ -86,7 +86,7 @@ public class UpdateVendorHandlerTests
         _repo.GetById(1).Returns((Vendor?)null);
         var handler = new UpdateVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", null));
+        var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -97,7 +97,7 @@ public class UpdateVendorHandlerTests
         _repo.GetById(1).Returns(new Vendor { Id = 1, Name = "Old", DeletedOn = DateTime.UtcNow });
         var handler = new UpdateVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", null));
+        var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -111,7 +111,7 @@ public class UpdateVendorHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new UpdateVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", "https://new.com"));
+        var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", "https://new.com"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Name", entity.Name);
@@ -127,7 +127,7 @@ public class UpdateVendorHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new UpdateVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        await handler.Handle(new UpdateVendorCommand(1, "Vendor", null));
+        await handler.Handle(new UpdateVendorCommand(1, "Vendor", null), TestContext.Current.CancellationToken);
 
         Assert.Null(entity.Website);
     }
@@ -150,7 +150,7 @@ public class DeleteVendorHandlerTests
         _repo.GetById(1).Returns((Vendor?)null);
         var handler = new DeleteVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteVendorCommand(1));
+        var result = await handler.Handle(new DeleteVendorCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -161,7 +161,7 @@ public class DeleteVendorHandlerTests
         _repo.GetById(1).Returns(new Vendor { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
         var handler = new DeleteVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteVendorCommand(1));
+        var result = await handler.Handle(new DeleteVendorCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -175,7 +175,7 @@ public class DeleteVendorHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new DeleteVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteVendorCommand(1));
+        var result = await handler.Handle(new DeleteVendorCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -188,7 +188,7 @@ public class DeleteVendorHandlerTests
         _repo.GetById(99).Returns((Vendor?)null);
         var handler = new DeleteVendorHandler(_repo, _unitOfWork, _timeProvider);
 
-        await handler.Handle(new DeleteVendorCommand(99));
+        await handler.Handle(new DeleteVendorCommand(99), TestContext.Current.CancellationToken);
 
         await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -208,7 +208,7 @@ public class GetVendorsHandlerTests
         }.AsAsyncQueryable());
 
         var handler = new GetVendorsHandler(_repo);
-        var result = await handler.Handle(new GetVendorsQuery());
+        var result = await handler.Handle(new GetVendorsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Active Vendor", result[0].Name);
@@ -223,7 +223,7 @@ public class GetVendorsHandlerTests
         }.AsAsyncQueryable());
 
         var handler = new GetVendorsHandler(_repo);
-        var result = await handler.Handle(new GetVendorsQuery());
+        var result = await handler.Handle(new GetVendorsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }
@@ -239,7 +239,7 @@ public class GetVendorsHandlerTests
         }.AsAsyncQueryable());
 
         var handler = new GetVendorsHandler(_repo);
-        var result = await handler.Handle(new GetVendorsQuery());
+        var result = await handler.Handle(new GetVendorsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(["Alpha Inc", "Mango Ltd", "Zebra Corp"], result.Select(v => v.Name).ToList());
     }
@@ -255,7 +255,7 @@ public class GetVendorByIdHandlerTests
         _repo.GetById(1).Returns((Vendor?)null);
         var handler = new GetVendorByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetVendorByIdQuery(1));
+        var result = await handler.Handle(new GetVendorByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -266,7 +266,7 @@ public class GetVendorByIdHandlerTests
         _repo.GetById(1).Returns(new Vendor { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
         var handler = new GetVendorByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetVendorByIdQuery(1));
+        var result = await handler.Handle(new GetVendorByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -278,7 +278,7 @@ public class GetVendorByIdHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new GetVendorByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetVendorByIdQuery(1));
+        var result = await handler.Handle(new GetVendorByIdQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<Vendor>>(result);
         Assert.Equal("Best Vendor", ok.Value!.Name);
@@ -292,7 +292,7 @@ public class GetVendorByIdHandlerTests
         _repo.GetById(7).Returns(entity);
         var handler = new GetVendorByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetVendorByIdQuery(7));
+        var result = await handler.Handle(new GetVendorByIdQuery(7), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<Vendor>>(result);
         Assert.Equal(7, ok.Value!.Id);

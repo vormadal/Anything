@@ -8,16 +8,20 @@ type PageActionsContextType = {
   headerActions: React.ReactNode;
   hideTitle: boolean;
   leftAction: LeftAction;
+  title: string;
   setHeaderActions: (actions: React.ReactNode, hideTitle?: boolean) => void;
   setLeftAction: (action: LeftAction) => void;
+  setPageTitle: (title: string) => void;
 };
 
 const PageActionsContext = createContext<PageActionsContextType>({
   headerActions: null,
   hideTitle: false,
   leftAction: { type: "menu" },
+  title: "",
   setHeaderActions: () => {},
   setLeftAction: () => {},
+  setPageTitle: () => {},
 });
 
 export function PageActionsProvider({
@@ -31,6 +35,7 @@ export function PageActionsProvider({
   const [leftAction, setLeftActionState] = useState<LeftAction>({
     type: "menu",
   });
+  const [title, setTitleState] = useState("");
 
   const setHeaderActions = useCallback(
     (actions: React.ReactNode, hide = false) => {
@@ -44,14 +49,20 @@ export function PageActionsProvider({
     setLeftActionState(action);
   }, []);
 
+  const setPageTitle = useCallback((t: string) => {
+    setTitleState(t);
+  }, []);
+
   return (
     <PageActionsContext.Provider
       value={{
         headerActions,
         hideTitle,
         leftAction,
+        title,
         setHeaderActions,
         setLeftAction,
+        setPageTitle,
       }}
     >
       {children}

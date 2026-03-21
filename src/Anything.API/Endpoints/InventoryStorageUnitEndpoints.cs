@@ -1,6 +1,7 @@
 using Anything.Application.Features.Inventory.Commands;
 using Anything.Application.Features.Inventory.Queries;
 using Anything.Contracts.Inventory;
+using Anything.Core.Entities;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
@@ -24,6 +25,8 @@ public static class InventoryStorageUnitEndpoints
             return await mediator.Send(new GetInventoryStorageUnitByIdQuery(id));
         })
         .WithName("GetInventoryStorageUnitById")
+        .Produces<InventoryStorageUnit>()
+        .Produces(404)
         .RequireAuthorization();
 
         group.MapPost("/", async (CreateInventoryStorageUnitRequest request, IMediator mediator) =>
@@ -32,6 +35,7 @@ public static class InventoryStorageUnitEndpoints
             return Results.Created($"/api/inventory-storage-units/{result.Id}", result);
         })
         .WithName("CreateInventoryStorageUnit")
+        .Produces<InventoryStorageUnit>(StatusCodes.Status201Created)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -40,6 +44,8 @@ public static class InventoryStorageUnitEndpoints
             return await mediator.Send(new UpdateInventoryStorageUnitCommand(id, request.Name, request.Type));
         })
         .WithName("UpdateInventoryStorageUnit")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -48,6 +54,8 @@ public static class InventoryStorageUnitEndpoints
             return await mediator.Send(new DeleteInventoryStorageUnitCommand(id));
         })
         .WithName("DeleteInventoryStorageUnit")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
     }
 }

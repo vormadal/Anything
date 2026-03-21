@@ -1,9 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useBill, BillResponse, useUpdateBill, PAYMENT_FREQUENCIES, FREQUENCY_LABELS, PaymentFrequency } from "@/hooks/useBills";
-import { useLocations } from "@/hooks/useLocations";
-import { useVendors } from "@/hooks/useVendors";
+import { useBill, useUpdateBill, PAYMENT_FREQUENCIES, FREQUENCY_LABELS, type BillResponse, type PaymentFrequency } from "@/hooks/useBills";
+import { useLocations, type Location } from "@/hooks/useLocations";
+import { useVendors, type Vendor } from "@/hooks/useVendors";
+import { Button } from "@/components/ui/button";
+import { PageTitle } from "@/components/PageTitle";
+import { ComboboxField } from "@/components/ui/combobox-field";
+import { CreateVendorDialog } from "@/components/CreateVendorDialog";
+import { CreateLocationDialog } from "@/components/CreateLocationDialog";
+import { toast } from "sonner";
 
 export default function EditBillPage() {
   const params = useParams();
@@ -29,81 +36,100 @@ export default function EditBillPage() {
   return <EditBillForm bill={bill} billId={billId} />;
 }
 
-function EditBillForm({ bill, billId }: { bill: BillResponse; billId: number }) {
+function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: number }>) {
   const router = useRouter();
   const { data: locations } = useLocations();
   const { data: vendors } = useVendors();
   const updateBill = useUpdateBill();
 
-  // Use uncontrolled form with defaultValue so no useEffect needed
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const [name, setName] = useState(bill.name);
+  const [vendorId, setVendorId] = useState<number | undefined>(bill.vendorId);
+  const [frequency, setFrequency] = useState<string>(bill.frequency);
+  const [isAutomated, setIsAutomated] = useState(bill.isAutomated);
+  const [locationId, setLocationId] = useState<number | undefined>(bill.locationId);
+  const [managementUrl, setManagementUrl] = useState(bill.managementUrl ?? "");
+  const [category, setCategory] = useState(bill.category ?? "");
+  const [notes, setNotes] = useState(bill.notes ?? "");
+
+  const [vendorDialog, setVendorDialog] = useState<string | null>(null);
+  const [locationDialog, setLocationDialog] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const data = new FormData(form);
+    if (!name.trim()) return;
 
     try {
-      const { toast } = await import("sonner");
       await updateBill.mutateAsync({
         id: billId,
-        name: (data.get("name") as string).trim(),
-        vendorId: data.get("vendorId") ? Number(data.get("vendorId")) : undefined,
-        frequency: data.get("frequency") as PaymentFrequency,
-        isAutomated: data.get("isAutomated") === "true",
-        locationId: data.get("locationId") ? Number(data.get("locationId")) : undefined,
-        managementUrl: (data.get("managementUrl") as string).trim() || undefined,
-        category: (data.get("category") as string).trim() || undefined,
-        notes: (data.get("notes") as string).trim() || undefined,
+        name: name.trim(),
+        vendorId,
+        frequency: frequency as PaymentFrequency,
+        isAutomated,
+        locationId,
+        managementUrl: managementUrl.trim() || undefined,
+        category: category.trim() || undefined,
+        notes: notes.trim() || undefined,
       });
       toast.success("Bill updated");
       router.push(`/bills/${billId}`);
     } catch {
-      const { toast } = await import("sonner");
       toast.error("Failed to update bill");
     }
   };
 
+  function handleVendorCreated(vendor: Vendor) {
+    setVendorId(vendor.id);
+    setVendorDialog(null);
+  }
+
+  function handleLocationCreated(location: Location) {
+    setLocationId(location.id);
+    setLocationDialog(null);
+  }
+
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
+      <PageTitle>Edit Bill</PageTitle>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="edit-bill-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Name <span className="text-red-500">*</span>
           </label>
           <input
+            id="edit-bill-name"
             type="text"
-            name="name"
-            defaultValue={bill.name}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
+        {/* Vendor */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Vendor
-          </label>
-          <select
-            name="vendorId"
-            defaultValue={bill.vendorId ?? ""}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">No vendor</option>
-            {vendors?.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
+          </p>
+          <ComboboxField
+            items={vendors ?? []}
+            value={vendorId}
+            onChange={setVendorId}
+            placeholder="Search vendors..."
+            onCreateNew={(n) => setVendorDialog(n)}
+          />
         </div>
 
+        {/* Frequency + Automated */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="edit-bill-frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Frequency
             </label>
             <select
-              name="frequency"
-              defaultValue={bill.frequency}
+              id="edit-bill-frequency"
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {PAYMENT_FREQUENCIES.map((f) => (
@@ -114,94 +140,128 @@ function EditBillForm({ bill, billId }: { bill: BillResponse; billId: number }) 
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Payment
-            </label>
-            <select
-              name="isAutomated"
-              defaultValue={String(bill.isAutomated)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="true">Automated</option>
-              <option value="false">Manual</option>
-            </select>
+            </p>
+            <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsAutomated(true)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  isAutomated
+                    ? "bg-green-600 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                }`}
+              >
+                Auto
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAutomated(false)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  !isAutomated
+                    ? "bg-orange-500 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                }`}
+              >
+                Manual
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Location + Category */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Location
-            </label>
-            <select
-              name="locationId"
-              defaultValue={bill.locationId ?? ""}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">None</option>
-              {locations?.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+            </p>
+            <ComboboxField
+              items={locations ?? []}
+              value={locationId}
+              onChange={setLocationId}
+              placeholder="Search locations..."
+              onCreateNew={(n) => setLocationDialog(n)}
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="edit-bill-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Category
             </label>
             <input
+              id="edit-bill-category"
               type="text"
-              name="category"
-              defaultValue={bill.category ?? ""}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
               placeholder="e.g. Utilities"
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
+        {/* Management URL */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="edit-bill-management-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Management URL
           </label>
           <input
+            id="edit-bill-management-url"
             type="url"
-            name="managementUrl"
-            defaultValue={bill.managementUrl ?? ""}
+            value={managementUrl}
+            onChange={(e) => setManagementUrl(e.target.value)}
             placeholder="https://..."
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
+        {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="edit-bill-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Notes
           </label>
           <textarea
-            name="notes"
-            defaultValue={bill.notes ?? ""}
+            id="edit-bill-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
             rows={2}
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button
+          <Button
             type="button"
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            variant="outline"
+            className="flex-1"
             onClick={() => router.back()}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={updateBill.isPending}
-            className="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="flex-1"
+            disabled={updateBill.isPending || !name.trim()}
           >
             {updateBill.isPending ? "Saving..." : "Save changes"}
-          </button>
+          </Button>
         </div>
       </form>
+
+      {vendorDialog !== null && (
+        <CreateVendorDialog
+          initialName={vendorDialog}
+          onCreated={handleVendorCreated}
+          onCancel={() => setVendorDialog(null)}
+        />
+      )}
+
+      {locationDialog !== null && (
+        <CreateLocationDialog
+          initialName={locationDialog}
+          onCreated={handleLocationCreated}
+          onCancel={() => setLocationDialog(null)}
+        />
+      )}
     </div>
   );
 }

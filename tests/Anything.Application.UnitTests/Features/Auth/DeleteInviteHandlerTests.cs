@@ -18,7 +18,7 @@ public class DeleteInviteHandlerTests
     [Fact]
     public async Task Handle_WhenNotAdmin_ReturnsForbid()
     {
-        var result = await CreateHandler().Handle(new DeleteInviteCommand(1, UserRoles.User));
+        var result = await CreateHandler().Handle(new DeleteInviteCommand(1, UserRoles.User), TestContext.Current.CancellationToken);
 
         Assert.IsType<ForbidHttpResult>(result);
     }
@@ -28,7 +28,7 @@ public class DeleteInviteHandlerTests
     {
         _inviteRepo.GetById(1).Returns((UserInvite?)null);
 
-        var result = await CreateHandler().Handle(new DeleteInviteCommand(1, UserRoles.Admin));
+        var result = await CreateHandler().Handle(new DeleteInviteCommand(1, UserRoles.Admin), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -39,7 +39,7 @@ public class DeleteInviteHandlerTests
         var invite = new UserInvite { Id = 1, Email = "test@example.com", Token = "tok" };
         _inviteRepo.GetById(1).Returns(invite);
 
-        var result = await CreateHandler().Handle(new DeleteInviteCommand(1, UserRoles.Admin));
+        var result = await CreateHandler().Handle(new DeleteInviteCommand(1, UserRoles.Admin), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         _inviteRepo.Received(1).Remove(invite);

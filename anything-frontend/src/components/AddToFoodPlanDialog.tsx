@@ -62,7 +62,7 @@ export function AddToFoodPlanDialog({ recipe, onClose }: AddToFoodPlanDialogProp
             disabled={!selectedDate || addEntry.isPending}
             className="flex-1"
           >
-            {addEntry.isPending ? "Adding..." : "Add"}
+            {addEntry.isPending ? "Adding..." : "Add to plan"}
           </Button>
           <Button variant="ghost" onClick={onClose}>
             Cancel

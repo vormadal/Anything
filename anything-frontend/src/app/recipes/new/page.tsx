@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 
 type Mode = "select" | "url" | "manual";
 
@@ -125,6 +126,7 @@ export default function NewRecipePage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
+      <PageTitle>New Recipe</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <button
           onClick={resetToSelect}

@@ -28,7 +28,7 @@ public class ChangePasswordHandlerTests
     {
         _userRepo.GetById(1).Returns((User?)null);
 
-        var result = await CreateHandler().Handle(new ChangePasswordCommand(1, "old", "new"));
+        var result = await CreateHandler().Handle(new ChangePasswordCommand(1, "old", "new"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -42,7 +42,7 @@ public class ChangePasswordHandlerTests
             DeletedOn = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         });
 
-        var result = await CreateHandler().Handle(new ChangePasswordCommand(1, "old", "new"));
+        var result = await CreateHandler().Handle(new ChangePasswordCommand(1, "old", "new"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -53,7 +53,7 @@ public class ChangePasswordHandlerTests
         _userRepo.GetById(1).Returns(new User { Id = 1, Email = "a@b.com", Name = "A", Role = "User", PasswordHash = "hash" });
         _passwordService.VerifyPassword("wrong", "hash").Returns(false);
 
-        var result = await CreateHandler().Handle(new ChangePasswordCommand(1, "wrong", "newpass"));
+        var result = await CreateHandler().Handle(new ChangePasswordCommand(1, "wrong", "newpass"), TestContext.Current.CancellationToken);
 
         Assert.IsType<ProblemHttpResult>(result);
     }
@@ -66,7 +66,7 @@ public class ChangePasswordHandlerTests
         _passwordService.VerifyPassword("oldpass", "oldhash").Returns(true);
         _passwordService.HashPassword("newpass").Returns("newhash");
 
-        var result = await CreateHandler().Handle(new ChangePasswordCommand(1, "oldpass", "newpass"));
+        var result = await CreateHandler().Handle(new ChangePasswordCommand(1, "oldpass", "newpass"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("newhash", user.PasswordHash);
@@ -85,7 +85,7 @@ public class ChangePasswordHandlerTests
         _passwordService.VerifyPassword(Arg.Any<string>(), Arg.Any<string>()).Returns(true);
         _passwordService.HashPassword(Arg.Any<string>()).Returns("newhash");
 
-        await CreateHandler().Handle(new ChangePasswordCommand(1, "old", "new"));
+        await CreateHandler().Handle(new ChangePasswordCommand(1, "old", "new"), TestContext.Current.CancellationToken);
 
         Assert.Equal(now.UtcDateTime, user.ModifiedOn);
     }

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useFoodPlanSettings, useUpdateFoodPlanSettings } from "@/hooks/useFoodPlans";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 import { toast } from "sonner";
 import {
   ALL_DAYS,
@@ -101,6 +102,7 @@ export default function FoodPlanSettingsPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
+      <PageTitle>Food Plan Settings</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Food Plan Settings

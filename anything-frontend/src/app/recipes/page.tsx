@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 import { Search, X, CookingPot, Plus, CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
@@ -207,6 +208,7 @@ export default function RecipesPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
+      <PageTitle>Recipes</PageTitle>
       {isLoading && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           Loading...

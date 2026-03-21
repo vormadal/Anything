@@ -12,16 +12,14 @@ import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type Requ
 export interface WithStepItemRequestBuilder extends BaseRequestBuilder<WithStepItemRequestBuilder> {
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      */
-     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      * @throws {HttpValidationProblemDetails} error when the service returns a 400 status code
      */
-     put(body: UpdateRecipeStepRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     put(body: UpdateRecipeStepRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
@@ -44,8 +42,7 @@ export const WithStepItemRequestBuilderUriTemplate = "{+baseurl}/api/recipes/{id
 export const WithStepItemRequestBuilderRequestsMetadata: RequestsMetadata = {
     delete: {
         uriTemplate: WithStepItemRequestBuilderUriTemplate,
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
     },
     put: {
         uriTemplate: WithStepItemRequestBuilderUriTemplate,
@@ -53,8 +50,7 @@ export const WithStepItemRequestBuilderRequestsMetadata: RequestsMetadata = {
         errorMappings: {
             400: createHttpValidationProblemDetailsFromDiscriminatorValue as ParsableFactory<Parsable>,
         },
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
         requestBodyContentType: "application/json",
         requestBodySerializer: serializeUpdateRecipeStepRequest,
         requestInformationContentSetMethod: "setContentFromParsable",

@@ -12,16 +12,14 @@ import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type Requ
 export interface WithItemItemRequestBuilder extends BaseRequestBuilder<WithItemItemRequestBuilder> {
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      */
-     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      * @throws {HttpValidationProblemDetails} error when the service returns a 400 status code
      */
-     put(body: UpdateShoppingListItemRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     put(body: UpdateShoppingListItemRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
@@ -44,8 +42,7 @@ export const WithItemItemRequestBuilderUriTemplate = "{+baseurl}/api/shopping-li
 export const WithItemItemRequestBuilderRequestsMetadata: RequestsMetadata = {
     delete: {
         uriTemplate: WithItemItemRequestBuilderUriTemplate,
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
     },
     put: {
         uriTemplate: WithItemItemRequestBuilderUriTemplate,
@@ -53,8 +50,7 @@ export const WithItemItemRequestBuilderRequestsMetadata: RequestsMetadata = {
         errorMappings: {
             400: createHttpValidationProblemDetailsFromDiscriminatorValue as ParsableFactory<Parsable>,
         },
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
         requestBodyContentType: "application/json",
         requestBodySerializer: serializeUpdateShoppingListItemRequest,
         requestInformationContentSetMethod: "setContentFromParsable",

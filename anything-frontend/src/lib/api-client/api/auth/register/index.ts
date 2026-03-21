@@ -13,10 +13,9 @@ export interface RegisterRequestBuilder extends BaseRequestBuilder<RegisterReque
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      * @throws {HttpValidationProblemDetails} error when the service returns a 400 status code
      */
-     post(body: RegisterRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     post(body: RegisterRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
@@ -38,8 +37,7 @@ export const RegisterRequestBuilderRequestsMetadata: RequestsMetadata = {
         errorMappings: {
             400: createHttpValidationProblemDetailsFromDiscriminatorValue as ParsableFactory<Parsable>,
         },
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
         requestBodyContentType: "application/json",
         requestBodySerializer: serializeRegisterRequest,
         requestInformationContentSetMethod: "setContentFromParsable",

@@ -28,7 +28,7 @@ public class AddFoodPlanEntryHandlerTests
         var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc); // Wednesday
 
-        var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 5, date));
+        var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 5, date), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<FoodPlanEntry>>(result);
         _entryRepo.Received(1).Add(Arg.Is<FoodPlanEntry>(e =>
@@ -44,7 +44,7 @@ public class AddFoodPlanEntryHandlerTests
         var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
 
-        var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 5, date));
+        var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 5, date), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -56,7 +56,7 @@ public class AddFoodPlanEntryHandlerTests
         var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
 
-        var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 99, date));
+        var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 99, date), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -67,7 +67,7 @@ public class AddFoodPlanEntryHandlerTests
         var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 12, 0, 0, 0, DateTimeKind.Utc); // Thursday
 
-        var result = await handler.Handle(new AddFoodPlanEntryCommand("Custom Meal", null, date));
+        var result = await handler.Handle(new AddFoodPlanEntryCommand("Custom Meal", null, date), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<FoodPlanEntry>>(result);
         _recipeRepo.Received(1).Add(Arg.Is<Recipe>(r => r.Name == "Custom Meal"));
@@ -84,7 +84,7 @@ public class AddFoodPlanEntryHandlerTests
         // Monday 2026-03-09: DayOfWeek=1(Monday), mapped = (1+6)%7 = 0
         var monday = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
 
-        await handler.Handle(new AddFoodPlanEntryCommand("Monday Meal", null, monday));
+        await handler.Handle(new AddFoodPlanEntryCommand("Monday Meal", null, monday), TestContext.Current.CancellationToken);
 
         _entryRepo.Received(1).Add(Arg.Is<FoodPlanEntry>(e => e.DayOfWeek == 0));
     }
@@ -109,7 +109,7 @@ public class UpdateFoodPlanEntryHandlerTests
         var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
 
-        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(99, "Pasta", null, date));
+        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(99, "Pasta", null, date), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -123,7 +123,7 @@ public class UpdateFoodPlanEntryHandlerTests
         _recipeRepo.GetById(99).Returns((Recipe?)null);
         var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "Pasta", 99, date));
+        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "Pasta", 99, date), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -139,7 +139,7 @@ public class UpdateFoodPlanEntryHandlerTests
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
         var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "New Meal", null, newDate));
+        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "New Meal", null, newDate), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Meal", entry.Name);
@@ -157,7 +157,7 @@ public class UpdateFoodPlanEntryHandlerTests
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
         var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "New", null, date));
+        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "New", null, date), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -180,7 +180,7 @@ public class DeleteFoodPlanEntryHandlerTests
         _entryRepo.Query().Returns(new List<FoodPlanEntry>().AsAsyncQueryable());
         var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteFoodPlanEntryCommand(99));
+        var result = await handler.Handle(new DeleteFoodPlanEntryCommand(99), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -195,7 +195,7 @@ public class DeleteFoodPlanEntryHandlerTests
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
         var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteFoodPlanEntryCommand(1));
+        var result = await handler.Handle(new DeleteFoodPlanEntryCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entry.DeletedOn);
@@ -210,7 +210,7 @@ public class DeleteFoodPlanEntryHandlerTests
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
         var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteFoodPlanEntryCommand(1));
+        var result = await handler.Handle(new DeleteFoodPlanEntryCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -235,7 +235,7 @@ public class GetFoodPlanEntriesByDateRangeHandlerTests
         }.AsAsyncQueryable());
 
         var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo)
-            .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate));
+            .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, result.Count);
         Assert.Equal("Monday", result[0].Name);
@@ -254,7 +254,7 @@ public class GetFoodPlanEntriesByDateRangeHandlerTests
         }.AsAsyncQueryable());
 
         var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo)
-            .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate));
+            .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }
@@ -273,7 +273,7 @@ public class GetFoodPlanEntriesByDateRangeHandlerTests
         }.AsAsyncQueryable());
 
         var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo)
-            .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate));
+            .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Equal("Monday", result[0].Name);
         Assert.Equal("Wednesday", result[1].Name);
@@ -291,7 +291,7 @@ public class GetFoodPlanSettingsHandlerTests
         var settings = new FoodPlanSettings { Id = 1, ActiveDays = 63 };
         _repo.Query().Returns(new List<FoodPlanSettings> { settings }.AsAsyncQueryable());
 
-        var result = await new GetFoodPlanSettingsHandler(_repo).Handle(new GetFoodPlanSettingsQuery());
+        var result = await new GetFoodPlanSettingsHandler(_repo).Handle(new GetFoodPlanSettingsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(63, result.ActiveDays);
         Assert.Equal(1, result.Id);
@@ -302,7 +302,7 @@ public class GetFoodPlanSettingsHandlerTests
     {
         _repo.Query().Returns(new List<FoodPlanSettings>().AsAsyncQueryable());
 
-        var result = await new GetFoodPlanSettingsHandler(_repo).Handle(new GetFoodPlanSettingsQuery());
+        var result = await new GetFoodPlanSettingsHandler(_repo).Handle(new GetFoodPlanSettingsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(31, result.ActiveDays);
         Assert.Equal(0, result.Id);
@@ -326,7 +326,7 @@ public class UpdateFoodPlanSettingsHandlerTests
         _repo.Query().Returns(new List<FoodPlanSettings>().AsAsyncQueryable());
         var handler = new UpdateFoodPlanSettingsHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateFoodPlanSettingsCommand(63));
+        var result = await handler.Handle(new UpdateFoodPlanSettingsCommand(63), TestContext.Current.CancellationToken);
 
         Assert.IsType<Ok<FoodPlanSettings>>(result);
         _repo.Received(1).Add(Arg.Is<FoodPlanSettings>(s => s.ActiveDays == 63));
@@ -342,7 +342,7 @@ public class UpdateFoodPlanSettingsHandlerTests
         _repo.Query().Returns(new List<FoodPlanSettings> { existing }.AsAsyncQueryable());
         var handler = new UpdateFoodPlanSettingsHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateFoodPlanSettingsCommand(127));
+        var result = await handler.Handle(new UpdateFoodPlanSettingsCommand(127), TestContext.Current.CancellationToken);
 
         Assert.IsType<Ok<FoodPlanSettings>>(result);
         Assert.Equal(127, existing.ActiveDays);

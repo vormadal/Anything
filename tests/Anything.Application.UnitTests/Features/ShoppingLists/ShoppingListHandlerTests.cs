@@ -28,7 +28,7 @@ public class CreateShoppingListHandlerTests
     public async Task Handle_CreatesListWithName()
     {
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateShoppingListCommand("Groceries"));
+        var result = await handler.Handle(new CreateShoppingListCommand("Groceries"), TestContext.Current.CancellationToken);
 
         Assert.Equal("Groceries", result.Name);
         _repo.Received(1).Add(Arg.Is<ShoppingList>(l => l.Name == "Groceries"));
@@ -42,7 +42,7 @@ public class CreateShoppingListHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateShoppingListCommand("List"));
+        var result = await handler.Handle(new CreateShoppingListCommand("List"), TestContext.Current.CancellationToken);
 
         Assert.Equal(now.UtcDateTime, result.CreatedOn);
     }
@@ -51,7 +51,7 @@ public class CreateShoppingListHandlerTests
     public async Task Handle_WhenNoExistingLists_SetsSortOrderToZero()
     {
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateShoppingListCommand("First"));
+        var result = await handler.Handle(new CreateShoppingListCommand("First"), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.SortOrder);
     }
@@ -67,7 +67,7 @@ public class CreateShoppingListHandlerTests
         _repo.Query().Returns(existing.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateShoppingListCommand("New"));
+        var result = await handler.Handle(new CreateShoppingListCommand("New"), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, result.SortOrder);
     }
@@ -93,7 +93,7 @@ public class UpdateShoppingListHandlerTests
         _repo.GetById(1).Returns((ShoppingList?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"));
+        var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -107,7 +107,7 @@ public class UpdateShoppingListHandlerTests
         });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"));
+        var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -119,7 +119,7 @@ public class UpdateShoppingListHandlerTests
         _repo.GetById(1).Returns(list);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"));
+        var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Name", list.Name);
@@ -148,7 +148,7 @@ public class DeleteShoppingListHandlerTests
         _repo.GetById(1).Returns((ShoppingList?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteShoppingListCommand(1));
+        var result = await handler.Handle(new DeleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -162,7 +162,7 @@ public class DeleteShoppingListHandlerTests
         });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteShoppingListCommand(1));
+        var result = await handler.Handle(new DeleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -174,7 +174,7 @@ public class DeleteShoppingListHandlerTests
         _repo.GetById(1).Returns(list);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteShoppingListCommand(1));
+        var result = await handler.Handle(new DeleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.NotNull(list.DeletedOn);
@@ -196,7 +196,7 @@ public class DeleteShoppingListItemHandlerTests
         _itemRepo.GetById(1).Returns((ShoppingListItem?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 1));
+        var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -207,7 +207,7 @@ public class DeleteShoppingListItemHandlerTests
         _itemRepo.GetById(5).Returns(new ShoppingListItem { Id = 5, Name = "Milk", ShoppingListId = 99 });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 5));
+        var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 5), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -219,7 +219,7 @@ public class DeleteShoppingListItemHandlerTests
         _itemRepo.GetById(5).Returns(item);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 5));
+        var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 5), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         _itemRepo.Received(1).Remove(item);
@@ -247,7 +247,7 @@ public class UpdateShoppingListItemHandlerTests
         _itemRepo.GetById(1).Returns((ShoppingListItem?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 1, "Milk", false, null, null));
+        var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 1, "Milk", false, null, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -258,7 +258,7 @@ public class UpdateShoppingListItemHandlerTests
         _itemRepo.GetById(5).Returns(new ShoppingListItem { Id = 5, Name = "Milk", ShoppingListId = 99 });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 5, "Milk", false, null, null));
+        var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 5, "Milk", false, null, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -270,7 +270,7 @@ public class UpdateShoppingListItemHandlerTests
         _itemRepo.GetById(5).Returns(item);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 5, "Oat Milk", true, 2.5m, "L"));
+        var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 5, "Oat Milk", true, 2.5m, "L"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("Oat Milk", item.Name);
@@ -301,7 +301,7 @@ public class GetShoppingListsHandlerTests
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetShoppingListsQuery());
+        var result = await handler.Handle(new GetShoppingListsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Active", result[0].Name);
@@ -314,7 +314,7 @@ public class GetShoppingListsHandlerTests
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetShoppingListsQuery());
+        var result = await handler.Handle(new GetShoppingListsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }
@@ -336,7 +336,7 @@ public class GetShoppingListsHandlerTests
         _itemRepo.Query().Returns(items.AsQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetShoppingListsQuery());
+        var result = await handler.Handle(new GetShoppingListsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal(2, result[0].UncheckedItemCount);
@@ -355,7 +355,7 @@ public class GetShoppingListByIdHandlerTests
         _repo.GetById(1).Returns((ShoppingList?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetShoppingListByIdQuery(1));
+        var result = await handler.Handle(new GetShoppingListByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -367,7 +367,7 @@ public class GetShoppingListByIdHandlerTests
         _repo.GetById(1).Returns(list);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetShoppingListByIdQuery(1));
+        var result = await handler.Handle(new GetShoppingListByIdQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<ShoppingList>>(result);
         Assert.Equal("My List", ok.Value!.Name);
@@ -391,7 +391,7 @@ public class GetCompletedShoppingListsHandlerTests
         _repo.Query().Returns(lists.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetCompletedShoppingListsQuery());
+        var result = await handler.Handle(new GetCompletedShoppingListsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Completed", result[0].Name);
@@ -403,7 +403,7 @@ public class GetCompletedShoppingListsHandlerTests
         _repo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetCompletedShoppingListsQuery());
+        var result = await handler.Handle(new GetCompletedShoppingListsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }
@@ -422,7 +422,7 @@ public class GetCompletedShoppingListsHandlerTests
         _repo.Query().Returns(lists.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetCompletedShoppingListsQuery());
+        var result = await handler.Handle(new GetCompletedShoppingListsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal("NewerList", result[0].Name);
         Assert.Equal("OlderList", result[1].Name);
@@ -448,7 +448,7 @@ public class ReorderShoppingListsHandlerTests
         _repo.Query().Returns(lists.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new ReorderShoppingListsCommand([3, 1, 2]));
+        var result = await handler.Handle(new ReorderShoppingListsCommand([3, 1, 2]), TestContext.Current.CancellationToken);
 
         Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.NoContent>(result);
         Assert.Equal(0, lists.First(l => l.Id == 3).SortOrder);
@@ -467,7 +467,7 @@ public class ReorderShoppingListsHandlerTests
         _repo.Query().Returns(lists.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new ReorderShoppingListsCommand([99, 1]));
+        var result = await handler.Handle(new ReorderShoppingListsCommand([99, 1]), TestContext.Current.CancellationToken);
 
         Assert.IsType<Microsoft.AspNetCore.Http.HttpResults.NoContent>(result);
         Assert.Equal(1, lists[0].SortOrder);

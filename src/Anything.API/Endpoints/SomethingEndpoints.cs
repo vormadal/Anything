@@ -1,6 +1,7 @@
 using Anything.Application.Features.Somethings.Commands;
 using Anything.Application.Features.Somethings.Queries;
 using Anything.Contracts.Somethings;
+using Anything.Core.Entities;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
@@ -24,6 +25,8 @@ public static class SomethingEndpoints
             return await mediator.Send(new GetSomethingByIdQuery(id));
         })
         .WithName("GetSomethingById")
+        .Produces<Something>()
+        .Produces(404)
         .RequireAuthorization();
 
         group.MapPost("/", async (CreateSomethingRequest request, IMediator mediator) =>
@@ -32,6 +35,7 @@ public static class SomethingEndpoints
             return Results.Created($"/api/somethings/{result.Id}", result);
         })
         .WithName("CreateSomething")
+        .Produces<Something>(StatusCodes.Status201Created)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -40,6 +44,8 @@ public static class SomethingEndpoints
             return await mediator.Send(new UpdateSomethingCommand(id, request.Name));
         })
         .WithName("UpdateSomething")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -48,6 +54,8 @@ public static class SomethingEndpoints
             return await mediator.Send(new DeleteSomethingCommand(id));
         })
         .WithName("DeleteSomething")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
     }
 }

@@ -14,6 +14,7 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 import { useRouter } from "next/navigation";
 import { ShoppingCart, Plus, X, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
@@ -468,6 +469,7 @@ export default function FoodPlanPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
+      <PageTitle>Food Plan</PageTitle>
       <div className="flex items-center justify-between mb-4">
         <Button
           variant="ghost"

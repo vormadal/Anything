@@ -41,7 +41,7 @@ public class RefreshTokenHandlerTests
         _tokenService.GenerateRefreshToken().Returns("new-refresh-token");
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RefreshTokenCommand("old-refresh-token"));
+        var result = await handler.Handle(new RefreshTokenCommand("old-refresh-token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Ok<Contracts.Auth.RefreshTokenResponse>>(result);
         var okResult = (Ok<Contracts.Auth.RefreshTokenResponse>)result;
@@ -62,7 +62,7 @@ public class RefreshTokenHandlerTests
         _refreshTokenRepo.Query().Returns(new List<RefreshToken>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RefreshTokenCommand("bad-token"));
+        var result = await handler.Handle(new RefreshTokenCommand("bad-token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -78,7 +78,7 @@ public class RefreshTokenHandlerTests
         _refreshTokenRepo.Query().Returns(new List<RefreshToken> { expiredToken }.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RefreshTokenCommand("expired-token"));
+        var result = await handler.Handle(new RefreshTokenCommand("expired-token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -90,7 +90,7 @@ public class RefreshTokenHandlerTests
         _refreshTokenRepo.Query().Returns(new List<RefreshToken>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RefreshTokenCommand("revoked-token"));
+        var result = await handler.Handle(new RefreshTokenCommand("revoked-token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -113,7 +113,7 @@ public class RefreshTokenHandlerTests
         _userRepo.GetById(10).Returns(deletedUser);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RefreshTokenCommand("valid-token"));
+        var result = await handler.Handle(new RefreshTokenCommand("valid-token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -130,7 +130,7 @@ public class RefreshTokenHandlerTests
         _userRepo.GetById(10).Returns((User?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RefreshTokenCommand("valid-token"));
+        var result = await handler.Handle(new RefreshTokenCommand("valid-token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }

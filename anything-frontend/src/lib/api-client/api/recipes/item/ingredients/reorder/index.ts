@@ -13,10 +13,9 @@ export interface ReorderRequestBuilder extends BaseRequestBuilder<ReorderRequest
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      * @throws {HttpValidationProblemDetails} error when the service returns a 400 status code
      */
-     put(body: ReorderRecipeIngredientsRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     put(body: ReorderRecipeIngredientsRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
@@ -38,8 +37,7 @@ export const ReorderRequestBuilderRequestsMetadata: RequestsMetadata = {
         errorMappings: {
             400: createHttpValidationProblemDetailsFromDiscriminatorValue as ParsableFactory<Parsable>,
         },
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
         requestBodyContentType: "application/json",
         requestBodySerializer: serializeReorderRecipeIngredientsRequest,
         requestInformationContentSetMethod: "setContentFromParsable",

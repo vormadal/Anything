@@ -66,6 +66,124 @@ export interface AddToShoppingListRequest extends Parsable {
      */
     shoppingListId?: number | null;
 }
+export interface Bill extends Parsable {
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The deletedOn property
+     */
+    deletedOn?: Date | null;
+    /**
+     * The frequency property
+     */
+    frequency?: number | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The isAutomated property
+     */
+    isAutomated?: boolean | null;
+    /**
+     * The locationId property
+     */
+    locationId?: number | null;
+    /**
+     * The managementUrl property
+     */
+    managementUrl?: string | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The vendorId property
+     */
+    vendorId?: number | null;
+}
+export interface BillPriceHistory extends Parsable {
+    /**
+     * The amount property
+     */
+    amount?: number | null;
+    /**
+     * The bill property
+     */
+    bill?: Bill | null;
+    /**
+     * The billId property
+     */
+    billId?: number | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The effectiveDate property
+     */
+    effectiveDate?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+}
+export interface BillPriceHistoryResponse extends Parsable {
+    /**
+     * The amount property
+     */
+    amount?: number | null;
+    /**
+     * The billId property
+     */
+    billId?: number | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The effectiveDate property
+     */
+    effectiveDate?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The previousAmount property
+     */
+    previousAmount?: number | null;
+}
 export interface BillResponse extends Parsable {
     /**
      * The category property
@@ -208,6 +326,33 @@ export function createAddRecipeImageRequestFromDiscriminatorValue(parseNode: Par
 // @ts-ignore
 export function createAddToShoppingListRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoAddToShoppingListRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {Bill}
+ */
+// @ts-ignore
+export function createBillFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoBill;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {BillPriceHistory}
+ */
+// @ts-ignore
+export function createBillPriceHistoryFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoBillPriceHistory;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {BillPriceHistoryResponse}
+ */
+// @ts-ignore
+export function createBillPriceHistoryResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoBillPriceHistoryResponse;
 }
 export interface CreateBillRequest extends Parsable {
     /**
@@ -611,6 +756,33 @@ export function createLoginResponseFromDiscriminatorValue(parseNode: ParseNode |
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ParsedIngredient}
+ */
+// @ts-ignore
+export function createParsedIngredientFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoParsedIngredient;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ParsedRecipeResponse}
+ */
+// @ts-ignore
+export function createParsedRecipeResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoParsedRecipeResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ParsedStep}
+ */
+// @ts-ignore
+export function createParsedStepFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoParsedStep;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {ParseRecipeFromUrlRequest}
  */
 // @ts-ignore
@@ -703,6 +875,15 @@ export interface CreateRecipeStepRequest extends Parsable {
      * The text property
      */
     text?: string | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RecipeTag}
+ */
+// @ts-ignore
+export function createRecipeTagFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRecipeTag;
 }
 export interface CreateRecipeTagRequest extends Parsable {
     /**
@@ -1078,6 +1259,64 @@ export function deserializeIntoAddToShoppingListRequest(addToShoppingListRequest
     return {
         "multiplier": n => { addToShoppingListRequest.multiplier = n.getNumberValue(); },
         "shoppingListId": n => { addToShoppingListRequest.shoppingListId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param Bill The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoBill(bill: Partial<Bill> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "category": n => { bill.category = n.getStringValue(); },
+        "createdOn": n => { bill.createdOn = n.getDateValue(); },
+        "deletedOn": n => { bill.deletedOn = n.getDateValue(); },
+        "frequency": n => { bill.frequency = n.getNumberValue(); },
+        "id": n => { bill.id = n.getNumberValue(); },
+        "isAutomated": n => { bill.isAutomated = n.getBooleanValue(); },
+        "locationId": n => { bill.locationId = n.getNumberValue(); },
+        "managementUrl": n => { bill.managementUrl = n.getStringValue(); },
+        "modifiedOn": n => { bill.modifiedOn = n.getDateValue(); },
+        "name": n => { bill.name = n.getStringValue(); },
+        "notes": n => { bill.notes = n.getStringValue(); },
+        "vendorId": n => { bill.vendorId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param BillPriceHistory The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoBillPriceHistory(billPriceHistory: Partial<BillPriceHistory> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "amount": n => { billPriceHistory.amount = n.getNumberValue(); },
+        "bill": n => { billPriceHistory.bill = n.getObjectValue<Bill>(createBillFromDiscriminatorValue); },
+        "billId": n => { billPriceHistory.billId = n.getNumberValue(); },
+        "createdOn": n => { billPriceHistory.createdOn = n.getDateValue(); },
+        "effectiveDate": n => { billPriceHistory.effectiveDate = n.getDateValue(); },
+        "id": n => { billPriceHistory.id = n.getNumberValue(); },
+        "modifiedOn": n => { billPriceHistory.modifiedOn = n.getDateValue(); },
+        "notes": n => { billPriceHistory.notes = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param BillPriceHistoryResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoBillPriceHistoryResponse(billPriceHistoryResponse: Partial<BillPriceHistoryResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "amount": n => { billPriceHistoryResponse.amount = n.getNumberValue(); },
+        "billId": n => { billPriceHistoryResponse.billId = n.getNumberValue(); },
+        "createdOn": n => { billPriceHistoryResponse.createdOn = n.getDateValue(); },
+        "effectiveDate": n => { billPriceHistoryResponse.effectiveDate = n.getDateValue(); },
+        "id": n => { billPriceHistoryResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { billPriceHistoryResponse.modifiedOn = n.getDateValue(); },
+        "notes": n => { billPriceHistoryResponse.notes = n.getStringValue(); },
+        "previousAmount": n => { billPriceHistoryResponse.previousAmount = n.getNumberValue(); },
     }
 }
 /**
@@ -1545,6 +1784,46 @@ export function deserializeIntoLoginResponse(loginResponse: Partial<LoginRespons
 }
 /**
  * The deserialization information for the current model
+ * @param ParsedIngredient The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoParsedIngredient(parsedIngredient: Partial<ParsedIngredient> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "amount": n => { parsedIngredient.amount = n.getNumberValue(); },
+        "name": n => { parsedIngredient.name = n.getStringValue(); },
+        "unit": n => { parsedIngredient.unit = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param ParsedRecipeResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoParsedRecipeResponse(parsedRecipeResponse: Partial<ParsedRecipeResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "imageUrl": n => { parsedRecipeResponse.imageUrl = n.getStringValue(); },
+        "ingredients": n => { parsedRecipeResponse.ingredients = n.getCollectionOfObjectValues<ParsedIngredient>(createParsedIngredientFromDiscriminatorValue); },
+        "link": n => { parsedRecipeResponse.link = n.getStringValue(); },
+        "name": n => { parsedRecipeResponse.name = n.getStringValue(); },
+        "steps": n => { parsedRecipeResponse.steps = n.getCollectionOfObjectValues<ParsedStep>(createParsedStepFromDiscriminatorValue); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param ParsedStep The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoParsedStep(parsedStep: Partial<ParsedStep> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "order": n => { parsedStep.order = n.getNumberValue(); },
+        "text": n => { parsedStep.text = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param ParseRecipeFromUrlRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -1634,6 +1913,21 @@ export function deserializeIntoRecipeStep(recipeStep: Partial<RecipeStep> | unde
         "order": n => { recipeStep.order = n.getNumberValue(); },
         "recipeId": n => { recipeStep.recipeId = n.getNumberValue(); },
         "text": n => { recipeStep.text = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RecipeTag The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRecipeTag(recipeTag: Partial<RecipeTag> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { recipeTag.createdOn = n.getDateValue(); },
+        "deletedOn": n => { recipeTag.deletedOn = n.getDateValue(); },
+        "id": n => { recipeTag.id = n.getNumberValue(); },
+        "name": n => { recipeTag.name = n.getStringValue(); },
+        "recipeId": n => { recipeTag.recipeId = n.getNumberValue(); },
     }
 }
 /**
@@ -2322,6 +2616,52 @@ export interface LoginResponse extends Parsable {
      */
     role?: string | null;
 }
+export interface ParsedIngredient extends Parsable {
+    /**
+     * The amount property
+     */
+    amount?: number | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
+}
+export interface ParsedRecipeResponse extends Parsable {
+    /**
+     * The imageUrl property
+     */
+    imageUrl?: string | null;
+    /**
+     * The ingredients property
+     */
+    ingredients?: ParsedIngredient[] | null;
+    /**
+     * The link property
+     */
+    link?: string | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The steps property
+     */
+    steps?: ParsedStep[] | null;
+}
+export interface ParsedStep extends Parsable {
+    /**
+     * The order property
+     */
+    order?: number | null;
+    /**
+     * The text property
+     */
+    text?: string | null;
+}
 export interface ParseRecipeFromUrlRequest extends Parsable {
     /**
      * The url property
@@ -2466,6 +2806,28 @@ export interface RecipeStep extends Parsable {
      */
     text?: string | null;
 }
+export interface RecipeTag extends Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The deletedOn property
+     */
+    deletedOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The recipeId property
+     */
+    recipeId?: number | null;
+}
 export interface RefreshTokenRequest extends Parsable {
     /**
      * The refreshToken property
@@ -2580,6 +2942,64 @@ export function serializeAddToShoppingListRequest(writer: SerializationWriter, a
     if (!addToShoppingListRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("multiplier", addToShoppingListRequest.multiplier);
     writer.writeNumberValue("shoppingListId", addToShoppingListRequest.shoppingListId);
+}
+/**
+ * Serializes information the current object
+ * @param Bill The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeBill(writer: SerializationWriter, bill: Partial<Bill> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!bill || isSerializingDerivedType) { return; }
+    writer.writeStringValue("category", bill.category);
+    writer.writeDateValue("createdOn", bill.createdOn);
+    writer.writeDateValue("deletedOn", bill.deletedOn);
+    writer.writeNumberValue("frequency", bill.frequency);
+    writer.writeNumberValue("id", bill.id);
+    writer.writeBooleanValue("isAutomated", bill.isAutomated);
+    writer.writeNumberValue("locationId", bill.locationId);
+    writer.writeStringValue("managementUrl", bill.managementUrl);
+    writer.writeDateValue("modifiedOn", bill.modifiedOn);
+    writer.writeStringValue("name", bill.name);
+    writer.writeStringValue("notes", bill.notes);
+    writer.writeNumberValue("vendorId", bill.vendorId);
+}
+/**
+ * Serializes information the current object
+ * @param BillPriceHistory The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeBillPriceHistory(writer: SerializationWriter, billPriceHistory: Partial<BillPriceHistory> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!billPriceHistory || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", billPriceHistory.amount);
+    writer.writeObjectValue<Bill>("bill", billPriceHistory.bill, serializeBill);
+    writer.writeNumberValue("billId", billPriceHistory.billId);
+    writer.writeDateValue("createdOn", billPriceHistory.createdOn);
+    writer.writeDateValue("effectiveDate", billPriceHistory.effectiveDate);
+    writer.writeNumberValue("id", billPriceHistory.id);
+    writer.writeDateValue("modifiedOn", billPriceHistory.modifiedOn);
+    writer.writeStringValue("notes", billPriceHistory.notes);
+}
+/**
+ * Serializes information the current object
+ * @param BillPriceHistoryResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeBillPriceHistoryResponse(writer: SerializationWriter, billPriceHistoryResponse: Partial<BillPriceHistoryResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!billPriceHistoryResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", billPriceHistoryResponse.amount);
+    writer.writeNumberValue("billId", billPriceHistoryResponse.billId);
+    writer.writeDateValue("createdOn", billPriceHistoryResponse.createdOn);
+    writer.writeDateValue("effectiveDate", billPriceHistoryResponse.effectiveDate);
+    writer.writeNumberValue("id", billPriceHistoryResponse.id);
+    writer.writeDateValue("modifiedOn", billPriceHistoryResponse.modifiedOn);
+    writer.writeStringValue("notes", billPriceHistoryResponse.notes);
+    writer.writeNumberValue("previousAmount", billPriceHistoryResponse.previousAmount);
 }
 /**
  * Serializes information the current object
@@ -3049,6 +3469,46 @@ export function serializeLoginResponse(writer: SerializationWriter, loginRespons
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ParsedIngredient The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeParsedIngredient(writer: SerializationWriter, parsedIngredient: Partial<ParsedIngredient> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!parsedIngredient || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", parsedIngredient.amount);
+    writer.writeStringValue("name", parsedIngredient.name);
+    writer.writeStringValue("unit", parsedIngredient.unit);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ParsedRecipeResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeParsedRecipeResponse(writer: SerializationWriter, parsedRecipeResponse: Partial<ParsedRecipeResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!parsedRecipeResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("imageUrl", parsedRecipeResponse.imageUrl);
+    writer.writeCollectionOfObjectValues<ParsedIngredient>("ingredients", parsedRecipeResponse.ingredients, serializeParsedIngredient);
+    writer.writeStringValue("link", parsedRecipeResponse.link);
+    writer.writeStringValue("name", parsedRecipeResponse.name);
+    writer.writeCollectionOfObjectValues<ParsedStep>("steps", parsedRecipeResponse.steps, serializeParsedStep);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ParsedStep The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeParsedStep(writer: SerializationWriter, parsedStep: Partial<ParsedStep> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!parsedStep || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("order", parsedStep.order);
+    writer.writeStringValue("text", parsedStep.text);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param ParseRecipeFromUrlRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -3138,6 +3598,21 @@ export function serializeRecipeStep(writer: SerializationWriter, recipeStep: Par
     writer.writeNumberValue("order", recipeStep.order);
     writer.writeNumberValue("recipeId", recipeStep.recipeId);
     writer.writeStringValue("text", recipeStep.text);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RecipeTag The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRecipeTag(writer: SerializationWriter, recipeTag: Partial<RecipeTag> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!recipeTag || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", recipeTag.createdOn);
+    writer.writeDateValue("deletedOn", recipeTag.deletedOn);
+    writer.writeNumberValue("id", recipeTag.id);
+    writer.writeStringValue("name", recipeTag.name);
+    writer.writeNumberValue("recipeId", recipeTag.recipeId);
 }
 /**
  * Serializes information the current object

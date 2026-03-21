@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { PageTitle } from "@/components/PageTitle";
 import { useCurrentUser, useUpdateProfile, useChangePassword, getUser } from "@/hooks/useAuth";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -67,6 +68,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-xl space-y-6">
+      <PageTitle>Profile</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Profile

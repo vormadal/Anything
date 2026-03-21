@@ -26,7 +26,7 @@ public class CreateInventoryBoxHandlerTests
     {
         var handler = new CreateInventoryBoxHandler(_boxRepo, _storageRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateInventoryBoxCommand(5, null));
+        var result = await handler.Handle(new CreateInventoryBoxCommand(5, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<InventoryBox>>(result);
         _boxRepo.Received(1).Add(Arg.Is<InventoryBox>(b => b.Number == 5));
@@ -39,7 +39,7 @@ public class CreateInventoryBoxHandlerTests
         _storageRepo.GetById(99).Returns((InventoryStorageUnit?)null);
         var handler = new CreateInventoryBoxHandler(_boxRepo, _storageRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateInventoryBoxCommand(1, 99));
+        var result = await handler.Handle(new CreateInventoryBoxCommand(1, 99), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -50,7 +50,7 @@ public class CreateInventoryBoxHandlerTests
         _storageRepo.GetById(1).Returns(new InventoryStorageUnit { Id = 1, Name = "Fridge" });
         var handler = new CreateInventoryBoxHandler(_boxRepo, _storageRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateInventoryBoxCommand(3, 1));
+        var result = await handler.Handle(new CreateInventoryBoxCommand(3, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<InventoryBox>>(result);
         _boxRepo.Received(1).Add(Arg.Is<InventoryBox>(b => b.StorageUnitId == 1));
@@ -74,7 +74,7 @@ public class UpdateInventoryBoxHandlerTests
     {
         _boxRepo.GetById(1).Returns((InventoryBox?)null);
         var result = await new UpdateInventoryBoxHandler(_boxRepo, _storageRepo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryBoxCommand(1, 5, null));
+            .Handle(new UpdateInventoryBoxCommand(1, 5, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -85,7 +85,7 @@ public class UpdateInventoryBoxHandlerTests
         _storageRepo.GetById(99).Returns((InventoryStorageUnit?)null);
 
         var result = await new UpdateInventoryBoxHandler(_boxRepo, _storageRepo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryBoxCommand(1, 1, 99));
+            .Handle(new UpdateInventoryBoxCommand(1, 1, 99), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -99,7 +99,7 @@ public class UpdateInventoryBoxHandlerTests
         _boxRepo.GetById(1).Returns(entity);
 
         var result = await new UpdateInventoryBoxHandler(_boxRepo, _storageRepo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryBoxCommand(1, 10, null));
+            .Handle(new UpdateInventoryBoxCommand(1, 10, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(10, entity.Number);
@@ -126,7 +126,7 @@ public class UpdateInventoryItemHandlerTests
     {
         _itemRepo.GetById(1).Returns((InventoryItem?)null);
         var result = await new UpdateInventoryItemHandler(_itemRepo, _boxRepo, _storageRepo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryItemCommand(1, "X", null, null, null));
+            .Handle(new UpdateInventoryItemCommand(1, "X", null, null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -139,7 +139,7 @@ public class UpdateInventoryItemHandlerTests
         _itemRepo.GetById(1).Returns(entity);
 
         var result = await new UpdateInventoryItemHandler(_itemRepo, _boxRepo, _storageRepo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryItemCommand(1, "New", "desc", null, null));
+            .Handle(new UpdateInventoryItemCommand(1, "New", "desc", null, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Name);
@@ -164,7 +164,7 @@ public class DeleteInventoryItemHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((InventoryItem?)null);
-        var result = await new DeleteInventoryItemHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteInventoryItemCommand(1));
+        var result = await new DeleteInventoryItemHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteInventoryItemCommand(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -176,7 +176,7 @@ public class DeleteInventoryItemHandlerTests
         var entity = new InventoryItem { Id = 1, Name = "Widget" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new DeleteInventoryItemHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteInventoryItemCommand(1));
+        var result = await new DeleteInventoryItemHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteInventoryItemCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -200,7 +200,7 @@ public class CreateInventoryStorageUnitHandlerTests
     {
         var handler = new CreateInventoryStorageUnitHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Fridge", "refrigerator"));
+        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Fridge", "refrigerator"), TestContext.Current.CancellationToken);
 
         Assert.Equal("Fridge", result.Name);
         Assert.Equal("refrigerator", result.Type);
@@ -225,7 +225,7 @@ public class UpdateInventoryStorageUnitHandlerTests
     {
         _repo.GetById(1).Returns((InventoryStorageUnit?)null);
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "X", null));
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "X", null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -238,7 +238,7 @@ public class UpdateInventoryStorageUnitHandlerTests
         _repo.GetById(1).Returns(entity);
 
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "New Fridge", "refrigerator"));
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "New Fridge", "refrigerator"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Fridge", entity.Name);
@@ -261,7 +261,7 @@ public class GetInventoryBoxesHandlerTests
             new() { Id = 2, Number = 2, DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetInventoryBoxesHandler(_repo).Handle(new GetInventoryBoxesQuery());
+        var result = await new GetInventoryBoxesHandler(_repo).Handle(new GetInventoryBoxesQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal(1, result[0].Number);
@@ -276,7 +276,7 @@ public class GetInventoryBoxByIdHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((InventoryBox?)null);
-        var result = await new GetInventoryBoxByIdHandler(_repo).Handle(new GetInventoryBoxByIdQuery(1));
+        var result = await new GetInventoryBoxByIdHandler(_repo).Handle(new GetInventoryBoxByIdQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -284,7 +284,7 @@ public class GetInventoryBoxByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOk()
     {
         _repo.GetById(1).Returns(new InventoryBox { Id = 1, Number = 5 });
-        var result = await new GetInventoryBoxByIdHandler(_repo).Handle(new GetInventoryBoxByIdQuery(1));
+        var result = await new GetInventoryBoxByIdHandler(_repo).Handle(new GetInventoryBoxByIdQuery(1), TestContext.Current.CancellationToken);
         var ok = Assert.IsType<Ok<InventoryBox>>(result);
         Assert.Equal(5, ok.Value!.Number);
     }
@@ -303,7 +303,7 @@ public class GetInventoryItemsHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetInventoryItemsHandler(_repo).Handle(new GetInventoryItemsQuery());
+        var result = await new GetInventoryItemsHandler(_repo).Handle(new GetInventoryItemsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Widget", result[0].Name);
@@ -318,7 +318,7 @@ public class GetInventoryItemByIdHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((InventoryItem?)null);
-        var result = await new GetInventoryItemByIdHandler(_repo).Handle(new GetInventoryItemByIdQuery(1));
+        var result = await new GetInventoryItemByIdHandler(_repo).Handle(new GetInventoryItemByIdQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -326,7 +326,7 @@ public class GetInventoryItemByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOk()
     {
         _repo.GetById(1).Returns(new InventoryItem { Id = 1, Name = "Widget" });
-        var result = await new GetInventoryItemByIdHandler(_repo).Handle(new GetInventoryItemByIdQuery(1));
+        var result = await new GetInventoryItemByIdHandler(_repo).Handle(new GetInventoryItemByIdQuery(1), TestContext.Current.CancellationToken);
         var ok = Assert.IsType<Ok<InventoryItem>>(result);
         Assert.Equal("Widget", ok.Value!.Name);
     }
@@ -345,7 +345,7 @@ public class GetInventoryStorageUnitsHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetInventoryStorageUnitsHandler(_repo).Handle(new GetInventoryStorageUnitsQuery());
+        var result = await new GetInventoryStorageUnitsHandler(_repo).Handle(new GetInventoryStorageUnitsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Fridge", result[0].Name);
@@ -360,7 +360,7 @@ public class GetInventoryStorageUnitByIdHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((InventoryStorageUnit?)null);
-        var result = await new GetInventoryStorageUnitByIdHandler(_repo).Handle(new GetInventoryStorageUnitByIdQuery(1));
+        var result = await new GetInventoryStorageUnitByIdHandler(_repo).Handle(new GetInventoryStorageUnitByIdQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -368,7 +368,7 @@ public class GetInventoryStorageUnitByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOk()
     {
         _repo.GetById(1).Returns(new InventoryStorageUnit { Id = 1, Name = "Freezer" });
-        var result = await new GetInventoryStorageUnitByIdHandler(_repo).Handle(new GetInventoryStorageUnitByIdQuery(1));
+        var result = await new GetInventoryStorageUnitByIdHandler(_repo).Handle(new GetInventoryStorageUnitByIdQuery(1), TestContext.Current.CancellationToken);
         var ok = Assert.IsType<Ok<InventoryStorageUnit>>(result);
         Assert.Equal("Freezer", ok.Value!.Name);
     }

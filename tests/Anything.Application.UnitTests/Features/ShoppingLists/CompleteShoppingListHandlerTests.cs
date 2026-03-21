@@ -29,7 +29,7 @@ public class CompleteShoppingListHandlerTests
         _listRepo.GetById(1).Returns((ShoppingList?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CompleteShoppingListCommand(1));
+        var result = await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -43,7 +43,7 @@ public class CompleteShoppingListHandlerTests
         });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CompleteShoppingListCommand(1));
+        var result = await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -63,7 +63,7 @@ public class CompleteShoppingListHandlerTests
         _itemRepo.Query().Returns(items.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new CompleteShoppingListCommand(1));
+        await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
         Assert.True(items[0].IsChecked);
         Assert.True(items[1].IsChecked); // Was already checked
@@ -83,7 +83,7 @@ public class CompleteShoppingListHandlerTests
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CompleteShoppingListCommand(1));
+        var result = await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
         // Old list should be soft-deleted
         Assert.NotNull(list.DeletedOn);
@@ -102,7 +102,7 @@ public class CompleteShoppingListHandlerTests
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CompleteShoppingListCommand(1));
+        var result = await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
         Assert.NotNull(list.DeletedOn);
         _listRepo.Received(1).Add(Arg.Is<ShoppingList>(l => l.Name == "Empty List"));

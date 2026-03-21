@@ -28,7 +28,7 @@ public class CreateRecipeHandlerTests
     {
         var handler = new CreateRecipeHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateRecipeCommand("Pasta", "https://example.com", "Great recipe"));
+        var result = await handler.Handle(new CreateRecipeCommand("Pasta", "https://example.com", "Great recipe"), TestContext.Current.CancellationToken);
 
         Assert.Equal("Pasta", result.Name);
         Assert.Equal("https://example.com", result.Link);
@@ -54,7 +54,7 @@ public class UpdateRecipeHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Recipe?)null);
-        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null));
+        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -62,7 +62,7 @@ public class UpdateRecipeHandlerTests
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new Recipe { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
-        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null));
+        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -75,7 +75,7 @@ public class UpdateRecipeHandlerTests
         _repo.GetById(1).Returns(entity);
 
         var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateRecipeCommand(1, "New", "https://link.com", "Notes"));
+            .Handle(new UpdateRecipeCommand(1, "New", "https://link.com", "Notes"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Name);
@@ -101,7 +101,7 @@ public class DeleteRecipeHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Recipe?)null);
-        var result = await new DeleteRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteRecipeCommand(1));
+        var result = await new DeleteRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteRecipeCommand(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -113,7 +113,7 @@ public class DeleteRecipeHandlerTests
         var entity = new Recipe { Id = 1, Name = "Pasta" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new DeleteRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteRecipeCommand(1));
+        var result = await new DeleteRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteRecipeCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -155,7 +155,7 @@ public class ImportRecipeHandlerTests
             },
             null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.Equal("Soup", result.Name);
         _recipeRepo.Received(1).Add(Arg.Is<Recipe>(r => r.Name == "Soup"));
@@ -177,7 +177,7 @@ public class ImportRecipeHandlerTests
             new List<ImportRecipeStep>(),
             null);
 
-        await CreateHandler().Handle(command);
+        await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _ingredientRepo.Received(1).AddRange(Arg.Is<IEnumerable<RecipeIngredient>>(items =>
             items.All(i => i.Amount == 0)));
@@ -191,7 +191,7 @@ public class ImportRecipeHandlerTests
             new List<ImportRecipeStep>(),
             null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.Equal("Simple Recipe", result.Name);
         _recipeRepo.Received(1).Add(Arg.Any<Recipe>());
@@ -211,7 +211,7 @@ public class GetRecipesHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipesHandler(_repo).Handle(new GetRecipesQuery());
+        var result = await new GetRecipesHandler(_repo).Handle(new GetRecipesQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Pasta", result[0].Name);
@@ -226,7 +226,7 @@ public class GetRecipeByIdHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Recipe?)null);
-        var result = await new GetRecipeByIdHandler(_repo).Handle(new GetRecipeByIdQuery(1));
+        var result = await new GetRecipeByIdHandler(_repo).Handle(new GetRecipeByIdQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -236,7 +236,7 @@ public class GetRecipeByIdHandlerTests
         var entity = new Recipe { Id = 1, Name = "Pasta" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new GetRecipeByIdHandler(_repo).Handle(new GetRecipeByIdQuery(1));
+        var result = await new GetRecipeByIdHandler(_repo).Handle(new GetRecipeByIdQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<Recipe>>(result);
         Assert.Equal("Pasta", ok.Value!.Name);
@@ -261,7 +261,7 @@ public class AddRecipeIngredientHandlerTests
         _recipeRepo.GetById(1).Returns((Recipe?)null);
         var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 1.5m, "cup", null));
+        var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 1.5m, "cup", null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -272,7 +272,7 @@ public class AddRecipeIngredientHandlerTests
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta" });
         var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 2m, "cups", "dry"));
+        var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 2m, "cups", "dry"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<RecipeIngredient>>(result);
         _ingredientRepo.Received(1).Add(Arg.Is<RecipeIngredient>(i =>
@@ -297,7 +297,7 @@ public class UpdateRecipeIngredientHandlerTests
     {
         _repo.GetById(1).Returns((RecipeIngredient?)null);
         var result = await new UpdateRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateRecipeIngredientCommand(1, 1, "X", null, null, null));
+            .Handle(new UpdateRecipeIngredientCommand(1, 1, "X", null, null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -306,7 +306,7 @@ public class UpdateRecipeIngredientHandlerTests
     {
         _repo.GetById(1).Returns(new RecipeIngredient { Id = 1, RecipeId = 99, Name = "X" });
         var result = await new UpdateRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateRecipeIngredientCommand(1, 1, "Y", null, null, null));
+            .Handle(new UpdateRecipeIngredientCommand(1, 1, "Y", null, null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -319,7 +319,7 @@ public class UpdateRecipeIngredientHandlerTests
         _repo.GetById(1).Returns(entity);
 
         var result = await new UpdateRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateRecipeIngredientCommand(1, 1, "New", 2m, "tbsp", "wet"));
+            .Handle(new UpdateRecipeIngredientCommand(1, 1, "New", 2m, "tbsp", "wet"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Name);
@@ -345,7 +345,7 @@ public class DeleteRecipeIngredientHandlerTests
     {
         _repo.GetById(1).Returns((RecipeIngredient?)null);
         var result = await new DeleteRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new DeleteRecipeIngredientCommand(1, 1));
+            .Handle(new DeleteRecipeIngredientCommand(1, 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -358,7 +358,7 @@ public class DeleteRecipeIngredientHandlerTests
         _repo.GetById(1).Returns(entity);
 
         var result = await new DeleteRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new DeleteRecipeIngredientCommand(1, 1));
+            .Handle(new DeleteRecipeIngredientCommand(1, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -382,7 +382,7 @@ public class AddRecipeStepHandlerTests
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
         var result = await new AddRecipeStepHandler(_recipeRepo, _stepRepo, _unitOfWork, _timeProvider)
-            .Handle(new AddRecipeStepCommand(1, "Mix well", 1));
+            .Handle(new AddRecipeStepCommand(1, "Mix well", 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -391,7 +391,7 @@ public class AddRecipeStepHandlerTests
     {
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta" });
         var result = await new AddRecipeStepHandler(_recipeRepo, _stepRepo, _unitOfWork, _timeProvider)
-            .Handle(new AddRecipeStepCommand(1, "Boil water", 1));
+            .Handle(new AddRecipeStepCommand(1, "Boil water", 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<RecipeStep>>(result);
         _stepRepo.Received(1).Add(Arg.Is<RecipeStep>(s => s.Text == "Boil water" && s.Order == 1 && s.RecipeId == 1));
@@ -414,7 +414,7 @@ public class UpdateRecipeStepHandlerTests
     {
         _repo.GetById(1).Returns((RecipeStep?)null);
         var result = await new UpdateRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateRecipeStepCommand(1, 1, "Text", 1));
+            .Handle(new UpdateRecipeStepCommand(1, 1, "Text", 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -423,7 +423,7 @@ public class UpdateRecipeStepHandlerTests
     {
         _repo.GetById(1).Returns(new RecipeStep { Id = 1, RecipeId = 99, Text = "X", Order = 1 });
         var result = await new UpdateRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateRecipeStepCommand(1, 1, "Y", 2));
+            .Handle(new UpdateRecipeStepCommand(1, 1, "Y", 2), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -434,7 +434,7 @@ public class UpdateRecipeStepHandlerTests
         _repo.GetById(1).Returns(entity);
 
         var result = await new UpdateRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateRecipeStepCommand(1, 1, "New", 2));
+            .Handle(new UpdateRecipeStepCommand(1, 1, "New", 2), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Text);
@@ -458,7 +458,7 @@ public class DeleteRecipeStepHandlerTests
     {
         _repo.GetById(1).Returns((RecipeStep?)null);
         var result = await new DeleteRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new DeleteRecipeStepCommand(1, 1));
+            .Handle(new DeleteRecipeStepCommand(1, 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -471,7 +471,7 @@ public class DeleteRecipeStepHandlerTests
         _repo.GetById(1).Returns(entity);
 
         var result = await new DeleteRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new DeleteRecipeStepCommand(1, 1));
+            .Handle(new DeleteRecipeStepCommand(1, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -495,7 +495,7 @@ public class AddRecipeTagHandlerTests
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
         var result = await new AddRecipeTagHandler(_recipeRepo, _tagRepo, _unitOfWork, _timeProvider)
-            .Handle(new AddRecipeTagCommand(1, "Italian"));
+            .Handle(new AddRecipeTagCommand(1, "Italian"), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -504,7 +504,7 @@ public class AddRecipeTagHandlerTests
     {
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta" });
         var result = await new AddRecipeTagHandler(_recipeRepo, _tagRepo, _unitOfWork, _timeProvider)
-            .Handle(new AddRecipeTagCommand(1, "Italian"));
+            .Handle(new AddRecipeTagCommand(1, "Italian"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<RecipeTag>>(result);
         _tagRepo.Received(1).Add(Arg.Is<RecipeTag>(t => t.Name == "Italian" && t.RecipeId == 1));
@@ -527,7 +527,7 @@ public class DeleteRecipeTagHandlerTests
     {
         _repo.GetById(1).Returns((RecipeTag?)null);
         var result = await new DeleteRecipeTagHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new DeleteRecipeTagCommand(1, 1));
+            .Handle(new DeleteRecipeTagCommand(1, 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -540,7 +540,7 @@ public class DeleteRecipeTagHandlerTests
         _repo.GetById(1).Returns(entity);
 
         var result = await new DeleteRecipeTagHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new DeleteRecipeTagCommand(1, 1));
+            .Handle(new DeleteRecipeTagCommand(1, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -557,7 +557,7 @@ public class GetRecipeIngredientsHandlerTests
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
         var result = await new GetRecipeIngredientsHandler(_recipeRepo, _ingredientRepo)
-            .Handle(new GetRecipeIngredientsQuery(1));
+            .Handle(new GetRecipeIngredientsQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -572,7 +572,7 @@ public class GetRecipeIngredientsHandlerTests
         }.AsAsyncQueryable());
 
         var result = await new GetRecipeIngredientsHandler(_recipeRepo, _ingredientRepo)
-            .Handle(new GetRecipeIngredientsQuery(1));
+            .Handle(new GetRecipeIngredientsQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<RecipeIngredient>>>(result);
         Assert.Single(ok.Value!);
@@ -589,7 +589,7 @@ public class GetRecipeStepsHandlerTests
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
-        var result = await new GetRecipeStepsHandler(_recipeRepo, _stepRepo).Handle(new GetRecipeStepsQuery(1));
+        var result = await new GetRecipeStepsHandler(_recipeRepo, _stepRepo).Handle(new GetRecipeStepsQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -602,7 +602,7 @@ public class GetRecipeStepsHandlerTests
             new() { Id = 1, RecipeId = 1, Text = "Boil", Order = 1 }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipeStepsHandler(_recipeRepo, _stepRepo).Handle(new GetRecipeStepsQuery(1));
+        var result = await new GetRecipeStepsHandler(_recipeRepo, _stepRepo).Handle(new GetRecipeStepsQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<RecipeStep>>>(result);
         Assert.Single(ok.Value!);
@@ -618,7 +618,7 @@ public class GetRecipeTagsHandlerTests
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
-        var result = await new GetRecipeTagsHandler(_recipeRepo, _tagRepo).Handle(new GetRecipeTagsQuery(1));
+        var result = await new GetRecipeTagsHandler(_recipeRepo, _tagRepo).Handle(new GetRecipeTagsQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -631,7 +631,7 @@ public class GetRecipeTagsHandlerTests
             new() { Id = 1, RecipeId = 1, Name = "Italian" }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipeTagsHandler(_recipeRepo, _tagRepo).Handle(new GetRecipeTagsQuery(1));
+        var result = await new GetRecipeTagsHandler(_recipeRepo, _tagRepo).Handle(new GetRecipeTagsQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<RecipeTag>>>(result);
         Assert.Single(ok.Value!);

@@ -24,6 +24,7 @@ import type { ShoppingListItem, ShoppingList } from "@/lib/api-client/models/ind
 import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 import { Pencil, Check, Plus, Trash2, MoreVertical, Archive } from "lucide-react";
 
 export default function ShoppingListDetailPage() {
@@ -266,6 +267,7 @@ export default function ShoppingListDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
+      <PageTitle>Shopping List</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
         <div className="mb-4">
           {isEditMode && !isCompleted ? (

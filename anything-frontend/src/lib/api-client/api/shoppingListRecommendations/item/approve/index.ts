@@ -10,9 +10,8 @@ import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type Requ
 export interface ApproveRequestBuilder extends BaseRequestBuilder<ApproveRequestBuilder> {
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      */
-     post(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     post(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
@@ -29,8 +28,7 @@ export const ApproveRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-re
 export const ApproveRequestBuilderRequestsMetadata: RequestsMetadata = {
     post: {
         uriTemplate: ApproveRequestBuilderUriTemplate,
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
     },
 };
 /* tslint:enable */

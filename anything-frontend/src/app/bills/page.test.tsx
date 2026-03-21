@@ -98,10 +98,10 @@ describe('BillsPage', () => {
     render(<BillsPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Auto')).toBeInTheDocument()
-      expect(screen.getByText('Manual')).toBeInTheDocument()
-      // Summary stats monthly label
+      // Summary stats labels (Monthly also appears as a frequency label in bill rows)
       expect(screen.getAllByText('Monthly').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getByText('Yearly')).toBeInTheDocument()
+      expect(screen.getByText('Increased')).toBeInTheDocument()
     })
   })
 
@@ -112,7 +112,7 @@ describe('BillsPage', () => {
 
     await waitFor(() => expect(screen.getByText('Netflix')).toBeInTheDocument())
 
-    const row = screen.getByText('Netflix').closest('[role="button"]')
+    const row = screen.getByText('Netflix').closest('button')
     expect(row).toBeTruthy()
     if (row) fireEvent.click(row)
 
@@ -164,7 +164,7 @@ describe('BillsPage', () => {
 
     await waitFor(() => expect(screen.getByText('Netflix')).toBeInTheDocument())
     // TrendingUp icon should be rendered (check aria or SVG presence)
-    const row = screen.getByText('Netflix').closest('[role="button"]')
+    const row = screen.getByText('Netflix').closest('button')
     expect(row).toBeTruthy()
   })
 

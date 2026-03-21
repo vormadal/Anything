@@ -1,7 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
 import { config } from "dotenv";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 
 config({ path: ".env.e2e", override: false });
+
+// Ensure the auth state file exists before any project starts.
+// Without this, the chromium project fails with ENOENT on the first run
+// (before the setup project has had a chance to write the real session).
+const authFile = "playwright/.auth/user.json";
+if (!existsSync(authFile)) {
+  mkdirSync("playwright/.auth", { recursive: true });
+  writeFileSync(authFile, JSON.stringify({ cookies: [], origins: [] }));
+}
 
 export default defineConfig({
   testDir: "./e2e",
@@ -16,8 +26,16 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "setup",
+      testMatch: /global\.setup\.ts/,
+    },
+    {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: authFile,
+      },
+      dependencies: ["setup"],
     },
   ],
 });

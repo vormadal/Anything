@@ -40,7 +40,7 @@ public class RegisterHandlerTests
         _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RegisterCommand("new@test.com", "Password123!", "New User", "valid-token"));
+        var result = await handler.Handle(new RegisterCommand("new@test.com", "Password123!", "New User", "valid-token"), TestContext.Current.CancellationToken);
 
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(201, statusCodeResult.StatusCode);
@@ -59,7 +59,7 @@ public class RegisterHandlerTests
         _inviteRepo.Query().Returns(new List<UserInvite>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RegisterCommand("test@test.com", "Pass123!", "Test", "invalid-token"));
+        var result = await handler.Handle(new RegisterCommand("test@test.com", "Pass123!", "Test", "invalid-token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -75,7 +75,7 @@ public class RegisterHandlerTests
         _inviteRepo.Query().Returns(new List<UserInvite> { invite }.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RegisterCommand("new@test.com", "Pass123!", "Test", "token"));
+        var result = await handler.Handle(new RegisterCommand("new@test.com", "Pass123!", "Test", "token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -91,7 +91,7 @@ public class RegisterHandlerTests
         _inviteRepo.Query().Returns(new List<UserInvite> { invite }.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RegisterCommand("different@test.com", "Pass123!", "Test", "token"));
+        var result = await handler.Handle(new RegisterCommand("different@test.com", "Pass123!", "Test", "token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -103,7 +103,7 @@ public class RegisterHandlerTests
         _inviteRepo.Query().Returns(new List<UserInvite>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RegisterCommand("test@test.com", "Pass123!", "Test", "used-token"));
+        var result = await handler.Handle(new RegisterCommand("test@test.com", "Pass123!", "Test", "used-token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -126,7 +126,7 @@ public class RegisterHandlerTests
         _userRepo.Query().Returns(new List<User> { existingUser }.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new RegisterCommand("existing@test.com", "Pass123!", "Test", "token"));
+        var result = await handler.Handle(new RegisterCommand("existing@test.com", "Pass123!", "Test", "token"), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }

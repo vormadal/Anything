@@ -11,9 +11,8 @@ export interface UploadRequestBuilder extends BaseRequestBuilder<UploadRequestBu
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      */
-     post(body: MultipartBody, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     post(body: MultipartBody, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
@@ -31,8 +30,7 @@ export const UploadRequestBuilderUriTemplate = "{+baseurl}/api/recipes/{id}/imag
 export const UploadRequestBuilderRequestsMetadata: RequestsMetadata = {
     post: {
         uriTemplate: UploadRequestBuilderUriTemplate,
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
         requestBodyContentType: "multipart/form-data",
         requestBodySerializer: serializeMultipartBody,
         requestInformationContentSetMethod: "setContentFromParsable",

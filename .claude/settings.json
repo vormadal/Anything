@@ -12,7 +12,10 @@
       "Bash(dotnet build:*)",
       "Bash(dotnet ef:*)",
       "Bash(dotnet tool:*)",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(sed:*)"
     ]
   },
   "hooks": {

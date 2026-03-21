@@ -2,23 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useCreateBill, PAYMENT_FREQUENCIES, FREQUENCY_LABELS, PaymentFrequency } from "@/hooks/useBills";
-import { useLocations } from "@/hooks/useLocations";
-import { useVendors } from "@/hooks/useVendors";
+import { useSmartBack } from "@/hooks/useSmartBack";
+import { useCreateBill, PAYMENT_FREQUENCIES, FREQUENCY_LABELS, type PaymentFrequency } from "@/hooks/useBills";
+import { useLocations, type Location } from "@/hooks/useLocations";
+import { useVendors, type Vendor } from "@/hooks/useVendors";
 import { Button } from "@/components/ui/button";
+import { PageTitle } from "@/components/PageTitle";
+import { ComboboxField } from "@/components/ui/combobox-field";
+import { CreateVendorDialog } from "@/components/CreateVendorDialog";
+import { CreateLocationDialog } from "@/components/CreateLocationDialog";
 import { toast } from "sonner";
 
 export default function NewBillPage() {
   const router = useRouter();
+  const { navigateBack } = useSmartBack();
   const createBill = useCreateBill();
   const { data: locations } = useLocations();
   const { data: vendors } = useVendors();
 
   const [name, setName] = useState("");
-  const [vendorId, setVendorId] = useState<string>("");
+  const [vendorId, setVendorId] = useState<number | undefined>(undefined);
   const [frequency, setFrequency] = useState<string>("Monthly");
   const [isAutomated, setIsAutomated] = useState(true);
-  const [locationId, setLocationId] = useState<string>("");
+  const [locationId, setLocationId] = useState<number | undefined>(undefined);
   const [managementUrl, setManagementUrl] = useState("");
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
@@ -27,6 +33,9 @@ export default function NewBillPage() {
     new Date().toISOString().split("T")[0]
   );
 
+  const [vendorDialog, setVendorDialog] = useState<string | null>(null);
+  const [locationDialog, setLocationDialog] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -34,10 +43,10 @@ export default function NewBillPage() {
     try {
       await createBill.mutateAsync({
         name: name.trim(),
-        vendorId: vendorId ? Number(vendorId) : undefined,
+        vendorId,
         frequency: frequency as PaymentFrequency,
         isAutomated,
-        locationId: locationId ? Number(locationId) : undefined,
+        locationId,
         managementUrl: managementUrl.trim() || undefined,
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -51,15 +60,27 @@ export default function NewBillPage() {
     }
   };
 
+  function handleVendorCreated(vendor: Vendor) {
+    setVendorId(vendor.id);
+    setVendorDialog(null);
+  }
+
+  function handleLocationCreated(location: Location) {
+    setLocationId(location.id);
+    setLocationDialog(null);
+  }
+
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
+      <PageTitle>New Bill</PageTitle>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="bill-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Name <span className="text-red-500">*</span>
           </label>
           <input
+            id="bill-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -71,33 +92,26 @@ export default function NewBillPage() {
 
         {/* Vendor */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Vendor
-          </label>
-          <select
-            value={vendorId}
-            onChange={(e) => setVendorId(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">No vendor</option>
-            {vendors?.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Manage vendors in Settings
           </p>
+          <ComboboxField
+            items={vendors ?? []}
+            value={vendorId}
+            onChange={setVendorId}
+            placeholder="Search vendors..."
+            onCreateNew={(n) => setVendorDialog(n)}
+          />
         </div>
 
         {/* Frequency + Automated */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="bill-frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Frequency
             </label>
             <select
+              id="bill-frequency"
               value={frequency}
               onChange={(e) => setFrequency(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -110,9 +124,9 @@ export default function NewBillPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Payment
-            </label>
+            </p>
             <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
               <button
                 type="button"
@@ -143,27 +157,23 @@ export default function NewBillPage() {
         {/* Location + Category */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Location
-            </label>
-            <select
+            </p>
+            <ComboboxField
+              items={locations ?? []}
               value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">None</option>
-              {locations?.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+              onChange={setLocationId}
+              placeholder="Search locations..."
+              onCreateNew={(n) => setLocationDialog(n)}
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="bill-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Category
             </label>
             <input
+              id="bill-category"
               type="text"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -175,10 +185,11 @@ export default function NewBillPage() {
 
         {/* Management URL */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="bill-management-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Management URL
           </label>
           <input
+            id="bill-management-url"
             type="url"
             value={managementUrl}
             onChange={(e) => setManagementUrl(e.target.value)}
@@ -189,11 +200,12 @@ export default function NewBillPage() {
 
         {/* Initial price */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="bill-initial-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Current price
           </label>
           <div className="flex gap-2">
             <input
+              id="bill-initial-amount"
               type="number"
               value={initialAmount}
               onChange={(e) => setInitialAmount(e.target.value)}
@@ -215,10 +227,11 @@ export default function NewBillPage() {
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="bill-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Notes
           </label>
           <textarea
+            id="bill-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional notes..."
@@ -232,7 +245,7 @@ export default function NewBillPage() {
             type="button"
             variant="outline"
             className="flex-1"
-            onClick={() => router.back()}
+            onClick={() => navigateBack("/bills")}
           >
             Cancel
           </Button>
@@ -245,6 +258,22 @@ export default function NewBillPage() {
           </Button>
         </div>
       </form>
+
+      {vendorDialog !== null && (
+        <CreateVendorDialog
+          initialName={vendorDialog}
+          onCreated={handleVendorCreated}
+          onCancel={() => setVendorDialog(null)}
+        />
+      )}
+
+      {locationDialog !== null && (
+        <CreateLocationDialog
+          initialName={locationDialog}
+          onCreated={handleLocationCreated}
+          onCancel={() => setLocationDialog(null)}
+        />
+      )}
     </div>
   );
 }

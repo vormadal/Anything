@@ -41,7 +41,7 @@ public class AddRecipeToShoppingListHandlerTests
         _recipeRepo.GetById(1).Returns((Recipe?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -52,7 +52,7 @@ public class AddRecipeToShoppingListHandlerTests
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Test", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -64,7 +64,7 @@ public class AddRecipeToShoppingListHandlerTests
         _shoppingListRepo.GetById(10).Returns((ShoppingList?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -82,7 +82,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         // Should add a single item with 300g of flour
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
@@ -102,7 +102,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(2).Add(Arg.Any<ShoppingListItem>());
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
@@ -123,7 +123,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10, 2.5));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10, 2.5), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
             i.Name == "Spaghetti" && i.Amount == 500 && i.Unit == "g"));
@@ -141,7 +141,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10, 0));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10, 0), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
             i.Amount == 10));
@@ -167,7 +167,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         // Should update existing item, not add new one
         Assert.Equal(500, existingItem.Amount);
@@ -187,7 +187,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
             r.Name == "Basil" && !r.IsApproved));
@@ -213,7 +213,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         _recommendationRepo.DidNotReceive().Add(Arg.Any<ShoppingListRecommendation>());
     }
@@ -231,7 +231,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         // null and "" should be treated as same unit, grouped together
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
@@ -251,7 +251,7 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10));
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         // Should group despite whitespace differences
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>

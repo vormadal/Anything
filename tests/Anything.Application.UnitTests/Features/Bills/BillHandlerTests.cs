@@ -189,7 +189,7 @@ public class CreateBillHandlerTests
     {
         var command = new CreateBillCommand("Netflix", null, "InvalidFreq", true, null, null, null, null, null, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -199,7 +199,7 @@ public class CreateBillHandlerTests
     {
         var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, null, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _billRepo.Received(1).Add(Arg.Is<Bill>(b => b.Name == "Netflix" && b.Frequency == PaymentFrequency.Monthly));
         _priceRepo.DidNotReceive().Add(Arg.Any<BillPriceHistory>());
@@ -214,7 +214,7 @@ public class CreateBillHandlerTests
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, 15.99m, effectiveDate);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _billRepo.Received(1).Add(Arg.Any<Bill>());
         _priceRepo.Received(1).Add(Arg.Is<BillPriceHistory>(ph =>
@@ -227,7 +227,7 @@ public class CreateBillHandlerTests
     {
         var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, 15.99m, null);
 
-        await CreateHandler().Handle(command);
+        await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _priceRepo.Received(1).Add(Arg.Is<BillPriceHistory>(ph =>
             ph.EffectiveDate == _now.UtcDateTime));
@@ -238,7 +238,7 @@ public class CreateBillHandlerTests
     {
         var command = new CreateBillCommand("Netflix", null, "Annually", false, null, null, null, null, null, null);
 
-        await CreateHandler().Handle(command);
+        await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _billRepo.Received(1).Add(Arg.Is<Bill>(b => b.CreatedOn == _now.UtcDateTime));
     }
@@ -263,7 +263,7 @@ public class UpdateBillHandlerTests
     {
         var command = new UpdateBillCommand(1, "Netflix", null, "BadFreq", false, null, null, null, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -274,7 +274,7 @@ public class UpdateBillHandlerTests
         _repo.GetById(1).Returns((Bill?)null);
         var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -285,7 +285,7 @@ public class UpdateBillHandlerTests
         _repo.GetById(1).Returns(new Bill { Id = 1, Name = "Netflix", DeletedOn = DateTime.UtcNow });
         var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -297,7 +297,7 @@ public class UpdateBillHandlerTests
         _repo.GetById(1).Returns(bill);
         var command = new UpdateBillCommand(1, "New Name", 5, "Weekly", true, 10, "https://manage.example.com", "Utilities", "Note");
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Name", bill.Name);
@@ -332,7 +332,7 @@ public class DeleteBillHandlerTests
     {
         _repo.GetById(1).Returns((Bill?)null);
 
-        var result = await CreateHandler().Handle(new DeleteBillCommand(1));
+        var result = await CreateHandler().Handle(new DeleteBillCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -342,7 +342,7 @@ public class DeleteBillHandlerTests
     {
         _repo.GetById(1).Returns(new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
 
-        var result = await CreateHandler().Handle(new DeleteBillCommand(1));
+        var result = await CreateHandler().Handle(new DeleteBillCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -353,7 +353,7 @@ public class DeleteBillHandlerTests
         var bill = new Bill { Id = 1, Name = "Netflix" };
         _repo.GetById(1).Returns(bill);
 
-        var result = await CreateHandler().Handle(new DeleteBillCommand(1));
+        var result = await CreateHandler().Handle(new DeleteBillCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(_now.UtcDateTime, bill.DeletedOn);
@@ -382,7 +382,7 @@ public class AddBillPriceHandlerTests
         _billRepo.GetById(1).Returns((Bill?)null);
         var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -393,7 +393,7 @@ public class AddBillPriceHandlerTests
         _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
         var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -406,7 +406,7 @@ public class AddBillPriceHandlerTests
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var command = new AddBillPriceCommand(1, 19.99m, effectiveDate, "Price increase");
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _priceRepo.Received(1).Add(Arg.Is<BillPriceHistory>(ph =>
             ph.BillId == 1 && ph.Amount == 19.99m && ph.Notes == "Price increase"));
@@ -421,7 +421,7 @@ public class AddBillPriceHandlerTests
         _billRepo.GetById(1).Returns(bill);
         var command = new AddBillPriceCommand(1, 10m, DateTime.UtcNow, null);
 
-        await CreateHandler().Handle(command);
+        await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _priceRepo.Received(1).Add(Arg.Is<BillPriceHistory>(ph => ph.CreatedOn == _now.UtcDateTime));
     }
@@ -447,7 +447,7 @@ public class UpdateBillPriceHandlerTests
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
         var command = new UpdateBillPriceCommand(1, 99, 25m, DateTime.UtcNow, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -459,7 +459,7 @@ public class UpdateBillPriceHandlerTests
         _priceRepo.Query().Returns(new List<BillPriceHistory> { entry }.AsAsyncQueryable());
         var command = new UpdateBillPriceCommand(1, 5, 25m, DateTime.UtcNow, null);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -472,7 +472,7 @@ public class UpdateBillPriceHandlerTests
         var newDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc);
         var command = new UpdateBillPriceCommand(1, 5, 25m, newDate, "Updated note");
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(25m, entry.Amount);
@@ -496,7 +496,7 @@ public class DeleteBillPriceHandlerTests
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
         var command = new DeleteBillPriceCommand(1, 99);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -508,7 +508,7 @@ public class DeleteBillPriceHandlerTests
         _priceRepo.Query().Returns(new List<BillPriceHistory> { entry }.AsAsyncQueryable());
         var command = new DeleteBillPriceCommand(1, 5);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -520,7 +520,7 @@ public class DeleteBillPriceHandlerTests
         _priceRepo.Query().Returns(new List<BillPriceHistory> { entry }.AsAsyncQueryable());
         var command = new DeleteBillPriceCommand(1, 5);
 
-        var result = await CreateHandler().Handle(command);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         _priceRepo.Received(1).Remove(entry);
@@ -542,7 +542,7 @@ public class GetBillsHandlerTests
     {
         _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillsQuery());
+        var result = await CreateHandler().Handle(new GetBillsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }
@@ -558,7 +558,7 @@ public class GetBillsHandlerTests
         _billRepo.Query().Returns(bills.AsAsyncQueryable());
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillsQuery());
+        var result = await CreateHandler().Handle(new GetBillsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Active", result[0].Name);
@@ -579,7 +579,7 @@ public class GetBillsHandlerTests
         _billRepo.Query().Returns(bills.AsAsyncQueryable());
         _priceRepo.Query().Returns(priceHistories.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillsQuery());
+        var result = await CreateHandler().Handle(new GetBillsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Netflix", result[0].Name);
@@ -598,7 +598,7 @@ public class GetBillsHandlerTests
         _billRepo.Query().Returns(bills.AsAsyncQueryable());
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillsQuery());
+        var result = await CreateHandler().Handle(new GetBillsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal("Aaa Service", result[0].Name);
         Assert.Equal("Zzz Service", result[1].Name);
@@ -619,7 +619,7 @@ public class GetBillsHandlerTests
         _locationRepo.Query().Returns(locations.AsAsyncQueryable());
         _vendorRepo.Query().Returns(vendors.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillsQuery());
+        var result = await CreateHandler().Handle(new GetBillsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal("Store", result[0].LocationName);
         Assert.Equal("Acme", result[0].VendorName);
@@ -641,7 +641,7 @@ public class GetBillByIdHandlerTests
     {
         _billRepo.GetById(1).Returns((Bill?)null);
 
-        var result = await CreateHandler().Handle(new GetBillByIdQuery(1));
+        var result = await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -651,7 +651,7 @@ public class GetBillByIdHandlerTests
     {
         _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
 
-        var result = await CreateHandler().Handle(new GetBillByIdQuery(1));
+        var result = await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -668,7 +668,7 @@ public class GetBillByIdHandlerTests
         };
         _priceRepo.Query().Returns(priceHistories.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillByIdQuery(1));
+        var result = await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<BillResponse>>(result);
         Assert.Equal("Netflix", ok.Value!.Name);
@@ -682,7 +682,7 @@ public class GetBillByIdHandlerTests
         _billRepo.GetById(1).Returns(bill);
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
-        await CreateHandler().Handle(new GetBillByIdQuery(1));
+        await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
 
         _locationRepo.DidNotReceive().Query();
     }
@@ -694,7 +694,7 @@ public class GetBillByIdHandlerTests
         _billRepo.GetById(1).Returns(bill);
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
-        await CreateHandler().Handle(new GetBillByIdQuery(1));
+        await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
 
         _vendorRepo.DidNotReceive().Query();
     }
@@ -712,7 +712,7 @@ public class GetBillSummaryHandlerTests
     {
         _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillSummaryQuery());
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.TotalBills);
         Assert.Equal(0m, result.TotalMonthlyEquivalent);
@@ -738,7 +738,7 @@ public class GetBillSummaryHandlerTests
         };
         _priceRepo.Query().Returns(priceData.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillSummaryQuery());
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, result.TotalBills);
         Assert.Equal(200m, result.TotalMonthlyEquivalent);
@@ -756,7 +756,7 @@ public class GetBillSummaryHandlerTests
         _billRepo.Query().Returns(bills.AsAsyncQueryable());
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillSummaryQuery());
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.TotalBills);
         Assert.Equal(0m, result.TotalMonthlyEquivalent);
@@ -779,7 +779,7 @@ public class GetBillSummaryHandlerTests
         };
         _priceRepo.Query().Returns(priceData.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillSummaryQuery());
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(20m, result.TotalMonthlyEquivalent);
     }
@@ -795,7 +795,7 @@ public class GetBillSummaryHandlerTests
         _billRepo.Query().Returns(bills.AsAsyncQueryable());
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillSummaryQuery());
+        var result = await CreateHandler().Handle(new GetBillSummaryQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.TotalBills);
         Assert.Equal(1, result.AutomatedCount);
@@ -815,7 +815,7 @@ public class GetBillPriceHistoryHandlerTests
     {
         _billRepo.GetById(1).Returns((Bill?)null);
 
-        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1));
+        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -825,7 +825,7 @@ public class GetBillPriceHistoryHandlerTests
     {
         _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
 
-        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1));
+        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -843,7 +843,7 @@ public class GetBillPriceHistoryHandlerTests
         };
         _priceRepo.Query().Returns(entries.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1));
+        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<BillPriceHistoryResponse>>>(result);
         var list = ok.Value!;
@@ -866,7 +866,7 @@ public class GetBillPriceHistoryHandlerTests
         };
         _priceRepo.Query().Returns(entries.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1));
+        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<BillPriceHistoryResponse>>>(result);
         var list = ok.Value!;
@@ -882,7 +882,7 @@ public class GetBillPriceHistoryHandlerTests
         _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Netflix" });
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1));
+        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<BillPriceHistoryResponse>>>(result);
         Assert.Empty(ok.Value!);
@@ -899,7 +899,7 @@ public class GetBillPriceHistoryHandlerTests
         };
         _priceRepo.Query().Returns(entries.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1));
+        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<BillPriceHistoryResponse>>>(result);
         Assert.Null(ok.Value![0].PreviousAmount);

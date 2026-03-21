@@ -1,6 +1,7 @@
 using Anything.Application.Features.Inventory.Commands;
 using Anything.Application.Features.Inventory.Queries;
 using Anything.Contracts.Inventory;
+using Anything.Core.Entities;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
@@ -24,6 +25,8 @@ public static class InventoryBoxEndpoints
             return await mediator.Send(new GetInventoryBoxByIdQuery(id));
         })
         .WithName("GetInventoryBoxById")
+        .Produces<InventoryBox>()
+        .Produces(404)
         .RequireAuthorization();
 
         group.MapPost("/", async (CreateInventoryBoxRequest request, IMediator mediator) =>
@@ -31,6 +34,8 @@ public static class InventoryBoxEndpoints
             return await mediator.Send(new CreateInventoryBoxCommand(request.Number, request.StorageUnitId));
         })
         .WithName("CreateInventoryBox")
+        .Produces<InventoryBox>(StatusCodes.Status201Created)
+        .Produces(400)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -39,6 +44,9 @@ public static class InventoryBoxEndpoints
             return await mediator.Send(new UpdateInventoryBoxCommand(id, request.Number, request.StorageUnitId));
         })
         .WithName("UpdateInventoryBox")
+        .Produces(204)
+        .Produces(400)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -47,6 +55,8 @@ public static class InventoryBoxEndpoints
             return await mediator.Send(new DeleteInventoryBoxCommand(id));
         })
         .WithName("DeleteInventoryBox")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
     }
 }

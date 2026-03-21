@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 import { useBills, FREQUENCY_LABELS } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
 import { isSafeUrl } from "@/lib/utils";
@@ -33,9 +34,8 @@ export default function BillsPage() {
 
   useEffect(() => {
     setHeaderActions(
-      <Button size="sm" onClick={() => router.push("/bills/new")}>
-        <Plus className="h-4 w-4 mr-1" />
-        Add bill
+      <Button variant="ghost" size="icon" onClick={() => router.push("/bills/new")} aria-label="Add bill">
+        <Plus className="h-5 w-5" />
       </Button>
     );
     return () => setHeaderActions(null);
@@ -43,12 +43,12 @@ export default function BillsPage() {
 
   const locations = [
     "all",
-    ...Array.from(new Set((bills ?? []).map((b) => b.locationName).filter(Boolean) as string[])).sort(),
+    ...Array.from(new Set((bills ?? []).map((b) => b.locationName).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b)),
   ];
 
   const categories = [
     "all",
-    ...Array.from(new Set((bills ?? []).map((b) => b.category).filter(Boolean) as string[])).sort(),
+    ...Array.from(new Set((bills ?? []).map((b) => b.category).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b)),
   ];
 
   const filtered = (bills ?? []).filter((b) => {
@@ -58,11 +58,12 @@ export default function BillsPage() {
   });
 
   const totalMonthly = filtered.reduce((sum, b) => sum + (b.monthlyEquivalent ?? 0), 0);
-  const automatedCount = filtered.filter((b) => b.isAutomated).length;
-  const manualCount = filtered.filter((b) => !b.isAutomated).length;
+  const totalYearly = totalMonthly * 12;
+  const increasedCount = filtered.filter((b) => b.priceIncreased).length;
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
+      <PageTitle>Bills</PageTitle>
       {/* Summary stats */}
       {!isLoading && (bills ?? []).length > 0 && (
         <div className="grid grid-cols-3 gap-3">
@@ -73,12 +74,16 @@ export default function BillsPage() {
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Auto</p>
-            <p className="text-lg font-bold text-green-600 dark:text-green-400">{automatedCount}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Yearly</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {formatCurrency(Math.round(totalYearly))}
+            </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Manual</p>
-            <p className="text-lg font-bold text-orange-500 dark:text-orange-400">{manualCount}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Increased</p>
+            <p className={`text-lg font-bold ${increasedCount > 0 ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}>
+              {increasedCount}
+            </p>
           </div>
         </div>
       )}
@@ -124,9 +129,10 @@ export default function BillsPage() {
       )}
 
       {/* Bill list */}
-      {isLoading ? (
+      {isLoading && (
         <div className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">Loading...</div>
-      ) : filtered.length === 0 ? (
+      )}
+      {!isLoading && filtered.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             {(bills ?? []).length === 0 ? "No bills yet." : "No bills match the current filters."}
@@ -138,16 +144,15 @@ export default function BillsPage() {
             </Button>
           )}
         </div>
-      ) : (
+      )}
+      {!isLoading && filtered.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
           {filtered.map((bill) => (
-            <div
+            <button
               key={bill.id}
-              role="button"
-              tabIndex={0}
+              type="button"
               className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left cursor-pointer"
               onClick={() => router.push(`/bills/${bill.id}`)}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(`/bills/${bill.id}`); }}
             >
               <div className="flex-1 min-w-0 mr-3">
                 <div className="flex items-center gap-2 mb-0.5">
@@ -212,7 +217,7 @@ export default function BillsPage() {
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-400" />
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

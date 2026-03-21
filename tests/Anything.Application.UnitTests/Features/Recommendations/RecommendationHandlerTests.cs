@@ -27,7 +27,7 @@ public class UpdateRecommendationHandlerTests
     {
         _repo.GetById(1).Returns((ShoppingListRecommendation?)null);
 
-        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null));
+        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -40,7 +40,7 @@ public class UpdateRecommendationHandlerTests
             Id = 1, Name = "X", DeletedOn = DateTime.UtcNow
         });
 
-        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null));
+        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -53,7 +53,7 @@ public class UpdateRecommendationHandlerTests
         var entity = new ShoppingListRecommendation { Id = 1, Name = "Old" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", "kg"));
+        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", "kg"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Name);
@@ -81,7 +81,7 @@ public class ApproveRecommendationHandlerTests
     {
         _repo.GetById(1).Returns((ShoppingListRecommendation?)null);
 
-        var result = await CreateHandler().Handle(new ApproveRecommendationCommand(1));
+        var result = await CreateHandler().Handle(new ApproveRecommendationCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -92,7 +92,7 @@ public class ApproveRecommendationHandlerTests
         var entity = new ShoppingListRecommendation { Id = 1, Name = "Sugar", IsApproved = false };
         _repo.GetById(1).Returns(entity);
 
-        var result = await CreateHandler().Handle(new ApproveRecommendationCommand(1));
+        var result = await CreateHandler().Handle(new ApproveRecommendationCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.True(entity.IsApproved);
@@ -118,7 +118,7 @@ public class DeleteRecommendationHandlerTests
     {
         _repo.GetById(1).Returns((ShoppingListRecommendation?)null);
 
-        var result = await CreateHandler().Handle(new DeleteRecommendationCommand(1));
+        var result = await CreateHandler().Handle(new DeleteRecommendationCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -131,7 +131,7 @@ public class DeleteRecommendationHandlerTests
         var entity = new ShoppingListRecommendation { Id = 1, Name = "Sugar" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await CreateHandler().Handle(new DeleteRecommendationCommand(1));
+        var result = await CreateHandler().Handle(new DeleteRecommendationCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -152,7 +152,7 @@ public class GetAllRecommendationsHandlerTests
             new() { Id = 2, Name = "Salt", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetAllRecommendationsHandler(_repo).Handle(new GetAllRecommendationsQuery());
+        var result = await new GetAllRecommendationsHandler(_repo).Handle(new GetAllRecommendationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Bread", result[0].Name);
@@ -173,7 +173,7 @@ public class GetPendingRecommendationsHandlerTests
             new() { Id = 3, Name = "Butter", IsApproved = false, DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetPendingRecommendationsHandler(_repo).Handle(new GetPendingRecommendationsQuery());
+        var result = await new GetPendingRecommendationsHandler(_repo).Handle(new GetPendingRecommendationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Milk", result[0].Name);
@@ -194,7 +194,7 @@ public class GetApprovedRecommendationsHandlerTests
             new() { Id = 3, Name = "Oil", IsApproved = true, DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetApprovedRecommendationsHandler(_repo).Handle(new GetApprovedRecommendationsQuery());
+        var result = await new GetApprovedRecommendationsHandler(_repo).Handle(new GetApprovedRecommendationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Flour", result[0].Name);

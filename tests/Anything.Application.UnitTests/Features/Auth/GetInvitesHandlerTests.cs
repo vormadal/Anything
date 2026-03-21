@@ -25,7 +25,7 @@ public class GetInvitesHandlerTests
     [Fact]
     public async Task Handle_WhenNotAdmin_ReturnsForbid()
     {
-        var result = await CreateHandler().Handle(new GetInvitesQuery(UserRoles.User));
+        var result = await CreateHandler().Handle(new GetInvitesQuery(UserRoles.User), TestContext.Current.CancellationToken);
 
         Assert.IsType<ForbidHttpResult>(result);
     }
@@ -40,7 +40,7 @@ public class GetInvitesHandlerTests
             new() { Id = 1, Email = "a@b.com", Token = "tok", ExpiresAt = now.AddDays(7).UtcDateTime, CreatedOn = now.UtcDateTime }
         }.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetInvitesQuery(UserRoles.Admin));
+        var result = await CreateHandler().Handle(new GetInvitesQuery(UserRoles.Admin), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<InviteResponse>>>(result);
         var invite = Assert.Single(ok.Value!);
@@ -58,7 +58,7 @@ public class GetInvitesHandlerTests
             new() { Id = 1, Email = "old@b.com", Token = "tok", ExpiresAt = now.AddDays(-1).UtcDateTime, CreatedOn = now.UtcDateTime }
         }.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetInvitesQuery(UserRoles.Admin));
+        var result = await CreateHandler().Handle(new GetInvitesQuery(UserRoles.Admin), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<InviteResponse>>>(result);
         Assert.True(ok.Value![0].IsExpired);
@@ -69,7 +69,7 @@ public class GetInvitesHandlerTests
     {
         _inviteRepo.Query().Returns(new List<UserInvite>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new GetInvitesQuery(UserRoles.Admin));
+        var result = await CreateHandler().Handle(new GetInvitesQuery(UserRoles.Admin), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<InviteResponse>>>(result);
         Assert.Empty(ok.Value!);

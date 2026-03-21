@@ -28,7 +28,7 @@ public class CreateInviteHandlerTests
     [Fact]
     public async Task Handle_WhenNotAdmin_ReturnsForbid()
     {
-        var result = await CreateHandler().Handle(new CreateInviteCommand("test@example.com", 1, UserRoles.User));
+        var result = await CreateHandler().Handle(new CreateInviteCommand("test@example.com", 1, UserRoles.User), TestContext.Current.CancellationToken);
 
         Assert.IsType<ForbidHttpResult>(result);
     }
@@ -41,7 +41,7 @@ public class CreateInviteHandlerTests
             new() { Id = 1, Email = "existing@example.com", Name = "E", Role = "User", PasswordHash = "h" }
         }.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new CreateInviteCommand("existing@example.com", 1, UserRoles.Admin));
+        var result = await CreateHandler().Handle(new CreateInviteCommand("existing@example.com", 1, UserRoles.Admin), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -51,7 +51,7 @@ public class CreateInviteHandlerTests
     {
         _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.Admin));
+        var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.Admin), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<CreateInviteResponse>>(result);
         Assert.NotNull(ok.Value);
@@ -68,7 +68,7 @@ public class CreateInviteHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
         _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
 
-        await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.Admin));
+        await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.Admin), TestContext.Current.CancellationToken);
 
         _inviteRepo.Received(1).Add(Arg.Is<UserInvite>(i =>
             i.ExpiresAt == now.AddDays(7).UtcDateTime));

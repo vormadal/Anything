@@ -13,6 +13,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 import { MoreVertical, Plus, GripVertical } from "lucide-react";
 import {
   DndContext,
@@ -168,6 +169,7 @@ export default function ShoppingListsPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
+      <PageTitle>Shopping Lists</PageTitle>
       {isCreating && (
         <form onSubmit={handleCreateList} className="mb-4">
           <div className="flex gap-2">
@@ -183,7 +185,7 @@ export default function ShoppingListsPage() {
               }}
             />
             <Button type="submit" size="sm" disabled={createList.isPending}>
-              {createList.isPending ? "Creating..." : "Create"}
+              {createList.isPending ? "Creating..." : "Create list"}
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={handleCancelCreate}>
               Cancel

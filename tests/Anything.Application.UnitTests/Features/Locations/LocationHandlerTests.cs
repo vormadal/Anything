@@ -25,7 +25,7 @@ public class CreateLocationHandlerTests
     {
         var handler = new CreateLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateLocationCommand("Warehouse A"));
+        var result = await handler.Handle(new CreateLocationCommand("Warehouse A"), TestContext.Current.CancellationToken);
 
         Assert.Equal("Warehouse A", result.Name);
         Assert.NotEqual(default, result.CreatedOn);
@@ -40,7 +40,7 @@ public class CreateLocationHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
         var handler = new CreateLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateLocationCommand("Store B"));
+        var result = await handler.Handle(new CreateLocationCommand("Store B"), TestContext.Current.CancellationToken);
 
         Assert.Equal(now.UtcDateTime, result.CreatedOn);
     }
@@ -50,7 +50,7 @@ public class CreateLocationHandlerTests
     {
         var handler = new CreateLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateLocationCommand("Depot C"));
+        var result = await handler.Handle(new CreateLocationCommand("Depot C"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Location>(result);
         Assert.Equal("Depot C", result.Name);
@@ -74,7 +74,7 @@ public class UpdateLocationHandlerTests
         _repo.GetById(1).Returns((Location?)null);
         var handler = new UpdateLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"));
+        var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -85,7 +85,7 @@ public class UpdateLocationHandlerTests
         _repo.GetById(1).Returns(new Location { Id = 1, Name = "Old", DeletedOn = DateTime.UtcNow });
         var handler = new UpdateLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"));
+        var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -99,7 +99,7 @@ public class UpdateLocationHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new UpdateLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"));
+        var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Name", entity.Name);
@@ -114,7 +114,7 @@ public class UpdateLocationHandlerTests
         _repo.GetById(2).Returns(entity);
         var handler = new UpdateLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        await handler.Handle(new UpdateLocationCommand(2, "Location Y"));
+        await handler.Handle(new UpdateLocationCommand(2, "Location Y"), TestContext.Current.CancellationToken);
 
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -137,7 +137,7 @@ public class DeleteLocationHandlerTests
         _repo.GetById(1).Returns((Location?)null);
         var handler = new DeleteLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteLocationCommand(1));
+        var result = await handler.Handle(new DeleteLocationCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -148,7 +148,7 @@ public class DeleteLocationHandlerTests
         _repo.GetById(1).Returns(new Location { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
         var handler = new DeleteLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteLocationCommand(1));
+        var result = await handler.Handle(new DeleteLocationCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -162,7 +162,7 @@ public class DeleteLocationHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new DeleteLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteLocationCommand(1));
+        var result = await handler.Handle(new DeleteLocationCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -175,7 +175,7 @@ public class DeleteLocationHandlerTests
         _repo.GetById(99).Returns((Location?)null);
         var handler = new DeleteLocationHandler(_repo, _unitOfWork, _timeProvider);
 
-        await handler.Handle(new DeleteLocationCommand(99));
+        await handler.Handle(new DeleteLocationCommand(99), TestContext.Current.CancellationToken);
 
         await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -195,7 +195,7 @@ public class GetLocationsHandlerTests
         }.AsAsyncQueryable());
 
         var handler = new GetLocationsHandler(_repo);
-        var result = await handler.Handle(new GetLocationsQuery());
+        var result = await handler.Handle(new GetLocationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Active Location", result[0].Name);
@@ -210,7 +210,7 @@ public class GetLocationsHandlerTests
         }.AsAsyncQueryable());
 
         var handler = new GetLocationsHandler(_repo);
-        var result = await handler.Handle(new GetLocationsQuery());
+        var result = await handler.Handle(new GetLocationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }
@@ -226,7 +226,7 @@ public class GetLocationsHandlerTests
         }.AsAsyncQueryable());
 
         var handler = new GetLocationsHandler(_repo);
-        var result = await handler.Handle(new GetLocationsQuery());
+        var result = await handler.Handle(new GetLocationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(["Alpha", "Mango", "Zebra"], result.Select(l => l.Name).ToList());
     }
@@ -242,7 +242,7 @@ public class GetLocationByIdHandlerTests
         _repo.GetById(1).Returns((Location?)null);
         var handler = new GetLocationByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetLocationByIdQuery(1));
+        var result = await handler.Handle(new GetLocationByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -253,7 +253,7 @@ public class GetLocationByIdHandlerTests
         _repo.GetById(1).Returns(new Location { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
         var handler = new GetLocationByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetLocationByIdQuery(1));
+        var result = await handler.Handle(new GetLocationByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -265,7 +265,7 @@ public class GetLocationByIdHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new GetLocationByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetLocationByIdQuery(1));
+        var result = await handler.Handle(new GetLocationByIdQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<Location>>(result);
         Assert.Equal("Main Warehouse", ok.Value!.Name);
@@ -278,7 +278,7 @@ public class GetLocationByIdHandlerTests
         _repo.GetById(42).Returns(entity);
         var handler = new GetLocationByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetLocationByIdQuery(42));
+        var result = await handler.Handle(new GetLocationByIdQuery(42), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<Location>>(result);
         Assert.Equal(42, ok.Value!.Id);

@@ -12,16 +12,14 @@ import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type Requ
 export interface WithEntryItemRequestBuilder extends BaseRequestBuilder<WithEntryItemRequestBuilder> {
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      */
-     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      * @throws {HttpValidationProblemDetails} error when the service returns a 400 status code
      */
-     put(body: UpdateFoodPlanEntryRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     put(body: UpdateFoodPlanEntryRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
@@ -44,8 +42,7 @@ export const WithEntryItemRequestBuilderUriTemplate = "{+baseurl}/api/food-plan/
 export const WithEntryItemRequestBuilderRequestsMetadata: RequestsMetadata = {
     delete: {
         uriTemplate: WithEntryItemRequestBuilderUriTemplate,
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
     },
     put: {
         uriTemplate: WithEntryItemRequestBuilderUriTemplate,
@@ -53,8 +50,7 @@ export const WithEntryItemRequestBuilderRequestsMetadata: RequestsMetadata = {
         errorMappings: {
             400: createHttpValidationProblemDetailsFromDiscriminatorValue as ParsableFactory<Parsable>,
         },
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
         requestBodyContentType: "application/json",
         requestBodySerializer: serializeUpdateFoodPlanEntryRequest,
         requestInformationContentSetMethod: "setContentFromParsable",

@@ -29,7 +29,7 @@ public class DeleteInventoryBoxHandlerTests
         _boxRepo.GetById(1).Returns((InventoryBox?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryBoxCommand(1));
+        var result = await handler.Handle(new DeleteInventoryBoxCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -43,7 +43,7 @@ public class DeleteInventoryBoxHandlerTests
         });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryBoxCommand(1));
+        var result = await handler.Handle(new DeleteInventoryBoxCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -62,7 +62,7 @@ public class DeleteInventoryBoxHandlerTests
         _itemRepo.Query().Returns(items.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryBoxCommand(1));
+        var result = await handler.Handle(new DeleteInventoryBoxCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.NotNull(box.DeletedOn);
@@ -83,7 +83,7 @@ public class DeleteInventoryBoxHandlerTests
         _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryBoxCommand(1));
+        var result = await handler.Handle(new DeleteInventoryBoxCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.NotNull(box.DeletedOn);
@@ -99,7 +99,7 @@ public class DeleteInventoryBoxHandlerTests
         _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new DeleteInventoryBoxCommand(1));
+        await handler.Handle(new DeleteInventoryBoxCommand(1), TestContext.Current.CancellationToken);
 
         // No items should have been modified since all were already deleted
         Assert.NotNull(box.DeletedOn);

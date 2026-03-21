@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 import {
   useBill,
   useBillPriceHistory,
@@ -186,6 +187,7 @@ export default function BillDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
+      <PageTitle>{bill.name ?? "Bill"}</PageTitle>
       {/* Bill info card */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
         {/* Amount + frequency */}
@@ -356,17 +358,19 @@ export default function BillDetailPage() {
           </form>
         )}
 
-        {historyLoading ? (
+        {historyLoading && (
           <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
             Loading...
           </div>
-        ) : (history ?? []).length === 0 ? (
+        )}
+        {!historyLoading && (history ?? []).length === 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               No price entries yet.
             </p>
           </div>
-        ) : (
+        )}
+        {!historyLoading && (history ?? []).length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
             {(history ?? []).map((entry) => (
               <div

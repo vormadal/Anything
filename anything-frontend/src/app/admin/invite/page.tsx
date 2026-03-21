@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { PageTitle } from "@/components/PageTitle";
 import { useCreateInvite, useCurrentUser, useDeleteInvite, useInvites } from "@/hooks/useAuth";
 import { isAdmin } from "@/lib/roles";
 import { useState } from "react";
@@ -80,6 +81,7 @@ export default function AdminInvitePage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl">
+      <PageTitle>Invite Users</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 mb-6">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Generate a one-time registration link for a specific email address.

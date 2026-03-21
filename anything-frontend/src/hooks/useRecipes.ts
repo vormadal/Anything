@@ -131,7 +131,7 @@ export function useReorderRecipeIngredients(recipeId: number) {
   return useMutation({
     mutationFn: async (ids: number[]): Promise<void> => {
       const token =
-        typeof window !== "undefined"
+        typeof globalThis.window !== "undefined"
           ? (localStorage.getItem("accessToken") ?? "")
           : "";
       const response = await fetch(
@@ -150,13 +150,11 @@ export function useReorderRecipeIngredients(recipeId: number) {
     onMutate: async (ids) => {
       await queryClient.cancelQueries({ queryKey: ["recipeIngredients", recipeId] });
       const previous = queryClient.getQueryData<RecipeIngredient[]>(["recipeIngredients", recipeId]);
-      queryClient.setQueryData<RecipeIngredient[]>(
-        ["recipeIngredients", recipeId],
-        (old) => {
-          if (!old) return old;
-          return ids.map((id) => old.find((i) => i.id === id)).filter(Boolean) as RecipeIngredient[];
-        }
-      );
+      const applyOrder = (old: RecipeIngredient[] | undefined) => {
+        if (!old) return old;
+        return ids.map((id) => old.find((i) => i.id === id)).filter(Boolean) as RecipeIngredient[];
+      };
+      queryClient.setQueryData<RecipeIngredient[]>(["recipeIngredients", recipeId], applyOrder);
       return { previous };
     },
     onError: (_err, _ids, context) => {
@@ -174,7 +172,7 @@ export function useReorderRecipeSteps(recipeId: number) {
   return useMutation({
     mutationFn: async (ids: number[]): Promise<void> => {
       const token =
-        typeof window !== "undefined"
+        typeof globalThis.window !== "undefined"
           ? (localStorage.getItem("accessToken") ?? "")
           : "";
       const response = await fetch(
@@ -270,7 +268,7 @@ export function useParseRecipeFromUrl() {
   return useMutation({
     mutationFn: async (url: string): Promise<ParsedRecipeResponse> => {
       const token =
-        typeof window !== "undefined"
+        typeof globalThis.window !== "undefined"
           ? (localStorage.getItem("accessToken") ?? "")
           : "";
       const response = await fetch(`${API_BASE_URL}/api/recipes/parse-url`, {
@@ -308,7 +306,7 @@ export function useImportRecipe() {
   return useMutation({
     mutationFn: async (payload: ImportRecipePayload): Promise<{ id: number }> => {
       const token =
-        typeof window !== "undefined"
+        typeof globalThis.window !== "undefined"
           ? (localStorage.getItem("accessToken") ?? "")
           : "";
       const response = await fetch(`${API_BASE_URL}/api/recipes/import`, {
@@ -364,7 +362,7 @@ export function useUploadRecipeImage(recipeId: number) {
 
       const formData = new FormData();
       formData.append("file", file);
-      const token = typeof window !== "undefined"
+      const token = typeof globalThis.window !== "undefined"
         ? (localStorage.getItem("accessToken") ?? "")
         : "";
       const response = await fetch(
@@ -429,7 +427,7 @@ export function useRecipeTags(recipeId: number) {
     queryKey: ["recipeTags", recipeId],
     queryFn: async (): Promise<RecipeTag[]> => {
       const token =
-        typeof window !== "undefined"
+        typeof globalThis.window !== "undefined"
           ? (localStorage.getItem("accessToken") ?? "")
           : "";
       const response = await fetch(
@@ -449,7 +447,7 @@ export function useAddRecipeTag(recipeId: number) {
   return useMutation({
     mutationFn: async (name: string): Promise<RecipeTag> => {
       const token =
-        typeof window !== "undefined"
+        typeof globalThis.window !== "undefined"
           ? (localStorage.getItem("accessToken") ?? "")
           : "";
       const response = await fetch(
@@ -478,7 +476,7 @@ export function useDeleteRecipeTag(recipeId: number) {
   return useMutation({
     mutationFn: async (tagId: number): Promise<void> => {
       const token =
-        typeof window !== "undefined"
+        typeof globalThis.window !== "undefined"
           ? (localStorage.getItem("accessToken") ?? "")
           : "";
       const response = await fetch(

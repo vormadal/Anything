@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { PageTitle } from "@/components/PageTitle";
 import { useFoodPlanEntries } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
@@ -42,6 +43,7 @@ export default function Home() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-6">
+      <PageTitle>Anything</PageTitle>
       {/* Menu of the Day */}
       <section>
         <div className="flex items-center justify-between mb-3">

@@ -28,7 +28,7 @@ public class CreateInventoryItemHandlerTests
     public async Task Handle_WithNullBoxAndStorageUnit_CreatesItem()
     {
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateInventoryItemCommand("Item", "Desc", null, null));
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", "Desc", null, null), TestContext.Current.CancellationToken);
 
         var statusCode = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(201, statusCode.StatusCode);
@@ -42,7 +42,7 @@ public class CreateInventoryItemHandlerTests
         _boxRepo.GetById(1).Returns(new InventoryBox { Id = 1, Number = 1 });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, null));
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, null), TestContext.Current.CancellationToken);
 
         var statusCode = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(201, statusCode.StatusCode);
@@ -55,7 +55,7 @@ public class CreateInventoryItemHandlerTests
         _boxRepo.GetById(99).Returns((InventoryBox?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 99, null));
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 99, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -66,7 +66,7 @@ public class CreateInventoryItemHandlerTests
         _boxRepo.GetById(1).Returns(new InventoryBox { Id = 1, Number = 1, DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, null));
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -77,7 +77,7 @@ public class CreateInventoryItemHandlerTests
         _storageUnitRepo.GetById(99).Returns((InventoryStorageUnit?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, null, 99));
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, null, 99), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -88,7 +88,7 @@ public class CreateInventoryItemHandlerTests
         _storageUnitRepo.GetById(1).Returns(new InventoryStorageUnit { Id = 1, Name = "Unit", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, null, 1));
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, null, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -100,7 +100,7 @@ public class CreateInventoryItemHandlerTests
         _boxRepo.GetById(99).Returns((InventoryBox?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 99, 88));
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 99, 88), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
         // Storage unit should not have been checked

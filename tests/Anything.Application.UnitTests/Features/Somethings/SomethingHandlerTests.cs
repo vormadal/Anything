@@ -25,7 +25,7 @@ public class CreateSomethingHandlerTests
     {
         var handler = new CreateSomethingHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateSomethingCommand("My List"));
+        var result = await handler.Handle(new CreateSomethingCommand("My List"), TestContext.Current.CancellationToken);
 
         Assert.Equal("My List", result.Name);
         Assert.NotEqual(default, result.CreatedOn);
@@ -51,7 +51,7 @@ public class UpdateSomethingHandlerTests
         _repo.GetById(1).Returns((Something?)null);
         var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateSomethingCommand(1, "New"));
+        var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -62,7 +62,7 @@ public class UpdateSomethingHandlerTests
         _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
         var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateSomethingCommand(1, "New"));
+        var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -76,7 +76,7 @@ public class UpdateSomethingHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new UpdateSomethingCommand(1, "New"));
+        var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Name);
@@ -102,7 +102,7 @@ public class DeleteSomethingHandlerTests
         _repo.GetById(1).Returns((Something?)null);
         var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteSomethingCommand(1));
+        var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -113,7 +113,7 @@ public class DeleteSomethingHandlerTests
         _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
         var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteSomethingCommand(1));
+        var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -127,7 +127,7 @@ public class DeleteSomethingHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new DeleteSomethingCommand(1));
+        var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -149,7 +149,7 @@ public class GetSomethingsHandlerTests
         }.AsAsyncQueryable());
 
         var handler = new GetSomethingsHandler(_repo);
-        var result = await handler.Handle(new GetSomethingsQuery());
+        var result = await handler.Handle(new GetSomethingsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Active", result[0].Name);
@@ -166,7 +166,7 @@ public class GetSomethingByIdHandlerTests
         _repo.GetById(1).Returns((Something?)null);
         var handler = new GetSomethingByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetSomethingByIdQuery(1));
+        var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -177,7 +177,7 @@ public class GetSomethingByIdHandlerTests
         _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
         var handler = new GetSomethingByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetSomethingByIdQuery(1));
+        var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -189,7 +189,7 @@ public class GetSomethingByIdHandlerTests
         _repo.GetById(1).Returns(entity);
         var handler = new GetSomethingByIdHandler(_repo);
 
-        var result = await handler.Handle(new GetSomethingByIdQuery(1));
+        var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<Something>>(result);
         Assert.Equal("My List", ok.Value!.Name);

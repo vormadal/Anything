@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { PageTitle } from "@/components/PageTitle";
 import { useCurrentUser } from "@/hooks/useAuth";
 import {
   usePendingRecommendations,
@@ -294,6 +295,7 @@ export default function AdminRecommendationsPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
+      <PageTitle>Recommendations</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">

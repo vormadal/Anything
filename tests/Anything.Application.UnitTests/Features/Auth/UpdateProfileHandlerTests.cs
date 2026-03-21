@@ -26,7 +26,7 @@ public class UpdateProfileHandlerTests
     {
         _userRepo.GetById(1).Returns((User?)null);
 
-        var result = await CreateHandler().Handle(new UpdateProfileCommand(1, "New Name"));
+        var result = await CreateHandler().Handle(new UpdateProfileCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -40,7 +40,7 @@ public class UpdateProfileHandlerTests
             DeletedOn = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         });
 
-        var result = await CreateHandler().Handle(new UpdateProfileCommand(1, "New Name"));
+        var result = await CreateHandler().Handle(new UpdateProfileCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -51,7 +51,7 @@ public class UpdateProfileHandlerTests
         var user = new User { Id = 1, Email = "a@b.com", Name = "Old Name", Role = "User", PasswordHash = "hash" };
         _userRepo.GetById(1).Returns(user);
 
-        var result = await CreateHandler().Handle(new UpdateProfileCommand(1, "New Name"));
+        var result = await CreateHandler().Handle(new UpdateProfileCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Name", user.Name);
@@ -66,7 +66,7 @@ public class UpdateProfileHandlerTests
         var user = new User { Id = 1, Email = "a@b.com", Name = "Old", Role = "User", PasswordHash = "hash" };
         _userRepo.GetById(1).Returns(user);
 
-        await CreateHandler().Handle(new UpdateProfileCommand(1, "New"));
+        await CreateHandler().Handle(new UpdateProfileCommand(1, "New"), TestContext.Current.CancellationToken);
 
         Assert.Equal(now.UtcDateTime, user.ModifiedOn);
     }

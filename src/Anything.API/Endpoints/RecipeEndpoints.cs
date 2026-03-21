@@ -26,6 +26,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new GetRecipeByIdQuery(id));
         })
         .WithName("GetRecipeById")
+        .Produces<Recipe>()
+        .Produces(404)
         .RequireAuthorization();
 
         group.MapPost("/", async (CreateRecipeRequest request, IMediator mediator) =>
@@ -43,6 +45,9 @@ public static class RecipeEndpoints
             return await mediator.Send(new ParseRecipeFromUrlCommand(request.Url));
         })
         .WithName("ParseRecipeFromUrl")
+        .Produces<ParsedRecipeResponse>()
+        .Produces(400)
+        .Produces(422)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -59,6 +64,7 @@ public static class RecipeEndpoints
             return Results.Created($"/api/recipes/{result.Id}", result);
         })
         .WithName("ImportRecipe")
+        .Produces<Recipe>(StatusCodes.Status201Created)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -67,6 +73,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new UpdateRecipeCommand(id, request.Name, request.Link, request.Notes));
         })
         .WithName("UpdateRecipe")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -75,6 +83,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new DeleteRecipeCommand(id));
         })
         .WithName("DeleteRecipe")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
 
         // Ingredients
@@ -91,6 +101,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new AddRecipeIngredientCommand(id, request.Name, request.Amount, request.Unit, request.Group));
         })
         .WithName("AddRecipeIngredient")
+        .Produces<RecipeIngredient>(StatusCodes.Status201Created)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -99,6 +111,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new UpdateRecipeIngredientCommand(id, ingredientId, request.Name, request.Amount, request.Unit, request.Group));
         })
         .WithName("UpdateRecipeIngredient")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -107,6 +121,7 @@ public static class RecipeEndpoints
             return await mediator.Send(new ReorderRecipeIngredientsCommand(id, request.Ids));
         })
         .WithName("ReorderRecipeIngredients")
+        .Produces(204)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -115,6 +130,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new DeleteRecipeIngredientCommand(id, ingredientId));
         })
         .WithName("DeleteRecipeIngredient")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
 
         // Steps
@@ -131,6 +148,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new AddRecipeStepCommand(id, request.Text, request.Order));
         })
         .WithName("AddRecipeStep")
+        .Produces<RecipeStep>(StatusCodes.Status201Created)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -139,6 +158,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new UpdateRecipeStepCommand(id, stepId, request.Text, request.Order));
         })
         .WithName("UpdateRecipeStep")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -147,6 +168,7 @@ public static class RecipeEndpoints
             return await mediator.Send(new ReorderRecipeStepsCommand(id, request.Ids));
         })
         .WithName("ReorderRecipeSteps")
+        .Produces(204)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -155,6 +177,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new DeleteRecipeStepCommand(id, stepId));
         })
         .WithName("DeleteRecipeStep")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
 
         // Images
@@ -171,6 +195,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new AddRecipeImageCommand(id, request.Url));
         })
         .WithName("AddRecipeImage")
+        .Produces(201)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -182,6 +208,9 @@ public static class RecipeEndpoints
             return await mediator.Send(new UploadRecipeImageCommand(id, stream, file.FileName, file.ContentType, file.Length));
         })
         .WithName("UploadRecipeImage")
+        .Produces(201)
+        .Produces(400)
+        .Produces(404)
         .RequireAuthorization()
         .DisableAntiforgery();
 
@@ -190,6 +219,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new DeleteRecipeImageCommand(id, imageId));
         })
         .WithName("DeleteRecipeImage")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
 
         // Add ingredients to shopping list
@@ -198,6 +229,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new AddRecipeToShoppingListCommand(id, request.ShoppingListId, request.Multiplier));
         })
         .WithName("AddRecipeIngredientsToShoppingList")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -207,6 +240,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new GetRecipeTagsQuery(id));
         })
         .WithName("GetRecipeTags")
+        .Produces<List<RecipeTag>>()
+        .Produces(404)
         .RequireAuthorization();
 
         group.MapPost("/{id}/tags", async (int id, CreateRecipeTagRequest request, IMediator mediator) =>
@@ -214,6 +249,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new AddRecipeTagCommand(id, request.Name));
         })
         .WithName("AddRecipeTag")
+        .Produces<RecipeTag>(StatusCodes.Status201Created)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 
@@ -222,6 +259,8 @@ public static class RecipeEndpoints
             return await mediator.Send(new DeleteRecipeTagCommand(id, tagId));
         })
         .WithName("DeleteRecipeTag")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization();
     }
 }

@@ -13,9 +13,8 @@ export interface AddToShoppingListRequestBuilder extends BaseRequestBuilder<AddT
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      */
-     post(body: AddToShoppingListRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     post(body: AddToShoppingListRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
@@ -33,8 +32,7 @@ export const AddToShoppingListRequestBuilderUriTemplate = "{+baseurl}/api/recipe
 export const AddToShoppingListRequestBuilderRequestsMetadata: RequestsMetadata = {
     post: {
         uriTemplate: AddToShoppingListRequestBuilderUriTemplate,
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
         requestBodyContentType: "application/json",
         requestBodySerializer: serializeAddToShoppingListRequest,
         requestInformationContentSetMethod: "setContentFromParsable",

@@ -42,7 +42,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         _shoppingListRepo.GetById(10).Returns((ShoppingList?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate));
+        var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -53,7 +53,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         _shoppingListRepo.GetById(10).Returns(new ShoppingList { Id = 10, Name = "Deleted", DeletedOn = DateTime.UtcNow });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate));
+        var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -78,7 +78,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate));
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i => i.Name == "Pasta" && i.Amount == 200));
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i => i.Name == "Rice" && i.Amount == 300));
@@ -107,7 +107,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         };
 
         var handler = CreateHandler();
-        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate, multipliers));
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate, multipliers), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
             i.Name == "Flour" && i.Amount == 600 && i.Unit == "g"));
@@ -131,7 +131,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate));
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
             i.Name == "Salt" && i.Amount == 10));
@@ -157,7 +157,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate));
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
             i.Name == "Flour" && i.Amount == 500 && i.Unit == "g"));
@@ -176,7 +176,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate));
+        var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
         _itemRepo.DidNotReceive().Add(Arg.Any<ShoppingListItem>());
         Assert.IsType<NoContent>(result);
@@ -205,7 +205,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         };
 
         var handler = CreateHandler();
-        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate, multipliers));
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate, multipliers), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
             i.Name == "Sugar" && i.Amount == 50));
@@ -233,7 +233,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate));
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
         Assert.Equal(now.UtcDateTime, entries[0].AddedToShoppingListOn);
         Assert.Equal(now.UtcDateTime, entries[1].AddedToShoppingListOn);
@@ -261,7 +261,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate));
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i => i.Name == "Pasta"));
         _itemRepo.DidNotReceive().Add(Arg.Is<ShoppingListItem>(i => i.Name == "Rice"));

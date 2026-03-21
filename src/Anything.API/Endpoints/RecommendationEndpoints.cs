@@ -2,6 +2,7 @@ using Anything.Application.Features.Recommendations.Commands;
 using Anything.Application.Features.Recommendations.Queries;
 using Anything.Contracts.Recommendations;
 using Anything.Core.Constants;
+using Anything.Core.Entities;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,6 +26,7 @@ public static class RecommendationEndpoints
             return await mediator.Send(new CreateRecommendationCommand(request.Name, request.PreferredUnit));
         })
         .WithName("CreateRecommendation")
+        .Produces<ShoppingListRecommendation>(StatusCodes.Status201Created)
         .WithParameterValidation()
         .RequireAuthorization(UserRoles.Admin);
 
@@ -47,6 +49,8 @@ public static class RecommendationEndpoints
             return await mediator.Send(new UpdateRecommendationCommand(id, request.Name, request.PreferredUnit));
         })
         .WithName("UpdateRecommendation")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization(UserRoles.Admin);
 
@@ -55,6 +59,8 @@ public static class RecommendationEndpoints
             return await mediator.Send(new ApproveRecommendationCommand(id));
         })
         .WithName("ApproveRecommendation")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization(UserRoles.Admin);
 
         group.MapDelete("/{id}", async (int id, IMediator mediator) =>
@@ -62,6 +68,8 @@ public static class RecommendationEndpoints
             return await mediator.Send(new DeleteRecommendationCommand(id));
         })
         .WithName("DeleteRecommendation")
+        .Produces(204)
+        .Produces(404)
         .RequireAuthorization(UserRoles.Admin);
     }
 }

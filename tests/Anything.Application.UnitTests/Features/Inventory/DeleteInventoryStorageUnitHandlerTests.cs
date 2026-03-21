@@ -30,7 +30,7 @@ public class DeleteInventoryStorageUnitHandlerTests
         _storageUnitRepo.GetById(1).Returns((InventoryStorageUnit?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1));
+        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -44,7 +44,7 @@ public class DeleteInventoryStorageUnitHandlerTests
         });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1));
+        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
     }
@@ -59,7 +59,7 @@ public class DeleteInventoryStorageUnitHandlerTests
         _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1));
+        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<Conflict<string>>(result);
     }
@@ -77,7 +77,7 @@ public class DeleteInventoryStorageUnitHandlerTests
         _itemRepo.Query().Returns(items.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1));
+        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<Conflict<string>>(result);
     }
@@ -92,7 +92,7 @@ public class DeleteInventoryStorageUnitHandlerTests
         _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1));
+        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.NotNull(unit.DeletedOn);
@@ -110,7 +110,7 @@ public class DeleteInventoryStorageUnitHandlerTests
         _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1));
+        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.NotNull(unit.DeletedOn);

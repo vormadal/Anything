@@ -30,7 +30,7 @@ public class AddShoppingListItemHandlerTests
         _listRepo.GetById(1).Returns((ShoppingList?)null);
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null));
+        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -41,7 +41,7 @@ public class AddShoppingListItemHandlerTests
         _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null));
+        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -53,7 +53,7 @@ public class AddShoppingListItemHandlerTests
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", 2, "liters"));
+        var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", 2, "liters"), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
             i.ShoppingListId == 1 &&
@@ -78,7 +78,7 @@ public class AddShoppingListItemHandlerTests
             }.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null));
+        await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null), TestContext.Current.CancellationToken);
 
         _recommendationRepo.DidNotReceive().Add(Arg.Any<ShoppingListRecommendation>());
     }
@@ -90,7 +90,7 @@ public class AddShoppingListItemHandlerTests
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddShoppingListItemCommand(1, "  Bread  ", null, null));
+        await handler.Handle(new AddShoppingListItemCommand(1, "  Bread  ", null, null), TestContext.Current.CancellationToken);
 
         _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
             r.Name == "Bread"));

@@ -10,9 +10,8 @@ import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type Requ
 export interface WithTagItemRequestBuilder extends BaseRequestBuilder<WithTagItemRequestBuilder> {
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-     * @returns {Promise<ArrayBuffer>}
      */
-     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ArrayBuffer | undefined>;
+     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
@@ -29,8 +28,7 @@ export const WithTagItemRequestBuilderUriTemplate = "{+baseurl}/api/recipes/{id}
 export const WithTagItemRequestBuilderRequestsMetadata: RequestsMetadata = {
     delete: {
         uriTemplate: WithTagItemRequestBuilderUriTemplate,
-        adapterMethodName: "sendPrimitive",
-        responseBodyFactory:  "ArrayBuffer",
+        adapterMethodName: "sendNoResponseContent",
     },
 };
 /* tslint:enable */

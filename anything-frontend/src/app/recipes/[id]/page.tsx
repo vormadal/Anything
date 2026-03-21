@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { PageTitle } from "@/components/PageTitle";
 import {
   DndContext,
   closestCenter,
@@ -64,7 +65,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import type { RecipeIngredient, RecipeStep } from "@/lib/api-client/models/index";
 
-interface SortableIngredientItemProps {
+type SortableIngredientItemProps = Readonly<{
   id: number;
   ingredient: RecipeIngredient;
   edits?: { name: string; amount: string; unit: string };
@@ -73,7 +74,7 @@ interface SortableIngredientItemProps {
   onDelete: (id: number) => void;
   isSavePending: boolean;
   isDeletePending: boolean;
-}
+}>;
 
 function SortableIngredientItem({
   id,
@@ -150,7 +151,7 @@ function SortableIngredientItem({
   );
 }
 
-interface SortableStepItemProps {
+type SortableStepItemProps = Readonly<{
   step: RecipeStep;
   index: number;
   editText?: string;
@@ -159,7 +160,7 @@ interface SortableStepItemProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onDelete: () => void;
   isDeletePending: boolean;
-}
+}>;
 
 function SortableStepItem({
   step,
@@ -615,6 +616,7 @@ export default function RecipeDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <PageTitle>Recipe</PageTitle>
       {/* ── Hero: full-width image with overlaid controls and title ── */}
       <div className="relative w-full h-64 sm:h-80 md:h-96 bg-gray-100 dark:bg-gray-800 overflow-hidden">
         {heroImageUrl ? (
