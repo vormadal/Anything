@@ -14,6 +14,7 @@ import {
   useUploadBillAttachment,
   useUpdateBillAttachment,
   useDeleteBillAttachment,
+  useDownloadBillAttachment,
   FREQUENCY_LABELS,
 } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
@@ -119,6 +120,7 @@ export default function BillDetailPage() {
   const uploadAttachment = useUploadBillAttachment();
   const updateAttachment = useUpdateBillAttachment();
   const deleteAttachment = useDeleteBillAttachment();
+  const downloadAttachment = useDownloadBillAttachment();
   const { setHeaderActions } = useHeaderActions();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -536,18 +538,29 @@ export default function BillDetailPage() {
                       </form>
                     ) : (
                       <div className="flex items-center gap-1">
-                        <a
-                          href={att.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate"
-                        >
-                          {att.name}
-                        </a>
                         {isImage ? (
-                          <ImageIconLucide className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                          <>
+                            <a
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate"
+                            >
+                              {att.name}
+                            </a>
+                            <ImageIconLucide className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                          </>
                         ) : (
-                          <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => downloadAttachment.mutate({ billId: bill.id, attachmentId: att.id, name: att.name })}
+                              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate text-left"
+                            >
+                              {att.name}
+                            </button>
+                            <ExternalLink className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                          </>
                         )}
                       </div>
                     )}
