@@ -30,6 +30,8 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     needs: deploy-e2e
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: ./anything-frontend
@@ -56,6 +58,26 @@ jobs:
         with:
           name: playwright-report
           path: anything-frontend/playwright-report/
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: anything-frontend/playwright-report/
+
+  deploy-report:
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: always()
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Playwright report to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   deploy-production:
     runs-on: ubuntu-latest
