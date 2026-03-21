@@ -71,10 +71,10 @@ public class MinioStorageService : IImageStorageService
     }
 
     public async Task<string> Upload(Stream stream, string fileName, string contentType,
-        long contentLength, CancellationToken ct = default)
+        long contentLength, CancellationToken ct = default, string folder = "files")
     {
         var extension = Path.GetExtension(fileName);
-        var objectKey = $"recipes/{Guid.NewGuid()}{extension}";
+        var objectKey = $"{folder}/{Guid.NewGuid()}{extension}";
 
         await _client.PutObjectAsync(new PutObjectArgs()
             .WithBucket(_settings.BucketName)

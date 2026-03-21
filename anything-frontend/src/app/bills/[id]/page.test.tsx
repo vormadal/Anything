@@ -53,7 +53,7 @@ jest.mock('sonner', () => ({
 // Prevent infinite re-render from router in useEffect deps
 const mockSetHeaderActions = jest.fn()
 jest.mock('@/context/PageActionsContext', () => ({
-  useHeaderActions: () => ({ setHeaderActions: mockSetHeaderActions, headerActions: null, leftAction: { type: 'menu' }, setLeftAction: jest.fn() }),
+  useHeaderActions: () => ({ setHeaderActions: mockSetHeaderActions, setPageTitle: jest.fn(), headerActions: null, leftAction: { type: 'menu' }, setLeftAction: jest.fn() }),
   PageActionsProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
@@ -86,6 +86,11 @@ describe('BillDetailPage', () => {
     jest.clearAllMocks()
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
+    // Mock fetch for attachment endpoints
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([]),
+    } as Response)
   })
 
   afterEach(() => {

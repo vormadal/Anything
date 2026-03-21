@@ -60,6 +60,7 @@ jest.mock('@/context/PageActionsContext', () => ({
     headerActions: null,
     hideTitle: false,
     setHeaderActions: mockSetHeaderActions,
+    setPageTitle: jest.fn(),
   }),
 }))
 

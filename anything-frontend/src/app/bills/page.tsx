@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { useBills, FREQUENCY_LABELS } from "@/hooks/useBills";
+import { useBills, useBillSummary, FREQUENCY_LABELS } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
 import { isSafeUrl } from "@/lib/utils";
 import {
@@ -28,6 +28,7 @@ function formatCurrency(amount: number): string {
 export default function BillsPage() {
   const router = useRouter();
   const { data: bills, isLoading } = useBills();
+  const { data: billSummary } = useBillSummary();
   const { setHeaderActions } = useHeaderActions();
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -60,27 +61,41 @@ export default function BillsPage() {
   const totalMonthly = filtered.reduce((sum, b) => sum + (b.monthlyEquivalent ?? 0), 0);
   const totalYearly = totalMonthly * 12;
   const increasedCount = filtered.filter((b) => b.priceIncreased).length;
+  const currentMonth = new Date().toLocaleString("default", { month: "short" });
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
       <PageTitle>Bills</PageTitle>
       {/* Summary stats */}
       {!isLoading && (bills ?? []).length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Monthly</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Monthly avg</p>
             <p className="text-lg font-bold text-gray-900 dark:text-white">
               {formatCurrency(Math.round(totalMonthly))}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Yearly</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Yearly avg</p>
             <p className="text-lg font-bold text-gray-900 dark:text-white">
               {formatCurrency(Math.round(totalYearly))}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Increased</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{currentMonth}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {formatCurrency(Math.round(billSummary?.totalCurrentMonthAmount ?? 0))}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{currentYear}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {formatCurrency(Math.round(billSummary?.totalCurrentYearAmount ?? 0))}
+            </p>
+          </div>
+          <div className="col-span-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Price increases</p>
             <p className={`text-lg font-bold ${increasedCount > 0 ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}>
               {increasedCount}
             </p>

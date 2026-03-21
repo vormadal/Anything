@@ -41,6 +41,11 @@ jest.mock('sonner', () => ({
   Toaster: () => null,
 }))
 
+const mockNavigateBack = jest.fn()
+jest.mock('@/hooks/useSmartBack', () => ({
+  useSmartBack: () => ({ navigateBack: mockNavigateBack }),
+}))
+
 describe('NewBillPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -107,8 +112,6 @@ describe('NewBillPage', () => {
 
     fireEvent.click(screen.getByText('Cancel'))
 
-    // The cancel button calls router.back()
-    // Check that push was NOT called with /bills (it uses back())
-    expect(mockPush).not.toHaveBeenCalledWith('/bills')
+    expect(mockNavigateBack).toHaveBeenCalledWith('/bills')
   })
 })

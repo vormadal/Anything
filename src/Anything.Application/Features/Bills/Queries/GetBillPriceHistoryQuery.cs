@@ -2,29 +2,30 @@ using Anything.Contracts.Bills;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Mediator;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Bills.Queries;
 
-public record GetBillPriceHistoryQuery(int BillId) : IRequest<List<BillPriceHistoryResponse>>;
+public record GetBillPriceHistoryQuery(int BillId) : IRequest<IResult>;
 
 public class GetBillPriceHistoryHandler(
     IRepository<Bill> billRepository,
     IRepository<BillPriceHistory> priceHistoryRepository)
-    : IRequestHandler<GetBillPriceHistoryQuery, List<BillPriceHistoryResponse>>
+    : IRequestHandler<GetBillPriceHistoryQuery, IResult>
 {
-    public async Task<List<BillPriceHistoryResponse>> Handle(GetBillPriceHistoryQuery query, CancellationToken ct = default)
+    public async Task<IResult> Handle(GetBillPriceHistoryQuery query, CancellationToken ct = default)
     {
         var bill = await billRepository.GetById(query.BillId);
         if (bill is null || bill.DeletedOn != null)
-            return [];
+            return Results.NotFound();
 
         var entries = await priceHistoryRepository.Query()
             .Where(ph => ph.BillId == query.BillId)
             .OrderByDescending(ph => ph.EffectiveDate)
             .ToListAsync(ct);
 
-        return entries
+        var result = entries
             .Select((entry, index) =>
             {
                 var previous = index < entries.Count - 1 ? entries[index + 1] : null;
@@ -39,5 +40,7 @@ public class GetBillPriceHistoryHandler(
                     entry.ModifiedOn);
             })
             .ToList();
+
+        return Results.Ok(result);
     }
 }

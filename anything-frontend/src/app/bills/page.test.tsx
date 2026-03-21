@@ -5,6 +5,7 @@ import BillsPage from './page'
 
 // Mock apiClient
 const mockBillsGet = jest.fn()
+const mockSummaryGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -12,7 +13,7 @@ jest.mock('@/lib/apiClient', () => ({
       bills: {
         get: (...args: unknown[]) => mockBillsGet(...args),
         post: jest.fn(),
-        summary: { get: jest.fn() },
+        summary: { get: (...args: unknown[]) => mockSummaryGet(...args) },
         byId: jest.fn(() => ({ get: jest.fn(), put: jest.fn(), delete: jest.fn(), priceHistory: { get: jest.fn(), post: jest.fn(), byId: jest.fn() } })),
       },
     },
@@ -33,9 +34,18 @@ jest.mock('sonner', () => ({
 // Prevent infinite re-render loop from router reference in useEffect deps
 const mockSetHeaderActions = jest.fn()
 jest.mock('@/context/PageActionsContext', () => ({
-  useHeaderActions: () => ({ setHeaderActions: mockSetHeaderActions, headerActions: null, leftAction: { type: 'menu' }, setLeftAction: jest.fn() }),
+  useHeaderActions: () => ({ setHeaderActions: mockSetHeaderActions, setPageTitle: jest.fn(), headerActions: null, leftAction: { type: 'menu' }, setLeftAction: jest.fn() }),
   PageActionsProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
+
+const mockSummary = {
+  totalBills: 1,
+  totalMonthlyEquivalent: 99,
+  automatedCount: 1,
+  manualCount: 0,
+  totalCurrentMonthAmount: 99,
+  totalCurrentYearAmount: 500,
+}
 
 const mockBill = {
   id: 1,
@@ -58,6 +68,7 @@ describe('BillsPage', () => {
     jest.clearAllMocks()
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
+    mockSummaryGet.mockResolvedValue(mockSummary)
   })
 
   afterEach(() => {
@@ -98,10 +109,9 @@ describe('BillsPage', () => {
     render(<BillsPage />)
 
     await waitFor(() => {
-      // Summary stats labels (Monthly also appears as a frequency label in bill rows)
-      expect(screen.getAllByText('Monthly').length).toBeGreaterThanOrEqual(1)
-      expect(screen.getByText('Yearly')).toBeInTheDocument()
-      expect(screen.getByText('Increased')).toBeInTheDocument()
+      expect(screen.getByText('Monthly avg')).toBeInTheDocument()
+      expect(screen.getByText('Yearly avg')).toBeInTheDocument()
+      expect(screen.getByText('Price increases')).toBeInTheDocument()
     })
   })
 

@@ -4,4 +4,6 @@ public record BillSummaryResponse(
     int TotalBills,
     decimal TotalMonthlyEquivalent,
     int AutomatedCount,
-    int ManualCount);
+    int ManualCount,
+    decimal TotalCurrentMonthAmount,
+    decimal TotalCurrentYearAmount);

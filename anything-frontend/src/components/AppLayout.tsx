@@ -67,6 +67,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const isAuthenticated = useIsAuthenticated();
+  const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
+  const { navigateBack } = useSmartBack();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -77,8 +79,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     return null;
   }
-  const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
-  const { navigateBack } = useSmartBack();
 
   const navigate = (path: string) => {
     setDrawerOpen(false);

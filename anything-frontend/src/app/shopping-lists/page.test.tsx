@@ -122,7 +122,7 @@ describe('ShoppingListsPage', () => {
     const input = screen.getByPlaceholderText('List name...')
     await user.type(input, 'Party Supplies')
 
-    await user.click(screen.getByRole('button', { name: 'Create' }))
+    await user.click(screen.getByRole('button', { name: 'Create list' }))
 
     await waitFor(() => {
       expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies' })
@@ -140,7 +140,7 @@ describe('ShoppingListsPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
 
-    await user.click(screen.getByRole('button', { name: 'Create' }))
+    await user.click(screen.getByRole('button', { name: 'Create list' }))
 
     expect(mockShoppingListsPost).not.toHaveBeenCalled()
   })
@@ -156,7 +156,7 @@ describe('ShoppingListsPage', () => {
 
     await user.type(screen.getByPlaceholderText('List name...'), 'Fail List')
 
-    await user.click(screen.getByRole('button', { name: 'Create' }))
+    await user.click(screen.getByRole('button', { name: 'Create list' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to create shopping list. Please try again.')
@@ -205,7 +205,7 @@ describe('ShoppingListsPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
     await user.type(screen.getByPlaceholderText('List name...'), 'Test')
-    await user.click(screen.getByRole('button', { name: 'Create' }))
+    await user.click(screen.getByRole('button', { name: 'Create list' }))
 
     expect(screen.getByRole('button', { name: 'Creating...' })).toBeInTheDocument()
   })

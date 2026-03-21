@@ -1,3 +1,4 @@
+using Anything.Contracts.Bills;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Mediator;
@@ -60,6 +61,25 @@ public class CreateBillHandler(
 
         await unitOfWork.SaveChanges(ct);
 
-        return Results.Created($"/api/bills/{bill.Id}", bill);
+        var response = new BillResponse(
+            bill.Id,
+            bill.Name,
+            bill.VendorId,
+            null,
+            null,
+            frequency.ToString(),
+            bill.IsAutomated,
+            bill.LocationId,
+            null,
+            bill.ManagementUrl,
+            bill.Category,
+            bill.Notes,
+            command.InitialAmount,
+            BillHelpers.ComputeMonthlyEquivalent(frequency, command.InitialAmount),
+            false,
+            bill.CreatedOn,
+            bill.ModifiedOn);
+
+        return Results.Created($"/api/bills/{bill.Id}", response);
     }
 }
