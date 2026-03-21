@@ -42,7 +42,7 @@ public class GetBillAttachmentsHandler(
             }
             else
             {
-                url = a.StorageKey;
+                url = $"/api/bills/{a.BillId}/attachments/{a.Id}/download";
                 thumbnailUrl = null;
             }
 

@@ -86,6 +86,17 @@ public class MinioStorageService : IImageStorageService
         return objectKey;
     }
 
+    public async Task<Stream> GetFileStream(string storageKey, CancellationToken ct = default)
+    {
+        var ms = new MemoryStream();
+        await _client.GetObjectAsync(new GetObjectArgs()
+            .WithBucket(_settings.BucketName)
+            .WithObject(storageKey)
+            .WithCallbackStream(async (stream, token) => await stream.CopyToAsync(ms, token)), ct);
+        ms.Position = 0;
+        return ms;
+    }
+
     public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill")
     {
         var sourceUrl = $"{_settings.MinioSourceEndpoint}/{_settings.BucketName}/{storageKey}";

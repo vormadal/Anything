@@ -340,6 +340,25 @@ export function useUpdateBillAttachment() {
   });
 }
 
+export function useDownloadBillAttachment() {
+  return useMutation({
+    mutationFn: async (data: { billId: number; attachmentId: number; name: string }) => {
+      const res = await fetch(
+        `${API_BASE_URL}/api/bills/${data.billId}/attachments/${data.attachmentId}/download`,
+        { headers: { Authorization: `Bearer ${getAccessToken()}` } }
+      );
+      if (!res.ok) throw new Error("Failed to download attachment");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = data.name;
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+    },
+  });
+}
+
 export function useDeleteBillAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
