@@ -113,6 +113,13 @@ public static class BillEndpoints
             .Produces(404)
             .RequireAuthorization();
 
+        group.MapGet("/{id}/attachments/{attachmentId}/download", async (int id, int attachmentId, IMediator mediator) =>
+            await mediator.Send(new DownloadBillAttachmentQuery(id, attachmentId)))
+            .WithName("DownloadBillAttachment")
+            .Produces(200)
+            .Produces(404)
+            .RequireAuthorization();
+
         group.MapPost("/{id}/attachments", async (int id, IFormFile? file, string? name, IMediator mediator) =>
         {
             if (file is null || file.Length == 0)
