@@ -1235,6 +1235,6 @@ public class GetBillAttachmentsHandlerTests
         var list = ok.Value!.ToList();
         Assert.Single(list);
         Assert.Null(list[0].ThumbnailUrl);
-        Assert.Equal("bills/doc.pdf", list[0].Url);
+        Assert.Equal("/api/bills/1/attachments/1/download", list[0].Url);
     }
 }
