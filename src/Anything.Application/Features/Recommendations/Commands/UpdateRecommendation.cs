@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Anything.Application.Features.Recommendations.Commands;
 
-public record UpdateRecommendationCommand(int Id, string Name, string? PreferredUnit) : IRequest<IResult>;
+public record UpdateRecommendationCommand(int Id, string Name, string? PreferredUnit, int? CategoryId) : IRequest<IResult>;
 
 public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateRecommendationCommand, IResult>
@@ -20,6 +20,7 @@ public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation>
 
         recommendation.Name = command.Name;
         recommendation.PreferredUnit = command.PreferredUnit;
+        recommendation.CategoryId = command.CategoryId;
         recommendation.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

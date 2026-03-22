@@ -27,7 +27,7 @@ public class UpdateRecommendationHandlerTests
     {
         _repo.GetById(1).Returns((ShoppingListRecommendation?)null);
 
-        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -40,7 +40,7 @@ public class UpdateRecommendationHandlerTests
             Id = 1, Name = "X", DeletedOn = DateTime.UtcNow
         });
 
-        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null, null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound<string>>(result);
     }
@@ -53,7 +53,7 @@ public class UpdateRecommendationHandlerTests
         var entity = new ShoppingListRecommendation { Id = 1, Name = "Old" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", "kg"), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", "kg", null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Name);

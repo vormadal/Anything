@@ -5,16 +5,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Recommendations.Queries;
 
-public record GetAllRecommendationsQuery : IRequest<List<ShoppingListRecommendation>>;
+public record GetAllRecommendationsQuery(int? CategoryId = null) : IRequest<List<ShoppingListRecommendation>>;
 
 public class GetAllRecommendationsHandler(IRepository<ShoppingListRecommendation> repository)
     : IRequestHandler<GetAllRecommendationsQuery, List<ShoppingListRecommendation>>
 {
     public async Task<List<ShoppingListRecommendation>> Handle(GetAllRecommendationsQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
-            .Where(r => r.DeletedOn == null)
-            .OrderBy(r => r.Name)
-            .ToListAsync(ct);
+        var q = repository.Query().Where(r => r.DeletedOn == null);
+
+        if (query.CategoryId.HasValue)
+            q = q.Where(r => r.CategoryId == query.CategoryId.Value);
+
+        return await q.OrderBy(r => r.Name).ToListAsync(ct);
     }
 }
