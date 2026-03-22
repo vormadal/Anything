@@ -10,13 +10,11 @@ public record ApproveRecommendationCommand(int Id) : IRequest<IResult>;
 public class ApproveRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<ApproveRecommendationCommand, IResult>
 {
-    private const string RecommendationNotFound = "Recommendation not found.";
-
     public async Task<IResult> Handle(ApproveRecommendationCommand command, CancellationToken ct = default)
     {
         var recommendation = await repository.GetById(command.Id);
         if (recommendation is null || recommendation.DeletedOn != null)
-            return Results.NotFound(RecommendationNotFound);
+            return Results.NotFound(RecommendationErrors.NotFound);
 
         recommendation.IsApproved = true;
         recommendation.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;

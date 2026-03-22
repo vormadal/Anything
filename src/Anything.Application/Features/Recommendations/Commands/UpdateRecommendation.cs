@@ -10,13 +10,11 @@ public record UpdateRecommendationCommand(int Id, string Name, string? Preferred
 public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateRecommendationCommand, IResult>
 {
-    private const string RecommendationNotFound = "Recommendation not found.";
-
     public async Task<IResult> Handle(UpdateRecommendationCommand command, CancellationToken ct = default)
     {
         var recommendation = await repository.GetById(command.Id);
         if (recommendation is null || recommendation.DeletedOn != null)
-            return Results.NotFound(RecommendationNotFound);
+            return Results.NotFound(RecommendationErrors.NotFound);
 
         recommendation.Name = command.Name;
         recommendation.PreferredUnit = command.PreferredUnit;
