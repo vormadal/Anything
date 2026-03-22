@@ -62,7 +62,7 @@ public class AddShoppingListItemHandlerTests
             i.Unit == "liters"));
 
         _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
-            r.Name == "Milk" && !r.IsApproved));
+            r.Name == "Milk" && r.IsApproved));
 
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -94,5 +94,34 @@ public class AddShoppingListItemHandlerTests
 
         _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
             r.Name == "Bread"));
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotCreateRecommendationWhenSoftDeletedOneExists()
+    {
+        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _recommendationRepo.Query().Returns(
+            new List<ShoppingListRecommendation>
+            {
+                new() { Id = 1, Name = "Flour", DeletedOn = DateTime.UtcNow }
+            }.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        await handler.Handle(new AddShoppingListItemCommand(1, "Flour", null, null), TestContext.Current.CancellationToken);
+
+        _recommendationRepo.DidNotReceive().Add(Arg.Any<ShoppingListRecommendation>());
+    }
+
+    [Fact]
+    public async Task Handle_AutoApprovesNewRecommendation()
+    {
+        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        await handler.Handle(new AddShoppingListItemCommand(1, "Tomato", null, null), TestContext.Current.CancellationToken);
+
+        _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
+            r.Name == "Tomato" && r.IsApproved));
     }
 }

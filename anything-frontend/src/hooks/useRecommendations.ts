@@ -12,11 +12,23 @@ export function useApprovedRecommendations() {
   });
 }
 
-export function useAllRecommendations() {
+export function useAllRecommendations(categoryId?: number) {
   return useQuery({
-    queryKey: ["shoppingListRecommendations", "all"],
+    queryKey: ["shoppingListRecommendations", "all", categoryId],
     queryFn: () =>
-      apiClient.api.shoppingListRecommendations.all.get() as Promise<ShoppingListRecommendation[]>,
+      apiClient.api.shoppingListRecommendations.all.get(
+        categoryId !== undefined
+          ? { queryParameters: { categoryId } }
+          : undefined
+      ) as Promise<ShoppingListRecommendation[]>,
+  });
+}
+
+export function useUncategorizedRecommendations() {
+  return useQuery({
+    queryKey: ["shoppingListRecommendations", "uncategorized"],
+    queryFn: () =>
+      apiClient.api.shoppingListRecommendations.uncategorized.get() as Promise<ShoppingListRecommendation[]>,
   });
 }
 
@@ -56,8 +68,8 @@ export function useUpdateRecommendation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, name, preferredUnit }: { id: number; name: string; preferredUnit?: string | null }) =>
-      apiClient.api.shoppingListRecommendations.byId(id).put({ name, preferredUnit: preferredUnit ?? null }),
+    mutationFn: ({ id, name, preferredUnit, categoryId }: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null }) =>
+      apiClient.api.shoppingListRecommendations.byId(id).put({ name, preferredUnit: preferredUnit ?? null, categoryId: categoryId ?? null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
     },

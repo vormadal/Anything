@@ -6,6 +6,8 @@ public class ShoppingListRecommendation
     public required string Name { get; set; }
     public string? PreferredUnit { get; set; }
     public bool IsApproved { get; set; }
+    public int? CategoryId { get; set; }
+    public SuggestionCategory? Category { get; set; }
     public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }

@@ -1,0 +1,277 @@
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { renderWithClient } from "@/__tests__/utils/test-utils";
+import CategoriesPage from "./page";
+import { toast } from "sonner";
+
+const mockCategoriesGet = jest.fn();
+const mockCategoriesPost = jest.fn();
+const mockUpdatePut = jest.fn();
+const mockDeleteFn = jest.fn();
+const mockReorderPut = jest.fn();
+const mockItemById = jest.fn((id: number) => ({
+  put: (...args: unknown[]) => mockUpdatePut(id, ...args),
+  delete: (...args: unknown[]) => mockDeleteFn(id, ...args),
+}));
+
+jest.mock("@/lib/apiClient", () => ({
+  apiClient: {
+    api: {
+      suggestionCategories: {
+        get: (...args: unknown[]) => mockCategoriesGet(...args),
+        post: (...args: unknown[]) => mockCategoriesPost(...args),
+        byId: (id: number) => mockItemById(id),
+        reorder: { put: (...args: unknown[]) => mockReorderPut(...args) },
+      },
+    },
+  },
+}));
+
+const mockPush = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
+  usePathname: () => "/admin/suggestions/categories",
+}));
+
+jest.mock("sonner", () => ({
+  toast: { success: jest.fn(), error: jest.fn() },
+  Toaster: () => null,
+}));
+
+const adminUser = JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" });
+const regularUser = JSON.stringify({ email: "user@test.com", name: "User", role: "User" });
+
+describe("CategoriesPage", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
+
+  describe("Access Control", () => {
+    it("redirects non-admin users", async () => {
+      localStorage.setItem("user", regularUser);
+      localStorage.setItem("accessToken", "test-token");
+      mockCategoriesGet.mockResolvedValue([]);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/");
+      });
+    });
+
+    it("renders page for admin users", async () => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+      mockCategoriesGet.mockResolvedValue([]);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("No categories yet. Create one to get started.")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Displaying Categories", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("shows categories in the list", async () => {
+      mockCategoriesGet.mockResolvedValue([
+        { id: 1, name: "Dairy", sortOrder: 0 },
+        { id: 2, name: "Produce", sortOrder: 1 },
+      ]);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Dairy")).toBeInTheDocument();
+        expect(screen.getByText("Produce")).toBeInTheDocument();
+      });
+    });
+
+    it("shows empty state when no categories exist", async () => {
+      mockCategoriesGet.mockResolvedValue([]);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("No categories yet. Create one to get started.")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Create Category", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+      mockCategoriesGet.mockResolvedValue([]);
+    });
+
+    it("shows create form when clicking New", async () => {
+      const user = userEvent.setup();
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Create category" })).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Create category" }));
+
+      expect(screen.getByPlaceholderText("Category name")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save new category" })).toBeInTheDocument();
+    });
+
+    it("creates a category successfully", async () => {
+      const user = userEvent.setup();
+      mockCategoriesPost.mockResolvedValueOnce({ id: 1, name: "Frozen", sortOrder: 0 });
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Create category" })).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Create category" }));
+      await user.type(screen.getByPlaceholderText("Category name"), "Frozen");
+      await user.click(screen.getByRole("button", { name: "Save new category" }));
+
+      await waitFor(() => {
+        expect(mockCategoriesPost).toHaveBeenCalledWith({ name: "Frozen" });
+        expect(toast.success).toHaveBeenCalledWith("Category created.");
+      });
+    });
+
+    it("shows error toast when create fails", async () => {
+      const user = userEvent.setup();
+      mockCategoriesPost.mockRejectedValueOnce(new Error("Server error"));
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Create category" })).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Create category" }));
+      await user.type(screen.getByPlaceholderText("Category name"), "Frozen");
+      await user.click(screen.getByRole("button", { name: "Save new category" }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to create category.");
+      });
+    });
+
+    it("hides create form on Cancel", async () => {
+      const user = userEvent.setup();
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Create category" })).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Create category" }));
+      expect(screen.getByPlaceholderText("Category name")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(screen.queryByPlaceholderText("Category name")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Edit Category", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("shows edit form when clicking edit button", async () => {
+      const user = userEvent.setup();
+      mockCategoriesGet.mockResolvedValue([{ id: 1, name: "Beverages", sortOrder: 0 }]);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByText("Beverages")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Edit category" }));
+
+      expect(screen.getByDisplayValue("Beverages")).toBeInTheDocument();
+    });
+
+    it("saves edit successfully", async () => {
+      const user = userEvent.setup();
+      mockCategoriesGet.mockResolvedValue([{ id: 1, name: "Beverages", sortOrder: 0 }]);
+      mockUpdatePut.mockResolvedValueOnce(undefined);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByText("Beverages")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Edit category" }));
+
+      const nameInput = screen.getByDisplayValue("Beverages");
+      await user.clear(nameInput);
+      await user.type(nameInput, "Drinks");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => {
+        expect(mockUpdatePut).toHaveBeenCalledWith(1, { name: "Drinks" });
+        expect(toast.success).toHaveBeenCalledWith("Category updated.");
+      });
+    });
+
+    it("shows error toast when edit fails", async () => {
+      const user = userEvent.setup();
+      mockCategoriesGet.mockResolvedValue([{ id: 1, name: "Beverages", sortOrder: 0 }]);
+      mockUpdatePut.mockRejectedValueOnce(new Error("Server error"));
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByText("Beverages")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Edit category" }));
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to update category.");
+      });
+    });
+
+    it("cancels edit without saving", async () => {
+      const user = userEvent.setup();
+      mockCategoriesGet.mockResolvedValue([{ id: 1, name: "Beverages", sortOrder: 0 }]);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByText("Beverages")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Edit category" }));
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(mockUpdatePut).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Delete Category", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("deletes a category successfully", async () => {
+      const user = userEvent.setup();
+      mockCategoriesGet.mockResolvedValue([{ id: 1, name: "Snacks", sortOrder: 0 }]);
+      mockDeleteFn.mockResolvedValueOnce(undefined);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByText("Snacks")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Delete category" }));
+
+      await waitFor(() => {
+        expect(mockDeleteFn).toHaveBeenCalledWith(1);
+        expect(toast.success).toHaveBeenCalledWith("Category deleted.");
+      });
+    });
+
+    it("shows error toast when delete fails", async () => {
+      const user = userEvent.setup();
+      mockCategoriesGet.mockResolvedValue([{ id: 1, name: "Snacks", sortOrder: 0 }]);
+      mockDeleteFn.mockRejectedValueOnce(new Error("Server error"));
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByText("Snacks")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Delete category" }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to delete category.");
+      });
+    });
+  });
+});

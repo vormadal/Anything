@@ -117,6 +117,7 @@ app.MapShoppingListEndpoints();
 app.MapRecipeEndpoints();
 app.MapFoodPlanEndpoints();
 app.MapRecommendationEndpoints();
+app.MapSuggestionCategoryEndpoints();
 app.MapLocationEndpoints();
 app.MapVendorEndpoints();
 app.MapBillEndpoints();

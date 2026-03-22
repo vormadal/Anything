@@ -14,17 +14,20 @@ export interface AllRequestBuilder extends BaseRequestBuilder<AllRequestBuilder>
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {Promise<ShoppingListRecommendation[]>}
      */
-     get(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ShoppingListRecommendation[] | undefined>;
+     get(requestConfiguration?: RequestConfiguration<AllRequestBuilderGetQueryParameters> | undefined) : Promise<ShoppingListRecommendation[] | undefined>;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
      */
-     toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined) : RequestInformation;
+     toGetRequestInformation(requestConfiguration?: RequestConfiguration<AllRequestBuilderGetQueryParameters> | undefined) : RequestInformation;
+}
+export interface AllRequestBuilderGetQueryParameters {
+    categoryId?: number;
 }
 /**
  * Uri template for the request builder.
  */
-export const AllRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/all";
+export const AllRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/all{?categoryId*}";
 /**
  * Metadata for all the requests in the request builder.
  */
