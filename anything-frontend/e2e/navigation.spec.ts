@@ -13,7 +13,7 @@ const PAGES = [
   { path: "/bills", title: "Bills" },
   { path: "/profile", title: "Profile" },
   { path: "/admin/invite", title: "Invite Users" },
-  { path: "/admin/recommendations", title: "Recommendations" },
+  { path: "/admin/suggestions", title: "Suggestions" },
 ];
 
 for (const { path, title } of PAGES) {
