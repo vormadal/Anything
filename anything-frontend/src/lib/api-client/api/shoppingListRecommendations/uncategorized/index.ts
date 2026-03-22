@@ -7,33 +7,30 @@ import { createShoppingListRecommendationFromDiscriminatorValue, type ShoppingLi
 import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
- * Builds and executes requests for operations under /api/shopping-list-recommendations/all
+ * Builds and executes requests for operations under /api/shopping-list-recommendations/uncategorized
  */
-export interface AllRequestBuilder extends BaseRequestBuilder<AllRequestBuilder> {
+export interface UncategorizedRequestBuilder extends BaseRequestBuilder<UncategorizedRequestBuilder> {
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {Promise<ShoppingListRecommendation[]>}
      */
-     get(requestConfiguration?: RequestConfiguration<AllRequestBuilderGetQueryParameters> | undefined) : Promise<ShoppingListRecommendation[] | undefined>;
+     get(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<ShoppingListRecommendation[] | undefined>;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
      */
-     toGetRequestInformation(requestConfiguration?: RequestConfiguration<AllRequestBuilderGetQueryParameters> | undefined) : RequestInformation;
-}
-export interface AllRequestBuilderGetQueryParameters {
-    categoryId?: number;
+     toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined) : RequestInformation;
 }
 /**
  * Uri template for the request builder.
  */
-export const AllRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/all{?categoryId*}";
+export const UncategorizedRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/uncategorized";
 /**
  * Metadata for all the requests in the request builder.
  */
-export const AllRequestBuilderRequestsMetadata: RequestsMetadata = {
+export const UncategorizedRequestBuilderRequestsMetadata: RequestsMetadata = {
     get: {
-        uriTemplate: AllRequestBuilderUriTemplate,
+        uriTemplate: UncategorizedRequestBuilderUriTemplate,
         responseBodyContentType: "application/json",
         adapterMethodName: "sendCollection",
         responseBodyFactory:  createShoppingListRecommendationFromDiscriminatorValue,

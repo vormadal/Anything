@@ -116,6 +116,40 @@ export interface Bill extends Parsable {
      */
     vendorId?: number | null;
 }
+export interface BillAttachmentResponse extends Parsable {
+    /**
+     * The billId property
+     */
+    billId?: number | null;
+    /**
+     * The contentType property
+     */
+    contentType?: string | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The thumbnailUrl property
+     */
+    thumbnailUrl?: string | null;
+    /**
+     * The url property
+     */
+    url?: string | null;
+}
 export interface BillPriceHistory extends Parsable {
     /**
      * The amount property
@@ -268,6 +302,14 @@ export interface BillSummaryResponse extends Parsable {
      */
     totalBills?: number | null;
     /**
+     * The totalCurrentMonthAmount property
+     */
+    totalCurrentMonthAmount?: number | null;
+    /**
+     * The totalCurrentYearAmount property
+     */
+    totalCurrentYearAmount?: number | null;
+    /**
      * The totalMonthlyEquivalent property
      */
     totalMonthlyEquivalent?: number | null;
@@ -326,6 +368,15 @@ export function createAddRecipeImageRequestFromDiscriminatorValue(parseNode: Par
 // @ts-ignore
 export function createAddToShoppingListRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoAddToShoppingListRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {BillAttachmentResponse}
+ */
+// @ts-ignore
+export function createBillAttachmentResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoBillAttachmentResponse;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -557,6 +608,15 @@ export function createCreateShoppingListRequestFromDiscriminatorValue(parseNode:
 // @ts-ignore
 export function createCreateSomethingRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoCreateSomethingRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateSuggestionCategoryRequest}
+ */
+// @ts-ignore
+export function createCreateSuggestionCategoryRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateSuggestionCategoryRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -958,6 +1018,15 @@ export function createReorderShoppingListsRequestFromDiscriminatorValue(parseNod
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ReorderSuggestionCategoriesRequest}
+ */
+// @ts-ignore
+export function createReorderSuggestionCategoriesRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoReorderSuggestionCategoriesRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {ShoppingList}
  */
 // @ts-ignore
@@ -1025,6 +1094,30 @@ export interface CreateSomethingRequest extends Parsable {
      * The name property
      */
     name?: string | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SuggestionCategory}
+ */
+// @ts-ignore
+export function createSuggestionCategoryFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSuggestionCategory;
+}
+export interface CreateSuggestionCategoryRequest extends Parsable {
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateBillAttachmentRequest}
+ */
+// @ts-ignore
+export function createUpdateBillAttachmentRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateBillAttachmentRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1173,6 +1266,15 @@ export function createUpdateSomethingRequestFromDiscriminatorValue(parseNode: Pa
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateSuggestionCategoryRequest}
+ */
+// @ts-ignore
+export function createUpdateSuggestionCategoryRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateSuggestionCategoryRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UpdateVendorRequest}
  */
 // @ts-ignore
@@ -1285,6 +1387,24 @@ export function deserializeIntoBill(bill: Partial<Bill> | undefined = {}) : Reco
 }
 /**
  * The deserialization information for the current model
+ * @param BillAttachmentResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoBillAttachmentResponse(billAttachmentResponse: Partial<BillAttachmentResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "billId": n => { billAttachmentResponse.billId = n.getNumberValue(); },
+        "contentType": n => { billAttachmentResponse.contentType = n.getStringValue(); },
+        "createdOn": n => { billAttachmentResponse.createdOn = n.getDateValue(); },
+        "id": n => { billAttachmentResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { billAttachmentResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { billAttachmentResponse.name = n.getStringValue(); },
+        "thumbnailUrl": n => { billAttachmentResponse.thumbnailUrl = n.getStringValue(); },
+        "url": n => { billAttachmentResponse.url = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param BillPriceHistory The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -1357,6 +1477,8 @@ export function deserializeIntoBillSummaryResponse(billSummaryResponse: Partial<
         "automatedCount": n => { billSummaryResponse.automatedCount = n.getNumberValue(); },
         "manualCount": n => { billSummaryResponse.manualCount = n.getNumberValue(); },
         "totalBills": n => { billSummaryResponse.totalBills = n.getNumberValue(); },
+        "totalCurrentMonthAmount": n => { billSummaryResponse.totalCurrentMonthAmount = n.getNumberValue(); },
+        "totalCurrentYearAmount": n => { billSummaryResponse.totalCurrentYearAmount = n.getNumberValue(); },
         "totalMonthlyEquivalent": n => { billSummaryResponse.totalMonthlyEquivalent = n.getNumberValue(); },
     }
 }
@@ -1559,6 +1681,17 @@ export function deserializeIntoCreateShoppingListRequest(createShoppingListReque
 export function deserializeIntoCreateSomethingRequest(createSomethingRequest: Partial<CreateSomethingRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { createSomethingRequest.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateSuggestionCategoryRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateSuggestionCategoryRequest(createSuggestionCategoryRequest: Partial<CreateSuggestionCategoryRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { createSuggestionCategoryRequest.name = n.getStringValue(); },
     }
 }
 /**
@@ -2002,6 +2135,17 @@ export function deserializeIntoReorderShoppingListsRequest(reorderShoppingListsR
 }
 /**
  * The deserialization information for the current model
+ * @param ReorderSuggestionCategoriesRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoReorderSuggestionCategoriesRequest(reorderSuggestionCategoriesRequest: Partial<ReorderSuggestionCategoriesRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "ids": n => { reorderSuggestionCategoriesRequest.ids = n.getCollectionOfPrimitiveValues<number>(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param ShoppingList The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -2042,6 +2186,8 @@ export function deserializeIntoShoppingListItem(shoppingListItem: Partial<Shoppi
 // @ts-ignore
 export function deserializeIntoShoppingListRecommendation(shoppingListRecommendation: Partial<ShoppingListRecommendation> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "category": n => { shoppingListRecommendation.category = n.getObjectValue<SuggestionCategory>(createSuggestionCategoryFromDiscriminatorValue); },
+        "categoryId": n => { shoppingListRecommendation.categoryId = n.getNumberValue(); },
         "createdOn": n => { shoppingListRecommendation.createdOn = n.getDateValue(); },
         "deletedOn": n => { shoppingListRecommendation.deletedOn = n.getDateValue(); },
         "id": n => { shoppingListRecommendation.id = n.getNumberValue(); },
@@ -2080,6 +2226,33 @@ export function deserializeIntoSomething(something: Partial<Something> | undefin
         "id": n => { something.id = n.getNumberValue(); },
         "modifiedOn": n => { something.modifiedOn = n.getDateValue(); },
         "name": n => { something.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param SuggestionCategory The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSuggestionCategory(suggestionCategory: Partial<SuggestionCategory> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { suggestionCategory.createdOn = n.getDateValue(); },
+        "deletedOn": n => { suggestionCategory.deletedOn = n.getDateValue(); },
+        "id": n => { suggestionCategory.id = n.getNumberValue(); },
+        "modifiedOn": n => { suggestionCategory.modifiedOn = n.getDateValue(); },
+        "name": n => { suggestionCategory.name = n.getStringValue(); },
+        "sortOrder": n => { suggestionCategory.sortOrder = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param UpdateBillAttachmentRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateBillAttachmentRequest(updateBillAttachmentRequest: Partial<UpdateBillAttachmentRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { updateBillAttachmentRequest.name = n.getStringValue(); },
     }
 }
 /**
@@ -2244,6 +2417,7 @@ export function deserializeIntoUpdateRecipeStepRequest(updateRecipeStepRequest: 
 // @ts-ignore
 export function deserializeIntoUpdateRecommendationRequest(updateRecommendationRequest: Partial<UpdateRecommendationRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "categoryId": n => { updateRecommendationRequest.categoryId = n.getNumberValue(); },
         "name": n => { updateRecommendationRequest.name = n.getStringValue(); },
         "preferredUnit": n => { updateRecommendationRequest.preferredUnit = n.getStringValue(); },
     }
@@ -2282,6 +2456,17 @@ export function deserializeIntoUpdateShoppingListRequest(updateShoppingListReque
 export function deserializeIntoUpdateSomethingRequest(updateSomethingRequest: Partial<UpdateSomethingRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { updateSomethingRequest.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param UpdateSuggestionCategoryRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateSuggestionCategoryRequest(updateSuggestionCategoryRequest: Partial<UpdateSuggestionCategoryRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { updateSuggestionCategoryRequest.name = n.getStringValue(); },
     }
 }
 /**
@@ -2880,6 +3065,12 @@ export interface ReorderShoppingListsRequest extends Parsable {
      */
     ids?: number[] | null;
 }
+export interface ReorderSuggestionCategoriesRequest extends Parsable {
+    /**
+     * The ids property
+     */
+    ids?: number[] | null;
+}
 /**
  * Serializes information the current object
  * @param AddBillPriceRequest The instance to serialize from.
@@ -2967,6 +3158,24 @@ export function serializeBill(writer: SerializationWriter, bill: Partial<Bill> |
 }
 /**
  * Serializes information the current object
+ * @param BillAttachmentResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeBillAttachmentResponse(writer: SerializationWriter, billAttachmentResponse: Partial<BillAttachmentResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!billAttachmentResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("billId", billAttachmentResponse.billId);
+    writer.writeStringValue("contentType", billAttachmentResponse.contentType);
+    writer.writeDateValue("createdOn", billAttachmentResponse.createdOn);
+    writer.writeNumberValue("id", billAttachmentResponse.id);
+    writer.writeDateValue("modifiedOn", billAttachmentResponse.modifiedOn);
+    writer.writeStringValue("name", billAttachmentResponse.name);
+    writer.writeStringValue("thumbnailUrl", billAttachmentResponse.thumbnailUrl);
+    writer.writeStringValue("url", billAttachmentResponse.url);
+}
+/**
+ * Serializes information the current object
  * @param BillPriceHistory The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
@@ -3040,6 +3249,8 @@ export function serializeBillSummaryResponse(writer: SerializationWriter, billSu
     writer.writeNumberValue("automatedCount", billSummaryResponse.automatedCount);
     writer.writeNumberValue("manualCount", billSummaryResponse.manualCount);
     writer.writeNumberValue("totalBills", billSummaryResponse.totalBills);
+    writer.writeNumberValue("totalCurrentMonthAmount", billSummaryResponse.totalCurrentMonthAmount);
+    writer.writeNumberValue("totalCurrentYearAmount", billSummaryResponse.totalCurrentYearAmount);
     writer.writeNumberValue("totalMonthlyEquivalent", billSummaryResponse.totalMonthlyEquivalent);
 }
 /**
@@ -3242,6 +3453,17 @@ export function serializeCreateShoppingListRequest(writer: SerializationWriter, 
 export function serializeCreateSomethingRequest(writer: SerializationWriter, createSomethingRequest: Partial<CreateSomethingRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createSomethingRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", createSomethingRequest.name);
+}
+/**
+ * Serializes information the current object
+ * @param CreateSuggestionCategoryRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateSuggestionCategoryRequest(writer: SerializationWriter, createSuggestionCategoryRequest: Partial<CreateSuggestionCategoryRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createSuggestionCategoryRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", createSuggestionCategoryRequest.name);
 }
 /**
  * Serializes information the current object
@@ -3687,6 +3909,17 @@ export function serializeReorderShoppingListsRequest(writer: SerializationWriter
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ReorderSuggestionCategoriesRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeReorderSuggestionCategoriesRequest(writer: SerializationWriter, reorderSuggestionCategoriesRequest: Partial<ReorderSuggestionCategoriesRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!reorderSuggestionCategoriesRequest || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfPrimitiveValues<number>("ids", reorderSuggestionCategoriesRequest.ids);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param ShoppingList The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -3727,6 +3960,8 @@ export function serializeShoppingListItem(writer: SerializationWriter, shoppingL
 // @ts-ignore
 export function serializeShoppingListRecommendation(writer: SerializationWriter, shoppingListRecommendation: Partial<ShoppingListRecommendation> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!shoppingListRecommendation || isSerializingDerivedType) { return; }
+    writer.writeObjectValue<SuggestionCategory>("category", shoppingListRecommendation.category, serializeSuggestionCategory);
+    writer.writeNumberValue("categoryId", shoppingListRecommendation.categoryId);
     writer.writeDateValue("createdOn", shoppingListRecommendation.createdOn);
     writer.writeDateValue("deletedOn", shoppingListRecommendation.deletedOn);
     writer.writeNumberValue("id", shoppingListRecommendation.id);
@@ -3765,6 +4000,33 @@ export function serializeSomething(writer: SerializationWriter, something: Parti
     writer.writeNumberValue("id", something.id);
     writer.writeDateValue("modifiedOn", something.modifiedOn);
     writer.writeStringValue("name", something.name);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SuggestionCategory The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSuggestionCategory(writer: SerializationWriter, suggestionCategory: Partial<SuggestionCategory> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!suggestionCategory || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", suggestionCategory.createdOn);
+    writer.writeDateValue("deletedOn", suggestionCategory.deletedOn);
+    writer.writeNumberValue("id", suggestionCategory.id);
+    writer.writeDateValue("modifiedOn", suggestionCategory.modifiedOn);
+    writer.writeStringValue("name", suggestionCategory.name);
+    writer.writeNumberValue("sortOrder", suggestionCategory.sortOrder);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateBillAttachmentRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateBillAttachmentRequest(writer: SerializationWriter, updateBillAttachmentRequest: Partial<UpdateBillAttachmentRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateBillAttachmentRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", updateBillAttachmentRequest.name);
 }
 /**
  * Serializes information the current object
@@ -3929,6 +4191,7 @@ export function serializeUpdateRecipeStepRequest(writer: SerializationWriter, up
 // @ts-ignore
 export function serializeUpdateRecommendationRequest(writer: SerializationWriter, updateRecommendationRequest: Partial<UpdateRecommendationRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateRecommendationRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("categoryId", updateRecommendationRequest.categoryId);
     writer.writeStringValue("name", updateRecommendationRequest.name);
     writer.writeStringValue("preferredUnit", updateRecommendationRequest.preferredUnit);
 }
@@ -3967,6 +4230,17 @@ export function serializeUpdateShoppingListRequest(writer: SerializationWriter, 
 export function serializeUpdateSomethingRequest(writer: SerializationWriter, updateSomethingRequest: Partial<UpdateSomethingRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateSomethingRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", updateSomethingRequest.name);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateSuggestionCategoryRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateSuggestionCategoryRequest(writer: SerializationWriter, updateSuggestionCategoryRequest: Partial<UpdateSuggestionCategoryRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateSuggestionCategoryRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", updateSuggestionCategoryRequest.name);
 }
 /**
  * Serializes information the current object
@@ -4058,6 +4332,14 @@ export interface ShoppingListItem extends Parsable {
 }
 export interface ShoppingListRecommendation extends Parsable {
     /**
+     * The category property
+     */
+    category?: SuggestionCategory | null;
+    /**
+     * The categoryId property
+     */
+    categoryId?: number | null;
+    /**
      * The createdOn property
      */
     createdOn?: Date | null;
@@ -4129,6 +4411,38 @@ export interface Something extends Parsable {
      * The modifiedOn property
      */
     modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
+export interface SuggestionCategory extends Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The deletedOn property
+     */
+    deletedOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The sortOrder property
+     */
+    sortOrder?: number | null;
+}
+export interface UpdateBillAttachmentRequest extends Parsable {
     /**
      * The name property
      */
@@ -4296,6 +4610,10 @@ export interface UpdateRecipeStepRequest extends Parsable {
 }
 export interface UpdateRecommendationRequest extends Parsable {
     /**
+     * The categoryId property
+     */
+    categoryId?: number | null;
+    /**
      * The name property
      */
     name?: string | null;
@@ -4329,6 +4647,12 @@ export interface UpdateShoppingListRequest extends Parsable {
     name?: string | null;
 }
 export interface UpdateSomethingRequest extends Parsable {
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
+export interface UpdateSuggestionCategoryRequest extends Parsable {
     /**
      * The name property
      */

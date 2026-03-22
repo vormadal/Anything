@@ -200,7 +200,7 @@ describe('useRecommendations hooks', () => {
       })
 
       expect(mockItemById).toHaveBeenCalledWith(1)
-      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Milk', preferredUnit: 'L' })
+      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Milk', preferredUnit: 'L', categoryId: null })
     })
 
     it('handles update error', async () => {

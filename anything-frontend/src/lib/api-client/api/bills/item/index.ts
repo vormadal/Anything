@@ -4,6 +4,8 @@
 // @ts-ignore
 import { createBillResponseFromDiscriminatorValue, createHttpValidationProblemDetailsFromDiscriminatorValue, serializeUpdateBillRequest, type BillResponse, type HttpValidationProblemDetails, type UpdateBillRequest } from '../../../models/index';
 // @ts-ignore
+import { AttachmentsRequestBuilderNavigationMetadata, AttachmentsRequestBuilderRequestsMetadata, type AttachmentsRequestBuilder } from './attachments/index';
+// @ts-ignore
 import { PriceHistoryRequestBuilderNavigationMetadata, PriceHistoryRequestBuilderRequestsMetadata, type PriceHistoryRequestBuilder } from './priceHistory/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
@@ -12,6 +14,10 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  * Builds and executes requests for operations under /api/bills/{id}
  */
 export interface BillsItemRequestBuilder extends BaseRequestBuilder<BillsItemRequestBuilder> {
+    /**
+     * The attachments property
+     */
+    get attachments(): AttachmentsRequestBuilder;
     /**
      * The priceHistory property
      */
@@ -56,6 +62,10 @@ export const BillsItemRequestBuilderUriTemplate = "{+baseurl}/api/bills/{id}";
  * Metadata for all the navigation properties in the request builder.
  */
 export const BillsItemRequestBuilderNavigationMetadata: Record<Exclude<keyof BillsItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
+    attachments: {
+        requestsMetadata: AttachmentsRequestBuilderRequestsMetadata,
+        navigationMetadata: AttachmentsRequestBuilderNavigationMetadata,
+    },
     priceHistory: {
         requestsMetadata: PriceHistoryRequestBuilderRequestsMetadata,
         navigationMetadata: PriceHistoryRequestBuilderNavigationMetadata,

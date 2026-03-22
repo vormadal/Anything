@@ -25,6 +25,7 @@ import {
   ListChecks,
   CalendarDays,
   Receipt,
+  Tag,
 } from "lucide-react";
 import {
   PageActionsProvider,
@@ -173,15 +174,26 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                   Invite Users
                 </button>
                 <button
-                  onClick={() => navigate("/admin/recommendations")}
+                  onClick={() => navigate("/admin/suggestions")}
                   className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive("/admin/recommendations")
+                    isActive("/admin/suggestions")
                       ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                       : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   <ListChecks className="h-4 w-4 shrink-0" />
-                  Recommendations
+                  Suggestions
+                </button>
+                <button
+                  onClick={() => navigate("/admin/suggestions/categories")}
+                  className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive("/admin/suggestions/categories")
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Tag className="h-4 w-4 shrink-0" />
+                  Categories
                 </button>
               </div>
             )}

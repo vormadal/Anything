@@ -10,6 +10,8 @@ import { ShoppingListRecommendationsItemRequestBuilderNavigationMetadata, Shoppi
 // @ts-ignore
 import { PendingRequestBuilderRequestsMetadata, type PendingRequestBuilder } from './pending/index';
 // @ts-ignore
+import { type UncategorizedRequestBuilder, UncategorizedRequestBuilderRequestsMetadata } from './uncategorized/index';
+// @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
@@ -24,6 +26,10 @@ export interface ShoppingListRecommendationsRequestBuilder extends BaseRequestBu
      * The pending property
      */
     get pending(): PendingRequestBuilder;
+    /**
+     * The uncategorized property
+     */
+    get uncategorized(): UncategorizedRequestBuilder;
     /**
      * Gets an item from the ApiSdk.api.shoppingListRecommendations.item collection
      * @param id Unique identifier of the item
@@ -72,6 +78,9 @@ export const ShoppingListRecommendationsRequestBuilderNavigationMetadata: Record
     },
     pending: {
         requestsMetadata: PendingRequestBuilderRequestsMetadata,
+    },
+    uncategorized: {
+        requestsMetadata: UncategorizedRequestBuilderRequestsMetadata,
     },
 };
 /**

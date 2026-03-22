@@ -24,6 +24,8 @@ import { ShoppingListsRequestBuilderNavigationMetadata, ShoppingListsRequestBuil
 // @ts-ignore
 import { SomethingsRequestBuilderNavigationMetadata, SomethingsRequestBuilderRequestsMetadata, type SomethingsRequestBuilder } from './somethings/index';
 // @ts-ignore
+import { SuggestionCategoriesRequestBuilderNavigationMetadata, SuggestionCategoriesRequestBuilderRequestsMetadata, type SuggestionCategoriesRequestBuilder } from './suggestionCategories/index';
+// @ts-ignore
 import { type VendorsRequestBuilder, VendorsRequestBuilderNavigationMetadata, VendorsRequestBuilderRequestsMetadata } from './vendors/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata } from '@microsoft/kiota-abstractions';
@@ -76,6 +78,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The somethings property
      */
     get somethings(): SomethingsRequestBuilder;
+    /**
+     * The suggestionCategories property
+     */
+    get suggestionCategories(): SuggestionCategoriesRequestBuilder;
     /**
      * The vendors property
      */
@@ -130,6 +136,10 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     somethings: {
         requestsMetadata: SomethingsRequestBuilderRequestsMetadata,
         navigationMetadata: SomethingsRequestBuilderNavigationMetadata,
+    },
+    suggestionCategories: {
+        requestsMetadata: SuggestionCategoriesRequestBuilderRequestsMetadata,
+        navigationMetadata: SuggestionCategoriesRequestBuilderNavigationMetadata,
     },
     vendors: {
         requestsMetadata: VendorsRequestBuilderRequestsMetadata,

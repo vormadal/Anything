@@ -15,7 +15,8 @@ public class CreateSuggestionCategoryHandler(IRepository<SuggestionCategory> rep
     {
         var maxSortOrder = await repository.Query()
             .Where(c => c.DeletedOn == null)
-            .MaxAsync(c => (int?)c.SortOrder, ct) ?? -1;
+            .Select(c => (int?)c.SortOrder)
+            .MaxAsync(ct) ?? -1;
 
         var category = new SuggestionCategory
         {
