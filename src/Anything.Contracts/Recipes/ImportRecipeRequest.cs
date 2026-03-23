@@ -29,4 +29,9 @@ public record ImportRecipeRequest(
     List<ImportRecipeIngredientRequest>? Ingredients,
     List<ImportRecipeStepRequest>? Steps,
     [Url(ErrorMessage = "ImageUrl must be a valid URL.")]
-    string? ImageUrl);
+    string? ImageUrl,
+    [Range(1, 10000, ErrorMessage = "Cook time must be between 1 and 10000 minutes.")]
+    int? CookTimeMinutes,
+    [Range(1, 10000, ErrorMessage = "Servings must be between 1 and 10000.")]
+    int? Servings,
+    string? ServingsType);

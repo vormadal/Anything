@@ -17,7 +17,10 @@ public record ImportRecipeCommand(
     string? Notes,
     IReadOnlyList<ImportRecipeIngredient> Ingredients,
     IReadOnlyList<ImportRecipeStep> Steps,
-    string? ImageUrl) : IRequest<Recipe>;
+    string? ImageUrl,
+    int? CookTimeMinutes,
+    int? Servings,
+    ServingsType ServingsType) : IRequest<Recipe>;
 
 public class ImportRecipeHandler(
     IRepository<Recipe> recipeRepository,
@@ -36,7 +39,10 @@ public class ImportRecipeHandler(
         {
             Name = command.Name,
             Link = command.Link,
-            Notes = command.Notes
+            Notes = command.Notes,
+            CookTimeMinutes = command.CookTimeMinutes,
+            Servings = command.Servings,
+            ServingsType = command.ServingsType
         };
 
         recipeRepository.Add(recipe);

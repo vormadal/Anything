@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { Search, X, CookingPot, Plus, CalendarPlus } from "lucide-react";
+import { Search, X, CookingPot, Plus, CalendarPlus, Clock, Users, Package, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import type { Recipe } from "@/lib/api-client/models/index";
@@ -51,6 +51,28 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
             <h3 className="text-lg font-bold text-white drop-shadow line-clamp-2 leading-snug">
               {recipe.name}
             </h3>
+            {(recipe.cookTimeMinutes != null || recipe.servings != null) && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {recipe.cookTimeMinutes != null && (
+                  <span className="inline-flex items-center gap-1 text-xs text-white/80">
+                    <Clock className="h-3 w-3" />
+                    {recipe.cookTimeMinutes} min
+                  </span>
+                )}
+                {recipe.servings != null && (
+                  <span className="inline-flex items-center gap-1 text-xs text-white/80">
+                    {recipe.servingsType === "Quantity" ? (
+                      <Package className="h-3 w-3" />
+                    ) : recipe.servingsType === "Pieces" ? (
+                      <Layers className="h-3 w-3" />
+                    ) : (
+                      <Users className="h-3 w-3" />
+                    )}
+                    {recipe.servings}
+                  </span>
+                )}
+              </div>
+            )}
             {visibleTags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {visibleTags.map((tag) => (

@@ -39,6 +39,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -47,6 +48,7 @@
     "@types/node": "^25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.3.1",
     "eslint": "^9.39.2",
     "eslint-config-next": "16.2.1",
     "jest": "^30.3.0",
@@ -54,8 +56,6 @@
     "sharp": "^0.34.5",
     "source-map": "^0.7.6",
     "tailwindcss": "^4",
-    "typescript": "5.9.3",
-    "@playwright/test": "^1.50.0",
-    "dotenv": "^17.3.1"
+    "typescript": "5.9.3"
   }
 }

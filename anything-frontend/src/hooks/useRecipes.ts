@@ -52,8 +52,15 @@ export function useCreateRecipe() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (recipe: { name: string; link?: string; notes?: string }) =>
-      apiClient.api.recipes.post({ name: recipe.name, link: recipe.link, notes: recipe.notes }),
+    mutationFn: (recipe: { name: string; link?: string; notes?: string; cookTimeMinutes?: number | null; servings?: number | null; servingsType?: string | null }) =>
+      apiClient.api.recipes.post({
+        name: recipe.name,
+        link: recipe.link,
+        notes: recipe.notes,
+        cookTimeMinutes: recipe.cookTimeMinutes,
+        servings: recipe.servings,
+        servingsType: recipe.servingsType,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
@@ -64,8 +71,8 @@ export function useUpdateRecipe() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, name, link, notes }: { id: number; name: string; link?: string | null; notes?: string | null }) =>
-      apiClient.api.recipes.byId(id).put({ name, link, notes }),
+    mutationFn: ({ id, name, link, notes, cookTimeMinutes, servings, servingsType }: { id: number; name: string; link?: string | null; notes?: string | null; cookTimeMinutes?: number | null; servings?: number | null; servingsType?: string | null }) =>
+      apiClient.api.recipes.byId(id).put({ name, link, notes, cookTimeMinutes, servings, servingsType }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
       queryClient.invalidateQueries({ queryKey: ["recipe", variables.id] });

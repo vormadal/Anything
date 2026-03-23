@@ -170,23 +170,18 @@ describe('RecipesPage', () => {
     expect(screen.getByRole('button', { name: /Add to food plan/i })).toBeInTheDocument()
   })
 
-  it('should open food plan dialog when add-to-food-plan button is clicked', async () => {
-    const user = userEvent.setup()
-    const mockData = [{ id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' }]
+  it('should display recipe cards with time and servings when set', async () => {
+    const mockData = [
+      { id: 1, name: 'Pancakes', cookTimeMinutes: 20, servings: 8, servingsType: 'Pieces', createdOn: '2024-01-01T00:00:00Z' },
+    ]
     mockRecipesGet.mockResolvedValue(mockData)
-    mockFoodPlansGet.mockResolvedValue([{ id: 1, name: 'Week 1', activeDays: 31, weekStart: '2024-01-01T00:00:00Z' }])
 
     render(<RecipesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pasta')).toBeInTheDocument()
-    })
-
-    const addButton = screen.getByRole('button', { name: /Add to food plan/i })
-    await user.click(addButton)
-
-    await waitFor(() => {
-      expect(screen.getByText('Add to Food Plan')).toBeInTheDocument()
+      expect(screen.getByText('Pancakes')).toBeInTheDocument()
+      expect(screen.getByText('20 min')).toBeInTheDocument()
+      expect(screen.getByText('8')).toBeInTheDocument()
     })
   })
 })

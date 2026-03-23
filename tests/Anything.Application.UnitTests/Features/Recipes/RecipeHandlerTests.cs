@@ -28,7 +28,7 @@ public class CreateRecipeHandlerTests
     {
         var handler = new CreateRecipeHandler(_repo, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateRecipeCommand("Pasta", "https://example.com", "Great recipe"), TestContext.Current.CancellationToken);
+        var result = await handler.Handle(new CreateRecipeCommand("Pasta", "https://example.com", "Great recipe", null, null, ServingsType.People), TestContext.Current.CancellationToken);
 
         Assert.Equal("Pasta", result.Name);
         Assert.Equal("https://example.com", result.Link);
@@ -36,6 +36,18 @@ public class CreateRecipeHandlerTests
         Assert.NotEqual(default, result.CreatedOn);
         _repo.Received(1).Add(Arg.Is<Recipe>(r => r.Name == "Pasta"));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_CreatesRecipeWithTimeAndServings()
+    {
+        var handler = new CreateRecipeHandler(_repo, _unitOfWork, _timeProvider);
+
+        var result = await handler.Handle(new CreateRecipeCommand("Pancakes", null, null, 20, 8, ServingsType.Pieces), TestContext.Current.CancellationToken);
+
+        Assert.Equal(20, result.CookTimeMinutes);
+        Assert.Equal(8, result.Servings);
+        Assert.Equal(ServingsType.Pieces, result.ServingsType);
     }
 }
 
@@ -54,7 +66,7 @@ public class UpdateRecipeHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Recipe?)null);
-        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null), TestContext.Current.CancellationToken);
+        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null, null, null, ServingsType.People), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -62,7 +74,7 @@ public class UpdateRecipeHandlerTests
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new Recipe { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
-        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null), TestContext.Current.CancellationToken);
+        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null, null, null, ServingsType.People), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -75,7 +87,7 @@ public class UpdateRecipeHandlerTests
         _repo.GetById(1).Returns(entity);
 
         var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider)
-            .Handle(new UpdateRecipeCommand(1, "New", "https://link.com", "Notes"), TestContext.Current.CancellationToken);
+            .Handle(new UpdateRecipeCommand(1, "New", "https://link.com", "Notes", null, null, ServingsType.People), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New", entity.Name);
@@ -83,6 +95,20 @@ public class UpdateRecipeHandlerTests
         Assert.Equal("Notes", entity.Notes);
         Assert.Equal(now.UtcDateTime, entity.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_UpdatesTimeAndServingsFields()
+    {
+        var entity = new Recipe { Id = 1, Name = "Old" };
+        _repo.GetById(1).Returns(entity);
+
+        await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider)
+            .Handle(new UpdateRecipeCommand(1, "Old", null, null, 45, 4, ServingsType.Quantity), TestContext.Current.CancellationToken);
+
+        Assert.Equal(45, entity.CookTimeMinutes);
+        Assert.Equal(4, entity.Servings);
+        Assert.Equal(ServingsType.Quantity, entity.ServingsType);
     }
 }
 
@@ -153,7 +179,10 @@ public class ImportRecipeHandlerTests
                 new("Chop carrots", 1),
                 new("Add salt", 2)
             },
-            null);
+            null,
+            null,
+            null,
+            ServingsType.People);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -175,7 +204,10 @@ public class ImportRecipeHandlerTests
                 new("Salt", -5m, "tsp", null)
             },
             new List<ImportRecipeStep>(),
-            null);
+            null,
+            null,
+            null,
+            ServingsType.People);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -189,7 +221,10 @@ public class ImportRecipeHandlerTests
         var command = new ImportRecipeCommand("Simple Recipe", null, null,
             new List<ImportRecipeIngredient>(),
             new List<ImportRecipeStep>(),
-            null);
+            null,
+            null,
+            null,
+            ServingsType.People);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
