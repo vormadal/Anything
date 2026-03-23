@@ -905,6 +905,10 @@ export function createRecipeMultiplierFromDiscriminatorValue(parseNode: ParseNod
 }
 export interface CreateRecipeRequest extends Parsable {
     /**
+     * The cookTimeMinutes property
+     */
+    cookTimeMinutes?: number | null;
+    /**
      * The link property
      */
     link?: string | null;
@@ -916,6 +920,14 @@ export interface CreateRecipeRequest extends Parsable {
      * The notes property
      */
     notes?: string | null;
+    /**
+     * The servings property
+     */
+    servings?: number | null;
+    /**
+     * The servingsType property
+     */
+    servingsType?: string | null;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1608,9 +1620,12 @@ export function deserializeIntoCreateRecipeIngredientRequest(createRecipeIngredi
 // @ts-ignore
 export function deserializeIntoCreateRecipeRequest(createRecipeRequest: Partial<CreateRecipeRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "cookTimeMinutes": n => { createRecipeRequest.cookTimeMinutes = n.getNumberValue(); },
         "link": n => { createRecipeRequest.link = n.getStringValue(); },
         "name": n => { createRecipeRequest.name = n.getStringValue(); },
         "notes": n => { createRecipeRequest.notes = n.getStringValue(); },
+        "servings": n => { createRecipeRequest.servings = n.getNumberValue(); },
+        "servingsType": n => { createRecipeRequest.servingsType = n.getStringValue(); },
     }
 }
 /**
@@ -1974,6 +1989,7 @@ export function deserializeIntoParseRecipeFromUrlRequest(parseRecipeFromUrlReque
 // @ts-ignore
 export function deserializeIntoRecipe(recipe: Partial<Recipe> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "cookTimeMinutes": n => { recipe.cookTimeMinutes = n.getNumberValue(); },
         "createdOn": n => { recipe.createdOn = n.getDateValue(); },
         "deletedOn": n => { recipe.deletedOn = n.getDateValue(); },
         "id": n => { recipe.id = n.getNumberValue(); },
@@ -1981,6 +1997,8 @@ export function deserializeIntoRecipe(recipe: Partial<Recipe> | undefined = {}) 
         "modifiedOn": n => { recipe.modifiedOn = n.getDateValue(); },
         "name": n => { recipe.name = n.getStringValue(); },
         "notes": n => { recipe.notes = n.getStringValue(); },
+        "servings": n => { recipe.servings = n.getNumberValue(); },
+        "servingsType": n => { recipe.servingsType = n.getStringValue(); },
     }
 }
 /**
@@ -2392,9 +2410,12 @@ export function deserializeIntoUpdateRecipeIngredientRequest(updateRecipeIngredi
 // @ts-ignore
 export function deserializeIntoUpdateRecipeRequest(updateRecipeRequest: Partial<UpdateRecipeRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "cookTimeMinutes": n => { updateRecipeRequest.cookTimeMinutes = n.getNumberValue(); },
         "link": n => { updateRecipeRequest.link = n.getStringValue(); },
         "name": n => { updateRecipeRequest.name = n.getStringValue(); },
         "notes": n => { updateRecipeRequest.notes = n.getStringValue(); },
+        "servings": n => { updateRecipeRequest.servings = n.getNumberValue(); },
+        "servingsType": n => { updateRecipeRequest.servingsType = n.getStringValue(); },
     }
 }
 /**
@@ -2855,6 +2876,10 @@ export interface ParseRecipeFromUrlRequest extends Parsable {
 }
 export interface Recipe extends Parsable {
     /**
+     * The cookTimeMinutes property
+     */
+    cookTimeMinutes?: number | null;
+    /**
      * The createdOn property
      */
     createdOn?: Date | null;
@@ -2882,6 +2907,14 @@ export interface Recipe extends Parsable {
      * The notes property
      */
     notes?: string | null;
+    /**
+     * The servings property
+     */
+    servings?: number | null;
+    /**
+     * The servingsType property
+     */
+    servingsType?: string | null;
 }
 export interface RecipeImageResponse extends Parsable {
     /**
@@ -3380,9 +3413,12 @@ export function serializeCreateRecipeIngredientRequest(writer: SerializationWrit
 // @ts-ignore
 export function serializeCreateRecipeRequest(writer: SerializationWriter, createRecipeRequest: Partial<CreateRecipeRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createRecipeRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("cookTimeMinutes", createRecipeRequest.cookTimeMinutes);
     writer.writeStringValue("link", createRecipeRequest.link);
     writer.writeStringValue("name", createRecipeRequest.name);
     writer.writeStringValue("notes", createRecipeRequest.notes);
+    writer.writeNumberValue("servings", createRecipeRequest.servings);
+    writer.writeStringValue("servingsType", createRecipeRequest.servingsType);
 }
 /**
  * Serializes information the current object
@@ -3748,6 +3784,7 @@ export function serializeParseRecipeFromUrlRequest(writer: SerializationWriter, 
 // @ts-ignore
 export function serializeRecipe(writer: SerializationWriter, recipe: Partial<Recipe> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!recipe || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("cookTimeMinutes", recipe.cookTimeMinutes);
     writer.writeDateValue("createdOn", recipe.createdOn);
     writer.writeDateValue("deletedOn", recipe.deletedOn);
     writer.writeNumberValue("id", recipe.id);
@@ -3755,6 +3792,8 @@ export function serializeRecipe(writer: SerializationWriter, recipe: Partial<Rec
     writer.writeDateValue("modifiedOn", recipe.modifiedOn);
     writer.writeStringValue("name", recipe.name);
     writer.writeStringValue("notes", recipe.notes);
+    writer.writeNumberValue("servings", recipe.servings);
+    writer.writeStringValue("servingsType", recipe.servingsType);
 }
 /**
  * Serializes information the current object
@@ -4166,9 +4205,12 @@ export function serializeUpdateRecipeIngredientRequest(writer: SerializationWrit
 // @ts-ignore
 export function serializeUpdateRecipeRequest(writer: SerializationWriter, updateRecipeRequest: Partial<UpdateRecipeRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateRecipeRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("cookTimeMinutes", updateRecipeRequest.cookTimeMinutes);
     writer.writeStringValue("link", updateRecipeRequest.link);
     writer.writeStringValue("name", updateRecipeRequest.name);
     writer.writeStringValue("notes", updateRecipeRequest.notes);
+    writer.writeNumberValue("servings", updateRecipeRequest.servings);
+    writer.writeStringValue("servingsType", updateRecipeRequest.servingsType);
 }
 /**
  * Serializes information the current object
@@ -4586,6 +4628,10 @@ export interface UpdateRecipeIngredientRequest extends Parsable {
 }
 export interface UpdateRecipeRequest extends Parsable {
     /**
+     * The cookTimeMinutes property
+     */
+    cookTimeMinutes?: number | null;
+    /**
      * The link property
      */
     link?: string | null;
@@ -4597,6 +4643,14 @@ export interface UpdateRecipeRequest extends Parsable {
      * The notes property
      */
     notes?: string | null;
+    /**
+     * The servings property
+     */
+    servings?: number | null;
+    /**
+     * The servingsType property
+     */
+    servingsType?: string | null;
 }
 export interface UpdateRecipeStepRequest extends Parsable {
     /**

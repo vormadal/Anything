@@ -127,7 +127,24 @@ describe('useRecipes hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockPost).toHaveBeenCalledWith({ name: 'Pasta', link: undefined, notes: undefined })
+      expect(mockPost).toHaveBeenCalledWith({ name: 'Pasta', link: undefined, notes: undefined, cookTimeMinutes: undefined, servings: undefined, servingsType: undefined })
+    })
+
+    it('should create a recipe with time and servings', async () => {
+      const mockResponse = { id: 1, name: 'Pancakes', cookTimeMinutes: 20, servings: 8, servingsType: 'Pieces', createdOn: '2024-01-01T00:00:00Z' }
+      mockPost.mockResolvedValueOnce(mockResponse)
+
+      const { result } = renderHook(() => useCreateRecipe(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ name: 'Pancakes', cookTimeMinutes: 20, servings: 8, servingsType: 'Pieces' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockPost).toHaveBeenCalledWith(expect.objectContaining({ cookTimeMinutes: 20, servings: 8, servingsType: 'Pieces' }))
     })
 
     it('should handle create error', async () => {
@@ -294,7 +311,23 @@ describe('useRecipes hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockPut).toHaveBeenCalledWith({ name: 'Updated Pasta', link: null, notes: null })
+      expect(mockPut).toHaveBeenCalledWith({ name: 'Updated Pasta', link: null, notes: null, cookTimeMinutes: undefined, servings: undefined, servingsType: undefined })
+    })
+
+    it('should update a recipe with time and servings fields', async () => {
+      mockPut.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useUpdateRecipe(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ id: 1, name: 'Dinner for 4', cookTimeMinutes: 45, servings: 4, servingsType: 'People' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockPut).toHaveBeenCalledWith(expect.objectContaining({ cookTimeMinutes: 45, servings: 4, servingsType: 'People' }))
     })
   })
 

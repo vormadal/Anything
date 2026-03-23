@@ -93,6 +93,51 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    // --- Time and Servings ---
+
+    [Fact]
+    public async Task Recipe_TimeAndServings_CreateAndUpdate()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        // Create recipe with time and servings
+        var createResponse = await client.PostAsJsonAsync("/api/recipes",
+            new { name = "Pancakes", cookTimeMinutes = 20, servings = 8, servingsType = "Pieces" },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        var created = await createResponse.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(created);
+        Assert.Equal(20, created.CookTimeMinutes);
+        Assert.Equal(8, created.Servings);
+        Assert.Equal("Pieces", created.ServingsType);
+
+        // Update to people servings type
+        var updateResponse = await client.PutAsJsonAsync($"/api/recipes/{created.Id}",
+            new { name = "Pancakes", cookTimeMinutes = 30, servings = 4, servingsType = "People" },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        var updated = await (await client.GetAsync($"/api/recipes/{created.Id}", TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(updated);
+        Assert.Equal(30, updated.CookTimeMinutes);
+        Assert.Equal(4, updated.Servings);
+        Assert.Equal("People", updated.ServingsType);
+
+        // Clear optional fields
+        var clearResponse = await client.PutAsJsonAsync($"/api/recipes/{created.Id}",
+            new { name = "Pancakes" },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, clearResponse.StatusCode);
+
+        var cleared = await (await client.GetAsync($"/api/recipes/{created.Id}", TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(cleared);
+        Assert.Null(cleared.CookTimeMinutes);
+        Assert.Null(cleared.Servings);
+    }
+
     // --- Not Found ---
 
     [Fact]
@@ -613,7 +658,7 @@ public class RecipeEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record RecipeDto(int Id, string? Name, string? Link, string? Notes);
+    private record RecipeDto(int Id, string? Name, string? Link, string? Notes, int? CookTimeMinutes, int? Servings, string? ServingsType);
     private record IngredientDto(int Id, int RecipeId, string? Name, decimal? Amount, string? Unit, string? Group);
     private record StepDto(int Id, int RecipeId, string? Text, int Order);
     private record RecipeImageDto(int Id, int RecipeId, string ThumbnailUrl, string MediumUrl, string OriginalUrl, DateTime CreatedOn);

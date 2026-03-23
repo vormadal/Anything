@@ -10,6 +10,9 @@ namespace Anything.API.Endpoints;
 
 public static class RecipeEndpoints
 {
+    private static ServingsType ParseServingsType(string? value) =>
+        Enum.TryParse<ServingsType>(value, ignoreCase: true, out var parsed) ? parsed : ServingsType.People;
+
     public static void MapRecipeEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/recipes");
@@ -32,7 +35,9 @@ public static class RecipeEndpoints
 
         group.MapPost("/", async (CreateRecipeRequest request, IMediator mediator) =>
         {
-            var result = await mediator.Send(new CreateRecipeCommand(request.Name, request.Link, request.Notes));
+            var result = await mediator.Send(new CreateRecipeCommand(
+                request.Name, request.Link, request.Notes,
+                request.CookTimeMinutes, request.Servings, ParseServingsType(request.ServingsType)));
             return Results.Created($"/api/recipes/{result.Id}", result);
         })
         .WithName("CreateRecipe")
@@ -60,7 +65,8 @@ public static class RecipeEndpoints
                 .Select(s => new ImportRecipeStep(s.Text, s.Order))
                 .ToList();
             var result = await mediator.Send(new ImportRecipeCommand(
-                request.Name, request.Link, request.Notes, ingredients, steps, request.ImageUrl));
+                request.Name, request.Link, request.Notes, ingredients, steps, request.ImageUrl,
+                request.CookTimeMinutes, request.Servings, ParseServingsType(request.ServingsType)));
             return Results.Created($"/api/recipes/{result.Id}", result);
         })
         .WithName("ImportRecipe")
@@ -70,7 +76,9 @@ public static class RecipeEndpoints
 
         group.MapPut("/{id}", async (int id, UpdateRecipeRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateRecipeCommand(id, request.Name, request.Link, request.Notes));
+            return await mediator.Send(new UpdateRecipeCommand(
+                id, request.Name, request.Link, request.Notes,
+                request.CookTimeMinutes, request.Servings, ParseServingsType(request.ServingsType)));
         })
         .WithName("UpdateRecipe")
         .Produces(204)

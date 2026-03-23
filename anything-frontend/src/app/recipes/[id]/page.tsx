@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X, GripVertical } from "lucide-react";
+import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X, GripVertical, Clock, Users, Package, Layers } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -226,6 +226,9 @@ export default function RecipeDetailPage() {
   const [editName, setEditName] = useState<string | null>(null);
   const [editLink, setEditLink] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState<string | null>(null);
+  const [editCookTimeMinutes, setEditCookTimeMinutes] = useState<string | null>(null);
+  const [editServings, setEditServings] = useState<string | null>(null);
+  const [editServingsType, setEditServingsType] = useState<string | null>(null);
 
   const [newIngredientName, setNewIngredientName] = useState("");
   const [newIngredientAmount, setNewIngredientAmount] = useState("");
@@ -257,6 +260,9 @@ export default function RecipeDetailPage() {
   const effectiveEditName = editName ?? (recipe?.name ?? "");
   const effectiveEditLink = editLink ?? (recipe?.link ?? "");
   const effectiveEditNotes = editNotes ?? (recipe?.notes ?? "");
+  const effectiveEditCookTimeMinutes = editCookTimeMinutes ?? (recipe?.cookTimeMinutes != null ? String(recipe.cookTimeMinutes) : "");
+  const effectiveEditServings = editServings ?? (recipe?.servings != null ? String(recipe.servings) : "");
+  const effectiveEditServingsType = editServingsType ?? (recipe?.servingsType ?? "People");
 
   const updateRecipe = useUpdateRecipe();
   const deleteRecipe = useDeleteRecipe();
@@ -304,6 +310,9 @@ export default function RecipeDetailPage() {
     setEditName(null);
     setEditLink(null);
     setEditNotes(null);
+    setEditCookTimeMinutes(null);
+    setEditServings(null);
+    setEditServingsType(null);
     setEditingIngredients({});
     setEditingSteps({});
     setIsEditMode(true);
@@ -322,13 +331,21 @@ export default function RecipeDetailPage() {
     const nameChanged = effectiveEditName !== (recipe?.name ?? "");
     const linkChanged = effectiveEditLink !== (recipe?.link ?? "");
     const notesChanged = effectiveEditNotes !== (recipe?.notes ?? "");
-    if (nameChanged || linkChanged || notesChanged) {
+    const parsedCookTime = effectiveEditCookTimeMinutes ? Number(effectiveEditCookTimeMinutes) : null;
+    const parsedServings = effectiveEditServings ? Number(effectiveEditServings) : null;
+    const cookTimeChanged = parsedCookTime !== (recipe?.cookTimeMinutes ?? null);
+    const servingsChanged = parsedServings !== (recipe?.servings ?? null);
+    const servingsTypeChanged = effectiveEditServingsType !== (recipe?.servingsType ?? "People");
+    if (nameChanged || linkChanged || notesChanged || cookTimeChanged || servingsChanged || servingsTypeChanged) {
       try {
         await updateRecipe.mutateAsync({
           id: recipeId,
           name: effectiveEditName,
           link: effectiveEditLink || null,
           notes: effectiveEditNotes || null,
+          cookTimeMinutes: parsedCookTime && !isNaN(parsedCookTime) ? parsedCookTime : null,
+          servings: parsedServings && !isNaN(parsedServings) ? parsedServings : null,
+          servingsType: effectiveEditServingsType,
         });
         toast.success("Recipe updated");
       } catch {
@@ -339,6 +356,9 @@ export default function RecipeDetailPage() {
     setEditName(null);
     setEditLink(null);
     setEditNotes(null);
+    setEditCookTimeMinutes(null);
+    setEditServings(null);
+    setEditServingsType(null);
     setEditingIngredients({});
     setEditingSteps({});
   };
@@ -742,11 +762,68 @@ export default function RecipeDetailPage() {
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
             />
+            <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-1">
+                <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+                <input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={effectiveEditCookTimeMinutes}
+                  onChange={(e) => setEditCookTimeMinutes(e.target.value)}
+                  placeholder="Cook time (min)"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={effectiveEditServings}
+                  onChange={(e) => setEditServings(e.target.value)}
+                  placeholder="Servings"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                />
+                <select
+                  value={effectiveEditServingsType}
+                  onChange={(e) => setEditServingsType(e.target.value)}
+                  className="px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                  aria-label="Servings type"
+                >
+                  <option value="People">People</option>
+                  <option value="Quantity">Quantity</option>
+                  <option value="Pieces">Pieces</option>
+                </select>
+              </div>
+            </div>
           </div>
         ) : (
-          (recipe?.link || recipe?.notes) && (
+          (recipe?.link || recipe?.notes || recipe?.cookTimeMinutes != null || recipe?.servings != null) && (
             <div className="mb-8">
-              {recipe.link && isSafeUrl(recipe.link) && (
+              {(recipe?.cookTimeMinutes != null || recipe?.servings != null) && (
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {recipe.cookTimeMinutes != null && (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                      <Clock className="h-4 w-4" />
+                      {recipe.cookTimeMinutes} min
+                    </span>
+                  )}
+                  {recipe.servings != null && (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                      {recipe.servingsType === "Quantity" ? (
+                        <Package className="h-4 w-4" />
+                      ) : recipe.servingsType === "Pieces" ? (
+                        <Layers className="h-4 w-4" />
+                      ) : (
+                        <Users className="h-4 w-4" />
+                      )}
+                      {recipe.servings} {recipe.servingsType === "Quantity" ? "items" : recipe.servingsType === "Pieces" ? "pieces" : "people"}
+                    </span>
+                  )}
+                </div>
+              )}
+              {recipe?.link && isSafeUrl(recipe.link) && (
                 <a
                   href={recipe.link}
                   target="_blank"
@@ -756,7 +833,7 @@ export default function RecipeDetailPage() {
                   {recipe.link}
                 </a>
               )}
-              {recipe.notes && (
+              {recipe?.notes && (
                 <p className="text-gray-600 dark:text-gray-400 text-sm whitespace-pre-wrap leading-relaxed">
                   {recipe.notes}
                 </p>

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
+import { Clock } from "lucide-react";
 
 type Mode = "select" | "url" | "manual";
 
@@ -25,6 +26,9 @@ export default function NewRecipePage() {
   const [name, setName] = useState("");
   const [link, setLink] = useState("");
   const [notes, setNotes] = useState("");
+  const [cookTimeMinutes, setCookTimeMinutes] = useState("");
+  const [servings, setServings] = useState("");
+  const [servingsType, setServingsType] = useState("People");
   const [urlInput, setUrlInput] = useState("");
 
   const createRecipe = useCreateRecipe();
@@ -70,11 +74,16 @@ export default function NewRecipePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const parsedCookTime = cookTimeMinutes ? Number(cookTimeMinutes) : null;
+    const parsedServings = servings ? Number(servings) : null;
     try {
       const newRecipe = await createRecipe.mutateAsync({
         name,
         link: link || undefined,
         notes: notes || undefined,
+        cookTimeMinutes: parsedCookTime && !isNaN(parsedCookTime) ? parsedCookTime : null,
+        servings: parsedServings && !isNaN(parsedServings) ? parsedServings : null,
+        servingsType: servingsType || null,
       });
       toast.success("Recipe created");
       router.push(newRecipe?.id ? `/recipes/${newRecipe.id}?edit=true` : "/recipes");
@@ -210,6 +219,54 @@ export default function NewRecipePage() {
                 rows={3}
                 className={INPUT_CLASS}
               />
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label htmlFor="recipe-cook-time" className={LABEL_CLASS}>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    Cook time (min, optional)
+                  </span>
+                </label>
+                <input
+                  id="recipe-cook-time"
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={cookTimeMinutes}
+                  onChange={(e) => setCookTimeMinutes(e.target.value)}
+                  placeholder="e.g. 30"
+                  className={INPUT_CLASS}
+                />
+              </div>
+              <div className="flex-1">
+                <label htmlFor="recipe-servings" className={LABEL_CLASS}>
+                  Servings (optional)
+                </label>
+                <div className="flex gap-1">
+                  <input
+                    id="recipe-servings"
+                    type="number"
+                    min={1}
+                    max={10000}
+                    value={servings}
+                    onChange={(e) => setServings(e.target.value)}
+                    placeholder="e.g. 4"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                  <select
+                    value={servingsType}
+                    onChange={(e) => setServingsType(e.target.value)}
+                    className="px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                    aria-label="Servings type"
+                  >
+                    <option value="People">People</option>
+                    <option value="Quantity">Quantity</option>
+                    <option value="Pieces">Pieces</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <Button
