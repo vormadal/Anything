@@ -401,7 +401,7 @@ export default function ShoppingListDetailPage() {
         )}
 
         {sortedItems.length > 0 && (
-          <ul className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+          <ul className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
             {sortedItems.map((item, index) => (
               <Fragment key={item.id}>
               <li
