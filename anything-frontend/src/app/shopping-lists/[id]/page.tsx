@@ -2,6 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -25,7 +32,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { Pencil, Check, Plus, Trash2, MoreVertical, Archive } from "lucide-react";
+import { Pencil, Check, Plus, Trash2, MoreVertical, Archive, SquarePen } from "lucide-react";
 
 export default function ShoppingListDetailPage() {
   const SUGGESTION_CLOSE_DELAY_MS = 150;
@@ -34,7 +41,7 @@ export default function ShoppingListDetailPage() {
   const listId = Number(params.id);
 
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editingListName, setEditingListName] = useState(false);
+  const [editNameDialogOpen, setEditNameDialogOpen] = useState(false);
   const [listNameValue, setListNameValue] = useState("");
   const listNameInputRef = useRef<HTMLInputElement>(null);
   const [newItemName, setNewItemName] = useState("");
@@ -105,34 +112,30 @@ export default function ShoppingListDetailPage() {
     return Number.isInteger(amount) ? String(amount) : String(amount);
   };
 
-  const handleStartEditListName = () => {
+  const handleOpenEditNameDialog = () => {
     setListNameValue(list?.name ?? "");
-    setEditingListName(true);
+    setEditNameDialogOpen(true);
   };
 
   useEffect(() => {
-    if (editingListName) {
-      listNameInputRef.current?.focus();
+    if (editNameDialogOpen) {
+      setTimeout(() => listNameInputRef.current?.focus(), 0);
     }
-  }, [editingListName]);
+  }, [editNameDialogOpen]);
 
   const handleSaveListName = async () => {
     const trimmed = listNameValue.trim();
     if (!trimmed || trimmed === list?.name) {
-      setEditingListName(false);
+      setEditNameDialogOpen(false);
       return;
     }
     try {
       await updateList.mutateAsync({ id: listId, name: trimmed });
-      setEditingListName(false);
+      setEditNameDialogOpen(false);
       toast.success("List name updated");
     } catch {
       toast.error("Failed to update list name. Please try again.");
     }
-  };
-
-  const handleCancelListNameEdit = () => {
-    setEditingListName(false);
   };
 
   const handleCompleteList = async () => {
@@ -223,6 +226,12 @@ export default function ShoppingListDetailPage() {
     }
   };
 
+  // Keep a ref to the open-edit-name handler so the header effect closure is always current
+  const handleOpenEditNameDialogRef = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    handleOpenEditNameDialogRef.current = handleOpenEditNameDialog;
+  });
+
   useEffect(() => {
     setLeftAction({ type: "back", href: "/shopping-lists" });
     setHeaderActions(
@@ -234,7 +243,6 @@ export default function ShoppingListDetailPage() {
             onClick={() => {
               setIsEditMode(!isEditMode);
               setEditingItem(null);
-              setEditingListName(false);
             }}
             aria-label={isEditMode ? "Done editing" : "Edit list"}
           >
@@ -247,6 +255,12 @@ export default function ShoppingListDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {isEditMode && (
+                <DropdownMenuItem onSelect={() => handleOpenEditNameDialogRef.current()}>
+                  <SquarePen className="h-4 w-4" />
+                  Edit name
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                 onSelect={() => handleDeleteListRef.current()}
@@ -268,59 +282,43 @@ export default function ShoppingListDetailPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <PageTitle>{list?.name ?? "Shopping List"}</PageTitle>
-      <div className="mb-4">
-          {isEditMode && !isCompleted ? (
-            editingListName ? (
-              <div className="flex items-center gap-2">
-                <input
-                  ref={listNameInputRef}
-                  type="text"
-                  value={listNameValue}
-                  onChange={(e) => setListNameValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveListName();
-                    if (e.key === "Escape") handleCancelListNameEdit();
-                  }}
-                  className="flex-1 text-2xl font-bold px-2 py-1 rounded border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  aria-label="Edit list name"
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  onClick={handleSaveListName}
-                  disabled={updateList.isPending}
-                  aria-label="Save list name"
-                >
-                  <Check className="h-5 w-5" />
-                </Button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleStartEditListName}
-                className="group flex items-center gap-2 text-left"
-                aria-label="Edit list name"
-              >
-                <span className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  {list?.name ?? "Shopping List"}
-                </span>
-                <Pencil className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100" />
-              </button>
-            )
-          ) : (
-            <span className="text-2xl font-bold text-gray-900 dark:text-white">
-              {list?.name ?? "Shopping List"}
-            </span>
-          )}
-          {isCompleted && (
-            <div className="mt-2 flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
-              <Archive className="h-4 w-4" />
-              <span>
-                Completed{list?.deletedOn ? ` on ${new Date(list.deletedOn).toLocaleDateString()}` : ""} · Read-only
-              </span>
-            </div>
-          )}
+
+      <Dialog open={editNameDialogOpen} onOpenChange={setEditNameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit list name</DialogTitle>
+          </DialogHeader>
+          <input
+            ref={listNameInputRef}
+            type="text"
+            value={listNameValue}
+            onChange={(e) => setListNameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSaveListName();
+              if (e.key === "Escape") setEditNameDialogOpen(false);
+            }}
+            className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            aria-label="Edit list name"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditNameDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveListName} disabled={updateList.isPending}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {isCompleted && (
+        <div className="mb-4 flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
+          <Archive className="h-4 w-4" />
+          <span>
+            Completed{list?.deletedOn ? ` on ${new Date(list.deletedOn).toLocaleDateString()}` : ""} · Read-only
+          </span>
         </div>
+      )}
 
         {isEditMode && !isCompleted && (
           <form onSubmit={handleAddItem} className="mb-4">

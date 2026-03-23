@@ -78,6 +78,17 @@ function DialogTitle({
   );
 }
 
+function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={["flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4", className]
+        .filter(Boolean)
+        .join(" ")}
+      {...props}
+    />
+  );
+}
+
 export {
   Dialog,
   DialogTrigger,
@@ -85,4 +96,5 @@ export {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 };

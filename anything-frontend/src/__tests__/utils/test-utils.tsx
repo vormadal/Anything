@@ -9,6 +9,11 @@ function HeaderActionsSlot() {
   return <div data-testid="header-actions">{headerActions}</div>
 }
 
+function PageTitleSlot() {
+  const { title } = useHeaderActions()
+  return title ? <h1 data-testid="page-title">{title}</h1> : null
+}
+
 function LeftActionSlot() {
   const { leftAction } = useHeaderActions()
   const { navigateBack } = useSmartBack()
@@ -33,6 +38,7 @@ function TestProviders({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <PageActionsProvider>
         <LeftActionSlot />
+        <PageTitleSlot />
         <HeaderActionsSlot />
         {children}
       </PageActionsProvider>
