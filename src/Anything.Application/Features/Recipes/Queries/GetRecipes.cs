@@ -20,31 +20,20 @@ public class GetRecipesHandler(
         if (!string.IsNullOrWhiteSpace(query.Tag))
         {
             var tag = query.Tag.ToLower();
-            var recipeIdsWithTag = await tagRepository.Query()
-                .Where(t => t.DeletedOn == null && t.Name.ToLower() == tag)
-                .Select(t => t.RecipeId)
-                .Distinct()
-                .ToListAsync(ct);
-            baseQuery = baseQuery.Where(r => recipeIdsWithTag.Contains(r.Id));
+            baseQuery = baseQuery.Where(r =>
+                tagRepository.Query()
+                    .Any(t => t.RecipeId == r.Id && t.DeletedOn == null && t.Name.ToLower() == tag));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var search = query.Search.ToLower();
-            var recipeIdsMatchingTag = await tagRepository.Query()
-                .Where(t => t.DeletedOn == null && t.Name.ToLower().Contains(search))
-                .Select(t => t.RecipeId)
-                .Distinct()
-                .ToListAsync(ct);
-            var recipeIdsMatchingIngredient = await ingredientRepository.Query()
-                .Where(i => i.DeletedOn == null && i.Name.ToLower().Contains(search))
-                .Select(i => i.RecipeId)
-                .Distinct()
-                .ToListAsync(ct);
             baseQuery = baseQuery.Where(r =>
                 r.Name.ToLower().Contains(search) ||
-                recipeIdsMatchingTag.Contains(r.Id) ||
-                recipeIdsMatchingIngredient.Contains(r.Id));
+                tagRepository.Query()
+                    .Any(t => t.RecipeId == r.Id && t.DeletedOn == null && t.Name.ToLower().Contains(search)) ||
+                ingredientRepository.Query()
+                    .Any(i => i.RecipeId == r.Id && i.DeletedOn == null && i.Name.ToLower().Contains(search)));
         }
 
         return await baseQuery.ToListAsync(ct);
