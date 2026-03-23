@@ -401,14 +401,14 @@ export default function ShoppingListDetailPage() {
         )}
 
         {sortedItems.length > 0 && (
-          <ul className="space-y-1">
+          <ul className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
             {sortedItems.map((item, index) => (
               <Fragment key={item.id}>
               <li
-                className={`flex items-center gap-2 py-2 px-3 border rounded-md transition-colors ${
+                className={`flex items-center gap-2 py-2 px-3 transition-colors ${
                   item.isChecked
-                    ? "border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/30"
-                    : "border-gray-200 dark:border-gray-700"
+                    ? "bg-gray-50 dark:bg-gray-900/30"
+                    : ""
                 }`}
               >
                 {!isEditMode && (

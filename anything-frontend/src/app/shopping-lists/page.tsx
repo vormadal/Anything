@@ -51,7 +51,7 @@ function DraggableShoppingListItem({ list, onClick }: { list: ShoppingListRespon
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1 px-1">
       <button
         type="button"
         className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none"
@@ -63,7 +63,7 @@ function DraggableShoppingListItem({ list, onClick }: { list: ShoppingListRespon
       </button>
       <button
         type="button"
-        className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="flex-1 flex items-center justify-between px-2 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
         onClick={onClick}
       >
         <span className="text-gray-900 dark:text-white font-medium text-sm">
@@ -222,7 +222,7 @@ export default function ShoppingListsPage() {
             items={lists.map((l) => l.id ?? 0)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-1">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               {lists.map((list) => (
                 <DraggableShoppingListItem
                   key={list.id}
@@ -246,22 +246,21 @@ export default function ShoppingListsPage() {
             </div>
           )}
           {hasCompletedLists && (
-            <div className="space-y-1">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               {completedLists.map((list) => (
-                <div key={list.id} className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onClick={() => router.push(`/shopping-lists/${list.id}`)}
-                  >
-                    <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-                      {list.name}
-                    </span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                      Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
-                    </span>
-                  </button>
-                </div>
+                <button
+                  key={list.id}
+                  type="button"
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={() => router.push(`/shopping-lists/${list.id}`)}
+                >
+                  <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
+                    {list.name}
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
+                  </span>
+                </button>
               ))}
             </div>
           )}
