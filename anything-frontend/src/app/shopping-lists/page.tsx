@@ -51,7 +51,7 @@ function DraggableShoppingListItem({ list, onClick }: { list: ShoppingListRespon
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-1 px-1">
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1">
       <button
         type="button"
         className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none"
@@ -63,7 +63,7 @@ function DraggableShoppingListItem({ list, onClick }: { list: ShoppingListRespon
       </button>
       <button
         type="button"
-        className="flex-1 flex items-center justify-between px-2 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="flex-1 flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
         onClick={onClick}
       >
         <span className="text-gray-900 dark:text-white font-medium text-sm">
@@ -222,13 +222,15 @@ export default function ShoppingListsPage() {
             items={lists.map((l) => l.id ?? 0)}
             strategy={verticalListSortingStrategy}
           >
-            {lists.map((list) => (
-              <DraggableShoppingListItem
-                key={list.id}
-                list={list}
-                onClick={() => router.push(`/shopping-lists/${list.id}`)}
-              />
-            ))}
+            <div>
+              {lists.map((list) => (
+                <DraggableShoppingListItem
+                  key={list.id}
+                  list={list}
+                  onClick={() => router.push(`/shopping-lists/${list.id}`)}
+                />
+              ))}
+            </div>
           </SortableContext>
         </DndContext>
       )}
@@ -243,21 +245,25 @@ export default function ShoppingListsPage() {
               No completed lists yet.
             </div>
           )}
-          {hasCompletedLists && completedLists.map((list) => (
-            <button
-              key={list.id}
-              type="button"
-              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onClick={() => router.push(`/shopping-lists/${list.id}`)}
-            >
-              <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-                {list.name}
-              </span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
-              </span>
-            </button>
-          ))}
+          {hasCompletedLists && (
+            <div>
+              {completedLists.map((list) => (
+                <button
+                  key={list.id}
+                  type="button"
+                  className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={() => router.push(`/shopping-lists/${list.id}`)}
+                >
+                  <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
+                    {list.name}
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

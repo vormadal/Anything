@@ -16,6 +16,8 @@
   --border: #e5e5e5;
   --input: #e5e5e5;
   --ring: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -35,6 +37,8 @@
     --border: #262626;
     --input: #262626;
     --ring: #d4d4d4;
+    --popover: #0a0a0a;
+    --popover-foreground: #fafafa;
   }
 }
 
@@ -54,6 +58,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
