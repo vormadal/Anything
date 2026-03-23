@@ -301,16 +301,16 @@ export default function ShoppingListDetailPage() {
                 className="group flex items-center gap-2 text-left"
                 aria-label="Edit list name"
               >
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <span className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   {list?.name ?? "Shopping List"}
-                </h2>
+                </span>
                 <Pencil className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100" />
               </button>
             )
           ) : (
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">
               {list?.name ?? "Shopping List"}
-            </h2>
+            </span>
           )}
           {isCompleted && (
             <div className="mt-2 flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
