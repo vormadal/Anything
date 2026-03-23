@@ -60,7 +60,7 @@ jobs:
           path: anything-frontend/playwright-report/
       - name: Upload Pages artifact
         if: always()
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: anything-frontend/playwright-report/
 

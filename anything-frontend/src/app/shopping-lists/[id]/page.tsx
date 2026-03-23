@@ -267,9 +267,8 @@ export default function ShoppingListDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
-      <PageTitle>Shopping List</PageTitle>
-      <div>
-        <div className="mb-4">
+      <PageTitle>{list?.name ?? "Shopping List"}</PageTitle>
+      <div className="mb-4">
           {isEditMode && !isCompleted ? (
             editingListName ? (
               <div className="flex items-center gap-2">
@@ -556,7 +555,6 @@ export default function ShoppingListDetailPage() {
             ))}
           </ul>
         )}
-      </div>
     </div>
   );
 }
