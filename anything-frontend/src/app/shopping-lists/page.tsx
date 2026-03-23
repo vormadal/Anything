@@ -222,15 +222,13 @@ export default function ShoppingListsPage() {
             items={lists.map((l) => l.id ?? 0)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-              {lists.map((list) => (
-                <DraggableShoppingListItem
-                  key={list.id}
-                  list={list}
-                  onClick={() => router.push(`/shopping-lists/${list.id}`)}
-                />
-              ))}
-            </div>
+            {lists.map((list) => (
+              <DraggableShoppingListItem
+                key={list.id}
+                list={list}
+                onClick={() => router.push(`/shopping-lists/${list.id}`)}
+              />
+            ))}
           </SortableContext>
         </DndContext>
       )}
@@ -245,25 +243,21 @@ export default function ShoppingListsPage() {
               No completed lists yet.
             </div>
           )}
-          {hasCompletedLists && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-              {completedLists.map((list) => (
-                <button
-                  key={list.id}
-                  type="button"
-                  className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={() => router.push(`/shopping-lists/${list.id}`)}
-                >
-                  <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-                    {list.name}
-                  </span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
-                    Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+          {hasCompletedLists && completedLists.map((list) => (
+            <button
+              key={list.id}
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={() => router.push(`/shopping-lists/${list.id}`)}
+            >
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
+                {list.name}
+              </span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
+              </span>
+            </button>
+          ))}
         </div>
       )}
     </div>

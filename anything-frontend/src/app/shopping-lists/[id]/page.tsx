@@ -268,7 +268,7 @@ export default function ShoppingListDetailPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <PageTitle>Shopping List</PageTitle>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+      <div>
         <div className="mb-4">
           {isEditMode && !isCompleted ? (
             editingListName ? (
