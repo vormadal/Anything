@@ -222,7 +222,7 @@ export default function ShoppingListsPage() {
             items={lists.map((l) => l.id ?? 0)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
               {lists.map((list) => (
                 <DraggableShoppingListItem
                   key={list.id}
@@ -246,7 +246,7 @@ export default function ShoppingListsPage() {
             </div>
           )}
           {hasCompletedLists && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
               {completedLists.map((list) => (
                 <button
                   key={list.id}
