@@ -1,7 +1,7 @@
 "use client";
 
-import { useRecipes, useRecipeImages, useRecipeTags } from "@/hooks/useRecipes";
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useRecipes, useTopRecipeTags, useRecipeImages, useRecipeTags } from "@/hooks/useRecipes";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
@@ -113,124 +113,106 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
 
 export default function RecipesPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { data: recipes, isLoading, error } = useRecipes();
+  const { data: recipes, isLoading, error } = useRecipes(debouncedSearch || undefined, activeTag ?? undefined);
+  const { data: topTags } = useTopRecipeTags(10);
   const router = useRouter();
-  // Keep a ref to router so the header effect closure always uses the latest instance without
-  // adding router to effect deps (the test mock creates a new object on each render).
-  // No dependency array is intentional: same mutable-ref pattern as handleExitEditModeRef in recipes/[id]/page.
   const routerRef = useRef(router);
   useEffect(() => {
     routerRef.current = router;
   });
   const { setHeaderActions } = useHeaderActions();
 
-  // TODO: Replace client-side filtering with API search when backend supports it
-  //       e.g. apiClient.api.recipes.get({ queryParameters: { search: searchQuery } })
-  const filteredRecipes = useMemo(() => {
-    if (!recipes) return undefined;
-    if (!searchQuery.trim()) return recipes;
-    const query = searchQuery.toLowerCase();
-    return recipes.filter((r) => r.name?.toLowerCase().includes(query));
-  }, [recipes, searchQuery]);
+  // Debounce the search query so we don't fire a request on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const handleCloseSearch = useCallback(() => {
-    setSearchOpen(false);
+  const handleClearSearch = useCallback(() => {
     setSearchQuery("");
+    setDebouncedSearch("");
+    setActiveTag(null);
   }, []);
 
-  useEffect(() => {
-    if (searchOpen) {
-      requestAnimationFrame(() => searchInputRef.current?.focus());
-    }
-  }, [searchOpen]);
+  const handleTagClick = useCallback((tagName: string) => {
+    setActiveTag((prev) => (prev === tagName ? null : tagName));
+    setSearchQuery("");
+    setDebouncedSearch("");
+  }, []);
 
+  const hasActiveFilter = searchQuery.trim() !== "" || activeTag !== null;
+
+  // Header: just the create-recipe button
   useEffect(() => {
     setHeaderActions(
-      <div className="flex items-center justify-end flex-1 ml-2">
-        {/* Search input — grows to fill when open */}
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            searchOpen
-              ? "grow opacity-100"
-              : "grow-0 basis-0 opacity-0"
-          }`}
-        >
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => routerRef.current.push("/recipes/new")}
+        aria-label="Create recipe"
+      >
+        <Plus className="h-5 w-5" />
+      </Button>,
+      false,
+    );
+
+    return () => setHeaderActions(null);
+  }, [setHeaderActions]);
+
+  return (
+    <div className="container mx-auto px-4 py-4 max-w-4xl">
+      <PageTitle>Recipes</PageTitle>
+
+      {/* Always-visible search bar */}
+      <div className="mb-4 space-y-2">
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 h-4 w-4 text-gray-400 pointer-events-none" />
           <input
             ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search recipes..."
-            className="w-full min-w-0 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder:text-gray-400"
-          />
-        </div>
-
-        {/* Close search button */}
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            searchOpen
-              ? "w-9 opacity-100 ml-1"
-              : "w-0 opacity-0 ml-0"
-          }`}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleCloseSearch}
-            aria-label="Close search"
-            className="shrink-0"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-
-        {/* Search button */}
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            !searchOpen
-              ? "w-9 opacity-100"
-              : "w-0 opacity-0"
-          }`}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSearchOpen(true)}
+            placeholder="Search recipes by name, tag or ingredient…"
             aria-label="Search recipes"
-          >
-            <Search className="h-5 w-5" />
-          </Button>
+            className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder:text-gray-400"
+          />
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              aria-label="Clear search"
+              className="absolute right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        {/* Create recipe button */}
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            !searchOpen
-              ? "w-9 opacity-100"
-              : "w-0 opacity-0"
-          }`}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => routerRef.current.push("/recipes/new")}
-            aria-label="Create recipe"
-          >
-            <Plus className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>,
-      searchOpen,
-    );
+        {/* Top tag suggestion chips */}
+        {topTags && topTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by tag">
+            {topTags.map((tag) => (
+              <button
+                key={tag.name}
+                type="button"
+                onClick={() => handleTagClick(tag.name)}
+                aria-pressed={activeTag === tag.name}
+                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  activeTag === tag.name
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                {tag.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-    return () => setHeaderActions(null);
-  }, [searchOpen, searchQuery, setHeaderActions, handleCloseSearch]);
-
-  return (
-    <div className="container mx-auto px-4 py-4 max-w-4xl">
-      <PageTitle>Recipes</PageTitle>
       {isLoading && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           Loading...
@@ -243,17 +225,17 @@ export default function RecipesPage() {
         </div>
       )}
 
-      {filteredRecipes?.length === 0 && !isLoading && !error && (
+      {recipes?.length === 0 && !isLoading && !error && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          {searchQuery
+          {hasActiveFilter
             ? "No recipes match your search."
             : "No recipes yet. Tap + to create your first one!"}
         </div>
       )}
 
-      {filteredRecipes && filteredRecipes.length > 0 && (
+      {recipes && recipes.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {filteredRecipes.map((recipe) => (
+          {recipes.map((recipe) => (
             <RecipeCard
               key={recipe.id}
               recipe={recipe}

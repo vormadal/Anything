@@ -49,6 +49,19 @@ function getWeekLabel(monday: Date): string {
   return `${monday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${sunday.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
 }
 
+// ---- Mock fetch globally (useRecipes now uses fetch directly) ----
+const mockFetch = jest.fn()
+global.fetch = mockFetch
+
+function mockRecipesFetch(recipes: unknown[]) {
+  mockFetch.mockImplementation((url: string) => {
+    if ((url as string).includes('/api/recipes')) {
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(recipes) } as Response)
+    }
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([]) } as Response)
+  })
+}
+
 // ---- Mock apiClient ----
 const mockSettingsGet = jest.fn()
 const mockSettingsPut = jest.fn()
@@ -58,7 +71,6 @@ const mockEntriesItemPut = jest.fn()
 const mockEntriesItemDelete = jest.fn()
 const mockEntriesItemById = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
 const mockAddToShoppingListPost = jest.fn()
-const mockRecipesGet = jest.fn()
 const mockShoppingListsGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
@@ -77,19 +89,6 @@ jest.mock('@/lib/apiClient', () => ({
         addToShoppingList: {
           post: (...args: unknown[]) => mockAddToShoppingListPost(...args),
         },
-      },
-      recipes: {
-        get: (...args: unknown[]) => mockRecipesGet(...args),
-        post: jest.fn(),
-        byId: jest.fn(() => ({
-          get: jest.fn(),
-          put: jest.fn(),
-          delete: jest.fn(),
-          ingredients: { get: jest.fn(), post: jest.fn(), byIngredientId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
-          steps: { get: jest.fn(), post: jest.fn(), byStepId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
-          images: { get: jest.fn(), post: jest.fn(), byImageId: jest.fn(() => ({ delete: jest.fn() })) },
-          addToShoppingList: { post: jest.fn() },
-        })),
       },
       shoppingLists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
@@ -148,7 +147,7 @@ describe('FoodPlanPage', () => {
     jest.clearAllMocks()
     mockSettingsGet.mockResolvedValue({ activeDays: 31 })
     mockEntriesGet.mockResolvedValue([])
-    mockRecipesGet.mockResolvedValue([])
+    mockRecipesFetch([])
     mockShoppingListsGet.mockResolvedValue([])
   })
 
@@ -485,7 +484,7 @@ describe('FoodPlanPage', () => {
   // ------- 7. Selecting a recipe suggestion -------
   it('should show recipe suggestions when typing a matching name', async () => {
     const user = userEvent.setup()
-    mockRecipesGet.mockResolvedValue([
+    mockRecipesFetch([
       { id: 1, name: 'Pasta Carbonara' },
       { id: 2, name: 'Pasta Bolognese' },
       { id: 3, name: 'Salad' },
@@ -513,7 +512,7 @@ describe('FoodPlanPage', () => {
 
   it('should select a recipe suggestion and submit with recipeId', async () => {
     const user = userEvent.setup()
-    mockRecipesGet.mockResolvedValue([{ id: 1, name: 'Pasta Carbonara' }])
+    mockRecipesFetch([{ id: 1, name: 'Pasta Carbonara' }])
     mockEntriesPost.mockResolvedValue({ id: 10, name: 'Pasta Carbonara', recipeId: 1 })
 
     render(<FoodPlanPage />)
@@ -551,7 +550,7 @@ describe('FoodPlanPage', () => {
 
   it('should not show suggestions when input is empty', async () => {
     const user = userEvent.setup()
-    mockRecipesGet.mockResolvedValue([{ id: 1, name: 'Pasta' }])
+    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
 
     render(<FoodPlanPage />)
 
@@ -638,7 +637,7 @@ describe('FoodPlanPage', () => {
   it('should show shopping lists in the dialog', async () => {
     const entries = [buildEntry(1, 'Pasta', 0, { recipeId: 1 })]
     mockEntriesGet.mockResolvedValue(entries)
-    mockRecipesGet.mockResolvedValue([{ id: 1, name: 'Pasta' }])
+    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
     mockShoppingListsGet.mockResolvedValue([
       { id: 1, name: 'Weekly Groceries' },
       { id: 2, name: 'Party Supplies' },
@@ -665,7 +664,7 @@ describe('FoodPlanPage', () => {
 
   it('should show "No shopping lists available." when none exist', async () => {
     mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pasta', 0, { recipeId: 1 })])
-    mockRecipesGet.mockResolvedValue([{ id: 1, name: 'Pasta' }])
+    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<FoodPlanPage />)
@@ -689,7 +688,7 @@ describe('FoodPlanPage', () => {
   it('should add entries to shopping list and show success toast', async () => {
     const entries = [buildEntry(1, 'Pasta', 0, { recipeId: 1 })]
     mockEntriesGet.mockResolvedValue(entries)
-    mockRecipesGet.mockResolvedValue([{ id: 1, name: 'Pasta' }])
+    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
     mockShoppingListsGet.mockResolvedValue([{ id: 10, name: 'Weekly Groceries' }])
     mockAddToShoppingListPost.mockResolvedValue(undefined)
 
@@ -727,7 +726,7 @@ describe('FoodPlanPage', () => {
   it('should show error toast when adding to shopping list fails', async () => {
     const entries = [buildEntry(1, 'Pasta', 0, { recipeId: 1 })]
     mockEntriesGet.mockResolvedValue(entries)
-    mockRecipesGet.mockResolvedValue([{ id: 1, name: 'Pasta' }])
+    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
     mockShoppingListsGet.mockResolvedValue([{ id: 10, name: 'Weekly Groceries' }])
     mockAddToShoppingListPost.mockRejectedValue(new Error('Server error'))
 
@@ -758,7 +757,7 @@ describe('FoodPlanPage', () => {
 
   it('should close the shopping list dialog when Cancel is clicked', async () => {
     mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pasta', 0, { recipeId: 1 })])
-    mockRecipesGet.mockResolvedValue([{ id: 1, name: 'Pasta' }])
+    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
 
     render(<FoodPlanPage />)
 
@@ -792,7 +791,7 @@ describe('FoodPlanPage', () => {
       buildEntry(3, 'Salad', 1, { recipeId: 2 }),
     ]
     mockEntriesGet.mockResolvedValue(entries)
-    mockRecipesGet.mockResolvedValue([
+    mockRecipesFetch([
       { id: 1, name: 'Pasta' },
       { id: 2, name: 'Salad' },
     ])

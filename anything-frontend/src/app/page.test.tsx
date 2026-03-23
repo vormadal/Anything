@@ -3,10 +3,22 @@ import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import Home from './page'
 
+// Mock fetch globally (useRecipes now uses fetch directly)
+const mockFetch = jest.fn()
+global.fetch = mockFetch
+
+function mockRecipesFetch(recipes: unknown[]) {
+  mockFetch.mockImplementation((url: string) => {
+    if ((url as string).includes('/api/recipes')) {
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(recipes) } as Response)
+    }
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([]) } as Response)
+  })
+}
+
 // Mock the apiClient module
 const mockFoodPlanEntriesGet = jest.fn()
 const mockShoppingListsGet = jest.fn()
-const mockRecipesGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -22,9 +34,6 @@ jest.mock('@/lib/apiClient', () => ({
       },
       shoppingLists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
-      },
-      recipes: {
-        get: (...args: unknown[]) => mockRecipesGet(...args),
       },
     },
   },
@@ -44,7 +53,7 @@ describe('Home Page Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockFoodPlanEntriesGet.mockResolvedValue([])
-    mockRecipesGet.mockResolvedValue([])
+    mockRecipesFetch([])
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
   })
@@ -103,7 +112,7 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanEntriesGet.mockResolvedValue([
       { id: 1, name: null, recipeId: 5, date: '2025-06-16T00:00:00Z' },
     ])
-    mockRecipesGet.mockResolvedValue([{ id: 5, name: 'Lasagna' }])
+    mockRecipesFetch([{ id: 5, name: 'Lasagna' }])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
@@ -119,7 +128,7 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanEntriesGet.mockResolvedValue([
       { id: 1, name: null, recipeId: 5, date: '2025-06-16T00:00:00Z' },
     ])
-    mockRecipesGet.mockResolvedValue([{ id: 5, name: 'Lasagna' }])
+    mockRecipesFetch([{ id: 5, name: 'Lasagna' }])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
@@ -137,7 +146,7 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanEntriesGet.mockResolvedValue([
       { id: 2, name: 'Homemade Soup', recipeId: null, date: '2025-06-16T00:00:00Z' },
     ])
-    mockRecipesGet.mockResolvedValue([])
+    mockRecipesFetch([])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)

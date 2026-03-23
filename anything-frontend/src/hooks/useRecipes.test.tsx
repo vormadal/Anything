@@ -19,8 +19,13 @@ import {
   useAddIngredientsToShoppingList,
 } from '@/hooks/useRecipes'
 
-// Mock the apiClient module
-const mockGet = jest.fn()
+// Mock fetch globally for hooks that use it directly
+const mockFetch = jest.fn()
+global.fetch = mockFetch
+
+// Mock the apiClient module (used by hooks other than useRecipes/useTopRecipeTags)
+const mockRecipeGet = jest.fn()
+const mockGet = mockRecipeGet
 const mockPost = jest.fn()
 const mockDelete = jest.fn()
 const mockPut = jest.fn()
@@ -54,7 +59,6 @@ jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
       recipes: {
-        get: (...args: unknown[]) => mockGet(...args),
         post: (...args: unknown[]) => mockPost(...args),
         byId: (...args: unknown[]) => mockById(...args),
       },
@@ -79,6 +83,12 @@ function createWrapper() {
 describe('useRecipes hooks', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // Default fetch response for hooks that use fetch directly
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve([]),
+    } as Response)
   })
 
   describe('useRecipes', () => {
@@ -87,7 +97,11 @@ describe('useRecipes hooks', () => {
         { id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' },
         { id: 2, name: 'Salad', createdOn: '2024-01-02T00:00:00Z' },
       ]
-      mockGet.mockResolvedValueOnce(mockData)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockData),
+      } as Response)
 
       const { result } = renderHook(() => useRecipes(), {
         wrapper: createWrapper(),
@@ -96,11 +110,19 @@ describe('useRecipes hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockData)
-      expect(mockGet).toHaveBeenCalledTimes(1)
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/recipes'),
+        expect.objectContaining({ headers: expect.objectContaining({ Authorization: expect.any(String) }) })
+      )
     })
 
     it('should handle fetch error', async () => {
-      mockGet.mockRejectedValueOnce(new Error('Network error'))
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({}),
+      } as Response)
 
       const { result } = renderHook(() => useRecipes(), {
         wrapper: createWrapper(),
