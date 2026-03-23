@@ -251,7 +251,7 @@ export default function ShoppingListsPage() {
                 <button
                   key={list.id}
                   type="button"
-                  className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={() => router.push(`/shopping-lists/${list.id}`)}
                 >
                   <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
