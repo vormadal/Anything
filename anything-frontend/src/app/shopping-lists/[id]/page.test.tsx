@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 
 // Mock the apiClient module
 const mockListGet = jest.fn()
+const mockListPut = jest.fn()
 const mockItemsGet = jest.fn()
 const mockItemsPost = jest.fn()
 const mockItemsItemPut = jest.fn()
@@ -14,6 +15,7 @@ const mockCompletePost = jest.fn()
 const mockItemsItemById = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
 const mockById = jest.fn(() => ({
   get: mockListGet,
+  put: mockListPut,
   delete: jest.fn(),
   items: {
     get: mockItemsGet,
@@ -64,6 +66,7 @@ describe('ShoppingListDetailPage', () => {
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
     mockListGet.mockResolvedValue(mockList)
+    mockListPut.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -865,6 +868,114 @@ describe('ShoppingListDetailPage', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+    })
+  })
+
+  it('should not show Edit name option in context menu when not in edit mode', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Delete list')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText('Edit name')).not.toBeInTheDocument()
+  })
+
+  it('should show Edit name option in context menu when in edit mode', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit name')).toBeInTheDocument()
+    })
+  })
+
+  it('should open edit name dialog and save new name', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit name')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Edit name'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Edit list name' })).toBeInTheDocument()
+    })
+
+    const input = screen.getByRole('textbox', { name: 'Edit list name' })
+    await user.clear(input)
+    await user.type(input, 'New Name')
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(mockListPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Name' }))
+    })
+
+    expect(toast.success).toHaveBeenCalledWith('List name updated')
+  })
+
+  it('should show error toast when edit name fails', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    mockListPut.mockRejectedValueOnce(new Error('Server error'))
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit name')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Edit name'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Edit list name' })).toBeInTheDocument()
+    })
+
+    const input = screen.getByRole('textbox', { name: 'Edit list name' })
+    await user.clear(input)
+    await user.type(input, 'New Name')
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to update list name. Please try again.')
     })
   })
 
