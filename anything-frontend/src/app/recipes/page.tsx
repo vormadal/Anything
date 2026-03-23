@@ -29,7 +29,7 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
       <button
         type="button"
         onClick={onClick}
-        className="w-full cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 active:scale-[0.98]"
+        className="block w-full cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 active:scale-[0.98]"
       >
         <div className="aspect-[4/3] bg-gray-100 dark:bg-gray-700 relative overflow-hidden">
           {imageUrl && !imgError ? (
