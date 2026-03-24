@@ -260,25 +260,8 @@ describe('ShoppingListDetailPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
 
-    expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit list' })).not.toBeInTheDocument()
     expect(screen.getByPlaceholderText('Add an item...')).toBeInTheDocument()
-  })
-
-  it('should return to view mode when done button is clicked', async () => {
-    const user = userEvent.setup()
-    mockItemsGet.mockResolvedValue([])
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
-    await user.click(screen.getByRole('button', { name: 'Done editing' }))
-
-    expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
-    expect(screen.queryByPlaceholderText('Add an item...')).not.toBeInTheDocument()
   })
 
   it('should add an item in edit mode', async () => {
@@ -890,7 +873,7 @@ describe('ShoppingListDetailPage', () => {
     expect(screen.queryByText('Edit name')).not.toBeInTheDocument()
   })
 
-  it('should show Edit list name button in header when in edit mode', async () => {
+  it('should show Edit list name option in context menu when in edit mode', async () => {
     const user = userEvent.setup()
     mockItemsGet.mockResolvedValue([])
 
@@ -901,9 +884,10 @@ describe('ShoppingListDetailPage', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list name' })).toBeInTheDocument()
+      expect(screen.getByRole('menuitem', { name: 'Edit list name' })).toBeInTheDocument()
     })
   })
 
@@ -918,7 +902,8 @@ describe('ShoppingListDetailPage', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
-    await user.click(screen.getByRole('button', { name: 'Edit list name' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Edit list name' }))
 
     await waitFor(() => {
       expect(screen.getByRole('textbox', { name: 'Edit list name' })).toBeInTheDocument()
@@ -949,7 +934,8 @@ describe('ShoppingListDetailPage', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
-    await user.click(screen.getByRole('button', { name: 'Edit list name' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Edit list name' }))
 
     await waitFor(() => {
       expect(screen.getByRole('textbox', { name: 'Edit list name' })).toBeInTheDocument()

@@ -16,7 +16,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { Pencil, Check, Trash2, MoreVertical, SquarePen } from "lucide-react";
+import { Pencil, Trash2, MoreVertical, SquarePen } from "lucide-react";
 import { ShoppingListView } from "./ShoppingListView";
 import { ShoppingListEditMode } from "./ShoppingListEditMode";
 
@@ -58,22 +58,14 @@ export default function ShoppingListDetailPage() {
     setHeaderActions(
       isCompleted ? null : (
         <div className="flex items-center gap-1 ml-auto">
-          <Button
-            variant={isEditMode ? "default" : "ghost"}
-            size="icon"
-            onClick={() => setIsEditMode(!isEditMode)}
-            aria-label={isEditMode ? "Done editing" : "Edit list"}
-          >
-            {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
-          </Button>
-          {isEditMode && (
+          {!isEditMode && (
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => openEditNameDialogRef.current()}
-              aria-label="Edit list name"
+              onClick={() => setIsEditMode(true)}
+              aria-label="Edit list"
             >
-              <SquarePen className="h-5 w-5" />
+              <Pencil className="h-5 w-5" />
             </Button>
           )}
           <DropdownMenu>
@@ -83,6 +75,12 @@ export default function ShoppingListDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {isEditMode && (
+                <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
+                  <SquarePen className="h-4 w-4" />
+                  Edit list name
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                 onSelect={() => handleDeleteListRef.current()}
