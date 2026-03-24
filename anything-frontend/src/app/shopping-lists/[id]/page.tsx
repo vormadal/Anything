@@ -66,6 +66,16 @@ export default function ShoppingListDetailPage() {
           >
             {isEditMode ? <Check className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
           </Button>
+          {isEditMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openEditNameDialogRef.current()}
+              aria-label="Edit list name"
+            >
+              <SquarePen className="h-5 w-5" />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="More options">
@@ -73,12 +83,6 @@ export default function ShoppingListDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isEditMode && (
-                <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
-                  <SquarePen className="h-4 w-4" />
-                  Edit name
-                </DropdownMenuItem>
-              )}
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                 onSelect={() => handleDeleteListRef.current()}
