@@ -189,7 +189,7 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
             <Button variant="outline" onClick={() => setEditNameDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveListName} disabled={updateList.isPending}>
+            <Button onClick={handleSaveListName} disabled={updateList.isPending} aria-label="Save list name">
               Save
             </Button>
           </DialogFooter>
