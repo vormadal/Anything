@@ -260,25 +260,8 @@ describe('ShoppingListDetailPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
 
-    expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit list' })).not.toBeInTheDocument()
     expect(screen.getByPlaceholderText('Add an item...')).toBeInTheDocument()
-  })
-
-  it('should return to view mode when done button is clicked', async () => {
-    const user = userEvent.setup()
-    mockItemsGet.mockResolvedValue([])
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
-    await user.click(screen.getByRole('button', { name: 'Done editing' }))
-
-    expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
-    expect(screen.queryByPlaceholderText('Add an item...')).not.toBeInTheDocument()
   })
 
   it('should add an item in edit mode', async () => {

@@ -58,14 +58,16 @@ export default function ShoppingListDetailPage() {
     setHeaderActions(
       isCompleted ? null : (
         <div className="flex items-center gap-1 ml-auto">
-          <Button
-            variant={isEditMode ? "default" : "ghost"}
-            size="icon"
-            onClick={() => setIsEditMode(!isEditMode)}
-            aria-label={isEditMode ? "Done editing" : "Edit list"}
-          >
-            <Pencil className="h-5 w-5" />
-          </Button>
+          {!isEditMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsEditMode(true)}
+              aria-label="Edit list"
+            >
+              <Pencil className="h-5 w-5" />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="More options">
