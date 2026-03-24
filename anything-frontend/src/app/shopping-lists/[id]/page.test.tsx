@@ -873,7 +873,7 @@ describe('ShoppingListDetailPage', () => {
     expect(screen.queryByText('Edit name')).not.toBeInTheDocument()
   })
 
-  it('should show Edit list name option in context menu when in edit mode', async () => {
+  it('should show Edit list name button in header when in edit mode', async () => {
     const user = userEvent.setup()
     mockItemsGet.mockResolvedValue([])
 
@@ -884,10 +884,9 @@ describe('ShoppingListDetailPage', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
-    await user.click(screen.getByRole('button', { name: 'More options' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('menuitem', { name: 'Edit list name' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Edit list name' })).toBeInTheDocument()
     })
   })
 
@@ -902,8 +901,7 @@ describe('ShoppingListDetailPage', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
-    await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Edit list name' }))
+    await user.click(screen.getByRole('button', { name: 'Edit list name' }))
 
     await waitFor(() => {
       expect(screen.getByRole('textbox', { name: 'Edit list name' })).toBeInTheDocument()
@@ -934,8 +932,7 @@ describe('ShoppingListDetailPage', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'Edit list' }))
-    await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Edit list name' }))
+    await user.click(screen.getByRole('button', { name: 'Edit list name' }))
 
     await waitFor(() => {
       expect(screen.getByRole('textbox', { name: 'Edit list name' })).toBeInTheDocument()
