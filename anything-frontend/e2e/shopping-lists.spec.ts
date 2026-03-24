@@ -42,8 +42,8 @@ test("create shopping list, add items, and complete it", async ({ page }) => {
   await page.getByRole("button", { name: "Add item" }).click();
   await expect(page.getByPlaceholder("Add an item...")).toHaveValue("");
 
-  // Exit edit mode
-  await page.getByRole("button", { name: "Done editing" }).click();
+  // Reload to return to view mode (no explicit exit-edit-mode action exists)
+  await page.reload();
 
   // Items should be visible
   await expect(page.getByText("Milk")).toBeVisible();
@@ -73,9 +73,10 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
   await page.getByRole("button", { name: "Create list" }).click();
   await expect(page).toHaveURL(/\/shopping-lists\/\d+/);
 
-  // Enter edit mode, then use the "Edit list name" button to rename the list
+  // Enter edit mode, then open More options to rename the list
   await page.getByRole("button", { name: "Edit list" }).click();
-  await page.getByRole("button", { name: "Edit list name" }).click();
+  await page.getByRole("button", { name: "More options" }).click();
+  await page.getByRole("menuitem", { name: "Edit list name" }).click();
   const newName = `${listName} Renamed`;
   await page.getByRole("textbox", { name: "Edit list name" }).fill(newName);
   await page.getByRole("button", { name: "Save" }).click();
