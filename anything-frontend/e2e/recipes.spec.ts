@@ -49,21 +49,20 @@ test("recipes can be searched by name", async ({ page }) => {
   // Go to recipes list
   await page.goto("/recipes");
 
-  // Open search
-  await page.getByRole("button", { name: "Search recipes" }).click();
-  await page.getByPlaceholder("Search recipes...").fill(recipeName);
+  // Fill in the always-visible search input
+  await page.getByRole("textbox", { name: "Search recipes" }).fill(recipeName);
 
   // The recipe should be visible
   await expect(page.getByText(recipeName)).toBeVisible();
 
   // Type something that doesn't match
-  await page.getByPlaceholder("Search recipes...").fill("xyznonexistent123");
+  await page.getByRole("textbox", { name: "Search recipes" }).fill("xyznonexistent123");
   await expect(
     page.getByText("No recipes match your search.")
   ).toBeVisible();
 
-  // Close search
-  await page.getByRole("button", { name: "Close search" }).click();
+  // Clear search
+  await page.getByRole("button", { name: "Clear search" }).click();
 });
 
 test("new recipe page shows import-from-url option", async ({ page }) => {
