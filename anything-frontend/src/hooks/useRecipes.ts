@@ -6,10 +6,48 @@ import type { Recipe, RecipeIngredient, RecipeStep, RecipeImageResponse } from "
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 
-export function useRecipes() {
+export interface TopTag {
+  name: string;
+  count: number;
+}
+
+export function useRecipes(search?: string, tag?: string) {
   return useQuery({
-    queryKey: ["recipes"],
-    queryFn: () => apiClient.api.recipes.get() as Promise<Recipe[]>,
+    queryKey: ["recipes", search ?? "", tag ?? ""],
+    queryFn: async (): Promise<Recipe[]> => {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (tag) params.set("tag", tag);
+      const qs = params.toString();
+      const token =
+        typeof globalThis.window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/recipes${qs ? `?${qs}` : ""}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error(`Failed to fetch recipes: ${response.status}`);
+      return response.json() as Promise<Recipe[]>;
+    },
+  });
+}
+
+export function useTopRecipeTags(count = 10) {
+  return useQuery({
+    queryKey: ["topRecipeTags", count],
+    queryFn: async (): Promise<TopTag[]> => {
+      const token =
+        typeof globalThis.window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/recipes/tags?count=${count}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error(`Failed to fetch top tags: ${response.status}`);
+      return response.json() as Promise<TopTag[]>;
+    },
   });
 }
 

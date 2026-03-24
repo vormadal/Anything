@@ -8,6 +8,12 @@ using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
 
+public class RecipesQueryParameters
+{
+    public string? Search { get; set; }
+    public string? Tag { get; set; }
+}
+
 public static class RecipeEndpoints
 {
     private static ServingsType ParseServingsType(string? value) =>
@@ -17,11 +23,20 @@ public static class RecipeEndpoints
     {
         var group = app.MapGroup("/api/recipes");
 
-        group.MapGet("/", async (IMediator mediator) =>
+        group.MapGet("/", async ([AsParameters] RecipesQueryParameters parameters, IMediator mediator) =>
         {
-            return await mediator.Send(new GetRecipesQuery());
+            return await mediator.Send(new GetRecipesQuery(parameters.Search, parameters.Tag));
         })
         .WithName("GetRecipes")
+        .Produces<List<Recipe>>()
+        .RequireAuthorization();
+
+        group.MapGet("/tags", async (int? count, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetTopRecipeTagsQuery(count ?? 10));
+        })
+        .WithName("GetTopRecipeTags")
+        .Produces<List<Anything.Contracts.Recipes.TopTagResponse>>()
         .RequireAuthorization();
 
         group.MapGet("/{id}", async (int id, IMediator mediator) =>

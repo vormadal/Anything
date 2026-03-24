@@ -4,29 +4,16 @@ import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import RecipesPage from './page'
 
-// Mock the apiClient module
-const mockRecipesGet = jest.fn()
-const mockImagesGet = jest.fn()
+// Mock fetch globally
+const mockFetch = jest.fn()
+global.fetch = mockFetch
+
 const mockFoodPlansGet = jest.fn()
 const mockFoodPlanEntriesPost = jest.fn()
-const mockRecipesById = jest.fn(() => ({
-  delete: jest.fn(),
-  get: jest.fn(),
-  put: jest.fn(),
-  ingredients: { get: jest.fn(), post: jest.fn(), byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
-  steps: { get: jest.fn(), post: jest.fn(), byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
-  images: { get: (...args: unknown[]) => mockImagesGet(...args), post: jest.fn(), byId: jest.fn(() => ({ delete: jest.fn() })) },
-  addToShoppingList: { post: jest.fn() },
-}))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
-      recipes: {
-        get: (...args: unknown[]) => mockRecipesGet(...args),
-        post: jest.fn(),
-        byId: (...args: unknown[]) => mockRecipesById(...args),
-      },
       shoppingLists: {
         get: jest.fn().mockResolvedValue([]),
         post: jest.fn(),
@@ -80,15 +67,34 @@ jest.mock('sonner', () => ({
   Toaster: () => null,
 }))
 
+function makeJsonResponse(data: unknown, status = 200) {
+  return Promise.resolve({
+    ok: status >= 200 && status < 300,
+    status,
+    json: () => Promise.resolve(data),
+  } as Response)
+}
+
 describe('RecipesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockImagesGet.mockResolvedValue([])
     mockFoodPlansGet.mockResolvedValue([])
+    // Default fetch responses
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes/') && url.includes('/images')) return makeJsonResponse([])
+      if (url.includes('/api/recipes/') && url.includes('/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes')) return makeJsonResponse([])
+      return makeJsonResponse([])
+    })
   })
 
   it('should display loading state initially', () => {
-    mockRecipesGet.mockImplementation(() => new Promise(() => {}))
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes')) return new Promise(() => {})
+      return makeJsonResponse([])
+    })
 
     render(<RecipesPage />)
 
@@ -96,7 +102,11 @@ describe('RecipesPage', () => {
   })
 
   it('should display error message when API fails', async () => {
-    mockRecipesGet.mockRejectedValue(new Error('API error'))
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes')) return Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) } as Response)
+      return makeJsonResponse([])
+    })
 
     render(<RecipesPage />)
 
@@ -106,7 +116,11 @@ describe('RecipesPage', () => {
   })
 
   it('should display empty state when no recipes exist', async () => {
-    mockRecipesGet.mockResolvedValue([])
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes')) return makeJsonResponse([])
+      return makeJsonResponse([])
+    })
 
     render(<RecipesPage />)
 
@@ -120,7 +134,12 @@ describe('RecipesPage', () => {
       { id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' },
       { id: 2, name: 'Salad', createdOn: '2024-01-02T00:00:00Z' },
     ]
-    mockRecipesGet.mockResolvedValue(mockData)
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes/1/') || url.includes('/api/recipes/2/')) return makeJsonResponse([])
+      if (url.includes('/api/recipes')) return makeJsonResponse(mockData)
+      return makeJsonResponse([])
+    })
 
     render(<RecipesPage />)
 
@@ -133,7 +152,12 @@ describe('RecipesPage', () => {
   it('should navigate to recipe when card is clicked', async () => {
     const user = userEvent.setup()
     const mockData = [{ id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' }]
-    mockRecipesGet.mockResolvedValue(mockData)
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes/1/')) return makeJsonResponse([])
+      if (url.includes('/api/recipes')) return makeJsonResponse(mockData)
+      return makeJsonResponse([])
+    })
 
     render(<RecipesPage />)
 
@@ -147,9 +171,7 @@ describe('RecipesPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/recipes/1')
   })
 
-  it('should register header actions for search and create', async () => {
-    mockRecipesGet.mockResolvedValue([])
-
+  it('should register header actions for create button', async () => {
     render(<RecipesPage />)
 
     await waitFor(() => {
@@ -157,9 +179,82 @@ describe('RecipesPage', () => {
     })
   })
 
+  it('should show always-visible search bar in page body', async () => {
+    render(<RecipesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /Search recipes/i })).toBeInTheDocument()
+    })
+  })
+
+  it('should show tag suggestion chips when top tags are loaded', async () => {
+    const topTags = [
+      { name: 'Italian', count: 5 },
+      { name: 'Vegan', count: 3 },
+    ]
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse(topTags)
+      if (url.includes('/api/recipes')) return makeJsonResponse([])
+      return makeJsonResponse([])
+    })
+
+    render(<RecipesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Italian' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Vegan' })).toBeInTheDocument()
+    })
+  })
+
+  it('should filter by tag when tag chip is clicked', async () => {
+    const user = userEvent.setup()
+    const topTags = [{ name: 'Italian', count: 5 }]
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse(topTags)
+      if (url.includes('/api/recipes')) return makeJsonResponse([])
+      return makeJsonResponse([])
+    })
+
+    render(<RecipesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Italian' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Italian' }))
+
+    await waitFor(() => {
+      // Tag chip should be active (aria-pressed=true)
+      expect(screen.getByRole('button', { name: 'Italian' })).toHaveAttribute('aria-pressed', 'true')
+    })
+  })
+
+  it('should show "no matches" message when filter yields no results', async () => {
+    const topTags = [{ name: 'Italian', count: 5 }]
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse(topTags)
+      if (url.includes('/api/recipes')) return makeJsonResponse([])
+      return makeJsonResponse([])
+    })
+
+    render(<RecipesPage />)
+
+    const input = await screen.findByRole('textbox', { name: /Search recipes/i })
+    await userEvent.type(input, 'xyz')
+
+    await waitFor(() => {
+      expect(screen.getByText(/No recipes match your search/i)).toBeInTheDocument()
+    })
+  })
+
   it('should show add-to-food-plan button on each recipe card', async () => {
     const mockData = [{ id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' }]
-    mockRecipesGet.mockResolvedValue(mockData)
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes/1/')) return makeJsonResponse([])
+      if (url.includes('/api/recipes')) return makeJsonResponse(mockData)
+      return makeJsonResponse([])
+    })
 
     render(<RecipesPage />)
 
@@ -174,7 +269,12 @@ describe('RecipesPage', () => {
     const mockData = [
       { id: 1, name: 'Pancakes', cookTimeMinutes: 20, servings: 8, servingsType: 'Pieces', createdOn: '2024-01-01T00:00:00Z' },
     ]
-    mockRecipesGet.mockResolvedValue(mockData)
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/recipes/tags')) return makeJsonResponse([])
+      if (url.includes('/api/recipes/1/')) return makeJsonResponse([])
+      if (url.includes('/api/recipes')) return makeJsonResponse(mockData)
+      return makeJsonResponse([])
+    })
 
     render(<RecipesPage />)
 
@@ -185,3 +285,4 @@ describe('RecipesPage', () => {
     })
   })
 })
+

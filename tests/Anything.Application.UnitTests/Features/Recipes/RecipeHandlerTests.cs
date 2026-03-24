@@ -236,6 +236,14 @@ public class ImportRecipeHandlerTests
 public class GetRecipesHandlerTests
 {
     private readonly IRepository<Recipe> _repo = Substitute.For<IRepository<Recipe>>();
+    private readonly IRepository<RecipeTag> _tagRepo = Substitute.For<IRepository<RecipeTag>>();
+    private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
+
+    public GetRecipesHandlerTests()
+    {
+        _tagRepo.Query().Returns(new List<RecipeTag>().AsAsyncQueryable());
+        _ingredientRepo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
+    }
 
     [Fact]
     public async Task Handle_ReturnsOnlyNonDeletedRecipes()
@@ -246,7 +254,7 @@ public class GetRecipesHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipesHandler(_repo).Handle(new GetRecipesQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetRecipesHandler(_repo, _tagRepo, _ingredientRepo).Handle(new GetRecipesQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Pasta", result[0].Name);
