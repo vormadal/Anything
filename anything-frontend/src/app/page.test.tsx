@@ -18,6 +18,7 @@ function mockRecipesFetch(recipes: unknown[]) {
 
 // Mock the apiClient module
 const mockFoodPlanEntriesGet = jest.fn()
+const mockFoodPlanNotesGet = jest.fn()
 const mockShoppingListsGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
@@ -29,6 +30,11 @@ jest.mock('@/lib/apiClient', () => ({
           get: (...args: unknown[]) => mockFoodPlanEntriesGet(...args),
           post: jest.fn(),
           byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })),
+        },
+        notes: {
+          get: (...args: unknown[]) => mockFoodPlanNotesGet(...args),
+          byDate: jest.fn(() => ({ put: jest.fn() })),
+          byNoteId: jest.fn(() => ({ delete: jest.fn() })),
         },
         addToShoppingList: { post: jest.fn() },
       },
@@ -53,6 +59,7 @@ describe('Home Page Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockFoodPlanNotesGet.mockResolvedValue([])
     mockRecipesFetch([])
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
@@ -267,10 +274,14 @@ describe('Home Page Integration Tests', () => {
     expect(screen.queryByText('0')).not.toBeInTheDocument()
   })
 
-  it('should display comment below meal name on home page when comment is set', async () => {
+  // ------- Per-day note on home page -------
+  it('should display day note on home page when note exists', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockFoodPlanEntriesGet.mockResolvedValue([
-      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z', comment: 'Eating at friends' },
+      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z' },
+    ])
+    mockFoodPlanNotesGet.mockResolvedValue([
+      { id: 1, date: '2025-06-16T00:00:00Z', note: 'Eating at friends tonight' },
     ])
     mockShoppingListsGet.mockResolvedValue([])
 
@@ -280,31 +291,17 @@ describe('Home Page Integration Tests', () => {
       expect(screen.getByText('Pasta')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Eating at friends')).toBeInTheDocument()
-  })
-
-  it('should display comment for recipe-linked entry on home page', async () => {
-    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlanEntriesGet.mockResolvedValue([
-      { id: 1, name: null, recipeId: 5, date: '2025-06-16T00:00:00Z', comment: 'Leftovers from yesterday' },
-    ])
-    mockRecipesFetch([{ id: 5, name: 'Lasagna' }])
-    mockShoppingListsGet.mockResolvedValue([])
-
-    render(<Home />)
-
     await waitFor(() => {
-      expect(screen.getByText('Lasagna')).toBeInTheDocument()
+      expect(screen.getByText('Eating at friends tonight')).toBeInTheDocument()
     })
-
-    expect(screen.getByText('Leftovers from yesterday')).toBeInTheDocument()
   })
 
-  it('should not display comment when comment is null', async () => {
+  it('should not display note section when no day note exists', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockFoodPlanEntriesGet.mockResolvedValue([
-      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z', comment: null },
+      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z' },
     ])
+    mockFoodPlanNotesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
@@ -313,8 +310,8 @@ describe('Home Page Integration Tests', () => {
       expect(screen.getByText('Pasta')).toBeInTheDocument()
     })
 
-    // No comment paragraph should be visible
-    const paragraphs = document.querySelectorAll('p.italic')
-    expect(paragraphs.length).toBe(0)
+    // No note should be rendered
+    const italicParagraphs = document.querySelectorAll('p.italic')
+    expect(italicParagraphs.length).toBe(0)
   })
 })

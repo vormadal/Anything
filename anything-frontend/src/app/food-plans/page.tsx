@@ -4,19 +4,22 @@ import { Button } from "@/components/ui/button";
 import {
   useFoodPlanSettings,
   useFoodPlanEntries,
+  useFoodPlanNotes,
   useAddFoodPlanEntry,
   useDeleteFoodPlanEntry,
   useAddFoodPlanToShoppingList,
+  useUpsertFoodPlanNote,
+  useDeleteFoodPlanNote,
 } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
+import type { FoodPlanEntry, FoodPlanNote, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Plus, X, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { ShoppingCart, Plus, X, ChevronLeft, ChevronRight, Settings, Pencil, Check } from "lucide-react";
 import { bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
 import { format, isSameDay, addDays as dateFnsAddDays } from "date-fns";
 import { da } from "date-fns/locale";
@@ -53,36 +56,125 @@ function EntryBadge({
 }) {
   const isAddedToShoppingList = !!entry.addedToShoppingListOn;
   return (
-    <div className={`rounded px-2 py-1 text-sm group ${
+    <div className={`rounded px-2 py-1 text-sm group flex items-center gap-1 ${
       isAddedToShoppingList
         ? "bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200"
         : "bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200"
     }`}>
-      <div className="flex items-center gap-1">
-        {entry.recipeId ? (
-          <a
-            href={`/recipes/${entry.recipeId}`}
-            className="flex-1 min-w-0 truncate hover:underline"
-          >
-            {entry.name}
-          </a>
-        ) : (
-          <span className="flex-1 min-w-0 truncate">{entry.name}</span>
-        )}
+      {entry.recipeId ? (
+        <a
+          href={`/recipes/${entry.recipeId}`}
+          className="flex-1 min-w-0 truncate hover:underline"
+        >
+          {entry.name}
+        </a>
+      ) : (
+        <span className="flex-1 min-w-0 truncate">{entry.name}</span>
+      )}
+      <button
+        onClick={onDelete}
+        className="shrink-0 ml-1 text-blue-400 hover:text-red-500 transition-colors"
+        aria-label="Remove entry"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+function DayNoteEditor({
+  note,
+  dateStr,
+  onSave,
+  onDelete,
+}: {
+  note: FoodPlanNote | null;
+  dateStr: string;
+  onSave: (text: string) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(note?.note ?? "");
+
+  const handleSave = () => {
+    if (text.trim()) {
+      onSave(text.trim());
+    } else {
+      onDelete();
+    }
+    setEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") { setEditing(false); setText(note?.note ?? ""); }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1 mt-1">
+        <input
+          type="text"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Add a note for this day..."
+          className="flex-1 text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 dark:bg-gray-700 dark:text-white"
+          autoFocus
+          maxLength={500}
+          data-testid={`note-input-${dateStr}`}
+        />
+        <button
+          onClick={handleSave}
+          className="shrink-0 text-green-500 hover:text-green-700 transition-colors"
+          aria-label="Save note"
+        >
+          <Check className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => { setEditing(false); setText(note?.note ?? ""); }}
+          className="shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+          aria-label="Cancel note"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  if (note?.note) {
+    return (
+      <div className="flex items-start gap-1 mt-1">
+        <p className="flex-1 text-xs text-gray-500 dark:text-gray-400 italic truncate" title={note.note}>
+          {note.note}
+        </p>
+        <button
+          onClick={() => { setText(note.note ?? ""); setEditing(true); }}
+          className="shrink-0 text-gray-400 hover:text-blue-500 transition-colors"
+          aria-label="Edit note"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
         <button
           onClick={onDelete}
-          className="shrink-0 ml-1 text-blue-400 hover:text-red-500 transition-colors"
-          aria-label="Remove entry"
+          className="shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+          aria-label="Delete note"
         >
           <X className="h-3 w-3" />
         </button>
       </div>
-      {entry.comment && (
-        <p className="text-[10px] mt-0.5 text-gray-500 dark:text-gray-400 truncate italic">
-          {entry.comment}
-        </p>
-      )}
-    </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="mt-1 text-xs text-gray-400 hover:text-blue-500 transition-colors flex items-center gap-0.5"
+      aria-label="Add day note"
+    >
+      <Plus className="h-3 w-3" />
+      Note
+    </button>
   );
 }
 
@@ -96,7 +188,6 @@ function AddEntryDialog({
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
-  const [comment, setComment] = useState("");
   const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const addEntry = useAddFoodPlanEntry();
@@ -130,7 +221,6 @@ function AddEntryDialog({
         name: name.trim(),
         recipeId: selectedRecipeId,
         date: toUtcMidnight(date),
-        comment: comment.trim() || null,
       });
       toast.success("Entry added");
       onClose();
@@ -178,19 +268,6 @@ function AddEntryDialog({
               )}
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Comment <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="e.g. Leftovers, at friends..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              autoComplete="off"
-            />
-          </div>
           <div className="flex gap-2 pt-1">
             <Button type="submit" className="flex-1" disabled={addEntry.isPending || !name.trim()}>
               {addEntry.isPending ? "Adding..." : "Add meal"}
@@ -202,85 +279,6 @@ function AddEntryDialog({
         </form>
       </div>
     </div>
-  );
-}
-
-function DayColumn({
-  date,
-  today,
-  entries,
-  recipes,
-  onDeleteEntry,
-}: {
-  date: Date;
-  today: Date;
-  entries: FoodPlanEntry[];
-  recipes: Recipe[] | undefined;
-  onDeleteEntry: (entryId: number) => void;
-}) {
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const dateStr = toDateInputValue(date);
-  const dayEntries = entries.filter((e) => {
-    if (!e.date) return false;
-    const entryDate = new Date(e.date);
-    return toDateInputValue(entryDate) === dateStr;
-  });
-
-  const { relative, weekday, dateStr: formattedDate } = getDayLabel(date, today);
-  const isToday = relative === "i dag";
-
-  return (
-    <>
-      <div className={`rounded-lg border p-2 min-h-[100px] ${
-        isToday
-          ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
-          : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-      }`}>
-        <div className="flex items-center justify-between mb-1 gap-1">
-          <h3 className={`text-xs font-semibold capitalize truncate ${
-            isToday ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-300"
-          }`}>
-            {weekday}
-          </h3>
-          <p className={`text-[10px] shrink-0 ${
-            isToday ? "text-blue-500 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
-          }`}>
-            {formattedDate}
-          </p>
-        </div>
-        {relative && (
-          <p className={`text-[10px] text-center mb-1 font-medium ${
-            isToday ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
-          }`}>
-            {relative}
-          </p>
-        )}
-        <div className="space-y-1">
-          {dayEntries.map((entry) => (
-            <EntryBadge
-              key={entry.id}
-              entry={entry}
-              onDelete={() => onDeleteEntry(entry.id ?? 0)}
-            />
-          ))}
-        </div>
-        <button
-          onClick={() => setShowAddDialog(true)}
-          className="mt-1 w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50"
-          aria-label={`Add meal for ${weekday}`}
-        >
-          <Plus className="h-3 w-3" />
-          Add
-        </button>
-      </div>
-      {showAddDialog && (
-        <AddEntryDialog
-          date={date}
-          recipes={recipes}
-          onClose={() => setShowAddDialog(false)}
-        />
-      )}
-    </>
   );
 }
 
@@ -411,6 +409,110 @@ function AddToShoppingListDialog({
   );
 }
 
+function DayRow({
+  date,
+  today,
+  entries,
+  note,
+  recipes,
+  onDeleteEntry,
+  onSaveNote,
+  onDeleteNote,
+}: {
+  date: Date;
+  today: Date;
+  entries: FoodPlanEntry[];
+  note: FoodPlanNote | null;
+  recipes: Recipe[] | undefined;
+  onDeleteEntry: (entryId: number) => void;
+  onSaveNote: (dateStr: string, text: string) => void;
+  onDeleteNote: (noteId: number) => void;
+}) {
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const dateStr = toDateInputValue(date);
+  const dayEntries = entries.filter((e) => {
+    if (!e.date) return false;
+    const entryDate = new Date(e.date);
+    return toDateInputValue(entryDate) === dateStr;
+  });
+
+  const { relative, weekday, dateStr: formattedDate } = getDayLabel(date, today);
+  const isToday = relative === "i dag";
+
+  return (
+    <>
+      <div className={`rounded-lg border p-3 ${
+        isToday
+          ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
+          : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+      }`}>
+        {/* Day header */}
+        <div className="flex items-center gap-2 mb-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className={`text-sm font-semibold capitalize ${
+                isToday ? "text-blue-700 dark:text-blue-300" : "text-gray-800 dark:text-gray-200"
+              }`}>
+                {weekday}
+              </h3>
+              {relative && (
+                <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                  isToday
+                    ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                }`}>
+                  {relative}
+                </span>
+              )}
+            </div>
+            <p className={`text-xs ${
+              isToday ? "text-blue-500 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
+            }`}>
+              {formattedDate}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAddDialog(true)}
+            className="shrink-0 flex items-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            aria-label={`Add meal for ${weekday}`}
+          >
+            <Plus className="h-3 w-3" />
+            Add
+          </button>
+        </div>
+
+        {/* Entries */}
+        {dayEntries.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-1">
+            {dayEntries.map((entry) => (
+              <EntryBadge
+                key={entry.id}
+                entry={entry}
+                onDelete={() => onDeleteEntry(entry.id ?? 0)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Per-day note */}
+        <DayNoteEditor
+          note={note}
+          dateStr={dateStr}
+          onSave={(text) => onSaveNote(date.toISOString(), text)}
+          onDelete={() => note?.id != null && onDeleteNote(note.id)}
+        />
+      </div>
+      {showAddDialog && (
+        <AddEntryDialog
+          date={date}
+          recipes={recipes}
+          onClose={() => setShowAddDialog(false)}
+        />
+      )}
+    </>
+  );
+}
+
 export default function FoodPlanPage() {
   const router = useRouter();
   const [weekOffset, setWeekOffset] = useState(0);
@@ -422,7 +524,7 @@ export default function FoodPlanPage() {
     return d;
   }, []);
 
-  // Start from today (not Monday), shifting by weeks
+  // Start from today, shifting by weeks
   const startDay = useMemo(() => addDays(today, weekOffset * 7), [weekOffset, today]);
   const endDay = useMemo(() => addDays(startDay, 6), [startDay]);
 
@@ -434,8 +536,14 @@ export default function FoodPlanPage() {
     startDateStr + "T00:00:00Z",
     endDateStr + "T23:59:59Z"
   );
+  const { data: notes } = useFoodPlanNotes(
+    startDateStr + "T00:00:00Z",
+    endDateStr + "T23:59:59Z"
+  );
   const { data: recipes } = useRecipes();
   const deleteEntry = useDeleteFoodPlanEntry();
+  const upsertNote = useUpsertFoodPlanNote();
+  const deleteNote = useDeleteFoodPlanNote();
 
   const activeDays = settings?.activeDays ?? DEFAULT_ACTIVE_DAYS;
   const activeDaySet = bitmaskToDaySet(activeDays);
@@ -447,12 +555,17 @@ export default function FoodPlanPage() {
         date: addDays(startDay, i),
       }))
       .filter(({ date }) => {
-        // date-fns: 0=Sunday, 1=Monday, ..., 6=Saturday → map to 0=Monday, ..., 6=Sunday
         const jsDay = date.getDay();
         const ourDay = (jsDay + 6) % 7;
         return activeDaySet.has(ourDay);
       });
   }, [startDay, activeDaySet]);
+
+  const getNoteForDate = (date: Date): FoodPlanNote | null => {
+    if (!notes) return null;
+    const dateStr = toDateInputValue(date);
+    return notes.find((n) => n.date && toDateInputValue(new Date(n.date)) === dateStr) ?? null;
+  };
 
   const handleDeleteEntry = async (entryId: number) => {
     try {
@@ -460,6 +573,22 @@ export default function FoodPlanPage() {
       toast.success("Entry removed");
     } catch {
       toast.error("Failed to remove entry. Please try again.");
+    }
+  };
+
+  const handleSaveNote = async (isoDate: string, text: string) => {
+    try {
+      await upsertNote.mutateAsync({ date: isoDate, note: text });
+    } catch {
+      toast.error("Failed to save note. Please try again.");
+    }
+  };
+
+  const handleDeleteNote = async (noteId: number) => {
+    try {
+      await deleteNote.mutateAsync(noteId);
+    } catch {
+      toast.error("Failed to delete note. Please try again.");
     }
   };
 
@@ -491,19 +620,11 @@ export default function FoodPlanPage() {
 
   const weekLabel = `${startDay.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${endDay.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
 
-  const lgColsClass: Record<number, string> = {
-    1: "lg:grid-cols-1",
-    2: "lg:grid-cols-2",
-    3: "lg:grid-cols-3",
-    4: "lg:grid-cols-4",
-    5: "lg:grid-cols-5",
-    6: "lg:grid-cols-6",
-    7: "lg:grid-cols-7",
-  };
-
   return (
-    <div className="container mx-auto px-4 py-4 max-w-5xl">
+    <div className="container mx-auto px-4 py-4 max-w-2xl">
       <PageTitle>Food Plan</PageTitle>
+
+      {/* Week navigation */}
       <div className="flex items-center justify-between mb-4">
         <Button
           variant="ghost"
@@ -538,16 +659,20 @@ export default function FoodPlanPage() {
         </div>
       )}
 
+      {/* Vertical day list */}
       {!isLoading && (
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${lgColsClass[orderedDays.length] ?? "lg:grid-cols-5"} gap-2`}>
+        <div className="space-y-2">
           {orderedDays.map(({ index, date }) => (
-            <DayColumn
+            <DayRow
               key={`${startDateStr}-${index}`}
               date={date}
               today={today}
               entries={entries ?? []}
+              note={getNoteForDate(date)}
               recipes={recipes}
               onDeleteEntry={handleDeleteEntry}
+              onSaveNote={handleSaveNote}
+              onDeleteNote={handleDeleteNote}
             />
           ))}
         </div>
@@ -565,4 +690,3 @@ export default function FoodPlanPage() {
     </div>
   );
 }
-

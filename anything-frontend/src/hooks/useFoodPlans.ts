@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { FoodPlanEntry, FoodPlanSettings } from "@/lib/api-client/models/index";
+import type { FoodPlanEntry, FoodPlanNote, FoodPlanSettings } from "@/lib/api-client/models/index";
 
 export function useFoodPlanSettings() {
   return useQuery({
@@ -42,13 +42,11 @@ export function useAddFoodPlanEntry() {
       name: string;
       recipeId?: number | null;
       date: Date;
-      comment?: string | null;
     }) =>
       apiClient.api.foodPlan.entries.post({
         name: entry.name,
         recipeId: entry.recipeId,
         date: entry.date,
-        comment: entry.comment,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
@@ -65,19 +63,16 @@ export function useUpdateFoodPlanEntry() {
       name,
       recipeId,
       date,
-      comment,
     }: {
       entryId: number;
       name: string;
       recipeId?: number | null;
       date: Date;
-      comment?: string | null;
     }) =>
       apiClient.api.foodPlan.entries.byEntryId(entryId).put({
         name,
         recipeId,
         date,
-        comment,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
@@ -120,6 +115,41 @@ export function useAddFoodPlanToShoppingList() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
+    },
+  });
+}
+
+export function useFoodPlanNotes(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: ["foodPlanNotes", startDate, endDate],
+    queryFn: () =>
+      apiClient.api.foodPlan.notes.get({
+        queryParameters: { startDate: new Date(startDate), endDate: new Date(endDate) },
+      }) as Promise<FoodPlanNote[]>,
+    enabled: !!startDate && !!endDate,
+  });
+}
+
+export function useUpsertFoodPlanNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ date, note }: { date: string; note: string }) =>
+      apiClient.api.foodPlan.notes.byDate(date).put({ note }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["foodPlanNotes"] });
+    },
+  });
+}
+
+export function useDeleteFoodPlanNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (noteId: number) =>
+      apiClient.api.foodPlan.notes.byNoteId(noteId).delete(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["foodPlanNotes"] });
     },
   });
 }

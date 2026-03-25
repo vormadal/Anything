@@ -6,6 +6,7 @@ import FoodPlanPage from './page'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
+import { toDateInputValue } from '@/lib/foodPlanUtils'
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date)
@@ -30,7 +31,6 @@ function buildEntry(
     date: date.toISOString(),
     recipeId: null,
     addedToShoppingListOn: null,
-    comment: null,
     ...extra,
   }
 }
@@ -63,6 +63,12 @@ const mockEntriesItemDelete = jest.fn()
 const mockEntriesItemById = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
 const mockAddToShoppingListPost = jest.fn()
 const mockShoppingListsGet = jest.fn()
+const mockNotesGet = jest.fn()
+const mockNotesByDatePut = jest.fn()
+const mockNotesByDateDelete = jest.fn()
+const mockNotesByDate = jest.fn(() => ({ put: mockNotesByDatePut, delete: mockNotesByDateDelete }))
+const mockNotesByNoteIdDelete = jest.fn()
+const mockNotesByNoteId = jest.fn(() => ({ delete: mockNotesByNoteIdDelete }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -76,6 +82,11 @@ jest.mock('@/lib/apiClient', () => ({
           get: (...args: unknown[]) => mockEntriesGet(...args),
           post: (...args: unknown[]) => mockEntriesPost(...args),
           byEntryId: (...args: unknown[]) => mockEntriesItemById(...args),
+        },
+        notes: {
+          get: (...args: unknown[]) => mockNotesGet(...args),
+          byDate: (...args: unknown[]) => mockNotesByDate(...args),
+          byNoteId: (...args: unknown[]) => mockNotesByNoteId(...args),
         },
         addToShoppingList: {
           post: (...args: unknown[]) => mockAddToShoppingListPost(...args),
@@ -138,6 +149,7 @@ describe('FoodPlanPage', () => {
     jest.clearAllMocks()
     mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     mockEntriesGet.mockResolvedValue([])
+    mockNotesGet.mockResolvedValue([])
     mockRecipesFetch([])
     mockShoppingListsGet.mockResolvedValue([])
   })
@@ -388,9 +400,10 @@ describe('FoodPlanPage', () => {
     await user.click(addButtons[0])
 
     expect(screen.getByPlaceholderText('Meal name...')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('e.g. Leftovers, at friends...')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add meal' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    // Dialog should NOT have a comment field (comments are now per-day notes)
+    expect(screen.queryByPlaceholderText('e.g. Leftovers, at friends...')).not.toBeInTheDocument()
   })
 
   it('should add an entry when the add dialog is submitted', async () => {
@@ -420,35 +433,6 @@ describe('FoodPlanPage', () => {
 
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith('Entry added')
-    })
-  })
-
-  it('should add an entry with a comment', async () => {
-    const user = userEvent.setup()
-    mockEntriesPost.mockResolvedValue({ id: 10, name: 'Leftovers', date: today.toISOString(), comment: 'From yesterday' })
-
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('mandag')).toBeInTheDocument()
-    })
-
-    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
-    await user.click(addButtons[0])
-
-    const nameInput = screen.getByPlaceholderText('Meal name...')
-    await user.type(nameInput, 'Leftovers')
-
-    const commentInput = screen.getByPlaceholderText('e.g. Leftovers, at friends...')
-    await user.type(commentInput, 'From yesterday')
-
-    const submitButton = screen.getByRole('button', { name: 'Add meal' })
-    await user.click(submitButton)
-
-    await waitFor(() => {
-      expect(mockEntriesPost).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Leftovers', comment: 'From yesterday' }),
-      )
     })
   })
 
@@ -986,33 +970,114 @@ describe('FoodPlanPage', () => {
     expect(badge?.className).not.toContain('bg-green-50')
   })
 
-  // ------- 13. Comment display in entry badge -------
-  it('should display comment in entry badge when comment is set', async () => {
-    const entries = [buildEntry(1, 'Pasta', 0, { comment: 'Eating at friends' })]
-    mockEntriesGet.mockResolvedValue(entries)
+  // ------- 13. Per-day note display -------
+  it('should show a note for the day when note exists', async () => {
+    const noteDate = toDateInputValue(today)
+    mockNotesGet.mockResolvedValue([
+      { id: 1, date: today.toISOString(), note: 'Eating at friends' }
+    ])
 
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pasta')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Eating at friends')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Eating at friends')).toBeInTheDocument()
+    })
+    // The variable noteDate is used to illustrate intent
+    expect(noteDate).toBeTruthy()
   })
 
-  it('should not display comment text when comment is null', async () => {
-    const entries = [buildEntry(1, 'Pasta', 0)]
-    mockEntriesGet.mockResolvedValue(entries)
+  it('should show "Add day note" button when no note exists', async () => {
+    mockNotesGet.mockResolvedValue([])
 
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pasta')).toBeInTheDocument()
+      expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    // Only the entry name should be visible, no comment
-    const badge = screen.getByText('Pasta').closest('[class*="rounded"]')
-    const paragraphs = badge?.querySelectorAll('p')
-    expect(paragraphs?.length ?? 0).toBe(0)
+    const noteButtons = screen.getAllByRole('button', { name: 'Add day note' })
+    expect(noteButtons.length).toBeGreaterThan(0)
+  })
+
+  it('should show note input when clicking "Add day note"', async () => {
+    const user = userEvent.setup()
+    mockNotesGet.mockResolvedValue([])
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('mandag')).toBeInTheDocument()
+    })
+
+    const noteButtons = screen.getAllByRole('button', { name: 'Add day note' })
+    await user.click(noteButtons[0])
+
+    expect(screen.getByPlaceholderText('Add a note for this day...')).toBeInTheDocument()
+  })
+
+  it('should save a note when typing and pressing Enter', async () => {
+    const user = userEvent.setup()
+    mockNotesGet.mockResolvedValue([])
+    mockNotesByDatePut.mockResolvedValue({ id: 1, date: today.toISOString(), note: 'Leftovers tonight' })
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('mandag')).toBeInTheDocument()
+    })
+
+    const noteButtons = screen.getAllByRole('button', { name: 'Add day note' })
+    await user.click(noteButtons[0])
+
+    const input = screen.getByPlaceholderText('Add a note for this day...')
+    await user.type(input, 'Leftovers tonight{Enter}')
+
+    await waitFor(() => {
+      expect(mockNotesByDatePut).toHaveBeenCalledWith(
+        expect.objectContaining({ note: 'Leftovers tonight' })
+      )
+    })
+  })
+
+  it('should show edit and delete buttons when a note is displayed', async () => {
+    mockNotesGet.mockResolvedValue([
+      { id: 1, date: today.toISOString(), note: 'Eating at friends' }
+    ])
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Eating at friends')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: 'Edit note' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete note' })).toBeInTheDocument()
+  })
+
+  it('should delete a note when clicking delete', async () => {
+    const user = userEvent.setup()
+    mockNotesGet.mockResolvedValue([
+      { id: 42, date: today.toISOString(), note: 'Note to delete' }
+    ])
+    mockNotesByNoteIdDelete.mockResolvedValue(undefined)
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Note to delete')).toBeInTheDocument()
+    })
+
+    const deleteNoteButton = screen.getByRole('button', { name: 'Delete note' })
+    await user.click(deleteNoteButton)
+
+    await waitFor(() => {
+      expect(mockNotesByNoteId).toHaveBeenCalledWith(42)
+      expect(mockNotesByNoteIdDelete).toHaveBeenCalled()
+    })
   })
 })
+
