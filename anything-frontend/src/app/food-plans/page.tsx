@@ -24,16 +24,6 @@ import { da } from "date-fns/locale";
 const DEFAULT_ACTIVE_DAYS = 31;
 const SUGGESTION_BLUR_DELAY_MS = 150;
 
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  // Zero out time in local timezone to avoid DST issues during date arithmetic
-  d.setHours(12, 0, 0, 0);
-  return d;
-}
-
 function addDays(date: Date, days: number): Date {
   return dateFnsAddDays(date, days);
 }
@@ -63,33 +53,40 @@ function EntryBadge({
 }) {
   const isAddedToShoppingList = !!entry.addedToShoppingListOn;
   return (
-    <div className={`flex items-center gap-1 rounded px-2 py-1 text-sm group ${
+    <div className={`rounded px-2 py-1 text-sm group ${
       isAddedToShoppingList
         ? "bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200"
         : "bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200"
     }`}>
-      {entry.recipeId ? (
-        <a
-          href={`/recipes/${entry.recipeId}`}
-          className="flex-1 min-w-0 truncate hover:underline"
+      <div className="flex items-center gap-1">
+        {entry.recipeId ? (
+          <a
+            href={`/recipes/${entry.recipeId}`}
+            className="flex-1 min-w-0 truncate hover:underline"
+          >
+            {entry.name}
+          </a>
+        ) : (
+          <span className="flex-1 min-w-0 truncate">{entry.name}</span>
+        )}
+        <button
+          onClick={onDelete}
+          className="shrink-0 ml-1 text-blue-400 hover:text-red-500 transition-colors"
+          aria-label="Remove entry"
         >
-          {entry.name}
-        </a>
-      ) : (
-        <span className="flex-1 min-w-0 truncate">{entry.name}</span>
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+      {entry.comment && (
+        <p className="text-[10px] mt-0.5 text-gray-500 dark:text-gray-400 truncate italic">
+          {entry.comment}
+        </p>
       )}
-      <button
-        onClick={onDelete}
-        className="shrink-0 ml-1 text-blue-400 hover:text-red-500 transition-colors"
-        aria-label="Remove entry"
-      >
-        <X className="h-3 w-3" />
-      </button>
     </div>
   );
 }
 
-function AddEntryForm({
+function AddEntryDialog({
   date,
   recipes,
   onClose,
@@ -99,9 +96,13 @@ function AddEntryForm({
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
+  const [comment, setComment] = useState("");
   const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const addEntry = useAddFoodPlanEntry();
+
+  const weekdayLabel = format(date, "EEEE", { locale: da });
+  const dateLabelStr = format(date, "d. MMMM", { locale: da });
 
   const suggestions = name.trim()
     ? (recipes ?? []).filter((r) =>
@@ -129,6 +130,7 @@ function AddEntryForm({
         name: name.trim(),
         recipeId: selectedRecipeId,
         date: toUtcMidnight(date),
+        comment: comment.trim() || null,
       });
       toast.success("Entry added");
       onClose();
@@ -138,43 +140,68 @@ function AddEntryForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 space-y-2">
-      <div className="relative">
-        <input
-          type="text"
-          value={name}
-          onChange={handleNameChange}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), SUGGESTION_BLUR_DELAY_MS)}
-          placeholder="Meal name..."
-          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-          autoFocus
-          autoComplete="off"
-        />
-        {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute z-10 left-0 right-0 mt-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md max-h-36 overflow-y-auto">
-            {suggestions.map((r) => (
-              <li
-                key={r.id}
-                onMouseDown={() => handleSelectSuggestion(r)}
-                className="px-2 py-1 text-xs cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-800 dark:text-gray-200"
-              >
-                {r.name}
-              </li>
-            ))}
-          </ul>
-        )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 capitalize">
+          {weekdayLabel}
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{dateLabelStr}</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Meal
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={name}
+                onChange={handleNameChange}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), SUGGESTION_BLUR_DELAY_MS)}
+                placeholder="Meal name..."
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                autoFocus
+                autoComplete="off"
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className="absolute z-10 left-0 right-0 mt-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md max-h-36 overflow-y-auto">
+                  {suggestions.map((r) => (
+                    <li
+                      key={r.id}
+                      onMouseDown={() => handleSelectSuggestion(r)}
+                      className="px-3 py-1.5 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-800 dark:text-gray-200"
+                    >
+                      {r.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Comment <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="e.g. Leftovers, at friends..."
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              autoComplete="off"
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button type="submit" className="flex-1" disabled={addEntry.isPending || !name.trim()}>
+              {addEntry.isPending ? "Adding..." : "Add meal"}
+            </Button>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        </form>
       </div>
-
-      <div className="flex gap-1">
-        <Button type="submit" size="sm" className="flex-1 text-xs h-7" disabled={addEntry.isPending || !name.trim()}>
-          {addEntry.isPending ? "Adding..." : "Add"}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" className="text-xs h-7" onClick={onClose}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 }
 
@@ -191,7 +218,7 @@ function DayColumn({
   recipes: Recipe[] | undefined;
   onDeleteEntry: (entryId: number) => void;
 }) {
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const dateStr = toDateInputValue(date);
   const dayEntries = entries.filter((e) => {
     if (!e.date) return false;
@@ -203,56 +230,57 @@ function DayColumn({
   const isToday = relative === "i dag";
 
   return (
-    <div className={`rounded-lg border p-2 min-h-[100px] ${
-      isToday
-        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
-        : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-    }`}>
-      <div className="flex items-center justify-between mb-1 gap-1">
-        <h3 className={`text-xs font-semibold capitalize truncate ${
-          isToday ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-300"
-        }`}>
-          {weekday}
-        </h3>
-        <p className={`text-[10px] shrink-0 ${
-          isToday ? "text-blue-500 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
-        }`}>
-          {formattedDate}
-        </p>
-      </div>
-      {relative && (
-        <p className={`text-[10px] text-center mb-1 font-medium ${
-          isToday ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
-        }`}>
-          {relative}
-        </p>
-      )}
-      <div className="space-y-1">
-        {dayEntries.map((entry) => (
-          <EntryBadge
-            key={entry.id}
-            entry={entry}
-            onDelete={() => onDeleteEntry(entry.id ?? 0)}
-          />
-        ))}
-      </div>
-      {showAddForm ? (
-        <AddEntryForm
-          date={date}
-          recipes={recipes}
-          onClose={() => setShowAddForm(false)}
-        />
-      ) : (
+    <>
+      <div className={`rounded-lg border p-2 min-h-[100px] ${
+        isToday
+          ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
+          : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+      }`}>
+        <div className="flex items-center justify-between mb-1 gap-1">
+          <h3 className={`text-xs font-semibold capitalize truncate ${
+            isToday ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-300"
+          }`}>
+            {weekday}
+          </h3>
+          <p className={`text-[10px] shrink-0 ${
+            isToday ? "text-blue-500 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
+          }`}>
+            {formattedDate}
+          </p>
+        </div>
+        {relative && (
+          <p className={`text-[10px] text-center mb-1 font-medium ${
+            isToday ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
+          }`}>
+            {relative}
+          </p>
+        )}
+        <div className="space-y-1">
+          {dayEntries.map((entry) => (
+            <EntryBadge
+              key={entry.id}
+              entry={entry}
+              onDelete={() => onDeleteEntry(entry.id ?? 0)}
+            />
+          ))}
+        </div>
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={() => setShowAddDialog(true)}
           className="mt-1 w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50"
           aria-label={`Add meal for ${weekday}`}
         >
           <Plus className="h-3 w-3" />
           Add
         </button>
+      </div>
+      {showAddDialog && (
+        <AddEntryDialog
+          date={date}
+          recipes={recipes}
+          onClose={() => setShowAddDialog(false)}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -388,17 +416,18 @@ export default function FoodPlanPage() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
   const { setHeaderActions } = useHeaderActions();
-  const today = useMemo(() => new Date(), []);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    return d;
+  }, []);
 
-  const monday = useMemo(() => {
-    const m = getMonday(today);
-    return addDays(m, weekOffset * 7);
-  }, [weekOffset, today]);
+  // Start from today (not Monday), shifting by weeks
+  const startDay = useMemo(() => addDays(today, weekOffset * 7), [weekOffset, today]);
+  const endDay = useMemo(() => addDays(startDay, 6), [startDay]);
 
-  const sunday = useMemo(() => addDays(monday, 6), [monday]);
-
-  const startDateStr = toDateInputValue(monday);
-  const endDateStr = toDateInputValue(sunday);
+  const startDateStr = toDateInputValue(startDay);
+  const endDateStr = toDateInputValue(endDay);
 
   const { data: settings } = useFoodPlanSettings();
   const { data: entries, isLoading } = useFoodPlanEntries(
@@ -413,12 +442,17 @@ export default function FoodPlanPage() {
 
   const orderedDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => i)
-      .filter((i) => activeDaySet.has(i))
       .map((i) => ({
         index: i,
-        date: addDays(monday, i),
-      }));
-  }, [monday, activeDaySet]);
+        date: addDays(startDay, i),
+      }))
+      .filter(({ date }) => {
+        // date-fns: 0=Sunday, 1=Monday, ..., 6=Saturday → map to 0=Monday, ..., 6=Sunday
+        const jsDay = date.getDay();
+        const ourDay = (jsDay + 6) % 7;
+        return activeDaySet.has(ourDay);
+      });
+  }, [startDay, activeDaySet]);
 
   const handleDeleteEntry = async (entryId: number) => {
     try {
@@ -455,7 +489,7 @@ export default function FoodPlanPage() {
     return () => setHeaderActions(null);
   }, [setHeaderActions, router]);
 
-  const weekLabel = `${monday.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${sunday.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+  const weekLabel = `${startDay.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${endDay.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
 
   const lgColsClass: Record<number, string> = {
     1: "lg:grid-cols-1",
@@ -521,8 +555,8 @@ export default function FoodPlanPage() {
 
       {showShoppingListDialog && (
         <AddToShoppingListDialog
-          startDate={monday}
-          endDate={sunday}
+          startDate={startDay}
+          endDate={endDay}
           entries={entries}
           recipes={recipes}
           onClose={() => setShowShoppingListDialog(false)}
@@ -531,3 +565,4 @@ export default function FoodPlanPage() {
     </div>
   );
 }
+

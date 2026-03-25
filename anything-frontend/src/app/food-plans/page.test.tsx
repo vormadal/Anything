@@ -7,46 +7,37 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 
-// Helper: get the Monday of the current week
-function getMonday(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-  d.setHours(12, 0, 0, 0)
-  return d
-}
-
 function addDays(date: Date, days: number): Date {
   const d = new Date(date)
   d.setDate(d.getDate() + days)
   return d
 }
 
-// Compute the current week's Monday for building test entries
-const currentMonday = getMonday(new Date())
+// Today as reference — same logic as the component
+const today = (() => { const d = new Date(); d.setHours(12, 0, 0, 0); return d })()
 
-// Build a mock entry on a given weekday offset (0=Mon, 1=Tue, ...)
+// Build a mock entry on a given day offset from today (0=today, 1=tomorrow, ...)
 function buildEntry(
   id: number,
   name: string,
   dayOffset: number,
   extra: Record<string, unknown> = {},
 ) {
-  const date = addDays(currentMonday, dayOffset)
+  const date = addDays(today, dayOffset)
   return {
     id,
     name,
     date: date.toISOString(),
     recipeId: null,
     addedToShoppingListOn: null,
+    comment: null,
     ...extra,
   }
 }
 
-function getWeekLabel(monday: Date): string {
-  const sunday = addDays(monday, 6)
-  return `${monday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${sunday.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+function getWeekLabel(startDate: Date): string {
+  const endDate = addDays(startDate, 6)
+  return `${startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
 }
 
 // ---- Mock fetch globally (useRecipes now uses fetch directly) ----
@@ -145,7 +136,7 @@ jest.mock('@/hooks/useAuth', () => ({
 describe('FoodPlanPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockSettingsGet.mockResolvedValue({ activeDays: 31 })
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     mockEntriesGet.mockResolvedValue([])
     mockRecipesFetch([])
     mockShoppingListsGet.mockResolvedValue([])
@@ -170,6 +161,7 @@ describe('FoodPlanPage', () => {
 
   // ------- 2. Day columns for default activeDays=31 (Mon-Fri) -------
   it('should render Mon-Fri day columns with default activeDays=31', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 31 })
     render(<FoodPlanPage />)
 
     await waitFor(() => {
@@ -216,6 +208,7 @@ describe('FoodPlanPage', () => {
   })
 
   it('should show an Add button for each active day', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 31 })
     render(<FoodPlanPage />)
 
     await waitFor(() => {
@@ -229,10 +222,12 @@ describe('FoodPlanPage', () => {
 
   // ------- 3. Display entries in correct day columns -------
   it('should display food plan entries in the correct day columns', async () => {
+    // Use activeDays=127 (all days) to ensure all day offsets show regardless of current weekday
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [
-      buildEntry(1, 'Pancakes', 0), // Monday
-      buildEntry(2, 'Pasta', 2),    // Wednesday
-      buildEntry(3, 'Salad', 4),    // Friday
+      buildEntry(1, 'Pancakes', 0), // today
+      buildEntry(2, 'Pasta', 2),    // 2 days from now
+      buildEntry(3, 'Salad', 4),    // 4 days from now
     ]
     mockEntriesGet.mockResolvedValue(entries)
 
@@ -246,6 +241,8 @@ describe('FoodPlanPage', () => {
   })
 
   it('should display multiple entries in the same day', async () => {
+    // Use activeDays=127 to ensure today is shown regardless of weekday
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [
       buildEntry(1, 'Breakfast', 0),
       buildEntry(2, 'Lunch', 0),
@@ -269,7 +266,10 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const mondayDateStr = format(currentMonday, 'd. MMMM', { locale: da })
+    // Monday always appears in any 7-day window; find it and check its date string
+    const monday = Array.from({ length: 7 }, (_, i) => addDays(today, i))
+      .find(d => d.getDay() === 1)!
+    const mondayDateStr = format(monday, 'd. MMMM', { locale: da })
     expect(screen.getByText(mondayDateStr)).toBeInTheDocument()
   })
 
@@ -277,7 +277,7 @@ describe('FoodPlanPage', () => {
   it('should display the current week label by default', async () => {
     render(<FoodPlanPage />)
 
-    const expectedLabel = getWeekLabel(currentMonday)
+    const expectedLabel = getWeekLabel(today)
 
     await waitFor(() => {
       expect(screen.getByText(expectedLabel)).toBeInTheDocument()
@@ -296,8 +296,8 @@ describe('FoodPlanPage', () => {
     const prevButton = screen.getByRole('button', { name: 'Previous week' })
     await user.click(prevButton)
 
-    const prevMonday = addDays(currentMonday, -7)
-    const expectedLabel = getWeekLabel(prevMonday)
+    const prevStart = addDays(today, -7)
+    const expectedLabel = getWeekLabel(prevStart)
 
     await waitFor(() => {
       expect(screen.getByText(expectedLabel)).toBeInTheDocument()
@@ -316,8 +316,8 @@ describe('FoodPlanPage', () => {
     const nextButton = screen.getByRole('button', { name: 'Next week' })
     await user.click(nextButton)
 
-    const nextMonday = addDays(currentMonday, 7)
-    const expectedLabel = getWeekLabel(nextMonday)
+    const nextStart = addDays(today, 7)
+    const expectedLabel = getWeekLabel(nextStart)
 
     await waitFor(() => {
       expect(screen.getByText(expectedLabel)).toBeInTheDocument()
@@ -348,7 +348,7 @@ describe('FoodPlanPage', () => {
 
     render(<FoodPlanPage />)
 
-    const currentWeekLabel = getWeekLabel(currentMonday)
+    const currentWeekLabel = getWeekLabel(today)
 
     await waitFor(() => {
       expect(screen.getByText(currentWeekLabel)).toBeInTheDocument()
@@ -358,8 +358,8 @@ describe('FoodPlanPage', () => {
     const nextButton = screen.getByRole('button', { name: 'Next week' })
     await user.click(nextButton)
 
-    const nextMonday = addDays(currentMonday, 7)
-    const nextWeekLabel = getWeekLabel(nextMonday)
+    const nextStart = addDays(today, 7)
+    const nextWeekLabel = getWeekLabel(nextStart)
 
     await waitFor(() => {
       expect(screen.getByText(nextWeekLabel)).toBeInTheDocument()
@@ -374,8 +374,8 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  // ------- 6. Adding an entry via the add form -------
-  it('should show add form when Add button is clicked', async () => {
+  // ------- 6. Adding an entry via the add dialog -------
+  it('should show add dialog when Add button is clicked', async () => {
     const user = userEvent.setup()
 
     render(<FoodPlanPage />)
@@ -384,17 +384,18 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const addButtons = screen.getAllByText('Add')
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
     await user.click(addButtons[0])
 
     expect(screen.getByPlaceholderText('Meal name...')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^Add$/i })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('e.g. Leftovers, at friends...')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add meal' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
   })
 
-  it('should add an entry when the add form is submitted', async () => {
+  it('should add an entry when the add dialog is submitted', async () => {
     const user = userEvent.setup()
-    mockEntriesPost.mockResolvedValue({ id: 10, name: 'Burger', date: currentMonday.toISOString() })
+    mockEntriesPost.mockResolvedValue({ id: 10, name: 'Burger', date: today.toISOString() })
 
     render(<FoodPlanPage />)
 
@@ -402,13 +403,13 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const addButtons = screen.getAllByText('Add')
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
     await user.click(addButtons[0])
 
     const input = screen.getByPlaceholderText('Meal name...')
     await user.type(input, 'Burger')
 
-    const submitButton = screen.getByRole('button', { name: /^Add$/i })
+    const submitButton = screen.getByRole('button', { name: 'Add meal' })
     await user.click(submitButton)
 
     await waitFor(() => {
@@ -422,7 +423,36 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  it('should close add form when Cancel is clicked', async () => {
+  it('should add an entry with a comment', async () => {
+    const user = userEvent.setup()
+    mockEntriesPost.mockResolvedValue({ id: 10, name: 'Leftovers', date: today.toISOString(), comment: 'From yesterday' })
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('mandag')).toBeInTheDocument()
+    })
+
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
+    await user.click(addButtons[0])
+
+    const nameInput = screen.getByPlaceholderText('Meal name...')
+    await user.type(nameInput, 'Leftovers')
+
+    const commentInput = screen.getByPlaceholderText('e.g. Leftovers, at friends...')
+    await user.type(commentInput, 'From yesterday')
+
+    const submitButton = screen.getByRole('button', { name: 'Add meal' })
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(mockEntriesPost).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Leftovers', comment: 'From yesterday' }),
+      )
+    })
+  })
+
+  it('should close add dialog when Cancel is clicked', async () => {
     const user = userEvent.setup()
 
     render(<FoodPlanPage />)
@@ -431,7 +461,7 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const addButtons = screen.getAllByText('Add')
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
     await user.click(addButtons[0])
 
     expect(screen.getByPlaceholderText('Meal name...')).toBeInTheDocument()
@@ -441,7 +471,7 @@ describe('FoodPlanPage', () => {
     expect(screen.queryByPlaceholderText('Meal name...')).not.toBeInTheDocument()
   })
 
-  it('should disable Add button when name input is empty', async () => {
+  it('should disable Add meal button when name input is empty', async () => {
     const user = userEvent.setup()
 
     render(<FoodPlanPage />)
@@ -450,10 +480,10 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const addButtons = screen.getAllByText('Add')
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
     await user.click(addButtons[0])
 
-    const submitButton = screen.getByRole('button', { name: /^Add$/i })
+    const submitButton = screen.getByRole('button', { name: 'Add meal' })
     expect(submitButton).toBeDisabled()
   })
 
@@ -467,13 +497,13 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const addButtons = screen.getAllByText('Add')
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
     await user.click(addButtons[0])
 
     const input = screen.getByPlaceholderText('Meal name...')
     await user.type(input, 'Burger')
 
-    const submitButton = screen.getByRole('button', { name: /^Add$/i })
+    const submitButton = screen.getByRole('button', { name: 'Add meal' })
     await user.click(submitButton)
 
     await waitFor(() => {
@@ -496,7 +526,7 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const addButtons = screen.getAllByText('Add')
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
     await user.click(addButtons[0])
 
     const input = screen.getByPlaceholderText('Meal name...')
@@ -521,7 +551,7 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const addButtons = screen.getAllByText('Add')
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
     await user.click(addButtons[0])
 
     const input = screen.getByPlaceholderText('Meal name...')
@@ -538,7 +568,7 @@ describe('FoodPlanPage', () => {
     // Input should now have the recipe name
     expect(input).toHaveValue('Pasta Carbonara')
 
-    const submitButton = screen.getByRole('button', { name: /^Add$/i })
+    const submitButton = screen.getByRole('button', { name: 'Add meal' })
     await user.click(submitButton)
 
     await waitFor(() => {
@@ -558,7 +588,7 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const addButtons = screen.getAllByText('Add')
+    const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
     await user.click(addButtons[0])
 
     // Input is empty and focused, no suggestions should appear
@@ -568,6 +598,7 @@ describe('FoodPlanPage', () => {
   // ------- 8. Deleting an entry -------
   it('should delete an entry when the remove button is clicked', async () => {
     const user = userEvent.setup()
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [buildEntry(42, 'Pancakes', 0)]
     mockEntriesGet.mockResolvedValue(entries)
     mockEntriesItemDelete.mockResolvedValue(undefined)
@@ -593,6 +624,7 @@ describe('FoodPlanPage', () => {
 
   it('should show error toast when deleting entry fails', async () => {
     const user = userEvent.setup()
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [buildEntry(42, 'Pancakes', 0)]
     mockEntriesGet.mockResolvedValue(entries)
     mockEntriesItemDelete.mockRejectedValue(new Error('Delete failed'))
@@ -934,8 +966,8 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('Pasta')).toBeInTheDocument()
     })
 
-    const badge = screen.getByText('Pasta').closest('div')
-    expect(badge?.className).toContain('bg-green-50')
+    const badge = screen.getByText('Pasta').closest('[class*="bg-green-50"]')
+    expect(badge).toBeInTheDocument()
     expect(badge?.className).not.toContain('bg-blue-50')
   })
 
@@ -949,8 +981,38 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('Pasta')).toBeInTheDocument()
     })
 
-    const badge = screen.getByText('Pasta').closest('div')
-    expect(badge?.className).toContain('bg-blue-50')
+    const badge = screen.getByText('Pasta').closest('[class*="bg-blue-50"]')
+    expect(badge).toBeInTheDocument()
     expect(badge?.className).not.toContain('bg-green-50')
+  })
+
+  // ------- 13. Comment display in entry badge -------
+  it('should display comment in entry badge when comment is set', async () => {
+    const entries = [buildEntry(1, 'Pasta', 0, { comment: 'Eating at friends' })]
+    mockEntriesGet.mockResolvedValue(entries)
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Eating at friends')).toBeInTheDocument()
+  })
+
+  it('should not display comment text when comment is null', async () => {
+    const entries = [buildEntry(1, 'Pasta', 0)]
+    mockEntriesGet.mockResolvedValue(entries)
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+    })
+
+    // Only the entry name should be visible, no comment
+    const badge = screen.getByText('Pasta').closest('[class*="rounded"]')
+    const paragraphs = badge?.querySelectorAll('p')
+    expect(paragraphs?.length ?? 0).toBe(0)
   })
 })

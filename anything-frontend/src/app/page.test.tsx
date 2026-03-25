@@ -266,4 +266,55 @@ describe('Home Page Integration Tests', () => {
     expect(screen.getByText('5')).toBeInTheDocument()
     expect(screen.queryByText('0')).not.toBeInTheDocument()
   })
+
+  it('should display comment below meal name on home page when comment is set', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z', comment: 'Eating at friends' },
+    ])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Eating at friends')).toBeInTheDocument()
+  })
+
+  it('should display comment for recipe-linked entry on home page', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 1, name: null, recipeId: 5, date: '2025-06-16T00:00:00Z', comment: 'Leftovers from yesterday' },
+    ])
+    mockRecipesFetch([{ id: 5, name: 'Lasagna' }])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lasagna')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Leftovers from yesterday')).toBeInTheDocument()
+  })
+
+  it('should not display comment when comment is null', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z', comment: null },
+    ])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+    })
+
+    // No comment paragraph should be visible
+    const paragraphs = document.querySelectorAll('p.italic')
+    expect(paragraphs.length).toBe(0)
+  })
 })

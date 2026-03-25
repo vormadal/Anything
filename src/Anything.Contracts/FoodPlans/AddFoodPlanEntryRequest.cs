@@ -8,4 +8,6 @@ public record AddFoodPlanEntryRequest(
     string Name,
     int? RecipeId,
     [Required(ErrorMessage = "Date is required.")]
-    DateTime? Date);
+    DateTime? Date,
+    [StringLength(500, ErrorMessage = "Comment must be at most 500 characters.")]
+    string? Comment);

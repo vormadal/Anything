@@ -92,14 +92,22 @@ export default function Home() {
                     className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
                     onClick={() => router.push(`/recipes/${entry.recipeId}`)}
                   >
-                    <span className="text-sm text-gray-900 dark:text-white">{displayName}</span>
-                    <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm text-gray-900 dark:text-white">{displayName}</span>
+                      {entry.comment && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate italic">{entry.comment}</p>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
                   </button>
                 );
               }
               return (
-                <div key={entry.id} className="px-4 py-2.5 flex items-center justify-between">
+                <div key={entry.id} className="px-4 py-2.5">
                   <span className="text-sm text-gray-900 dark:text-white">{displayName}</span>
+                  {entry.comment && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate italic">{entry.comment}</p>
+                  )}
                 </div>
               );
             })}

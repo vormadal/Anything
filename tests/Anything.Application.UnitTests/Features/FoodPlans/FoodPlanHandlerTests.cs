@@ -38,6 +38,19 @@ public class AddFoodPlanEntryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WithComment_StoresCommentInEntry()
+    {
+        _recipeRepo.GetById(5).Returns(new Recipe { Id = 5, Name = "Pasta" });
+        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
+
+        var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 5, date, "Eating at friends"), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created<FoodPlanEntry>>(result);
+        _entryRepo.Received(1).Add(Arg.Is<FoodPlanEntry>(e => e.Comment == "Eating at friends"));
+    }
+
+    [Fact]
     public async Task Handle_WithDeletedRecipe_ReturnsNotFound()
     {
         _recipeRepo.GetById(5).Returns(new Recipe { Id = 5, Name = "Pasta", DeletedOn = DateTime.UtcNow });
@@ -147,6 +160,20 @@ public class UpdateFoodPlanEntryHandlerTests
         Assert.Equal(((int)newDate.DayOfWeek + 6) % 7, entry.DayOfWeek);
         Assert.Equal(now.UtcDateTime, entry.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WithComment_StoresCommentInEntry()
+    {
+        var date = new DateTime(2026, 3, 12, 0, 0, 0, DateTimeKind.Utc);
+        var entry = new FoodPlanEntry { Id = 1, Name = "Old", DayOfWeek = 0, Date = date };
+        _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
+        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+
+        var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "New Meal", null, date, "Leftovers"), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal("Leftovers", entry.Comment);
     }
 
     [Fact]

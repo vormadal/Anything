@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record AddFoodPlanEntryCommand(string Name, int? RecipeId, DateTime Date) : IRequest<IResult>;
+public record AddFoodPlanEntryCommand(string Name, int? RecipeId, DateTime Date, string? Comment = null) : IRequest<IResult>;
 
 public class AddFoodPlanEntryHandler(
     IRepository<Recipe> recipeRepository,
@@ -36,6 +36,7 @@ public class AddFoodPlanEntryHandler(
         {
             Name = command.Name,
             RecipeId = recipeId,
+            Comment = command.Comment,
             Date = command.Date,
             DayOfWeek = ((int)command.Date.DayOfWeek + 6) % 7,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime

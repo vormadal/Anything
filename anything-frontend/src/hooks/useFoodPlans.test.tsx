@@ -161,6 +161,7 @@ describe('useFoodPlans hooks', () => {
         name: 'Pasta',
         recipeId: 5,
         date,
+        comment: undefined,
       })
     })
 
@@ -183,6 +184,30 @@ describe('useFoodPlans hooks', () => {
         name: 'Salad',
         recipeId: undefined,
         date,
+        comment: undefined,
+      })
+    })
+
+    it('should add an entry with a comment', async () => {
+      const mockEntry = { id: 3, name: 'Leftovers', date: '2026-03-10T00:00:00Z', comment: 'From yesterday' }
+      mockEntriesPost.mockResolvedValueOnce(mockEntry)
+
+      const { result } = renderHook(() => useAddFoodPlanEntry(), {
+        wrapper: createWrapper(),
+      })
+
+      const date = new Date('2026-03-10T00:00:00Z')
+      await act(async () => {
+        result.current.mutate({ name: 'Leftovers', date, comment: 'From yesterday' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockEntriesPost).toHaveBeenCalledWith({
+        name: 'Leftovers',
+        recipeId: undefined,
+        date,
+        comment: 'From yesterday',
       })
     })
   })
@@ -207,6 +232,29 @@ describe('useFoodPlans hooks', () => {
         name: 'Updated Salad',
         recipeId: undefined,
         date,
+        comment: undefined,
+      })
+    })
+
+    it('should update a food plan entry with a comment', async () => {
+      mockEntriesItemPut.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useUpdateFoodPlanEntry(), {
+        wrapper: createWrapper(),
+      })
+
+      const date = new Date('2026-03-11T00:00:00Z')
+      await act(async () => {
+        result.current.mutate({ entryId: 2, name: 'Updated Salad', date, comment: 'Leftovers' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockEntriesItemPut).toHaveBeenCalledWith({
+        name: 'Updated Salad',
+        recipeId: undefined,
+        date,
+        comment: 'Leftovers',
       })
     })
   })

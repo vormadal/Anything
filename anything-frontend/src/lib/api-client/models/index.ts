@@ -20,6 +20,10 @@ export interface AddBillPriceRequest extends Parsable {
 }
 export interface AddFoodPlanEntryRequest extends Parsable {
     /**
+     * The comment property
+     */
+    comment?: string | null;
+    /**
      * The date property
      */
     date?: Date | null;
@@ -1333,6 +1337,7 @@ export function deserializeIntoAddBillPriceRequest(addBillPriceRequest: Partial<
 // @ts-ignore
 export function deserializeIntoAddFoodPlanEntryRequest(addFoodPlanEntryRequest: Partial<AddFoodPlanEntryRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "comment": n => { addFoodPlanEntryRequest.comment = n.getStringValue(); },
         "date": n => { addFoodPlanEntryRequest.date = n.getDateValue(); },
         "name": n => { addFoodPlanEntryRequest.name = n.getStringValue(); },
         "recipeId": n => { addFoodPlanEntryRequest.recipeId = n.getNumberValue(); },
@@ -1730,6 +1735,7 @@ export function deserializeIntoCreateVendorRequest(createVendorRequest: Partial<
 export function deserializeIntoFoodPlanEntry(foodPlanEntry: Partial<FoodPlanEntry> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "addedToShoppingListOn": n => { foodPlanEntry.addedToShoppingListOn = n.getDateValue(); },
+        "comment": n => { foodPlanEntry.comment = n.getStringValue(); },
         "createdOn": n => { foodPlanEntry.createdOn = n.getDateValue(); },
         "date": n => { foodPlanEntry.date = n.getDateValue(); },
         "dayOfWeek": n => { foodPlanEntry.dayOfWeek = n.getNumberValue(); },
@@ -2312,6 +2318,7 @@ export function deserializeIntoUpdateBillRequest(updateBillRequest: Partial<Upda
 // @ts-ignore
 export function deserializeIntoUpdateFoodPlanEntryRequest(updateFoodPlanEntryRequest: Partial<UpdateFoodPlanEntryRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "comment": n => { updateFoodPlanEntryRequest.comment = n.getStringValue(); },
         "date": n => { updateFoodPlanEntryRequest.date = n.getDateValue(); },
         "name": n => { updateFoodPlanEntryRequest.name = n.getStringValue(); },
         "recipeId": n => { updateFoodPlanEntryRequest.recipeId = n.getNumberValue(); },
@@ -2523,6 +2530,10 @@ export interface FoodPlanEntry extends Parsable {
      * The addedToShoppingListOn property
      */
     addedToShoppingListOn?: Date | null;
+    /**
+     * The comment property
+     */
+    comment?: string | null;
     /**
      * The createdOn property
      */
@@ -3126,6 +3137,7 @@ export function serializeAddBillPriceRequest(writer: SerializationWriter, addBil
 // @ts-ignore
 export function serializeAddFoodPlanEntryRequest(writer: SerializationWriter, addFoodPlanEntryRequest: Partial<AddFoodPlanEntryRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!addFoodPlanEntryRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("comment", addFoodPlanEntryRequest.comment);
     writer.writeDateValue("date", addFoodPlanEntryRequest.date);
     writer.writeStringValue("name", addFoodPlanEntryRequest.name);
     writer.writeNumberValue("recipeId", addFoodPlanEntryRequest.recipeId);
@@ -3523,6 +3535,7 @@ export function serializeCreateVendorRequest(writer: SerializationWriter, create
 export function serializeFoodPlanEntry(writer: SerializationWriter, foodPlanEntry: Partial<FoodPlanEntry> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!foodPlanEntry || isSerializingDerivedType) { return; }
     writer.writeDateValue("addedToShoppingListOn", foodPlanEntry.addedToShoppingListOn);
+    writer.writeStringValue("comment", foodPlanEntry.comment);
     writer.writeDateValue("createdOn", foodPlanEntry.createdOn);
     writer.writeDateValue("date", foodPlanEntry.date);
     writer.writeNumberValue("dayOfWeek", foodPlanEntry.dayOfWeek);
@@ -4107,6 +4120,7 @@ export function serializeUpdateBillRequest(writer: SerializationWriter, updateBi
 // @ts-ignore
 export function serializeUpdateFoodPlanEntryRequest(writer: SerializationWriter, updateFoodPlanEntryRequest: Partial<UpdateFoodPlanEntryRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateFoodPlanEntryRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("comment", updateFoodPlanEntryRequest.comment);
     writer.writeDateValue("date", updateFoodPlanEntryRequest.date);
     writer.writeStringValue("name", updateFoodPlanEntryRequest.name);
     writer.writeNumberValue("recipeId", updateFoodPlanEntryRequest.recipeId);
@@ -4539,6 +4553,10 @@ export interface UpdateBillRequest extends Parsable {
     vendorId?: number | null;
 }
 export interface UpdateFoodPlanEntryRequest extends Parsable {
+    /**
+     * The comment property
+     */
+    comment?: string | null;
     /**
      * The date property
      */

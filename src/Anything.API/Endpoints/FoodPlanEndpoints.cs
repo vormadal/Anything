@@ -41,7 +41,7 @@ public static class FoodPlanEndpoints
 
         group.MapPost("/entries", async (AddFoodPlanEntryRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new AddFoodPlanEntryCommand(request.Name, request.RecipeId, request.Date!.Value));
+            return await mediator.Send(new AddFoodPlanEntryCommand(request.Name, request.RecipeId, request.Date!.Value, request.Comment));
         })
         .WithName("AddFoodPlanEntry")
         .Produces<FoodPlanEntry>(StatusCodes.Status201Created)
@@ -51,7 +51,7 @@ public static class FoodPlanEndpoints
 
         group.MapPut("/entries/{entryId}", async (int entryId, UpdateFoodPlanEntryRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateFoodPlanEntryCommand(entryId, request.Name, request.RecipeId, request.Date!.Value));
+            return await mediator.Send(new UpdateFoodPlanEntryCommand(entryId, request.Name, request.RecipeId, request.Date!.Value, request.Comment));
         })
         .WithName("UpdateFoodPlanEntry")
         .Produces(204)

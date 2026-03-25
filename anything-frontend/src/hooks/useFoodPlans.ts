@@ -42,11 +42,13 @@ export function useAddFoodPlanEntry() {
       name: string;
       recipeId?: number | null;
       date: Date;
+      comment?: string | null;
     }) =>
       apiClient.api.foodPlan.entries.post({
         name: entry.name,
         recipeId: entry.recipeId,
         date: entry.date,
+        comment: entry.comment,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
@@ -63,16 +65,19 @@ export function useUpdateFoodPlanEntry() {
       name,
       recipeId,
       date,
+      comment,
     }: {
       entryId: number;
       name: string;
       recipeId?: number | null;
       date: Date;
+      comment?: string | null;
     }) =>
       apiClient.api.foodPlan.entries.byEntryId(entryId).put({
         name,
         recipeId,
         date,
+        comment,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
