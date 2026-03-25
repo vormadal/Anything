@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDeleteShoppingList } from "@/hooks/useShoppingLists";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import type { ShoppingList } from "@/lib/api-client/models/index";
 import { apiClient } from "@/lib/apiClient";
@@ -25,7 +25,8 @@ export default function ShoppingListDetailPage() {
   const router = useRouter();
   const listId = Number(params.id);
 
-  const [isEditMode, setIsEditMode] = useState(false);
+  const searchParams = useSearchParams();
+  const [isEditMode, setIsEditMode] = useState(() => searchParams.get("edit") === "true");
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const handleDeleteListRef = useRef<() => void>(() => undefined);
@@ -62,7 +63,7 @@ export default function ShoppingListDetailPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsEditMode(true)}
+              onClick={() => { setIsEditMode(true); router.push("?edit=true"); }}
               aria-label="Edit list"
             >
               <Pencil className="h-5 w-5" />
@@ -97,7 +98,7 @@ export default function ShoppingListDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [isEditMode, isCompleted, setHeaderActions, setLeftAction]);
+  }, [isEditMode, isCompleted, router, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
