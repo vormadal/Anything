@@ -7,33 +7,22 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 
-// Helper: get the Monday of the current week
-function getMonday(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-  d.setHours(12, 0, 0, 0)
-  return d
-}
-
 function addDays(date: Date, days: number): Date {
   const d = new Date(date)
   d.setDate(d.getDate() + days)
   return d
 }
 
-// Compute the current week's Monday for building test entries
-const currentMonday = getMonday(new Date())
+// Build a mock entry using an offset from today
+const testToday = new Date()
 
-// Build a mock entry on a given weekday offset (0=Mon, 1=Tue, ...)
 function buildEntry(
   id: number,
   name: string,
   dayOffset: number,
   extra: Record<string, unknown> = {},
 ) {
-  const date = addDays(currentMonday, dayOffset)
+  const date = addDays(testToday, dayOffset)
   return {
     id,
     name,
@@ -42,11 +31,6 @@ function buildEntry(
     addedToShoppingListOn: null,
     ...extra,
   }
-}
-
-function getWeekLabel(monday: Date): string {
-  const sunday = addDays(monday, 6)
-  return `${monday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${sunday.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
 }
 
 // ---- Mock fetch globally (useRecipes now uses fetch directly) ----
@@ -223,16 +207,17 @@ describe('FoodPlanPage', () => {
     })
 
     const addButtons = screen.getAllByRole('button', { name: /Add meal for/ })
-    // Default is Mon-Fri = 5 days
+    // Default is Mon-Fri = 5 days per 7-day window
     expect(addButtons).toHaveLength(5)
   })
 
   // ------- 3. Display entries in correct day columns -------
   it('should display food plan entries in the correct day columns', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [
-      buildEntry(1, 'Pancakes', 0), // Monday
-      buildEntry(2, 'Pasta', 2),    // Wednesday
-      buildEntry(3, 'Salad', 4),    // Friday
+      buildEntry(1, 'Pancakes', 0), // today
+      buildEntry(2, 'Pasta', 2),    // today + 2
+      buildEntry(3, 'Salad', 4),    // today + 4
     ]
     mockEntriesGet.mockResolvedValue(entries)
 
@@ -246,6 +231,7 @@ describe('FoodPlanPage', () => {
   })
 
   it('should display multiple entries in the same day', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [
       buildEntry(1, 'Breakfast', 0),
       buildEntry(2, 'Lunch', 0),
@@ -262,29 +248,64 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  it('should show date info under each day name', async () => {
+  it('should show date info for today', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /Add meal for/i })).toHaveLength(7)
+    })
+
+    const todayDateStr = format(testToday, 'd. MMMM', { locale: da })
+    expect(screen.getByText(todayDateStr)).toBeInTheDocument()
+  })
+
+  // ------- 4. Load more / load previous -------
+  it('should show "Load more" and "Load previous days" buttons', async () => {
     render(<FoodPlanPage />)
 
     await waitFor(() => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const mondayDateStr = format(currentMonday, 'd. MMMM', { locale: da })
-    expect(screen.getByText(mondayDateStr)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Load more days' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Load previous days' })).toBeInTheDocument()
   })
 
-  // ------- 4. Week navigation -------
-  it('should display the current week label by default', async () => {
+  it('should load more days when "Load more" is clicked', async () => {
+    const user = userEvent.setup()
+
     render(<FoodPlanPage />)
 
-    const expectedLabel = getWeekLabel(currentMonday)
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /Add meal for/i })).toHaveLength(5)
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Load more days' }))
 
     await waitFor(() => {
-      expect(screen.getByText(expectedLabel)).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: /Add meal for/i }).length).toBeGreaterThan(5)
     })
   })
 
-  it('should navigate to previous week when clicking previous button', async () => {
+  it('should load previous days when "Load previous days" is clicked', async () => {
+    const user = userEvent.setup()
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /Add meal for/i })).toHaveLength(5)
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Load previous days' }))
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /Add meal for/i }).length).toBeGreaterThan(5)
+    })
+  })
+
+  it('should refetch entries when loading more days', async () => {
     const user = userEvent.setup()
 
     render(<FoodPlanPage />)
@@ -293,88 +314,14 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('mandag')).toBeInTheDocument()
     })
 
-    const prevButton = screen.getByRole('button', { name: 'Previous week' })
-    await user.click(prevButton)
-
-    const prevMonday = addDays(currentMonday, -7)
-    const expectedLabel = getWeekLabel(prevMonday)
+    await user.click(screen.getByRole('button', { name: 'Load more days' }))
 
     await waitFor(() => {
-      expect(screen.getByText(expectedLabel)).toBeInTheDocument()
-    })
-  })
-
-  it('should navigate to next week when clicking next button', async () => {
-    const user = userEvent.setup()
-
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('mandag')).toBeInTheDocument()
-    })
-
-    const nextButton = screen.getByRole('button', { name: 'Next week' })
-    await user.click(nextButton)
-
-    const nextMonday = addDays(currentMonday, 7)
-    const expectedLabel = getWeekLabel(nextMonday)
-
-    await waitFor(() => {
-      expect(screen.getByText(expectedLabel)).toBeInTheDocument()
-    })
-  })
-
-  it('should refetch entries when navigating weeks', async () => {
-    const user = userEvent.setup()
-
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('mandag')).toBeInTheDocument()
-    })
-
-    const prevButton = screen.getByRole('button', { name: 'Previous week' })
-    await user.click(prevButton)
-
-    await waitFor(() => {
-      // Initial call + call after navigation
       expect(mockEntriesGet).toHaveBeenCalledTimes(2)
     })
   })
 
-  // ------- 5. Clicking week label resets to current week -------
-  it('should reset to the current week when clicking the week label', async () => {
-    const user = userEvent.setup()
-
-    render(<FoodPlanPage />)
-
-    const currentWeekLabel = getWeekLabel(currentMonday)
-
-    await waitFor(() => {
-      expect(screen.getByText(currentWeekLabel)).toBeInTheDocument()
-    })
-
-    // Navigate away first
-    const nextButton = screen.getByRole('button', { name: 'Next week' })
-    await user.click(nextButton)
-
-    const nextMonday = addDays(currentMonday, 7)
-    const nextWeekLabel = getWeekLabel(nextMonday)
-
-    await waitFor(() => {
-      expect(screen.getByText(nextWeekLabel)).toBeInTheDocument()
-    })
-
-    // Click the week label to reset
-    const weekLabelButton = screen.getByText(nextWeekLabel)
-    await user.click(weekLabelButton)
-
-    await waitFor(() => {
-      expect(screen.getByText(currentWeekLabel)).toBeInTheDocument()
-    })
-  })
-
-  // ------- 6. Adding an entry via the add form -------
+  // ------- 5. Adding an entry via the add form -------
   it('should show add form when Add button is clicked', async () => {
     const user = userEvent.setup()
 
@@ -394,7 +341,7 @@ describe('FoodPlanPage', () => {
 
   it('should add an entry when the add form is submitted', async () => {
     const user = userEvent.setup()
-    mockEntriesPost.mockResolvedValue({ id: 10, name: 'Burger', date: currentMonday.toISOString() })
+    mockEntriesPost.mockResolvedValue({ id: 10, name: 'Burger', date: testToday.toISOString() })
 
     render(<FoodPlanPage />)
 
@@ -481,7 +428,7 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  // ------- 7. Selecting a recipe suggestion -------
+  // ------- 6. Selecting a recipe suggestion -------
   it('should show recipe suggestions when typing a matching name', async () => {
     const user = userEvent.setup()
     mockRecipesFetch([
@@ -565,9 +512,10 @@ describe('FoodPlanPage', () => {
     expect(screen.queryByText('Pasta')).not.toBeInTheDocument()
   })
 
-  // ------- 8. Deleting an entry -------
+  // ------- 7. Deleting an entry -------
   it('should delete an entry when the remove button is clicked', async () => {
     const user = userEvent.setup()
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [buildEntry(42, 'Pancakes', 0)]
     mockEntriesGet.mockResolvedValue(entries)
     mockEntriesItemDelete.mockResolvedValue(undefined)
@@ -593,6 +541,7 @@ describe('FoodPlanPage', () => {
 
   it('should show error toast when deleting entry fails', async () => {
     const user = userEvent.setup()
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [buildEntry(42, 'Pancakes', 0)]
     mockEntriesGet.mockResolvedValue(entries)
     mockEntriesItemDelete.mockRejectedValue(new Error('Delete failed'))
@@ -611,7 +560,7 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  // ------- 9. Shopping list dialog -------
+  // ------- 8. Shopping list dialog -------
   it('should open the shopping list dialog via header action', async () => {
     mockShoppingListsGet.mockResolvedValue([{ id: 1, name: 'Weekly Groceries' }])
 
@@ -845,7 +794,7 @@ describe('FoodPlanPage', () => {
     expect(screen.queryByText('Set the multiplier for each recipe:')).not.toBeInTheDocument()
   })
 
-  // ------- 10. Header actions registration -------
+  // ------- 9. Header actions registration -------
   it('should register header actions with Settings and ShoppingCart buttons', async () => {
     render(<FoodPlanPage />)
 
@@ -893,8 +842,9 @@ describe('FoodPlanPage', () => {
     expect(lastCall).toBeNull()
   })
 
-  // ------- 11. Entry badges: recipe links vs plain text -------
+  // ------- 10. Entry badges: recipe links vs plain text -------
   it('should render entry as a link when recipeId is set', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [buildEntry(1, 'Pasta Carbonara', 0, { recipeId: 42 })]
     mockEntriesGet.mockResolvedValue(entries)
 
@@ -909,6 +859,7 @@ describe('FoodPlanPage', () => {
   })
 
   it('should render entry as plain text when recipeId is null', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [buildEntry(1, 'Leftovers', 0)]
     mockEntriesGet.mockResolvedValue(entries)
 
@@ -921,8 +872,9 @@ describe('FoodPlanPage', () => {
     expect(screen.queryByRole('link', { name: 'Leftovers' })).not.toBeInTheDocument()
   })
 
-  // ------- 12. Entry badges: green vs blue styling -------
+  // ------- 11. Entry badges: green vs blue styling -------
   it('should render green badge when addedToShoppingListOn is set', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [
       buildEntry(1, 'Pasta', 0, { addedToShoppingListOn: '2026-03-10T00:00:00Z' }),
     ]
@@ -940,6 +892,7 @@ describe('FoodPlanPage', () => {
   })
 
   it('should render blue badge when addedToShoppingListOn is null', async () => {
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     const entries = [buildEntry(1, 'Pasta', 0)]
     mockEntriesGet.mockResolvedValue(entries)
 

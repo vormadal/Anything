@@ -42,20 +42,21 @@ test("add and remove a meal entry from the food plan", async ({ page }) => {
   await expect(page.getByText(mealName)).not.toBeVisible();
 });
 
-test("can navigate between weeks on the food plan", async ({ page }) => {
+test("can load more and previous days on the food plan", async ({ page }) => {
   await page.goto("/food-plans");
 
-  // The week label is visible (e.g. "Mar 17 – Mar 23, 2025")
-  const weekLabel = page.locator(".text-center button");
-  const initialLabel = await weekLabel.textContent();
+  // Count the initial number of day columns
+  const initialColumns = await page.getByRole("button", { name: /Add meal for/i }).count();
 
-  // Navigate to next week
-  await page.getByRole("button", { name: "Next week" }).click();
-  await expect(weekLabel).not.toHaveText(initialLabel ?? "");
+  // Load more future days
+  await page.getByRole("button", { name: "Load more days" }).click();
+  const afterLoadMore = await page.getByRole("button", { name: /Add meal for/i }).count();
+  expect(afterLoadMore).toBeGreaterThan(initialColumns);
 
-  // Navigate back to current week by clicking the week label
-  await weekLabel.click();
-  await expect(weekLabel).toHaveText(initialLabel ?? "");
+  // Load previous days
+  await page.getByRole("button", { name: "Load previous days" }).click();
+  const afterLoadPrevious = await page.getByRole("button", { name: /Add meal for/i }).count();
+  expect(afterLoadPrevious).toBeGreaterThan(afterLoadMore);
 });
 
 test("food plan settings page loads and shows day toggles", async ({

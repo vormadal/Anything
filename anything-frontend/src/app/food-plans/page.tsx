@@ -16,23 +16,14 @@ import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Plus, X, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { ShoppingCart, Plus, X, ChevronUp, ChevronDown, Settings } from "lucide-react";
 import { bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
 import { format, isSameDay, addDays as dateFnsAddDays } from "date-fns";
 import { da } from "date-fns/locale";
 
 const DEFAULT_ACTIVE_DAYS = 31;
 const SUGGESTION_BLUR_DELAY_MS = 150;
-
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  // Zero out time in local timezone to avoid DST issues during date arithmetic
-  d.setHours(12, 0, 0, 0);
-  return d;
-}
+const LOAD_DAYS_INCREMENT = 7;
 
 function addDays(date: Date, days: number): Date {
   return dateFnsAddDays(date, days);
@@ -385,20 +376,17 @@ function AddToShoppingListDialog({
 
 export default function FoodPlanPage() {
   const router = useRouter();
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [extraFutureDays, setExtraFutureDays] = useState(0);
+  const [extraPastDays, setExtraPastDays] = useState(0);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
   const { setHeaderActions } = useHeaderActions();
   const today = useMemo(() => new Date(), []);
 
-  const monday = useMemo(() => {
-    const m = getMonday(today);
-    return addDays(m, weekOffset * 7);
-  }, [weekOffset, today]);
+  const startDate = useMemo(() => addDays(today, -extraPastDays), [today, extraPastDays]);
+  const endDate = useMemo(() => addDays(today, 6 + extraFutureDays), [today, extraFutureDays]);
 
-  const sunday = useMemo(() => addDays(monday, 6), [monday]);
-
-  const startDateStr = toDateInputValue(monday);
-  const endDateStr = toDateInputValue(sunday);
+  const startDateStr = toDateInputValue(startDate);
+  const endDateStr = toDateInputValue(endDate);
 
   const { data: settings } = useFoodPlanSettings();
   const { data: entries, isLoading } = useFoodPlanEntries(
@@ -412,13 +400,17 @@ export default function FoodPlanPage() {
   const activeDaySet = bitmaskToDaySet(activeDays);
 
   const orderedDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => i)
-      .filter((i) => activeDaySet.has(i))
-      .map((i) => ({
-        index: i,
-        date: addDays(monday, i),
-      }));
-  }, [monday, activeDaySet]);
+    const days = [];
+    for (let i = -extraPastDays; i <= 6 + extraFutureDays; i++) {
+      const date = addDays(today, i);
+      const jsDay = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const dayIndex = (jsDay + 6) % 7; // convert to 0=Mon, ..., 6=Sun
+      if (activeDaySet.has(dayIndex)) {
+        days.push({ date });
+      }
+    }
+    return days;
+  }, [today, extraPastDays, extraFutureDays, activeDaySet]);
 
   const handleDeleteEntry = async (entryId: number) => {
     try {
@@ -455,8 +447,7 @@ export default function FoodPlanPage() {
     return () => setHeaderActions(null);
   }, [setHeaderActions, router]);
 
-  const weekLabel = `${monday.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${sunday.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
-
+  const columnsPerWeek = activeDaySet.size;
   const lgColsClass: Record<number, string> = {
     1: "lg:grid-cols-1",
     2: "lg:grid-cols-2",
@@ -470,31 +461,17 @@ export default function FoodPlanPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
       <PageTitle>Food Plan</PageTitle>
-      <div className="flex items-center justify-between mb-4">
+
+      <div className="mb-4">
         <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setWeekOffset((w) => w - 1)}
-          aria-label="Previous week"
+          variant="outline"
+          size="sm"
+          className="w-full text-gray-500 dark:text-gray-400"
+          onClick={() => setExtraPastDays((p) => p + LOAD_DAYS_INCREMENT)}
+          aria-label="Load previous days"
         >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setWeekOffset(0)}
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors"
-          >
-            {weekLabel}
-          </button>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setWeekOffset((w) => w + 1)}
-          aria-label="Next week"
-        >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronUp className="h-4 w-4 mr-2" />
+          Load previous days
         </Button>
       </div>
 
@@ -505,10 +482,10 @@ export default function FoodPlanPage() {
       )}
 
       {!isLoading && (
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${lgColsClass[orderedDays.length] ?? "lg:grid-cols-5"} gap-2`}>
-          {orderedDays.map(({ index, date }) => (
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${lgColsClass[columnsPerWeek] ?? "lg:grid-cols-5"} gap-2`}>
+          {orderedDays.map(({ date }) => (
             <DayColumn
-              key={`${startDateStr}-${index}`}
+              key={toDateInputValue(date)}
               date={date}
               today={today}
               entries={entries ?? []}
@@ -519,10 +496,23 @@ export default function FoodPlanPage() {
         </div>
       )}
 
+      <div className="mt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-gray-500 dark:text-gray-400"
+          onClick={() => setExtraFutureDays((p) => p + LOAD_DAYS_INCREMENT)}
+          aria-label="Load more days"
+        >
+          <ChevronDown className="h-4 w-4 mr-2" />
+          Load more
+        </Button>
+      </div>
+
       {showShoppingListDialog && (
         <AddToShoppingListDialog
-          startDate={monday}
-          endDate={sunday}
+          startDate={startDate}
+          endDate={endDate}
           entries={entries}
           recipes={recipes}
           onClose={() => setShowShoppingListDialog(false)}
