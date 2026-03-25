@@ -3,6 +3,7 @@ using Anything.Application.Features.FoodPlans.Queries;
 using Anything.Contracts.FoodPlans;
 using Anything.Core.Entities;
 using Anything.Mediator;
+using Microsoft.AspNetCore.Http;
 
 namespace Anything.API.Endpoints;
 
@@ -41,7 +42,7 @@ public static class FoodPlanEndpoints
 
         group.MapPost("/entries", async (AddFoodPlanEntryRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new AddFoodPlanEntryCommand(request.Name, request.RecipeId, request.Date!.Value, request.Comment));
+            return await mediator.Send(new AddFoodPlanEntryCommand(request.Name, request.RecipeId, request.Date!.Value));
         })
         .WithName("AddFoodPlanEntry")
         .Produces<FoodPlanEntry>(StatusCodes.Status201Created)
@@ -51,7 +52,7 @@ public static class FoodPlanEndpoints
 
         group.MapPut("/entries/{entryId}", async (int entryId, UpdateFoodPlanEntryRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateFoodPlanEntryCommand(entryId, request.Name, request.RecipeId, request.Date!.Value, request.Comment));
+            return await mediator.Send(new UpdateFoodPlanEntryCommand(entryId, request.Name, request.RecipeId, request.Date!.Value));
         })
         .WithName("UpdateFoodPlanEntry")
         .Produces(204)
@@ -64,6 +65,34 @@ public static class FoodPlanEndpoints
             return await mediator.Send(new DeleteFoodPlanEntryCommand(entryId));
         })
         .WithName("DeleteFoodPlanEntry")
+        .Produces(204)
+        .Produces(404)
+        .RequireAuthorization();
+
+        // --- Notes ---
+
+        group.MapGet("/notes", async (DateTime startDate, DateTime endDate, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate));
+        })
+        .WithName("GetFoodPlanNotes")
+        .RequireAuthorization();
+
+        group.MapPut("/notes/{date}", async (DateTime date, UpsertFoodPlanNoteRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new UpsertFoodPlanNoteCommand(date, request.Note));
+        })
+        .WithName("UpsertFoodPlanNote")
+        .Produces<FoodPlanNote>(StatusCodes.Status201Created)
+        .Produces<FoodPlanNote>(StatusCodes.Status200OK)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapDelete("/notes/{noteId}", async (int noteId, IMediator mediator) =>
+        {
+            return await mediator.Send(new DeleteFoodPlanNoteCommand(noteId));
+        })
+        .WithName("DeleteFoodPlanNote")
         .Produces(204)
         .Produces(404)
         .RequireAuthorization();

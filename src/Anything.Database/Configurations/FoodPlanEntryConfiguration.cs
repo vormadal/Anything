@@ -10,7 +10,6 @@ public class FoodPlanEntryConfiguration : IEntityTypeConfiguration<FoodPlanEntry
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
-        builder.Property(e => e.Comment).HasMaxLength(500);
         builder.HasOne<Recipe>()
             .WithMany()
             .HasForeignKey(e => e.RecipeId)

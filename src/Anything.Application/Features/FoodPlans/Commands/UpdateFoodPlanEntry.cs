@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record UpdateFoodPlanEntryCommand(int EntryId, string Name, int? RecipeId, DateTime Date, string? Comment = null) : IRequest<IResult>;
+public record UpdateFoodPlanEntryCommand(int EntryId, string Name, int? RecipeId, DateTime Date) : IRequest<IResult>;
 
 public class UpdateFoodPlanEntryHandler(
     IRepository<Recipe> recipeRepository,
@@ -33,7 +33,6 @@ public class UpdateFoodPlanEntryHandler(
 
         entry.Name = command.Name;
         entry.RecipeId = command.RecipeId;
-        entry.Comment = command.Comment;
         entry.Date = command.Date;
         entry.DayOfWeek = ((int)command.Date.DayOfWeek + 6) % 7;
         entry.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;

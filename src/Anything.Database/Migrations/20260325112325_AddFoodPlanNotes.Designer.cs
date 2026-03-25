@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anything.Database.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260325084637_AddFoodPlanEntryComment")]
-    partial class AddFoodPlanEntryComment
+    [Migration("20260325112325_AddFoodPlanNotes")]
+    partial class AddFoodPlanNotes
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -169,10 +169,6 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("AddedToShoppingListOn")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Comment")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -203,6 +199,36 @@ namespace Anything.Database.Migrations
                     b.HasIndex("RecipeId");
 
                     b.ToTable("FoodPlanEntries");
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.FoodPlanNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date")
+                        .IsUnique();
+
+                    b.ToTable("FoodPlanNotes");
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.FoodPlanSettings", b =>
