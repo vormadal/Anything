@@ -221,6 +221,15 @@ export default function RecipeDetailPage() {
   const isSafeUrl = (url: string) =>
     url.startsWith("http://") || url.startsWith("https://");
 
+  const getDisplayDomain = (url: string) => {
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+    } catch {
+      return url;
+    }
+  };
+
   const [isEditMode, setIsEditMode] = useState(() => searchParams.get("edit") === "true");
 
   const [editName, setEditName] = useState<string | null>(null);
@@ -830,7 +839,7 @@ export default function RecipeDetailPage() {
                   rel="noopener noreferrer"
                   className="text-blue-600 dark:text-blue-400 hover:underline text-sm block mb-2"
                 >
-                  {recipe.link}
+                  {getDisplayDomain(recipe.link)}
                 </a>
               )}
               {recipe?.notes && (
