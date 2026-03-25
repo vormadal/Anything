@@ -42,8 +42,8 @@ test("create shopping list, add items, and complete it", async ({ page }) => {
   await page.getByRole("button", { name: "Add item" }).click();
   await expect(page.getByPlaceholder("Add an item...")).toHaveValue("");
 
-  // Reload to return to view mode (no explicit exit-edit-mode action exists)
-  await page.reload();
+  // Navigate to the same URL without ?edit=true to return to view mode
+  await page.goto(page.url().split("?")[0]);
 
   // Items should be visible
   await expect(page.getByText("Milk")).toBeVisible();
