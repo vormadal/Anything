@@ -145,8 +145,14 @@ const mockRecommendations = [
  * uses LIFO ordering, the last-registered (most-specific) route wins.
  */
 async function setupApiMocks(page: Page) {
+  // NOTE: Playwright evaluates registered routes in LIFO order, so more-specific
+  // patterns must be registered AFTER the general catch-all for the same prefix.
+  //
+  // The backend uses kebab-case URL paths (e.g. /api/shopping-lists) which is
+  // what the Kiota-generated client sends; camelCase aliases do not exist.
+
   // ---- Shopping lists ----
-  await page.route("**/api/shoppingLists**", (route) => {
+  await page.route("**/api/shopping-lists**", (route) => {
     if (route.request().method() === "GET") {
       route.fulfill({ json: mockShoppingLists });
     } else {
@@ -154,10 +160,10 @@ async function setupApiMocks(page: Page) {
     }
   });
   // More-specific overrides (registered after → higher LIFO priority)
-  await page.route("**/api/shoppingLists/completed**", (route) =>
+  await page.route("**/api/shopping-lists/completed**", (route) =>
     route.fulfill({ json: [] })
   );
-  await page.route(/\/api\/shoppingLists\/\d+\/items/, (route) =>
+  await page.route(/\/api\/shopping-lists\/\d+\/items/, (route) =>
     route.fulfill({ json: mockShoppingListItems })
   );
 
@@ -194,25 +200,26 @@ async function setupApiMocks(page: Page) {
     route.fulfill({ json: [] })
   );
 
-  // ---- Food plan ----
-  await page.route("**/api/foodPlan/settings**", (route) =>
+  // ---- Food plan (/api/food-plan/*) ----
+  await page.route("**/api/food-plan/**", (route) =>
+    route.fulfill({ json: null })
+  );
+  // More-specific overrides registered after → higher LIFO priority
+  await page.route("**/api/food-plan/settings**", (route) =>
     route.fulfill({ json: mockFoodPlanSettings })
   );
-  await page.route("**/api/foodPlan/entries**", (route) =>
+  await page.route("**/api/food-plan/entries**", (route) =>
     route.fulfill({ json: mockFoodPlanEntries })
   );
-  await page.route("**/api/foodPlan/notes**", (route) =>
+  await page.route("**/api/food-plan/notes**", (route) =>
     route.fulfill({ status: 404, body: "" })
-  );
-  await page.route("**/api/foodPlan/**", (route) =>
-    route.fulfill({ json: null })
   );
 
   // ---- Misc ----
-  await page.route("**/api/shoppingListRecommendations**", (route) =>
+  await page.route("**/api/shopping-list-recommendations**", (route) =>
     route.fulfill({ json: mockRecommendations })
   );
-  await page.route("**/api/suggestionCategories**", (route) =>
+  await page.route("**/api/suggestion-categories**", (route) =>
     route.fulfill({ json: [] })
   );
   await page.route("**/api/auth/invites**", (route) =>
@@ -261,10 +268,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("home page - empty state", async ({ page }) => {
     // Override to return empty collections
-    await page.route("**/api/foodPlan/entries**", (route) =>
+    await page.route("**/api/food-plan/entries**", (route) =>
       route.fulfill({ json: [] })
     );
-    await page.route("**/api/shoppingLists**", (route) => {
+    await page.route("**/api/shopping-lists**", (route) => {
       if (route.request().method() === "GET") {
         route.fulfill({ json: [] });
       } else {
@@ -299,7 +306,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("shopping lists - empty state", async ({ page }) => {
-    await page.route("**/api/shoppingLists**", (route) => {
+    await page.route("**/api/shopping-lists**", (route) => {
       if (route.request().method() === "GET") {
         route.fulfill({ json: [] });
       } else {
@@ -383,7 +390,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("food plans - empty state", async ({ page }) => {
-    await page.route("**/api/foodPlan/entries**", (route) =>
+    await page.route("**/api/food-plan/entries**", (route) =>
       route.fulfill({ json: [] })
     );
     await page.goto("/food-plans");
@@ -414,7 +421,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("admin suggestions page - empty state", async ({ page }) => {
-    await page.route("**/api/shoppingListRecommendations**", (route) =>
+    await page.route("**/api/shopping-list-recommendations**", (route) =>
       route.fulfill({ json: [] })
     );
     await page.goto("/admin/suggestions");

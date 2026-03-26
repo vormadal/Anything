@@ -44,6 +44,19 @@ export default defineConfig({
         storageState: authFile,
       },
       dependencies: ["setup"],
+      testIgnore: /visual\.spec\.ts/,
+    },
+    {
+      // Visual snapshot project uses a static auth fixture instead of the
+      // real login flow so that snapshots can be generated without a live
+      // backend.  All API calls are intercepted by page.route() inside the
+      // visual spec itself.
+      name: "visual",
+      testMatch: /visual\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "e2e/fixtures/visual-auth.json",
+      },
     },
   ],
 });
