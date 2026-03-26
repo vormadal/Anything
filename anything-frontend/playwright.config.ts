@@ -24,6 +24,14 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL,
     trace: "on-first-retry",
   },
+  expect: {
+    toHaveScreenshot: {
+      // Allow up to 2 % pixel difference to tolerate minor antialiasing and
+      // font-rendering variations across environments.
+      maxDiffPixelRatio: 0.02,
+      animations: "disabled",
+    },
+  },
   projects: [
     {
       name: "setup",
@@ -36,6 +44,20 @@ export default defineConfig({
         storageState: authFile,
       },
       dependencies: ["setup"],
+      testIgnore: /visual\.spec\.ts/,
+    },
+    {
+      // Visual snapshot project uses a static auth fixture instead of the
+      // real login flow so that snapshots can be generated without a live
+      // backend.  All API calls are intercepted by page.route() inside the
+      // visual spec itself.
+      // Pixel 5 (393×851) is used because the app is primarily a mobile PWA.
+      name: "visual",
+      testMatch: /visual\.spec\.ts/,
+      use: {
+        ...devices["Pixel 5"],
+        storageState: "e2e/fixtures/visual-auth.json",
+      },
     },
   ],
 });

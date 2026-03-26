@@ -1,0 +1,16 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3001",
+      "localStorage": [
+        { "name": "accessToken", "value": "visual-test-token" },
+        { "name": "refreshToken", "value": "visual-test-refresh-token" },
+        {
+          "name": "user",
+          "value": "{\"email\":\"admin@anything.local\",\"name\":\"Admin\",\"role\":\"Admin\"}"
+        }
+      ]
+    }
+  ]
+}
