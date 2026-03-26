@@ -51,10 +51,11 @@ export default defineConfig({
       // real login flow so that snapshots can be generated without a live
       // backend.  All API calls are intercepted by page.route() inside the
       // visual spec itself.
+      // Pixel 5 (393×851) is used because the app is primarily a mobile PWA.
       name: "visual",
       testMatch: /visual\.spec\.ts/,
       use: {
-        ...devices["Desktop Chrome"],
+        ...devices["Pixel 5"],
         storageState: "e2e/fixtures/visual-auth.json",
       },
     },
