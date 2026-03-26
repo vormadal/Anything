@@ -24,6 +24,14 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL,
     trace: "on-first-retry",
   },
+  expect: {
+    toHaveScreenshot: {
+      // Allow up to 2 % pixel difference to tolerate minor antialiasing and
+      // font-rendering variations across environments.
+      maxDiffPixelRatio: 0.02,
+      animations: "disabled",
+    },
+  },
   projects: [
     {
       name: "setup",
