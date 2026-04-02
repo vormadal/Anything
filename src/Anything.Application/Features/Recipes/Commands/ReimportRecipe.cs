@@ -70,7 +70,7 @@ public class ReimportRecipeHandler(
                 .ToListAsync(ct);
 
             foreach (var ingredient in existing)
-                ingredient.DeletedOn = now;
+                ingredientRepository.Remove(ingredient);
 
             var newIngredients = (parsed.Ingredients ?? []).Select(i => new RecipeIngredient
             {
@@ -91,7 +91,7 @@ public class ReimportRecipeHandler(
                 .ToListAsync(ct);
 
             foreach (var step in existing)
-                step.DeletedOn = now;
+                stepRepository.Remove(step);
 
             var newSteps = (parsed.Steps ?? []).Select(s => new RecipeStep
             {
@@ -111,7 +111,7 @@ public class ReimportRecipeHandler(
                 .ToListAsync(ct);
 
             foreach (var image in existing)
-                image.DeletedOn = now;
+                imageRepository.Remove(image);
 
             var storageKey = await DownloadAndStoreImage(parsed.ImageUrl, ct);
             if (storageKey is not null)

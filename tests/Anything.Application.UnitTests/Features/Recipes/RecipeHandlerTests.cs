@@ -764,7 +764,7 @@ public class ReimportRecipeHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ImportIngredients_SoftDeletesExistingAndAddsNew()
+    public async Task Handle_ImportIngredients_HardDeletesExistingAndAddsNew()
     {
         var existing = new RecipeIngredient { Id = 10, RecipeId = 1, Name = "Old", CreatedOn = DateTime.UtcNow };
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
@@ -775,12 +775,12 @@ public class ReimportRecipeHandlerTests
         var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: true, ImportSteps: false, ImportImages: false), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
-        Assert.NotNull(existing.DeletedOn);
+        _ingredientRepo.Received(1).Remove(existing);
         _ingredientRepo.Received(1).AddRange(Arg.Is<IEnumerable<RecipeIngredient>>(i => i.Count() == 1));
     }
 
     [Fact]
-    public async Task Handle_ImportSteps_SoftDeletesExistingAndAddsNew()
+    public async Task Handle_ImportSteps_HardDeletesExistingAndAddsNew()
     {
         var existing = new RecipeStep { Id = 20, RecipeId = 1, Text = "Old step", CreatedOn = DateTime.UtcNow };
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
@@ -791,12 +791,12 @@ public class ReimportRecipeHandlerTests
         var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: true, ImportImages: false), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
-        Assert.NotNull(existing.DeletedOn);
+        _stepRepo.Received(1).Remove(existing);
         _stepRepo.Received(1).AddRange(Arg.Is<IEnumerable<RecipeStep>>(s => s.Count() == 1));
     }
 
     [Fact]
-    public async Task Handle_ImportImages_SoftDeletesExistingAndAttemptDownload()
+    public async Task Handle_ImportImages_HardDeletesExistingAndAttemptDownload()
     {
         var existingImage = new RecipeImage { Id = 30, RecipeId = 1, StorageKey = "recipes/old.jpg", CreatedOn = DateTime.UtcNow };
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
@@ -810,7 +810,7 @@ public class ReimportRecipeHandlerTests
         var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: false, ImportImages: true), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
-        Assert.NotNull(existingImage.DeletedOn);
+        _imageRepo.Received(1).Remove(existingImage);
     }
 
     [Fact]
