@@ -47,6 +47,7 @@ jest.mock('next/navigation', () => ({
   }),
   useParams: () => ({ id: '1' }),
   usePathname: () => '/shopping-lists/1',
+  useSearchParams: () => ({ get: () => null }),
 }))
 
 // Mock toast
