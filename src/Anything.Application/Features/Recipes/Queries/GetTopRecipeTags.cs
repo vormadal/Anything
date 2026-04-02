@@ -13,13 +13,15 @@ public class GetTopRecipeTagsHandler(IRepository<RecipeTag> tagRepository)
 {
     public async Task<List<TopTagResponse>> Handle(GetTopRecipeTagsQuery query, CancellationToken ct = default)
     {
-        return await tagRepository.Query()
+        var groups = await tagRepository.Query()
             .Where(t => t.DeletedOn == null)
             .GroupBy(t => t.Name.ToLower())
-            .Select(g => new TopTagResponse(g.First().Name, g.Count()))
+            .Select(g => new { Name = g.Key, Count = g.Count() })
             .OrderByDescending(t => t.Count)
             .ThenBy(t => t.Name)
             .Take(query.Count)
             .ToListAsync(ct);
+
+        return groups.Select(g => new TopTagResponse(g.Name, g.Count)).ToList();
     }
 }
