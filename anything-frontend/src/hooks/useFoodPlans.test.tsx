@@ -9,6 +9,9 @@ import {
   useUpdateFoodPlanEntry,
   useDeleteFoodPlanEntry,
   useAddFoodPlanToShoppingList,
+  useFoodPlanNotes,
+  useUpsertFoodPlanNote,
+  useDeleteFoodPlanNote,
 } from '@/hooks/useFoodPlans'
 
 // Mock the apiClient module
@@ -20,6 +23,11 @@ const mockEntriesItemPut = jest.fn()
 const mockEntriesItemDelete = jest.fn()
 const mockEntriesItemById = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
 const mockAddToShoppingListPost = jest.fn()
+const mockNotesGet = jest.fn()
+const mockNotesByDatePut = jest.fn()
+const mockNotesByDate = jest.fn(() => ({ put: mockNotesByDatePut }))
+const mockNotesByNoteIdDelete = jest.fn()
+const mockNotesByNoteId = jest.fn(() => ({ delete: mockNotesByNoteIdDelete }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -34,6 +42,11 @@ jest.mock('@/lib/apiClient', () => ({
           post: (...args: unknown[]) => mockEntriesPost(...args),
           byEntryId: (...args: unknown[]) => mockEntriesItemById(...args),
         },
+        notes: {
+          get: (...args: unknown[]) => mockNotesGet(...args),
+          byDate: (...args: unknown[]) => mockNotesByDate(...args),
+          byNoteId: (...args: unknown[]) => mockNotesByNoteId(...args),
+        },
         addToShoppingList: {
           post: (...args: unknown[]) => mockAddToShoppingListPost(...args),
         },
@@ -45,7 +58,7 @@ jest.mock('@/lib/apiClient', () => ({
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: { retry: false },
+      queries: { retry: false, gcTime: 0 },
       mutations: { retry: false },
     },
   })
@@ -276,6 +289,70 @@ describe('useFoodPlans hooks', () => {
         endDate,
         recipeMultipliers,
       })
+    })
+  })
+
+  describe('useFoodPlanNotes', () => {
+    it('should fetch notes by date range', async () => {
+      const mockNotes = [{ id: 1, date: '2026-03-10T00:00:00Z', note: 'Eating at friends' }]
+      mockNotesGet.mockResolvedValueOnce(mockNotes)
+
+      const { result } = renderHook(
+        () => useFoodPlanNotes('2026-03-10T00:00:00Z', '2026-03-16T23:59:59Z'),
+        { wrapper: createWrapper() }
+      )
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual(mockNotes)
+    })
+
+    it('should not fetch when dates are empty', () => {
+      const { result } = renderHook(
+        () => useFoodPlanNotes('', ''),
+        { wrapper: createWrapper() }
+      )
+
+      expect(result.current.fetchStatus).toBe('idle')
+      expect(mockNotesGet).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useUpsertFoodPlanNote', () => {
+    it('should upsert a note for a specific date', async () => {
+      mockNotesByDatePut.mockResolvedValueOnce({ id: 1, date: '2026-03-10T00:00:00Z', note: 'Leftovers' })
+
+      const { result } = renderHook(() => useUpsertFoodPlanNote(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ date: '2026-03-10T00:00:00Z', note: 'Leftovers' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockNotesByDate).toHaveBeenCalledWith('2026-03-10T00:00:00Z')
+      expect(mockNotesByDatePut).toHaveBeenCalledWith({ note: 'Leftovers' })
+    })
+  })
+
+  describe('useDeleteFoodPlanNote', () => {
+    it('should delete a note by id', async () => {
+      mockNotesByNoteIdDelete.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useDeleteFoodPlanNote(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate(42)
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockNotesByNoteId).toHaveBeenCalledWith(42)
+      expect(mockNotesByNoteIdDelete).toHaveBeenCalled()
     })
   })
 })

@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { FoodPlanEntry, FoodPlanSettings } from "@/lib/api-client/models/index";
+import type { FoodPlanEntry, FoodPlanNote, FoodPlanSettings } from "@/lib/api-client/models/index";
 
 export function useFoodPlanSettings() {
   return useQuery({
@@ -115,6 +115,41 @@ export function useAddFoodPlanToShoppingList() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
+    },
+  });
+}
+
+export function useFoodPlanNotes(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: ["foodPlanNotes", startDate, endDate],
+    queryFn: () =>
+      apiClient.api.foodPlan.notes.get({
+        queryParameters: { startDate, endDate },
+      }) as Promise<FoodPlanNote[]>,
+    enabled: !!startDate && !!endDate,
+  });
+}
+
+export function useUpsertFoodPlanNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ date, note }: { date: string; note: string }) =>
+      apiClient.api.foodPlan.notes.byDate(date).put({ note }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["foodPlanNotes"] });
+    },
+  });
+}
+
+export function useDeleteFoodPlanNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (noteId: number) =>
+      apiClient.api.foodPlan.notes.byNoteId(noteId).delete(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["foodPlanNotes"] });
     },
   });
 }

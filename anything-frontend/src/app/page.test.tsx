@@ -18,6 +18,7 @@ function mockRecipesFetch(recipes: unknown[]) {
 
 // Mock the apiClient module
 const mockFoodPlanEntriesGet = jest.fn()
+const mockFoodPlanNotesGet = jest.fn()
 const mockShoppingListsGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
@@ -29,6 +30,11 @@ jest.mock('@/lib/apiClient', () => ({
           get: (...args: unknown[]) => mockFoodPlanEntriesGet(...args),
           post: jest.fn(),
           byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })),
+        },
+        notes: {
+          get: (...args: unknown[]) => mockFoodPlanNotesGet(...args),
+          byDate: jest.fn(() => ({ put: jest.fn() })),
+          byNoteId: jest.fn(() => ({ delete: jest.fn() })),
         },
         addToShoppingList: { post: jest.fn() },
       },
@@ -53,6 +59,7 @@ describe('Home Page Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockFoodPlanNotesGet.mockResolvedValue([])
     mockRecipesFetch([])
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
@@ -265,5 +272,46 @@ describe('Home Page Integration Tests', () => {
 
     expect(screen.getByText('5')).toBeInTheDocument()
     expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
+
+  // ------- Per-day note on home page -------
+  it('should display day note on home page when note exists', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z' },
+    ])
+    mockFoodPlanNotesGet.mockResolvedValue([
+      { id: 1, date: '2025-06-16T00:00:00Z', note: 'Eating at friends tonight' },
+    ])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Eating at friends tonight')).toBeInTheDocument()
+    })
+  })
+
+  it('should not display note section when no day note exists', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([
+      { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z' },
+    ])
+    mockFoodPlanNotesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta')).toBeInTheDocument()
+    })
+
+    // No note should be rendered
+    const italicParagraphs = document.querySelectorAll('p.italic')
+    expect(italicParagraphs.length).toBe(0)
   })
 })

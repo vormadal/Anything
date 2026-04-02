@@ -452,6 +452,102 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         Assert.Equal(400, items[0].Amount);
     }
 
+    // --- PUT /api/food-plan/notes/{date} ---
+
+    [Fact]
+    public async Task UpsertFoodPlanNote_CreatesNewNote_ReturnsCreated()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var date = new DateOnly(2026, 3, 16);
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/food-plan/notes/{date:yyyy-MM-dd}",
+            new { note = "Eating at friends" },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<FoodPlanNoteDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        Assert.Equal("Eating at friends", result.Note);
+    }
+
+    [Fact]
+    public async Task UpsertFoodPlanNote_UpdatesExistingNote_ReturnsOk()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var date = new DateOnly(2026, 3, 17);
+
+        await client.PutAsJsonAsync($"/api/food-plan/notes/{date:yyyy-MM-dd}", new { note = "Original note" }, TestContext.Current.CancellationToken);
+
+        var updateResponse = await client.PutAsJsonAsync(
+            $"/api/food-plan/notes/{date:yyyy-MM-dd}",
+            new { note = "Updated note" },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        var result = await updateResponse.Content.ReadFromJsonAsync<FoodPlanNoteDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        Assert.Equal("Updated note", result.Note);
+    }
+
+    [Fact]
+    public async Task UpsertFoodPlanNote_RequiresAuthentication()
+    {
+        var date = new DateOnly(2026, 3, 16);
+        var response = await HttpClient.PutAsJsonAsync(
+            $"/api/food-plan/notes/{date:yyyy-MM-dd}",
+            new { note = "Test" },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // --- GET /api/food-plan/notes ---
+
+    [Fact]
+    public async Task GetFoodPlanNotes_ReturnsNotesInDateRange()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var date = new DateOnly(2026, 3, 18);
+
+        await client.PutAsJsonAsync($"/api/food-plan/notes/{date:yyyy-MM-dd}", new { note = "Leftovers" }, TestContext.Current.CancellationToken);
+
+        var startDate = new DateOnly(2026, 3, 18);
+        var endDate = new DateOnly(2026, 3, 18);
+        var response = await client.GetAsync(
+            $"/api/food-plan/notes?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var notes = await response.Content.ReadFromJsonAsync<FoodPlanNoteDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(notes);
+        Assert.Single(notes);
+        Assert.Equal("Leftovers", notes[0].Note);
+    }
+
+    // --- DELETE /api/food-plan/notes/{noteId} ---
+
+    [Fact]
+    public async Task DeleteFoodPlanNote_WhenExists_ReturnsNoContent()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var date = new DateOnly(2026, 3, 19);
+
+        var createResponse = await client.PutAsJsonAsync($"/api/food-plan/notes/{date:yyyy-MM-dd}", new { note = "To delete" }, TestContext.Current.CancellationToken);
+        var created = await createResponse.Content.ReadFromJsonAsync<FoodPlanNoteDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(created);
+
+        var deleteResponse = await client.DeleteAsync($"/api/food-plan/notes/{created.Id}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteFoodPlanNote_WhenNotFound_Returns404()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.DeleteAsync("/api/food-plan/notes/99999", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     // --- Helpers ---
 
     private async Task<RecipeDto> CreateRecipe(string name)
@@ -466,6 +562,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
 
     private record FoodPlanSettingsDto(int Id, int ActiveDays);
     private record FoodPlanEntryDto(int Id, int? RecipeId, string? Name, DateTime Date, DateTime? AddedToShoppingListOn);
+    private record FoodPlanNoteDto(int Id, DateOnly Date, string Note);
     private record RecipeDto(int Id, string? Name);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);

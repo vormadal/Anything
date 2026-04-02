@@ -3,6 +3,7 @@ using Anything.Application.Features.FoodPlans.Queries;
 using Anything.Contracts.FoodPlans;
 using Anything.Core.Entities;
 using Anything.Mediator;
+using Microsoft.AspNetCore.Http;
 
 namespace Anything.API.Endpoints;
 
@@ -64,6 +65,34 @@ public static class FoodPlanEndpoints
             return await mediator.Send(new DeleteFoodPlanEntryCommand(entryId));
         })
         .WithName("DeleteFoodPlanEntry")
+        .Produces(204)
+        .Produces(404)
+        .RequireAuthorization();
+
+        // --- Notes ---
+
+        group.MapGet("/notes", async (DateOnly startDate, DateOnly endDate, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate));
+        })
+        .WithName("GetFoodPlanNotes")
+        .RequireAuthorization();
+
+        group.MapPut("/notes/{date}", async (DateOnly date, UpsertFoodPlanNoteRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new UpsertFoodPlanNoteCommand(date, request.Note));
+        })
+        .WithName("UpsertFoodPlanNote")
+        .Produces<FoodPlanNote>(StatusCodes.Status201Created)
+        .Produces<FoodPlanNote>(StatusCodes.Status200OK)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapDelete("/notes/{noteId}", async (int noteId, IMediator mediator) =>
+        {
+            return await mediator.Send(new DeleteFoodPlanNoteCommand(noteId));
+        })
+        .WithName("DeleteFoodPlanNote")
         .Produces(204)
         .Produces(404)
         .RequireAuthorization();

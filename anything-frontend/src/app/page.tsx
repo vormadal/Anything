@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/PageTitle";
-import { useFoodPlanEntries } from "@/hooks/useFoodPlans";
+import { useFoodPlanEntries, useFoodPlanNotes } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useBillSummary } from "@/hooks/useBills";
@@ -33,11 +33,16 @@ export default function Home() {
     dateStr + "T00:00:00Z",
     dateStr + "T23:59:59Z"
   );
+  const { data: notes } = useFoodPlanNotes(
+    dateStr + "T00:00:00Z",
+    dateStr + "T23:59:59Z"
+  );
   const { data: shoppingLists, isLoading: listsLoading } = useShoppingLists();
   const { data: recipes } = useRecipes();
   const { data: billSummary } = useBillSummary();
 
   const todayEntries = entries ?? [];
+  const todayNote = notes?.[0] ?? null;
   const topLists = shoppingLists?.slice(0, 5) ?? [];
   const dayName = DAYS_OF_WEEK[targetDate.getDay()];
 
@@ -93,16 +98,21 @@ export default function Home() {
                     onClick={() => router.push(`/recipes/${entry.recipeId}`)}
                   >
                     <span className="text-sm text-gray-900 dark:text-white">{displayName}</span>
-                    <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
                   </button>
                 );
               }
               return (
-                <div key={entry.id} className="px-4 py-2.5 flex items-center justify-between">
+                <div key={entry.id} className="px-4 py-2.5">
                   <span className="text-sm text-gray-900 dark:text-white">{displayName}</span>
                 </div>
               );
             })}
+            {todayNote?.note && (
+              <div className="px-4 py-2.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 italic">{todayNote.note}</p>
+              </div>
+            )}
           </div>
         )}
       </section>

@@ -40,11 +40,10 @@ jest.mock('@/lib/apiClient', () => ({
 
 // Mock next/navigation
 const mockPush = jest.fn()
+const mockBack = jest.fn()
+const mockRouter = { push: mockPush, back: mockBack }
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-    back: jest.fn(),
-  }),
+  useRouter: () => mockRouter,
   useParams: () => ({ id: '1' }),
   usePathname: () => '/shopping-lists/1',
   useSearchParams: () => ({ get: () => null }),
