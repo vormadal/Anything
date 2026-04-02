@@ -1,13 +1,13 @@
 using Anything.Application.Features.Recipes.Commands;
 using Anything.Application.Features.Recipes.Queries;
+using Anything.Application.Services;
 using Anything.Application.UnitTests.Helpers;
+using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
-using System.Net.Http;
 using Xunit;
 
 namespace Anything.Application.UnitTests.Features.Recipes;
@@ -153,14 +153,12 @@ public class ImportRecipeHandlerTests
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
     private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
     private readonly IRepository<RecipeImage> _imageRepo = Substitute.For<IRepository<RecipeImage>>();
-    private readonly IImageStorageService _imageStorageService = Substitute.For<IImageStorageService>();
-    private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
+    private readonly IRecipeImageService _recipeImageService = Substitute.For<IRecipeImageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly ILogger<ImportRecipeHandler> _logger = Substitute.For<ILogger<ImportRecipeHandler>>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private ImportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _imageStorageService, _httpClientFactory, _unitOfWork, _logger, _timeProvider);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recipeImageService, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_CreatesRecipeWithIngredientsAndSteps()
@@ -678,5 +676,186 @@ public class GetRecipeTagsHandlerTests
 
         var ok = Assert.IsType<Ok<List<RecipeTag>>>(result);
         Assert.Single(ok.Value!);
+    }
+}
+
+public class ReimportRecipeHandlerTests
+{
+    private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
+    private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
+    private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
+    private readonly IRepository<RecipeImage> _imageRepo = Substitute.For<IRepository<RecipeImage>>();
+    private readonly IRecipeParserService _parserService = Substitute.For<IRecipeParserService>();
+    private readonly IRecipeImageService _recipeImageService = Substitute.For<IRecipeImageService>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+
+    public ReimportRecipeHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero));
+        _ingredientRepo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
+        _stepRepo.Query().Returns(new List<RecipeStep>().AsAsyncQueryable());
+        _imageRepo.Query().Returns(new List<RecipeImage>().AsAsyncQueryable());
+    }
+
+    private ReimportRecipeHandler CreateHandler() =>
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _parserService, _recipeImageService, _unitOfWork, _timeProvider);
+
+    [Fact]
+    public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
+    {
+        _recipeRepo.GetById(1).Returns((Recipe?)null);
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, true, true, true, true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WhenRecipeDeleted_ReturnsNotFound()
+    {
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta", DeletedOn = DateTime.UtcNow });
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, true, true, true, true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WhenRecipeHasNoLink_ReturnsBadRequest()
+    {
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta", Link = null });
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, true, true, true, true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WhenParseFails_ReturnsUnprocessableEntity()
+    {
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta", Link = "https://example.com/recipe" });
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((ParsedRecipeResponse?)null);
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, true, true, true, true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<UnprocessableEntity<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_ImportName_UpdatesRecipeName()
+    {
+        var recipe = new Recipe { Id = 1, Name = "Old Name", Link = "https://example.com/recipe" };
+        _recipeRepo.GetById(1).Returns(recipe);
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse("New Name", null, [], [], null));
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: true, ImportIngredients: false, ImportSteps: false, ImportImages: false), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal("New Name", recipe.Name);
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_ImportIngredients_HardDeletesExistingAndAddsNew()
+    {
+        var existing = new RecipeIngredient { Id = 10, RecipeId = 1, Name = "Old", CreatedOn = DateTime.UtcNow };
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
+        _ingredientRepo.Query().Returns(new List<RecipeIngredient> { existing }.AsAsyncQueryable());
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse("Soup", null, [new ParsedIngredient(2, null, "Carrot")], [], null));
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: true, ImportSteps: false, ImportImages: false), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        _ingredientRepo.Received(1).Remove(existing);
+        _ingredientRepo.Received(1).AddRange(Arg.Is<IEnumerable<RecipeIngredient>>(i => i.Count() == 1));
+    }
+
+    [Fact]
+    public async Task Handle_ImportSteps_HardDeletesExistingAndAddsNew()
+    {
+        var existing = new RecipeStep { Id = 20, RecipeId = 1, Text = "Old step", CreatedOn = DateTime.UtcNow };
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
+        _stepRepo.Query().Returns(new List<RecipeStep> { existing }.AsAsyncQueryable());
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse("Soup", null, [], [new ParsedStep(1, "New step")], null));
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: true, ImportImages: false), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        _stepRepo.Received(1).Remove(existing);
+        _stepRepo.Received(1).AddRange(Arg.Is<IEnumerable<RecipeStep>>(s => s.Count() == 1));
+    }
+
+    [Fact]
+    public async Task Handle_ImportImages_HardDeletesExistingAndAttemptDownload()
+    {
+        var existingImage = new RecipeImage { Id = 30, RecipeId = 1, StorageKey = "recipes/old.jpg", CreatedOn = DateTime.UtcNow };
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
+        _imageRepo.Query().Returns(new List<RecipeImage> { existingImage }.AsAsyncQueryable());
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse("Soup", null, [], [], "https://example.com/image.jpg"));
+        _recipeImageService.DownloadAndStoreAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((string?)null);
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: false, ImportImages: true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        _imageRepo.Received(1).Remove(existingImage);
+    }
+
+    [Fact]
+    public async Task Handle_WhenNothingSelected_StillReturnsNoContent()
+    {
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse("New Name", null, [], [], null));
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: false, ImportImages: false), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WhenParserThrowsHttpRequestException_ReturnsBadRequest()
+    {
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<ParsedRecipeResponse?>(new HttpRequestException("Network error")));
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, true, true, true, true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_ImportName_WhenParsedNameIsEmpty_DoesNotUpdateName()
+    {
+        var recipe = new Recipe { Id = 1, Name = "Original", Link = "https://example.com/recipe" };
+        _recipeRepo.GetById(1).Returns(recipe);
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse(string.Empty, null, [], [], null));
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: true, ImportIngredients: false, ImportSteps: false, ImportImages: false), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal("Original", recipe.Name);
+    }
+
+    [Fact]
+    public async Task Handle_ImportImages_WhenDownloadSucceeds_AddsNewImage()
+    {
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse("Soup", null, [], [], "https://example.com/image.jpg"));
+        _recipeImageService.DownloadAndStoreAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns("recipes/new-image.jpg");
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: false, ImportImages: true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        _imageRepo.Received(1).Add(Arg.Is<RecipeImage>(img => img.StorageKey == "recipes/new-image.jpg"));
     }
 }

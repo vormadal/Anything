@@ -538,3 +538,46 @@ export function useDeleteRecipeTag(recipeId: number) {
     },
   });
 }
+
+export interface ReimportRecipePayload {
+  importName: boolean;
+  importIngredients: boolean;
+  importSteps: boolean;
+  importImages: boolean;
+}
+
+export function useReimportRecipe(recipeId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: ReimportRecipePayload): Promise<void> => {
+      const token =
+        typeof globalThis.window !== "undefined"
+          ? (localStorage.getItem("accessToken") ?? "")
+          : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/recipes/${recipeId}/reimport`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!response.ok) {
+        const text = await response.text();
+        const err = new Error(text || `Error ${response.status}`) as Error & { status: number };
+        err.status = response.status;
+        throw err;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipe", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeImages", recipeId] });
+    },
+  });
+}

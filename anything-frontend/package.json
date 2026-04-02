@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest",
+    "test": "jest --forceExit",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --forceExit",
     "generate:api": "kiota generate --openapi http://localhost:5238/swagger/v1/swagger.json --language typescript --output ./src/lib/api-client --class-name ApiClient && find ./src/lib/api-client -name '*.ts' -exec sed -i \"s/from '\\(\\.[^']*\\)\\.js'/from '\\1'/g\" {} \\;",

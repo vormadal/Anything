@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X, GripVertical, Clock, Users, Package, Layers } from "lucide-react";
+import { Trash2, Plus, Check, Pencil, ShoppingCart, ImageIcon, MoreVertical, CalendarPlus, X, GripVertical, Clock, Users, Package, Layers, RefreshCw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +53,7 @@ import {
   useDeleteRecipeTag,
   useReorderRecipeIngredients,
   useReorderRecipeSteps,
+  useReimportRecipe,
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useApprovedRecommendations } from "@/hooks/useRecommendations";
@@ -254,6 +255,11 @@ export default function RecipeDetailPage() {
   const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [reimportDialogOpen, setReimportDialogOpen] = useState(false);
+  const [reimportName, setReimportName] = useState(true);
+  const [reimportIngredients, setReimportIngredients] = useState(true);
+  const [reimportSteps, setReimportSteps] = useState(true);
+  const [reimportImages, setReimportImages] = useState(true);
   const [showIngredientSuggestions, setShowIngredientSuggestions] = useState(false);
   const ingredientNameRef = useRef<HTMLInputElement>(null);
   const SUGGESTION_CLOSE_DELAY_MS = 150;
@@ -275,6 +281,7 @@ export default function RecipeDetailPage() {
 
   const updateRecipe = useUpdateRecipe();
   const deleteRecipe = useDeleteRecipe();
+  const reimportRecipe = useReimportRecipe(recipeId);
   const addIngredient = useAddRecipeIngredient(recipeId);
   const updateIngredient = useUpdateRecipeIngredient(recipeId);
   const deleteIngredient = useDeleteRecipeIngredient(recipeId);
@@ -543,6 +550,21 @@ export default function RecipeDetailPage() {
     }
   };
 
+  const handleReimport = async () => {
+    try {
+      await reimportRecipe.mutateAsync({
+        importName: reimportName,
+        importIngredients: reimportIngredients,
+        importSteps: reimportSteps,
+        importImages: reimportImages,
+      });
+      toast.success("Recipe reimported successfully");
+      setReimportDialogOpen(false);
+    } catch {
+      toast.error("Failed to reimport recipe. Please try again.");
+    }
+  };
+
   const handleDeleteRecipe = async () => {
     try {
       await deleteRecipe.mutateAsync(recipeId);
@@ -588,6 +610,12 @@ export default function RecipeDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {recipe?.link && (
+                <DropdownMenuItem onSelect={() => setReimportDialogOpen(true)}>
+                  <RefreshCw className="h-4 w-4" />
+                  Reimport from URL
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                 onSelect={() => setDeleteConfirmOpen(true)}
@@ -1194,6 +1222,75 @@ export default function RecipeDetailPage() {
               disabled={deleteRecipe.isPending}
             >
               Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Reimport from URL dialog ── */}
+      <Dialog open={reimportDialogOpen} onOpenChange={setReimportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reimport from URL</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Choose which parts to update from{" "}
+            <a
+              href={recipe?.link ?? ""}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline break-all"
+            >
+              {recipe?.link}
+            </a>
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reimportName}
+                onChange={(e) => setReimportName(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">Name</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reimportIngredients}
+                onChange={(e) => setReimportIngredients(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">Ingredients</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reimportSteps}
+                onChange={(e) => setReimportSteps(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">Instructions</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reimportImages}
+                onChange={(e) => setReimportImages(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">Images</span>
+            </label>
+          </div>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button variant="outline" onClick={() => setReimportDialogOpen(false)} disabled={reimportRecipe.isPending}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReimport}
+              disabled={reimportRecipe.isPending || (!reimportName && !reimportIngredients && !reimportSteps && !reimportImages)}
+            >
+              {reimportRecipe.isPending ? "Importing…" : "Reimport"}
             </Button>
           </div>
         </DialogContent>

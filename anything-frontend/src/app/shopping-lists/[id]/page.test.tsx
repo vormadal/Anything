@@ -83,12 +83,19 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
-  it('should display loading state', () => {
-    mockItemsGet.mockImplementation(() => new Promise(() => { /* never resolves */ }))
+  it('should display loading state', async () => {
+    let resolveItems: (value: unknown[]) => void = () => {}
+    mockItemsGet.mockImplementation(() => new Promise(resolve => { resolveItems = resolve }))
 
     render(<ShoppingListDetailPage />)
 
     expect(screen.getByText('Loading...')).toBeInTheDocument()
+
+    // Resolve the promise so React can complete cleanup without hanging
+    resolveItems([])
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
+    })
   })
 
   it('should display error state', async () => {
