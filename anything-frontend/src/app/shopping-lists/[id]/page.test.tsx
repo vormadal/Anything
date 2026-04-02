@@ -40,11 +40,10 @@ jest.mock('@/lib/apiClient', () => ({
 
 // Mock next/navigation
 const mockPush = jest.fn()
+const mockBack = jest.fn()
+const mockRouter = { push: mockPush, back: mockBack }
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-    back: jest.fn(),
-  }),
+  useRouter: () => mockRouter,
   useParams: () => ({ id: '1' }),
   usePathname: () => '/shopping-lists/1',
   useSearchParams: () => ({ get: () => null }),
@@ -84,12 +83,19 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
-  it('should display loading state', () => {
-    mockItemsGet.mockImplementation(() => new Promise(() => { /* never resolves */ }))
+  it('should display loading state', async () => {
+    let resolveItems: (value: unknown[]) => void = () => {}
+    mockItemsGet.mockImplementation(() => new Promise(resolve => { resolveItems = resolve }))
 
     render(<ShoppingListDetailPage />)
 
     expect(screen.getByText('Loading...')).toBeInTheDocument()
+
+    // Resolve the promise so React can complete cleanup without hanging
+    resolveItems([])
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
+    })
   })
 
   it('should display error state', async () => {
