@@ -92,10 +92,6 @@ export default function NewRecipePage() {
     }
   };
 
-  const resetToSelect = () => {
-    setMode("select");
-  };
-
   if (mode === "select") {
     return (
       <div className="container mx-auto px-4 py-4 max-w-lg">
@@ -137,12 +133,6 @@ export default function NewRecipePage() {
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <PageTitle>New Recipe</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-        <button
-          onClick={resetToSelect}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 block"
-        >
-          &larr; Back
-        </button>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           {mode === "url" ? "Import from URL" : "New Recipe"}
         </h2>
@@ -153,7 +143,7 @@ export default function NewRecipePage() {
               <label htmlFor="parse-url" className={LABEL_CLASS}>
                 Recipe URL
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   id="parse-url"
                   type="url"
@@ -167,6 +157,7 @@ export default function NewRecipePage() {
                 <Button
                   type="submit"
                   disabled={parseFromUrl.isPending || importRecipe.isPending || !urlInput.trim()}
+                  className="w-full sm:w-auto"
                 >
                   {parseFromUrl.isPending || importRecipe.isPending ? "Importing..." : "Import"}
                 </Button>
