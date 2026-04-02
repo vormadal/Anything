@@ -49,7 +49,7 @@ public class CompleteShoppingListHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ChecksAllUncheckedItems()
+    public async Task Handle_WithMarkUnchecked_CompletesAllUncheckedItems()
     {
         var list = new ShoppingList { Id = 1, Name = "Weekly Shop" };
         _listRepo.GetById(1).Returns(list);
@@ -57,26 +57,42 @@ public class CompleteShoppingListHandlerTests
         var items = new List<ShoppingListItem>
         {
             new() { Id = 1, ShoppingListId = 1, Name = "Milk", IsChecked = false },
-            new() { Id = 2, ShoppingListId = 1, Name = "Bread", IsChecked = true },
-            new() { Id = 3, ShoppingListId = 1, Name = "Eggs", IsChecked = false }
+            new() { Id = 2, ShoppingListId = 1, Name = "Eggs", IsChecked = false }
         };
         _itemRepo.Query().Returns(items.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
+        await handler.Handle(new CompleteShoppingListCommand(1, MarkUnchecked: true), TestContext.Current.CancellationToken);
 
         Assert.True(items[0].IsChecked);
-        Assert.True(items[1].IsChecked); // Was already checked
-        Assert.True(items[2].IsChecked);
-
-        // Only unchecked items should get ModifiedOn set
-        Assert.NotNull(items[0].ModifiedOn);
-        Assert.Null(items[1].ModifiedOn); // Already checked, no modification
-        Assert.NotNull(items[2].ModifiedOn);
+        Assert.True(items[1].IsChecked);
+        Assert.NotNull(items[0].CompletedOn);
+        Assert.NotNull(items[1].CompletedOn);
     }
 
     [Fact]
-    public async Task Handle_SoftDeletesOldListAndCreatesNewOne()
+    public async Task Handle_WithoutMarkUnchecked_OnlyCompletesAlreadyCheckedItems()
+    {
+        var list = new ShoppingList { Id = 1, Name = "Weekly Shop" };
+        _listRepo.GetById(1).Returns(list);
+
+        var items = new List<ShoppingListItem>
+        {
+            new() { Id = 1, ShoppingListId = 1, Name = "Milk", IsChecked = false },
+            new() { Id = 2, ShoppingListId = 1, Name = "Bread", IsChecked = true }
+        };
+        _itemRepo.Query().Returns(items.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        await handler.Handle(new CompleteShoppingListCommand(1, MarkUnchecked: false), TestContext.Current.CancellationToken);
+
+        Assert.False(items[0].IsChecked);
+        Assert.Null(items[0].CompletedOn);
+        Assert.NotNull(items[1].CompletedOn);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotSoftDeleteListOrCreateNewList()
     {
         var list = new ShoppingList { Id = 1, Name = "Weekly Shop" };
         _listRepo.GetById(1).Returns(list);
@@ -85,17 +101,13 @@ public class CompleteShoppingListHandlerTests
         var handler = CreateHandler();
         var result = await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
-        // Old list should be soft-deleted
-        Assert.NotNull(list.DeletedOn);
-
-        // New list should be created with the same name
-        _listRepo.Received(1).Add(Arg.Is<ShoppingList>(l => l.Name == "Weekly Shop"));
-
-        Assert.IsType<Created<ShoppingList>>(result);
+        Assert.Null(list.DeletedOn);
+        _listRepo.DidNotReceive().Add(Arg.Any<ShoppingList>());
+        Assert.IsType<NoContent>(result);
     }
 
     [Fact]
-    public async Task Handle_WithEmptyList_StillCompletesAndCreatesNew()
+    public async Task Handle_WithEmptyList_ReturnsNoContent()
     {
         var list = new ShoppingList { Id = 1, Name = "Empty List" };
         _listRepo.GetById(1).Returns(list);
@@ -104,8 +116,7 @@ public class CompleteShoppingListHandlerTests
         var handler = CreateHandler();
         var result = await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
 
-        Assert.NotNull(list.DeletedOn);
-        _listRepo.Received(1).Add(Arg.Is<ShoppingList>(l => l.Name == "Empty List"));
+        Assert.IsType<NoContent>(result);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
 }

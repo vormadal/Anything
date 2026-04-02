@@ -61,12 +61,12 @@ export function useCompleteShoppingList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) =>
-      apiClient.api.shoppingLists.byId(id).complete.post() as unknown as Promise<ShoppingListResponse>,
-    onSuccess: () => {
+    mutationFn: ({ id, markUnchecked }: { id: number; markUnchecked: boolean }) =>
+      apiClient.api.shoppingLists.byId(id).complete.post({ markUnchecked }),
+    onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
-      queryClient.invalidateQueries({ queryKey: ["completedShoppingLists"] });
-      queryClient.invalidateQueries({ queryKey: ["shoppingListItems"] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingListItems", id] });
     },
   });
 }

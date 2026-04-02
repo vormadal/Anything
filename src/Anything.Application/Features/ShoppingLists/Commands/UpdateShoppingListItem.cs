@@ -16,11 +16,18 @@ public class UpdateShoppingListItemHandler(IRepository<ShoppingListItem> reposit
         if (item is null || item.ShoppingListId != command.ShoppingListId)
             return Results.NotFound();
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
         item.Name = command.Name;
         item.IsChecked = command.IsChecked;
         item.Amount = command.Amount;
         item.Unit = command.Unit;
-        item.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
+        item.ModifiedOn = now;
+
+        if (command.IsChecked && item.CompletedOn == null)
+            item.CompletedOn = now;
+        else if (!command.IsChecked)
+            item.CompletedOn = null;
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

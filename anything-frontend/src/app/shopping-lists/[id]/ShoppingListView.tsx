@@ -1,14 +1,20 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, Archive } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Archive } from "lucide-react";
 import {
   useShoppingListItems,
   useUpdateShoppingListItem,
   useCompleteShoppingList,
 } from "@/hooks/useShoppingLists";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ShoppingList, ShoppingListItem } from "@/lib/api-client/models/index";
 
@@ -19,15 +25,10 @@ interface Props {
 }
 
 export function ShoppingListView({ listId, list, isCompleted }: Props) {
-  const router = useRouter();
   const { data: items, isLoading, error } = useShoppingListItems(listId);
   const updateItem = useUpdateShoppingListItem(listId);
   const completeList = useCompleteShoppingList();
-
-  const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
-  const checkedItems = items?.filter((i) => i.isChecked) ?? [];
-  const sortedItems = [...uncheckedItems, ...checkedItems];
-  const isFewItems = uncheckedItems.length > 0 && uncheckedItems.length <= 3;
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   const handleToggleCheck = async (item: ShoppingListItem) => {
     try {
@@ -43,22 +44,54 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
     }
   };
 
-  const handleCompleteList = async () => {
+  const handleCompleteList = async (markUnchecked: boolean) => {
+    setConfirmDialogOpen(false);
     try {
-      const newList = await completeList.mutateAsync(listId);
-      toast.success("Shopping complete!");
-      if (newList?.id) {
-        router.push(`/shopping-lists/${newList.id}`);
-      } else {
-        router.push("/shopping-lists");
-      }
+      await completeList.mutateAsync({ id: listId, markUnchecked });
+      toast.success("Shopping list completed!");
     } catch {
       toast.error("Failed to complete list. Please try again.");
     }
   };
 
+  const handleCompleteClick = () => {
+    if (items && items.length > 0) {
+      setConfirmDialogOpen(true);
+    } else {
+      handleCompleteList(false);
+    }
+  };
+
   return (
     <>
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete shopping list?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            There {items?.length === 1 ? "is" : "are"} {items?.length ?? 0} unchecked{" "}
+            {items?.length === 1 ? "item" : "items"} remaining. Would you like to mark{" "}
+            {items?.length === 1 ? "it" : "them"} as complete too?
+          </p>
+          <DialogFooter className="flex gap-2 sm:flex-row flex-col">
+            <Button
+              variant="outline"
+              onClick={() => handleCompleteList(false)}
+              disabled={completeList.isPending}
+            >
+              No, keep them
+            </Button>
+            <Button
+              onClick={() => handleCompleteList(true)}
+              disabled={completeList.isPending}
+            >
+              Yes, mark all complete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {isCompleted && (
         <div className="mb-4 flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
           <Archive className="h-4 w-4" />
@@ -84,67 +117,54 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
         </div>
       )}
 
-      {sortedItems.length > 0 && (
-        <ul>
-          {sortedItems.map((item, index) => (
-            <Fragment key={item.id}>
-              <li
-                className={`flex items-center gap-2 py-2 px-3 transition-colors ${
-                  item.isChecked ? "bg-gray-50 dark:bg-gray-900/30" : ""
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleToggleCheck(item)}
-                  disabled={isCompleted || updateItem.isPending || completeList.isPending}
-                  aria-label={item.isChecked ? "Uncheck item" : "Check item"}
-                  className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    item.isChecked
-                      ? "bg-gray-300 border-gray-300 dark:bg-gray-600 dark:border-gray-600"
-                      : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
-                  } ${isCompleted ? "cursor-default opacity-60" : ""}`}
+      {items && items.length > 0 && (
+        <>
+          <ul>
+            {items.map((item) => (
+              <Fragment key={item.id}>
+                <li
+                  className="flex items-center gap-2 py-2 px-3 transition-colors"
                 >
-                  {item.isChecked && <Check className="h-3 w-3 text-gray-500 dark:text-gray-400" />}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCheck(item)}
+                    disabled={isCompleted || updateItem.isPending || completeList.isPending}
+                    aria-label="Check item"
+                    className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 dark:border-gray-600 hover:border-blue-400 ${
+                      isCompleted ? "cursor-default opacity-60" : ""
+                    }`}
+                  />
 
-                <span
-                  className={`flex-1 text-sm ${
-                    item.isChecked
-                      ? "line-through text-gray-400 dark:text-gray-600"
-                      : "text-gray-900 dark:text-white"
-                  }`}
-                >
-                  {item.amount != null && item.unit && (
-                    <span className="text-gray-400 dark:text-gray-500 mr-1">
-                      {item.amount} {item.unit}
-                    </span>
-                  )}
-                  {item.amount != null && !item.unit && (
-                    <span className="text-gray-400 dark:text-gray-500 mr-1">
-                      {item.amount}×
-                    </span>
-                  )}
-                  {item.name}
-                </span>
-              </li>
-              {!isCompleted && items && items.length > 0 &&
-                (items.every((i) => i.isChecked) || isFewItems) &&
-                (uncheckedItems.length === 0
-                  ? index === sortedItems.length - 1
-                  : index === uncheckedItems.length - 1) && (
-                  <li role="presentation" className="flex justify-end py-2">
-                    <Button
-                      onClick={handleCompleteList}
-                      disabled={completeList.isPending}
-                      size="sm"
-                    >
-                      {completeList.isPending ? "Completing..." : "Complete List"}
-                    </Button>
-                  </li>
-                )}
-            </Fragment>
-          ))}
-        </ul>
+                  <span className="flex-1 text-sm text-gray-900 dark:text-white">
+                    {item.amount != null && item.unit && (
+                      <span className="text-gray-400 dark:text-gray-500 mr-1">
+                        {item.amount} {item.unit}
+                      </span>
+                    )}
+                    {item.amount != null && !item.unit && (
+                      <span className="text-gray-400 dark:text-gray-500 mr-1">
+                        {item.amount}×
+                      </span>
+                    )}
+                    {item.name}
+                  </span>
+                </li>
+              </Fragment>
+            ))}
+          </ul>
+
+          {!isCompleted && (
+            <div className="flex justify-end py-2">
+              <Button
+                onClick={handleCompleteClick}
+                disabled={completeList.isPending}
+                size="sm"
+              >
+                {completeList.isPending ? "Completing..." : "Complete List"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </>
   );

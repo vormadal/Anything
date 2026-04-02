@@ -111,13 +111,14 @@ public static class ShoppingListEndpoints
         .Produces(404)
         .RequireAuthorization();
 
-        group.MapPost("/{id}/complete", async (int id, IMediator mediator) =>
+        group.MapPost("/{id}/complete", async (int id, CompleteShoppingListRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new CompleteShoppingListCommand(id));
+            return await mediator.Send(new CompleteShoppingListCommand(id, request.MarkUnchecked));
         })
         .WithName("CompleteShoppingList")
-        .Produces<ShoppingList>(StatusCodes.Status201Created)
+        .Produces(204)
         .Produces(404)
+        .WithParameterValidation()
         .RequireAuthorization();
     }
 }
