@@ -1,9 +1,8 @@
+using Anything.Application.Services;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
 using Anything.Mediator;
-using Microsoft.Extensions.Logging;
-using System.Net.Http;
 
 namespace Anything.Application.Features.Recipes.Commands;
 
@@ -27,10 +26,8 @@ public class ImportRecipeHandler(
     IRepository<RecipeIngredient> ingredientRepository,
     IRepository<RecipeStep> stepRepository,
     IRepository<RecipeImage> imageRepository,
-    IImageStorageService imageStorageService,
-    IHttpClientFactory httpClientFactory,
+    IRecipeImageService recipeImageService,
     IUnitOfWork unitOfWork,
-    ILogger<ImportRecipeHandler> logger,
     TimeProvider timeProvider) : IRequestHandler<ImportRecipeCommand, Recipe>
 {
     public async Task<Recipe> Handle(ImportRecipeCommand command, CancellationToken ct = default)
@@ -69,7 +66,7 @@ public class ImportRecipeHandler(
 
         if (command.ImageUrl is not null)
         {
-            var storageKey = await DownloadAndStoreImage(command.ImageUrl, ct);
+            var storageKey = await recipeImageService.DownloadAndStoreAsync(command.ImageUrl, ct);
             if (storageKey is not null)
             {
                 imageRepository.Add(new RecipeImage
@@ -84,33 +81,5 @@ public class ImportRecipeHandler(
         await unitOfWork.SaveChanges(ct);
 
         return recipe;
-    }
-
-    private async Task<string?> DownloadAndStoreImage(string imageUrl, CancellationToken ct)
-    {
-        try
-        {
-            var httpClient = httpClientFactory.CreateClient();
-            using var response = await httpClient.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-            var fileName = Path.GetFileName(new Uri(imageUrl).AbsolutePath);
-            if (string.IsNullOrWhiteSpace(fileName))
-                fileName = "recipe-image.jpg";
-
-            await using var imageStream = await response.Content.ReadAsStreamAsync(ct);
-            using var buffer = new MemoryStream();
-            await imageStream.CopyToAsync(buffer, ct);
-            buffer.Position = 0;
-
-            return await imageStorageService.Upload(buffer, fileName, contentType, buffer.Length, ct, folder: "recipes");
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to download image from {ImageUrl}", imageUrl);
-            return null;
-        }
     }
 }

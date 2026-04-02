@@ -7,9 +7,7 @@ using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
-using System.Net.Http;
 using Xunit;
 
 namespace Anything.Application.UnitTests.Features.Recipes;
@@ -155,14 +153,12 @@ public class ImportRecipeHandlerTests
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
     private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
     private readonly IRepository<RecipeImage> _imageRepo = Substitute.For<IRepository<RecipeImage>>();
-    private readonly IImageStorageService _imageStorageService = Substitute.For<IImageStorageService>();
-    private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
+    private readonly IRecipeImageService _recipeImageService = Substitute.For<IRecipeImageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly ILogger<ImportRecipeHandler> _logger = Substitute.For<ILogger<ImportRecipeHandler>>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private ImportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _imageStorageService, _httpClientFactory, _unitOfWork, _logger, _timeProvider);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recipeImageService, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_CreatesRecipeWithIngredientsAndSteps()
@@ -690,10 +686,8 @@ public class ReimportRecipeHandlerTests
     private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
     private readonly IRepository<RecipeImage> _imageRepo = Substitute.For<IRepository<RecipeImage>>();
     private readonly IRecipeParserService _parserService = Substitute.For<IRecipeParserService>();
-    private readonly IImageStorageService _imageStorageService = Substitute.For<IImageStorageService>();
-    private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
+    private readonly IRecipeImageService _recipeImageService = Substitute.For<IRecipeImageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly ILogger<ReimportRecipeHandler> _logger = Substitute.For<ILogger<ReimportRecipeHandler>>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     public ReimportRecipeHandlerTests()
@@ -705,7 +699,7 @@ public class ReimportRecipeHandlerTests
     }
 
     private ReimportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _parserService, _imageStorageService, _httpClientFactory, _unitOfWork, _logger, _timeProvider);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _parserService, _recipeImageService, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
@@ -803,9 +797,8 @@ public class ReimportRecipeHandlerTests
         _imageRepo.Query().Returns(new List<RecipeImage> { existingImage }.AsAsyncQueryable());
         _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new ParsedRecipeResponse("Soup", null, [], [], "https://example.com/image.jpg"));
-
-        var httpClient = new HttpClient(new FailingHttpMessageHandler());
-        _httpClientFactory.CreateClient().Returns(httpClient);
+        _recipeImageService.DownloadAndStoreAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((string?)null);
 
         var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: false, ImportImages: true), TestContext.Current.CancellationToken);
 
@@ -857,35 +850,12 @@ public class ReimportRecipeHandlerTests
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
         _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new ParsedRecipeResponse("Soup", null, [], [], "https://example.com/image.jpg"));
-
-        var httpClient = new HttpClient(new SucceedingHttpMessageHandler());
-        _httpClientFactory.CreateClient().Returns(httpClient);
-        _imageStorageService
-            .Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), folder: "recipes")
+        _recipeImageService.DownloadAndStoreAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns("recipes/new-image.jpg");
 
         var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: false, ImportImages: true), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         _imageRepo.Received(1).Add(Arg.Is<RecipeImage>(img => img.StorageKey == "recipes/new-image.jpg"));
-    }
-}
-
-internal class FailingHttpMessageHandler : HttpMessageHandler
-{
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
-    }
-}
-
-internal class SucceedingHttpMessageHandler : HttpMessageHandler
-{
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK);
-        response.Content = new ByteArrayContent([0xFF, 0xD8, 0xFF]);
-        response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
-        return Task.FromResult(response);
     }
 }
