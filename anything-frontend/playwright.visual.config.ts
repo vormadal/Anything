@@ -4,10 +4,9 @@ import { defineConfig, devices } from "@playwright/test";
  * Playwright configuration for visual snapshot tests.
  *
  * This config is self-contained for CI: it starts a local Next.js server
- * automatically via webServer using a pre-built `.next` directory (built by the
- * `lint-and-build` CI job and downloaded as an artifact). The `npx next start`
- * command serves the pre-built app on port 3001. All API calls are intercepted
- * by page.route() inside the visual spec itself, so no live backend is needed.
+ * automatically via webServer so no live backend or external secrets are
+ * required. All API calls are intercepted by page.route() inside the visual
+ * spec itself.
  *
  * Usage:
  *   npm run test:e2e:visual          # compare against stored baselines
