@@ -39,13 +39,17 @@ test("recipe can be added to the food plan from the recipes page", async ({
     page.getByRole("heading", { name: "Add to Food Plan" })
   ).toBeVisible();
 
-  // 4. Set the date to Monday of the current week, which is always an active day
-  //    in the default food plan settings (Mon–Fri). Using "today" can fail when
-  //    today falls on a weekend (not an active day by default).
+  // 4. Set the date to the next Monday (or today if it is already Monday).
+  //    Monday is always an active day in the default food plan settings (Mon–Fri).
+  //    Using "this week's past Monday" would fail when today is Tue–Sun because
+  //    the food plan view starts from today (not the week start) and shows the
+  //    next 7 days, so a past Monday would not appear. Using (8 - getDay()) % 7
+  //    gives 0 when today is Monday and a positive offset otherwise, ensuring the
+  //    chosen date always falls within the visible range.
   const now = new Date();
-  const diffToMonday = now.getDay() === 0 ? -6 : 1 - now.getDay();
+  const daysToNextMonday = (8 - now.getDay()) % 7;
   const monday = new Date(now);
-  monday.setDate(now.getDate() + diffToMonday);
+  monday.setDate(now.getDate() + daysToNextMonday);
   const dateStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
   await page.fill('input[type="date"]', dateStr);
   await page.getByRole("button", { name: "Add to plan" }).click();
