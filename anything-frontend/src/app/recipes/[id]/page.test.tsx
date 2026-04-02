@@ -150,7 +150,7 @@ describe('RecipeDetailPage', () => {
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
-      const link = screen.getByRole('link', { name: 'https://example.com/recipe' })
+      const link = screen.getByRole('link', { name: 'example.com' })
       expect(link).toBeInTheDocument()
       expect(link).toHaveAttribute('href', 'https://example.com/recipe')
     })

@@ -63,7 +63,7 @@ jest.mock('@/lib/apiClient', () => ({
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: { retry: false },
+      queries: { retry: false, gcTime: 0 },
       mutations: { retry: false },
     },
   })
@@ -291,7 +291,7 @@ describe('useBills hooks', () => {
 
     it('should invalidate related query caches on success', async () => {
       mockPriceHistoryByIdPut.mockResolvedValueOnce(undefined)
-      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } })
       const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
 
       const wrapper = ({ children }: { children: ReactNode }) => (

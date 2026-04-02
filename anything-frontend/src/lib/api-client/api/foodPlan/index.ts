@@ -6,6 +6,8 @@ import { AddToShoppingListRequestBuilderRequestsMetadata, type AddToShoppingList
 // @ts-ignore
 import { EntriesRequestBuilderNavigationMetadata, EntriesRequestBuilderRequestsMetadata, type EntriesRequestBuilder } from './entries/index';
 // @ts-ignore
+import { NotesRequestBuilderNavigationMetadata, NotesRequestBuilderRequestsMetadata, type NotesRequestBuilder } from './notes/index';
+// @ts-ignore
 import { SettingsRequestBuilderRequestsMetadata, type SettingsRequestBuilder } from './settings/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata } from '@microsoft/kiota-abstractions';
@@ -22,6 +24,10 @@ export interface FoodPlanRequestBuilder extends BaseRequestBuilder<FoodPlanReque
      * The entries property
      */
     get entries(): EntriesRequestBuilder;
+    /**
+     * The notes property
+     */
+    get notes(): NotesRequestBuilder;
     /**
      * The settings property
      */
@@ -41,6 +47,10 @@ export const FoodPlanRequestBuilderNavigationMetadata: Record<Exclude<keyof Food
     entries: {
         requestsMetadata: EntriesRequestBuilderRequestsMetadata,
         navigationMetadata: EntriesRequestBuilderNavigationMetadata,
+    },
+    notes: {
+        requestsMetadata: NotesRequestBuilderRequestsMetadata,
+        navigationMetadata: NotesRequestBuilderNavigationMetadata,
     },
     settings: {
         requestsMetadata: SettingsRequestBuilderRequestsMetadata,
