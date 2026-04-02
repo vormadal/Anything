@@ -15,14 +15,16 @@ public class UpsertFoodPlanNoteHandler(
 {
     public async Task<IResult> Handle(UpsertFoodPlanNoteCommand command, CancellationToken ct = default)
     {
+        var normalizedDate = DateTime.SpecifyKind(command.Date.Date, DateTimeKind.Utc);
+
         var existing = await noteRepository.Query()
-            .FirstOrDefaultAsync(n => n.Date == command.Date, ct);
+            .FirstOrDefaultAsync(n => n.Date == normalizedDate, ct);
 
         if (existing is null)
         {
             var note = new FoodPlanNote
             {
-                Date = command.Date,
+                Date = normalizedDate,
                 Note = command.Note,
                 CreatedOn = timeProvider.GetUtcNow().UtcDateTime
             };

@@ -373,8 +373,24 @@ public class UpsertFoodPlanNoteHandlerTests
         var result = await handler.Handle(new UpsertFoodPlanNoteCommand(date, "Some note"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<FoodPlanNote>>(result);
-        _noteRepo.Received(1).Add(Arg.Is<FoodPlanNote>(n => n.Note == "Some note" && n.Date == date));
+        var expectedDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        _noteRepo.Received(1).Add(Arg.Is<FoodPlanNote>(n => n.Note == "Some note" && n.Date == expectedDate));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenDateHasTimeComponent_NormalizesToMidnightUtc()
+    {
+        // Non-midnight date: should be normalized to 2026-03-11 00:00:00 UTC
+        var dateWithTime = new DateTime(2026, 3, 11, 15, 30, 0, DateTimeKind.Utc);
+        var expectedNormalized = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
+        _noteRepo.Query().Returns(new List<FoodPlanNote>().AsAsyncQueryable());
+        var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _unitOfWork, _timeProvider);
+
+        var result = await handler.Handle(new UpsertFoodPlanNoteCommand(dateWithTime, "Some note"), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created<FoodPlanNote>>(result);
+        _noteRepo.Received(1).Add(Arg.Is<FoodPlanNote>(n => n.Date == expectedNormalized));
     }
 
     [Fact]

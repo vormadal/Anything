@@ -498,7 +498,7 @@ function DayRow({
         <DayNoteEditor
           note={note}
           dateStr={dateStr}
-          onSave={(text) => onSaveNote(date.toISOString(), text)}
+          onSave={(text) => onSaveNote(toUtcMidnight(date).toISOString(), text)}
           onDelete={() => note?.id != null && onDeleteNote(note.id)}
         />
       </div>

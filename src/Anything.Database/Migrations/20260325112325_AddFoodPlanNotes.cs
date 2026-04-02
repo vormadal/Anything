@@ -12,10 +12,6 @@ namespace Anything.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Comment",
-                table: "FoodPlanEntries");
-
             migrationBuilder.CreateTable(
                 name: "FoodPlanNotes",
                 columns: table => new
@@ -44,13 +40,6 @@ namespace Anything.Database.Migrations
         {
             migrationBuilder.DropTable(
                 name: "FoodPlanNotes");
-
-            migrationBuilder.AddColumn<string>(
-                name: "Comment",
-                table: "FoodPlanEntries",
-                type: "character varying(500)",
-                maxLength: 500,
-                nullable: true);
         }
     }
 }
