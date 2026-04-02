@@ -648,6 +648,91 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Empty(tags);
     }
 
+    // --- Top Tags ---
+
+    [Fact]
+    public async Task TopTags_ReturnsEmptyList_WhenNoTagsExist()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.GetAsync("/api/recipes/tags", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<TopTagDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task TopTags_ReturnsTagsOrderedByCount()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var recipe1 = await CreateRecipeAsync("Top Tag Recipe 1", null, null);
+        var recipe2 = await CreateRecipeAsync("Top Tag Recipe 2", null, null);
+        var recipe3 = await CreateRecipeAsync("Top Tag Recipe 3", null, null);
+
+        // "vegetarian" appears 3 times, "quick" appears 2 times, "spicy" appears 1 time
+        await AddTagAsync(recipe1.Id, "vegetarian");
+        await AddTagAsync(recipe2.Id, "vegetarian");
+        await AddTagAsync(recipe3.Id, "vegetarian");
+        await AddTagAsync(recipe1.Id, "quick");
+        await AddTagAsync(recipe2.Id, "quick");
+        await AddTagAsync(recipe1.Id, "spicy");
+
+        var response = await client.GetAsync("/api/recipes/tags", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var tags = await response.Content.ReadFromJsonAsync<TopTagDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(tags);
+
+        var vegetarianTag = tags.FirstOrDefault(t => t.Name == "vegetarian");
+        var quickTag = tags.FirstOrDefault(t => t.Name == "quick");
+        var spicyTag = tags.FirstOrDefault(t => t.Name == "spicy");
+
+        Assert.NotNull(vegetarianTag);
+        Assert.NotNull(quickTag);
+        Assert.NotNull(spicyTag);
+        Assert.Equal(3, vegetarianTag.Count);
+        Assert.Equal(2, quickTag.Count);
+        Assert.Equal(1, spicyTag.Count);
+
+        // Verify ordering: most popular first
+        var tagList = tags.ToList();
+        var vegetarianIdx = tagList.FindIndex(t => t.Name == "vegetarian");
+        var quickIdx = tagList.FindIndex(t => t.Name == "quick");
+        var spicyIdx = tagList.FindIndex(t => t.Name == "spicy");
+        Assert.True(vegetarianIdx < quickIdx);
+        Assert.True(quickIdx < spicyIdx);
+    }
+
+    [Fact]
+    public async Task TopTags_GroupsCaseInsensitively()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var recipe1 = await CreateRecipeAsync("Case Recipe 1", null, null);
+        var recipe2 = await CreateRecipeAsync("Case Recipe 2", null, null);
+
+        await AddTagAsync(recipe1.Id, "Pasta");
+        await AddTagAsync(recipe2.Id, "pasta");
+
+        var response = await client.GetAsync("/api/recipes/tags", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var tags = await response.Content.ReadFromJsonAsync<TopTagDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(tags);
+
+        // Both "Pasta" and "pasta" should be grouped together with count 2
+        var pastaTag = tags.FirstOrDefault(t => t.Name == "pasta");
+        Assert.NotNull(pastaTag);
+        Assert.Equal(2, pastaTag.Count);
+    }
+
+    [Fact]
+    public async Task TopTags_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync("/api/recipes/tags", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     private async Task<TagDto> AddTagAsync(int recipeId, string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
@@ -663,6 +748,7 @@ public class RecipeEndpointTests : IntegrationTestBase
     private record StepDto(int Id, int RecipeId, string? Text, int Order);
     private record RecipeImageDto(int Id, int RecipeId, string ThumbnailUrl, string MediumUrl, string OriginalUrl, DateTime CreatedOn);
     private record TagDto(int Id, int RecipeId, string Name, DateTime CreatedOn);
+    private record TopTagDto(string Name, int Count);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
 }
