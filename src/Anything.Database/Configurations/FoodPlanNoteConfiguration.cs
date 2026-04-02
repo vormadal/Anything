@@ -10,6 +10,7 @@ public class FoodPlanNoteConfiguration : IEntityTypeConfiguration<FoodPlanNote>
     {
         builder.HasKey(n => n.Id);
         builder.Property(n => n.Note).IsRequired().HasMaxLength(500);
+        builder.Property(n => n.Date).HasColumnType("date");
         builder.HasIndex(n => n.Date).IsUnique();
     }
 }

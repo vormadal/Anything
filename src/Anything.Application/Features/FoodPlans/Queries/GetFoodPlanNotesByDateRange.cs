@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.FoodPlans.Queries;
 
-public record GetFoodPlanNotesByDateRangeQuery(DateTime StartDate, DateTime EndDate) : IRequest<List<FoodPlanNote>>;
+public record GetFoodPlanNotesByDateRangeQuery(DateOnly StartDate, DateOnly EndDate) : IRequest<List<FoodPlanNote>>;
 
 public class GetFoodPlanNotesByDateRangeHandler(
     IRepository<FoodPlanNote> noteRepository) : IRequestHandler<GetFoodPlanNotesByDateRangeQuery, List<FoodPlanNote>>

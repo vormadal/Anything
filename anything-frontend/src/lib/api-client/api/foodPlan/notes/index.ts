@@ -37,8 +37,8 @@ export interface NotesRequestBuilder extends BaseRequestBuilder<NotesRequestBuil
      toGetRequestInformation(requestConfiguration?: RequestConfiguration<NotesRequestBuilderGetQueryParameters> | undefined) : RequestInformation;
 }
 export interface NotesRequestBuilderGetQueryParameters {
-    endDate?: Date;
-    startDate?: Date;
+    endDate?: string;
+    startDate?: string;
 }
 /**
  * Uri template for the request builder.

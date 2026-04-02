@@ -71,14 +71,14 @@ public static class FoodPlanEndpoints
 
         // --- Notes ---
 
-        group.MapGet("/notes", async (DateTime startDate, DateTime endDate, IMediator mediator) =>
+        group.MapGet("/notes", async (DateOnly startDate, DateOnly endDate, IMediator mediator) =>
         {
             return await mediator.Send(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate));
         })
         .WithName("GetFoodPlanNotes")
         .RequireAuthorization();
 
-        group.MapPut("/notes/{date}", async (DateTime date, UpsertFoodPlanNoteRequest request, IMediator mediator) =>
+        group.MapPut("/notes/{date}", async (DateOnly date, UpsertFoodPlanNoteRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new UpsertFoodPlanNoteCommand(date, request.Note));
         })

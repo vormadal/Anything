@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
-public record UpsertFoodPlanNoteCommand(DateTime Date, string Note) : IRequest<IResult>;
+public record UpsertFoodPlanNoteCommand(DateOnly Date, string Note) : IRequest<IResult>;
 
 public class UpsertFoodPlanNoteHandler(
     IRepository<FoodPlanNote> noteRepository,
@@ -15,16 +15,14 @@ public class UpsertFoodPlanNoteHandler(
 {
     public async Task<IResult> Handle(UpsertFoodPlanNoteCommand command, CancellationToken ct = default)
     {
-        var normalizedDate = DateTime.SpecifyKind(command.Date.Date, DateTimeKind.Utc);
-
         var existing = await noteRepository.Query()
-            .FirstOrDefaultAsync(n => n.Date == normalizedDate, ct);
+            .FirstOrDefaultAsync(n => n.Date == command.Date, ct);
 
         if (existing is null)
         {
             var note = new FoodPlanNote
             {
-                Date = normalizedDate,
+                Date = command.Date,
                 Note = command.Note,
                 CreatedOn = timeProvider.GetUtcNow().UtcDateTime
             };

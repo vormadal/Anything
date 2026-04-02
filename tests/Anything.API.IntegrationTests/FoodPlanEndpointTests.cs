@@ -458,10 +458,10 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     public async Task UpsertFoodPlanNote_CreatesNewNote_ReturnsCreated()
     {
         var client = await GetOrCreateAuthenticatedHttpClient();
-        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        var date = new DateOnly(2026, 3, 16);
 
         var response = await client.PutAsJsonAsync(
-            $"/api/food-plan/notes/{date:o}",
+            $"/api/food-plan/notes/{date:yyyy-MM-dd}",
             new { note = "Eating at friends" },
             TestContext.Current.CancellationToken);
 
@@ -475,12 +475,12 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     public async Task UpsertFoodPlanNote_UpdatesExistingNote_ReturnsOk()
     {
         var client = await GetOrCreateAuthenticatedHttpClient();
-        var date = new DateTime(2026, 3, 17, 0, 0, 0, DateTimeKind.Utc);
+        var date = new DateOnly(2026, 3, 17);
 
-        await client.PutAsJsonAsync($"/api/food-plan/notes/{date:o}", new { note = "Original note" }, TestContext.Current.CancellationToken);
+        await client.PutAsJsonAsync($"/api/food-plan/notes/{date:yyyy-MM-dd}", new { note = "Original note" }, TestContext.Current.CancellationToken);
 
         var updateResponse = await client.PutAsJsonAsync(
-            $"/api/food-plan/notes/{date:o}",
+            $"/api/food-plan/notes/{date:yyyy-MM-dd}",
             new { note = "Updated note" },
             TestContext.Current.CancellationToken);
 
@@ -493,9 +493,9 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     [Fact]
     public async Task UpsertFoodPlanNote_RequiresAuthentication()
     {
-        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        var date = new DateOnly(2026, 3, 16);
         var response = await HttpClient.PutAsJsonAsync(
-            $"/api/food-plan/notes/{date:o}",
+            $"/api/food-plan/notes/{date:yyyy-MM-dd}",
             new { note = "Test" },
             TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -507,14 +507,14 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     public async Task GetFoodPlanNotes_ReturnsNotesInDateRange()
     {
         var client = await GetOrCreateAuthenticatedHttpClient();
-        var date = new DateTime(2026, 3, 18, 0, 0, 0, DateTimeKind.Utc);
+        var date = new DateOnly(2026, 3, 18);
 
-        await client.PutAsJsonAsync($"/api/food-plan/notes/{date:o}", new { note = "Leftovers" }, TestContext.Current.CancellationToken);
+        await client.PutAsJsonAsync($"/api/food-plan/notes/{date:yyyy-MM-dd}", new { note = "Leftovers" }, TestContext.Current.CancellationToken);
 
-        var startDate = new DateTime(2026, 3, 18, 0, 0, 0, DateTimeKind.Utc);
-        var endDate = new DateTime(2026, 3, 18, 23, 59, 59, DateTimeKind.Utc);
+        var startDate = new DateOnly(2026, 3, 18);
+        var endDate = new DateOnly(2026, 3, 18);
         var response = await client.GetAsync(
-            $"/api/food-plan/notes?startDate={startDate:o}&endDate={endDate:o}",
+            $"/api/food-plan/notes?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}",
             TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -530,9 +530,9 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     public async Task DeleteFoodPlanNote_WhenExists_ReturnsNoContent()
     {
         var client = await GetOrCreateAuthenticatedHttpClient();
-        var date = new DateTime(2026, 3, 19, 0, 0, 0, DateTimeKind.Utc);
+        var date = new DateOnly(2026, 3, 19);
 
-        var createResponse = await client.PutAsJsonAsync($"/api/food-plan/notes/{date:o}", new { note = "To delete" }, TestContext.Current.CancellationToken);
+        var createResponse = await client.PutAsJsonAsync($"/api/food-plan/notes/{date:yyyy-MM-dd}", new { note = "To delete" }, TestContext.Current.CancellationToken);
         var created = await createResponse.Content.ReadFromJsonAsync<FoodPlanNoteDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(created);
 
@@ -562,7 +562,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
 
     private record FoodPlanSettingsDto(int Id, int ActiveDays);
     private record FoodPlanEntryDto(int Id, int? RecipeId, string? Name, DateTime Date, DateTime? AddedToShoppingListOn);
-    private record FoodPlanNoteDto(int Id, DateTime Date, string Note);
+    private record FoodPlanNoteDto(int Id, DateOnly Date, string Note);
     private record RecipeDto(int Id, string? Name);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);

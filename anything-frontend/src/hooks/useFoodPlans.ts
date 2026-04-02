@@ -124,7 +124,7 @@ export function useFoodPlanNotes(startDate: string, endDate: string) {
     queryKey: ["foodPlanNotes", startDate, endDate],
     queryFn: () =>
       apiClient.api.foodPlan.notes.get({
-        queryParameters: { startDate: new Date(startDate), endDate: new Date(endDate) },
+        queryParameters: { startDate, endDate },
       }) as Promise<FoodPlanNote[]>,
     enabled: !!startDate && !!endDate,
   });

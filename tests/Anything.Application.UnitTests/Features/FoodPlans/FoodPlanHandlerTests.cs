@@ -366,31 +366,15 @@ public class UpsertFoodPlanNoteHandlerTests
     [Fact]
     public async Task Handle_WhenNoteDoesNotExist_CreatesAndReturnsCreated()
     {
-        var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
+        var date = new DateOnly(2026, 3, 11);
         _noteRepo.Query().Returns(new List<FoodPlanNote>().AsAsyncQueryable());
         var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpsertFoodPlanNoteCommand(date, "Some note"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<FoodPlanNote>>(result);
-        var expectedDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
-        _noteRepo.Received(1).Add(Arg.Is<FoodPlanNote>(n => n.Note == "Some note" && n.Date == expectedDate));
+        _noteRepo.Received(1).Add(Arg.Is<FoodPlanNote>(n => n.Note == "Some note" && n.Date == date));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Handle_WhenDateHasTimeComponent_NormalizesToMidnightUtc()
-    {
-        // Non-midnight date: should be normalized to 2026-03-11 00:00:00 UTC
-        var dateWithTime = new DateTime(2026, 3, 11, 15, 30, 0, DateTimeKind.Utc);
-        var expectedNormalized = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
-        _noteRepo.Query().Returns(new List<FoodPlanNote>().AsAsyncQueryable());
-        var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _unitOfWork, _timeProvider);
-
-        var result = await handler.Handle(new UpsertFoodPlanNoteCommand(dateWithTime, "Some note"), TestContext.Current.CancellationToken);
-
-        Assert.IsType<Created<FoodPlanNote>>(result);
-        _noteRepo.Received(1).Add(Arg.Is<FoodPlanNote>(n => n.Date == expectedNormalized));
     }
 
     [Fact]
@@ -398,7 +382,7 @@ public class UpsertFoodPlanNoteHandlerTests
     {
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
-        var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
+        var date = new DateOnly(2026, 3, 11);
         var existing = new FoodPlanNote { Id = 1, Date = date, Note = "Old note", CreatedOn = DateTime.UtcNow };
         _noteRepo.Query().Returns(new List<FoodPlanNote> { existing }.AsAsyncQueryable());
         var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _unitOfWork, _timeProvider);
@@ -432,7 +416,7 @@ public class DeleteFoodPlanNoteHandlerTests
     [Fact]
     public async Task Handle_WhenNoteExists_RemovesAndReturnsNoContent()
     {
-        var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
+        var date = new DateOnly(2026, 3, 11);
         var note = new FoodPlanNote { Id = 1, Date = date, Note = "A note", CreatedOn = DateTime.UtcNow };
         _noteRepo.Query().Returns(new List<FoodPlanNote> { note }.AsAsyncQueryable());
         var handler = new DeleteFoodPlanNoteHandler(_noteRepo, _unitOfWork);
@@ -452,14 +436,14 @@ public class GetFoodPlanNotesByDateRangeHandlerTests
     [Fact]
     public async Task Handle_ReturnsNotesWithinDateRange()
     {
-        var startDate = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
-        var endDate = new DateTime(2026, 3, 15, 0, 0, 0, DateTimeKind.Utc);
+        var startDate = new DateOnly(2026, 3, 9);
+        var endDate = new DateOnly(2026, 3, 15);
 
         _repo.Query().Returns(new List<FoodPlanNote>
         {
-            new() { Id = 1, Note = "Monday note", Date = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc) },
-            new() { Id = 2, Note = "Wednesday note", Date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc) },
-            new() { Id = 3, Note = "Outside range", Date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc) }
+            new() { Id = 1, Note = "Monday note", Date = new DateOnly(2026, 3, 9) },
+            new() { Id = 2, Note = "Wednesday note", Date = new DateOnly(2026, 3, 11) },
+            new() { Id = 3, Note = "Outside range", Date = new DateOnly(2026, 3, 16) }
         }.AsAsyncQueryable());
 
         var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
@@ -473,14 +457,14 @@ public class GetFoodPlanNotesByDateRangeHandlerTests
     [Fact]
     public async Task Handle_OrdersResultsByDate()
     {
-        var startDate = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
-        var endDate = new DateTime(2026, 3, 15, 0, 0, 0, DateTimeKind.Utc);
+        var startDate = new DateOnly(2026, 3, 9);
+        var endDate = new DateOnly(2026, 3, 15);
 
         _repo.Query().Returns(new List<FoodPlanNote>
         {
-            new() { Id = 1, Note = "Friday note", Date = new DateTime(2026, 3, 13, 0, 0, 0, DateTimeKind.Utc) },
-            new() { Id = 2, Note = "Monday note", Date = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc) },
-            new() { Id = 3, Note = "Wednesday note", Date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc) }
+            new() { Id = 1, Note = "Friday note", Date = new DateOnly(2026, 3, 13) },
+            new() { Id = 2, Note = "Monday note", Date = new DateOnly(2026, 3, 9) },
+            new() { Id = 3, Note = "Wednesday note", Date = new DateOnly(2026, 3, 11) }
         }.AsAsyncQueryable());
 
         var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
@@ -494,12 +478,12 @@ public class GetFoodPlanNotesByDateRangeHandlerTests
     [Fact]
     public async Task Handle_ReturnsEmptyWhenNoNotesInRange()
     {
-        var startDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc);
-        var endDate = new DateTime(2026, 4, 7, 0, 0, 0, DateTimeKind.Utc);
+        var startDate = new DateOnly(2026, 4, 1);
+        var endDate = new DateOnly(2026, 4, 7);
 
         _repo.Query().Returns(new List<FoodPlanNote>
         {
-            new() { Id = 1, Note = "March note", Date = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc) }
+            new() { Id = 1, Note = "March note", Date = new DateOnly(2026, 3, 9) }
         }.AsAsyncQueryable());
 
         var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
