@@ -152,8 +152,21 @@ export function useUpdateRecipeIngredient(recipeId: number) {
   return useMutation({
     mutationFn: ({ ingredientId, name, amount, unit, group }: { ingredientId: number; name: string; amount?: number | null; unit?: string | null; group?: string | null }) =>
       apiClient.api.recipes.byId(recipeId).ingredients.byIngredientId(ingredientId).put({ name, amount, unit, group }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
+    onMutate: async ({ ingredientId, name, amount, unit, group }) => {
+      await queryClient.cancelQueries({ queryKey: ["recipeIngredients", recipeId] });
+      const previous = queryClient.getQueryData<RecipeIngredient[]>(["recipeIngredients", recipeId]);
+      queryClient.setQueryData<RecipeIngredient[]>(["recipeIngredients", recipeId], (old) => {
+        if (!old) return old;
+        return old.map((i) =>
+          i.id === ingredientId
+            ? { ...i, name, amount: amount ?? i.amount, unit: unit !== undefined ? (unit ?? undefined) : i.unit, group: group !== undefined ? (group ?? undefined) : i.group }
+            : i
+        );
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      queryClient.setQueryData(["recipeIngredients", recipeId], context?.previous);
     },
   });
 }

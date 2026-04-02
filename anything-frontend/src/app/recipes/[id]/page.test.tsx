@@ -6,31 +6,18 @@ import { toast } from 'sonner'
 
 // Mock the apiClient module
 const mockRecipeGet = jest.fn()
-const mockRecipePut = jest.fn()
 const mockIngredientsGet = jest.fn()
-const mockIngredientsPost = jest.fn()
-const mockIngredientByIdPut = jest.fn()
-const mockIngredientByIdDelete = jest.fn()
 const mockStepsGet = jest.fn()
-const mockStepsPost = jest.fn()
-const mockStepByIdPut = jest.fn()
-const mockStepByIdDelete = jest.fn()
 const mockImagesGet = jest.fn()
-const mockImagesPost = jest.fn()
-const mockImageByIdDelete = jest.fn()
 const mockAddToShoppingListPost = jest.fn()
-
 const mockRecipeDelete = jest.fn()
-const mockIngredientById = jest.fn(() => ({ put: mockIngredientByIdPut, delete: mockIngredientByIdDelete }))
-const mockStepById = jest.fn(() => ({ put: mockStepByIdPut, delete: mockStepByIdDelete }))
-const mockImageById = jest.fn(() => ({ delete: mockImageByIdDelete }))
+
 const mockById = jest.fn(() => ({
   get: mockRecipeGet,
-  put: mockRecipePut,
   delete: mockRecipeDelete,
-  ingredients: { get: mockIngredientsGet, post: mockIngredientsPost, byIngredientId: mockIngredientById },
-  steps: { get: mockStepsGet, post: mockStepsPost, byStepId: mockStepById },
-  images: { get: mockImagesGet, post: mockImagesPost, byImageId: mockImageById },
+  ingredients: { get: mockIngredientsGet },
+  steps: { get: mockStepsGet },
+  images: { get: mockImagesGet },
   addToShoppingList: { post: mockAddToShoppingListPost },
 }))
 
@@ -92,11 +79,6 @@ jest.mock('sonner', () => ({
 }))
 
 const mockRecipe = { id: 1, name: 'Test Recipe', createdOn: '2024-01-01T00:00:00Z' }
-
-async function enterEditMode(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'More options' }))
-  await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
-}
 
 describe('RecipeDetailPage', () => {
   beforeEach(() => {
@@ -169,7 +151,7 @@ describe('RecipeDetailPage', () => {
     })
   })
 
-  it('should switch to edit mode when Edit button is clicked', async () => {
+  it('should navigate to edit page when Edit recipe is selected', async () => {
     const user = userEvent.setup()
 
     render(<RecipeDetailPage />)
@@ -178,356 +160,35 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await enterEditMode(user)
-
-    expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
-    // Title/link/notes are directly editable; no separate "Edit Details" button
-    expect(screen.queryByRole('button', { name: 'Edit Details' })).not.toBeInTheDocument()
-  })
-
-  it('should not show Edit Details button in view mode', async () => {
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    expect(screen.queryByRole('button', { name: 'Edit Details' })).not.toBeInTheDocument()
-  })
-
-  it('should show Add Ingredient form in edit mode', async () => {
-    const user = userEvent.setup()
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-
-    expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Qty')).toBeInTheDocument()
-  })
-
-  it('should add an ingredient in edit mode', async () => {
-    const user = userEvent.setup()
-    mockIngredientsPost.mockResolvedValueOnce({ id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 })
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-
-    await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
-    await user.type(screen.getByPlaceholderText('Qty'), '2')
-    await user.type(screen.getByPlaceholderText('Unit'), 'cups')
-
-    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
-
-    await waitFor(() => {
-      expect(mockIngredientsPost).toHaveBeenCalledWith({
-        name: 'Flour',
-        amount: 2,
-        unit: 'cups',
-        group: undefined,
-      })
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient added')
-  })
-
-  it('should not submit add ingredient form when name is empty', async () => {
-    const user = userEvent.setup()
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-    await user.type(screen.getByPlaceholderText('Qty'), '2')
-    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
-
-    expect(mockIngredientsPost).not.toHaveBeenCalled()
-  })
-
-  it('should not submit add ingredient form when amount is invalid', async () => {
-    const user = userEvent.setup()
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-    await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
-    // No amount entered — amount is optional, so form should submit
-    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
-
-    await waitFor(() => {
-      expect(mockIngredientsPost).toHaveBeenCalledWith({
-        name: 'Flour',
-        amount: null,
-        unit: undefined,
-        group: undefined,
-      })
-    })
-  })
-
-  it('should add an ingredient without amount in edit mode', async () => {
-    const user = userEvent.setup()
-    mockIngredientsPost.mockResolvedValueOnce({ id: 2, name: 'Salt', amount: null, unit: null, recipeId: 1 })
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-    await user.type(screen.getByPlaceholderText('Ingredient name'), 'Salt')
-    // No amount or unit entered
-    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
-
-    await waitFor(() => {
-      expect(mockIngredientsPost).toHaveBeenCalledWith({
-        name: 'Salt',
-        amount: null,
-        unit: undefined,
-        group: undefined,
-      })
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient added')
-  })
-
-  it('should show error when add ingredient fails', async () => {
-    const user = userEvent.setup()
-    mockIngredientsPost.mockRejectedValueOnce(new Error('Server error'))
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-    await user.type(screen.getByPlaceholderText('Ingredient name'), 'Flour')
-    await user.type(screen.getByPlaceholderText('Qty'), '2')
-    await user.click(screen.getByRole('button', { name: 'Add ingredient' }))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to add ingredient. Please try again.')
-    })
-  })
-
-  it('should delete an ingredient in edit mode', async () => {
-    const user = userEvent.setup()
-    mockIngredientsGet.mockResolvedValue([
-      { id: 5, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 },
-    ])
-    mockIngredientByIdDelete.mockResolvedValueOnce(undefined)
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText(/Flour/)).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-
-    const removeButton = screen.getByRole('button', { name: 'Remove ingredient' })
-    await user.click(removeButton)
-
-    await waitFor(() => {
-      expect(mockIngredientById).toHaveBeenCalledWith(5)
-      expect(mockIngredientByIdDelete).toHaveBeenCalled()
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient removed')
-  })
-
-  it('should add a step in edit mode', async () => {
-    const user = userEvent.setup()
-    mockStepsPost.mockResolvedValueOnce({ id: 1, text: 'Mix ingredients', order: 1, recipeId: 1 })
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-
-    await user.type(screen.getByPlaceholderText('Step description...'), 'Mix ingredients')
-    await user.click(screen.getByRole('button', { name: 'Add step' }))
-
-    await waitFor(() => {
-      expect(mockStepsPost).toHaveBeenCalledWith({ text: 'Mix ingredients', order: 1 })
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Step added')
-  })
-
-  it('should show error when add step fails', async () => {
-    const user = userEvent.setup()
-    mockStepsPost.mockRejectedValueOnce(new Error('Server error'))
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-    await user.type(screen.getByPlaceholderText('Step description...'), 'Mix')
-    await user.click(screen.getByRole('button', { name: 'Add step' }))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to add step. Please try again.')
-    })
-  })
-
-  it('should delete a step in edit mode', async () => {
-    const user = userEvent.setup()
-    mockStepsGet.mockResolvedValue([
-      { id: 3, text: 'Preheat oven', order: 1, recipeId: 1 },
-    ])
-    mockStepByIdDelete.mockResolvedValueOnce(undefined)
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Preheat oven')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
-
-    // The Remove step button
-    const removeButtons = screen.getAllByRole('button', { name: 'Remove step' })
-    await user.click(removeButtons[0])
-
-    await waitFor(() => {
-      expect(mockStepById).toHaveBeenCalledWith(3)
-      expect(mockStepByIdDelete).toHaveBeenCalled()
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Step removed')
-  })
-
-  it('should add an image in edit mode', async () => {
-    const user = userEvent.setup()
-    const originalFetch = global.fetch
-    const mockFetch = jest.fn().mockImplementation((url: string) => {
-      if ((url as string).includes('/tags')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as unknown as Response)
-      }
-      return Promise.resolve({ ok: true } as Response)
-    })
-    global.fetch = mockFetch
-
-    try {
-      render(<RecipeDetailPage />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-      })
-
-      await enterEditMode(user)
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-      const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
-      await user.upload(fileInput, file)
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/recipes/1/images/upload'),
-          expect.objectContaining({ method: 'POST' })
-        )
-      })
-    } finally {
-      global.fetch = originalFetch
-    }
-  })
-
-  it('should delete an image in edit mode', async () => {
-    const user = userEvent.setup()
-    mockImagesGet.mockResolvedValue([
-      { id: 7, thumbnailUrl: 'https://example.com/img-thumb.jpg', originalUrl: 'https://example.com/img.jpg', recipeId: 1 },
-    ])
-    mockImageByIdDelete.mockResolvedValueOnce(undefined)
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getAllByAltText('Recipe image').length).toBeGreaterThan(0)
-    })
-
-    await enterEditMode(user)
-
-    const removeButton = screen.getByRole('button', { name: 'Remove image' })
-    await user.click(removeButton)
-
-    await waitFor(() => {
-      expect(mockImageById).toHaveBeenCalledWith(7)
-      expect(mockImageByIdDelete).toHaveBeenCalled()
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Image removed')
-  })
-
-  it('should navigate back to recipes when back button is clicked', async () => {
-    const user = userEvent.setup()
-
-    render(<RecipeDetailPage />)
-
-    const backButton = screen.getByRole('button', { name: 'Go back' })
-    await user.click(backButton)
-
-    expect(mockPush).toHaveBeenCalledWith('/recipes')
-  })
-
-  it('should add to shopping list when button clicked', async () => {
-    const user = userEvent.setup()
-    mockIngredientsGet.mockResolvedValue([
-      { id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 },
-    ])
-    mockAddToShoppingListPost.mockResolvedValueOnce(undefined)
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    // Open More options and click Add to Shopping List
     await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(await screen.findByRole('menuitem', { name: /Add to Shopping List/i }))
+    await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
 
-    // Click the shopping list button in the dialog
-    const listButton = await screen.findByRole('button', { name: 'My List' })
-    await user.click(listButton)
-
-    await waitFor(() => {
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockAddToShoppingListPost).toHaveBeenCalledWith({ shoppingListId: 1, multiplier: 1 })
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredients added to shopping list')
+    expect(mockPush).toHaveBeenCalledWith('/recipes/1/edit')
   })
 
-  it('should show error when add to shopping list fails', async () => {
+  it('should not show edit inputs on view page', async () => {
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('button', { name: 'Done editing' })).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Ingredient name')).not.toBeInTheDocument()
+  })
+
+  it('should show add-to-food-plan button in view mode', async () => {
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /Add to food plan/i })).toBeInTheDocument()
+  })
+
+  it('should open food plan dialog when add-to-food-plan button is clicked', async () => {
     const user = userEvent.setup()
-    mockIngredientsGet.mockResolvedValue([
-      { id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 },
-    ])
-    mockAddToShoppingListPost.mockRejectedValueOnce(new Error('Server error'))
 
     render(<RecipeDetailPage />)
 
@@ -535,16 +196,10 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    // Open More options and click Add to Shopping List
-    await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(await screen.findByRole('menuitem', { name: /Add to Shopping List/i }))
-
-    // Click the shopping list button in the dialog
-    const listButton = await screen.findByRole('button', { name: 'My List' })
-    await user.click(listButton)
+    await user.click(screen.getByRole('button', { name: /Add to food plan/i }))
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to add ingredients to shopping list. Please try again.')
+      expect(screen.getByText('Add to Food Plan')).toBeInTheDocument()
     })
   })
 
@@ -554,20 +209,6 @@ describe('RecipeDetailPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
-
-    expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
-  })
-
-  it('should show context menu button in edit mode', async () => {
-    const user = userEvent.setup()
-
-    render(<RecipeDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await enterEditMode(user)
 
     expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
   })
@@ -640,18 +281,39 @@ describe('RecipeDetailPage', () => {
     expect(mockPush).not.toHaveBeenCalledWith('/recipes')
   })
 
-  it('should show add-to-food-plan button in view mode', async () => {
+  it('should add to shopping list when button clicked', async () => {
+    const user = userEvent.setup()
+    mockIngredientsGet.mockResolvedValue([
+      { id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 },
+    ])
+    mockAddToShoppingListPost.mockResolvedValueOnce(undefined)
+
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    expect(screen.getByRole('button', { name: /Add to food plan/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Add to Shopping List/i }))
+
+    const listButton = await screen.findByRole('button', { name: 'My List' })
+    await user.click(listButton)
+
+    await waitFor(() => {
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockAddToShoppingListPost).toHaveBeenCalledWith({ shoppingListId: 1, multiplier: 1 })
+    })
+
+    expect(toast.success).toHaveBeenCalledWith('Ingredients added to shopping list')
   })
 
-  it('should not show add-to-food-plan button in edit mode', async () => {
+  it('should show error when add to shopping list fails', async () => {
     const user = userEvent.setup()
+    mockIngredientsGet.mockResolvedValue([
+      { id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 },
+    ])
+    mockAddToShoppingListPost.mockRejectedValueOnce(new Error('Server error'))
 
     render(<RecipeDetailPage />)
 
@@ -659,24 +321,14 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await enterEditMode(user)
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Add to Shopping List/i }))
 
-    expect(screen.queryByRole('button', { name: /Add to food plan/i })).not.toBeInTheDocument()
-  })
-
-  it('should open food plan dialog when add-to-food-plan button is clicked', async () => {
-    const user = userEvent.setup()
-
-    render(<RecipeDetailPage />)
+    const listButton = await screen.findByRole('button', { name: 'My List' })
+    await user.click(listButton)
 
     await waitFor(() => {
-      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: /Add to food plan/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText('Add to Food Plan')).toBeInTheDocument()
+      expect(toast.error).toHaveBeenCalledWith('Failed to add ingredients to shopping list. Please try again.')
     })
   })
 })
