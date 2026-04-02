@@ -71,6 +71,19 @@ public static class RecipeEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPost("/{id}/reimport", async (int id, ReimportRecipeRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ReimportRecipeCommand(
+                id, request.ImportName, request.ImportIngredients, request.ImportSteps, request.ImportImages));
+        })
+        .WithName("ReimportRecipe")
+        .Produces(204)
+        .Produces(400)
+        .Produces(404)
+        .Produces(422)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapPost("/import", async (ImportRecipeRequest request, IMediator mediator) =>
         {
             var ingredients = (request.Ingredients ?? [])
