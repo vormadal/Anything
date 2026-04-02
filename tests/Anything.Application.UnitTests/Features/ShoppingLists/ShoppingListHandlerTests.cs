@@ -1,5 +1,6 @@
 using Anything.Application.Features.ShoppingLists.Commands;
 using Anything.Application.Features.ShoppingLists.Queries;
+using Anything.Application.Realtime;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
@@ -14,9 +15,10 @@ public class CreateShoppingListHandlerTests
     private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
 
     private CreateShoppingListHandler CreateHandler() =>
-        new(_repo, _unitOfWork, _timeProvider);
+        new(_repo, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public CreateShoppingListHandlerTests()
     {
@@ -78,9 +80,10 @@ public class UpdateShoppingListHandlerTests
     private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
 
     private UpdateShoppingListHandler CreateHandler() =>
-        new(_repo, _unitOfWork, _timeProvider);
+        new(_repo, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public UpdateShoppingListHandlerTests()
     {
@@ -133,9 +136,10 @@ public class DeleteShoppingListHandlerTests
     private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
 
     private DeleteShoppingListHandler CreateHandler() =>
-        new(_repo, _unitOfWork, _timeProvider);
+        new(_repo, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public DeleteShoppingListHandlerTests()
     {
@@ -186,9 +190,10 @@ public class DeleteShoppingListItemHandlerTests
 {
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
 
     private DeleteShoppingListItemHandler CreateHandler() =>
-        new(_itemRepo, _unitOfWork);
+        new(_itemRepo, _unitOfWork, _realtimeNotifier);
 
     [Fact]
     public async Task Handle_WhenItemNotFound_ReturnsNotFound()
@@ -232,9 +237,10 @@ public class UpdateShoppingListItemHandlerTests
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
 
     private UpdateShoppingListItemHandler CreateHandler() =>
-        new(_itemRepo, _unitOfWork, _timeProvider);
+        new(_itemRepo, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public UpdateShoppingListItemHandlerTests()
     {
@@ -433,8 +439,9 @@ public class ReorderShoppingListsHandlerTests
 {
     private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
 
-    private ReorderShoppingListsHandler CreateHandler() => new(_repo, _unitOfWork);
+    private ReorderShoppingListsHandler CreateHandler() => new(_repo, _unitOfWork, _realtimeNotifier);
 
     [Fact]
     public async Task Handle_UpdatesSortOrderForAllMatchingLists()
