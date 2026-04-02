@@ -65,12 +65,8 @@ public class ReimportRecipeHandler(
 
         if (command.ImportIngredients)
         {
-            var existing = await ingredientRepository.Query()
-                .Where(i => i.RecipeId == command.RecipeId && i.DeletedOn == null)
-                .ToListAsync(ct);
-
-            foreach (var ingredient in existing)
-                ingredientRepository.Remove(ingredient);
+            await DeleteExisting(ingredientRepository,
+                ingredientRepository.Query().Where(i => i.RecipeId == command.RecipeId && i.DeletedOn == null), ct);
 
             var newIngredients = (parsed.Ingredients ?? []).Select(i => new RecipeIngredient
             {
@@ -86,12 +82,8 @@ public class ReimportRecipeHandler(
 
         if (command.ImportSteps)
         {
-            var existing = await stepRepository.Query()
-                .Where(s => s.RecipeId == command.RecipeId && s.DeletedOn == null)
-                .ToListAsync(ct);
-
-            foreach (var step in existing)
-                stepRepository.Remove(step);
+            await DeleteExisting(stepRepository,
+                stepRepository.Query().Where(s => s.RecipeId == command.RecipeId && s.DeletedOn == null), ct);
 
             var newSteps = (parsed.Steps ?? []).Select(s => new RecipeStep
             {
@@ -106,12 +98,8 @@ public class ReimportRecipeHandler(
 
         if (command.ImportImages && !string.IsNullOrWhiteSpace(parsed.ImageUrl))
         {
-            var existing = await imageRepository.Query()
-                .Where(img => img.RecipeId == command.RecipeId && img.DeletedOn == null)
-                .ToListAsync(ct);
-
-            foreach (var image in existing)
-                imageRepository.Remove(image);
+            await DeleteExisting(imageRepository,
+                imageRepository.Query().Where(img => img.RecipeId == command.RecipeId && img.DeletedOn == null), ct);
 
             var storageKey = await DownloadAndStoreImage(parsed.ImageUrl, ct);
             if (storageKey is not null)
@@ -127,6 +115,14 @@ public class ReimportRecipeHandler(
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
+    }
+
+    private static async Task DeleteExisting<T>(IRepository<T> repository, IQueryable<T> query, CancellationToken ct)
+        where T : class
+    {
+        var existing = await query.ToListAsync(ct);
+        foreach (var item in existing)
+            repository.Remove(item);
     }
 
     private async Task<string?> DownloadAndStoreImage(string imageUrl, CancellationToken ct)

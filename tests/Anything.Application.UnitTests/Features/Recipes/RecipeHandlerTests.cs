@@ -824,6 +824,51 @@ public class ReimportRecipeHandlerTests
 
         Assert.IsType<NoContent>(result);
     }
+
+    [Fact]
+    public async Task Handle_WhenParserThrowsHttpRequestException_ReturnsBadRequest()
+    {
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<ParsedRecipeResponse?>(new HttpRequestException("Network error")));
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, true, true, true, true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_ImportName_WhenParsedNameIsEmpty_DoesNotUpdateName()
+    {
+        var recipe = new Recipe { Id = 1, Name = "Original", Link = "https://example.com/recipe" };
+        _recipeRepo.GetById(1).Returns(recipe);
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse(string.Empty, null, [], [], null));
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: true, ImportIngredients: false, ImportSteps: false, ImportImages: false), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal("Original", recipe.Name);
+    }
+
+    [Fact]
+    public async Task Handle_ImportImages_WhenDownloadSucceeds_AddsNewImage()
+    {
+        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Soup", Link = "https://example.com/recipe" });
+        _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ParsedRecipeResponse("Soup", null, [], [], "https://example.com/image.jpg"));
+
+        var httpClient = new HttpClient(new SucceedingHttpMessageHandler());
+        _httpClientFactory.CreateClient().Returns(httpClient);
+        _imageStorageService
+            .Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), folder: "recipes")
+            .Returns("recipes/new-image.jpg");
+
+        var result = await CreateHandler().Handle(new ReimportRecipeCommand(1, ImportName: false, ImportIngredients: false, ImportSteps: false, ImportImages: true), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        _imageRepo.Received(1).Add(Arg.Is<RecipeImage>(img => img.StorageKey == "recipes/new-image.jpg"));
+    }
 }
 
 internal class FailingHttpMessageHandler : HttpMessageHandler
@@ -831,5 +876,16 @@ internal class FailingHttpMessageHandler : HttpMessageHandler
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+    }
+}
+
+internal class SucceedingHttpMessageHandler : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        response.Content = new ByteArrayContent([0xFF, 0xD8, 0xFF]);
+        response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        return Task.FromResult(response);
     }
 }
