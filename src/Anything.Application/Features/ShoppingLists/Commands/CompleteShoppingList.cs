@@ -1,3 +1,4 @@
+using Anything.Application.Realtime;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Mediator;
@@ -12,7 +13,8 @@ public class CompleteShoppingListHandler(
     IRepository<ShoppingList> listRepository,
     IRepository<ShoppingListItem> itemRepository,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider) : IRequestHandler<CompleteShoppingListCommand, IResult>
+    TimeProvider timeProvider,
+    IRealtimeNotifier realtimeNotifier) : IRequestHandler<CompleteShoppingListCommand, IResult>
 {
     public async Task<IResult> Handle(CompleteShoppingListCommand command, CancellationToken ct = default)
     {
@@ -40,6 +42,8 @@ public class CompleteShoppingListHandler(
         var newList = new ShoppingList { Name = list.Name, CreatedOn = timeProvider.GetUtcNow().UtcDateTime };
         listRepository.Add(newList);
         await unitOfWork.SaveChanges(ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.Id), ct);
         return Results.Created($"/api/shopping-lists/{newList.Id}", newList);
     }
 }

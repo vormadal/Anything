@@ -1,3 +1,4 @@
+using Anything.Application.Realtime;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Mediator;
@@ -8,7 +9,7 @@ namespace Anything.Application.Features.ShoppingLists.Commands;
 
 public record ReorderShoppingListsCommand(List<int> Ids) : IRequest<IResult>;
 
-public class ReorderShoppingListsHandler(IRepository<ShoppingList> repository, IUnitOfWork unitOfWork)
+public class ReorderShoppingListsHandler(IRepository<ShoppingList> repository, IUnitOfWork unitOfWork, IRealtimeNotifier realtimeNotifier)
     : IRequestHandler<ReorderShoppingListsCommand, IResult>
 {
     public async Task<IResult> Handle(ReorderShoppingListsCommand command, CancellationToken ct = default)
@@ -27,6 +28,7 @@ public class ReorderShoppingListsHandler(IRepository<ShoppingList> repository, I
         }
 
         await unitOfWork.SaveChanges(ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), ct);
         return Results.NoContent();
     }
 }

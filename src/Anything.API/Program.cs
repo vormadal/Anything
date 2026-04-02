@@ -23,6 +23,9 @@ builder.Services.AddRepositories();
 // Add application services (mediator, handlers, services, configuration)
 builder.Services.AddApplication(builder.Configuration);
 
+// Add real-time SSE services
+builder.Services.AddRealtimeServices();
+
 // Add TimeProvider
 builder.Services.AddSingleton(TimeProvider.System);
 
@@ -46,6 +49,19 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings.Issuer,
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = ctx =>
+        {
+            if (ctx.Request.Path.StartsWithSegments("/api/events"))
+            {
+                var token = ctx.Request.Query["token"].ToString();
+                if (!string.IsNullOrEmpty(token))
+                    ctx.Token = token;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -121,6 +137,7 @@ app.MapSuggestionCategoryEndpoints();
 app.MapLocationEndpoints();
 app.MapVendorEndpoints();
 app.MapBillEndpoints();
+app.MapEventsEndpoints();
 
 await app.RunAsync();
 
