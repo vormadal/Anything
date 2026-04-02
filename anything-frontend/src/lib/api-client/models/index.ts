@@ -639,6 +639,15 @@ export function createFoodPlanEntryFromDiscriminatorValue(parseNode: ParseNode |
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {FoodPlanNote}
+ */
+// @ts-ignore
+export function createFoodPlanNoteFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoFoodPlanNote;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {FoodPlanSettings}
  */
 // @ts-ignore
@@ -1166,6 +1175,15 @@ export function createUpdateFoodPlanEntryRequestFromDiscriminatorValue(parseNode
 // @ts-ignore
 export function createUpdateFoodPlanSettingsRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoUpdateFoodPlanSettingsRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpsertFoodPlanNoteRequest}
+ */
+// @ts-ignore
+export function createUpsertFoodPlanNoteRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpsertFoodPlanNoteRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1738,6 +1756,21 @@ export function deserializeIntoFoodPlanEntry(foodPlanEntry: Partial<FoodPlanEntr
         "modifiedOn": n => { foodPlanEntry.modifiedOn = n.getDateValue(); },
         "name": n => { foodPlanEntry.name = n.getStringValue(); },
         "recipeId": n => { foodPlanEntry.recipeId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param FoodPlanNote The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoFoodPlanNote(foodPlanNote: Partial<FoodPlanNote> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { foodPlanNote.createdOn = n.getDateValue(); },
+        "date": n => { foodPlanNote.date = n.getDateValue(); },
+        "id": n => { foodPlanNote.id = n.getNumberValue(); },
+        "modifiedOn": n => { foodPlanNote.modifiedOn = n.getDateValue(); },
+        "note": n => { foodPlanNote.note = n.getStringValue(); },
     }
 }
 /**
@@ -2330,6 +2363,17 @@ export function deserializeIntoUpdateFoodPlanSettingsRequest(updateFoodPlanSetti
 }
 /**
  * The deserialization information for the current model
+ * @param UpsertFoodPlanNoteRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpsertFoodPlanNoteRequest(upsertFoodPlanNoteRequest: Partial<UpsertFoodPlanNoteRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "note": n => { upsertFoodPlanNoteRequest.note = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param UpdateInventoryBoxRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -2555,6 +2599,28 @@ export interface FoodPlanEntry extends Parsable {
      * The recipeId property
      */
     recipeId?: number | null;
+}
+export interface FoodPlanNote extends Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The date property
+     */
+    date?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The note property
+     */
+    note?: string | null;
 }
 export interface FoodPlanSettings extends Parsable {
     /**
@@ -3534,6 +3600,21 @@ export function serializeFoodPlanEntry(writer: SerializationWriter, foodPlanEntr
 }
 /**
  * Serializes information the current object
+ * @param FoodPlanNote The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeFoodPlanNote(writer: SerializationWriter, foodPlanNote: Partial<FoodPlanNote> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!foodPlanNote || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", foodPlanNote.createdOn);
+    writer.writeDateValue("date", foodPlanNote.date);
+    writer.writeNumberValue("id", foodPlanNote.id);
+    writer.writeDateValue("modifiedOn", foodPlanNote.modifiedOn);
+    writer.writeStringValue("note", foodPlanNote.note);
+}
+/**
+ * Serializes information the current object
  * @param FoodPlanSettings The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
@@ -4124,6 +4205,17 @@ export function serializeUpdateFoodPlanSettingsRequest(writer: SerializationWrit
 }
 /**
  * Serializes information the current object
+ * @param UpsertFoodPlanNoteRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpsertFoodPlanNoteRequest(writer: SerializationWriter, upsertFoodPlanNoteRequest: Partial<UpsertFoodPlanNoteRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!upsertFoodPlanNoteRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("note", upsertFoodPlanNoteRequest.note);
+}
+/**
+ * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param UpdateInventoryBoxRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
@@ -4557,6 +4649,12 @@ export interface UpdateFoodPlanSettingsRequest extends Parsable {
      * The activeDays property
      */
     activeDays?: number | null;
+}
+export interface UpsertFoodPlanNoteRequest extends Parsable {
+    /**
+     * The note property
+     */
+    note?: string | null;
 }
 export interface UpdateInventoryBoxRequest extends Parsable {
     /**

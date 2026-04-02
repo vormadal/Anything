@@ -351,3 +351,144 @@ public class UpdateFoodPlanSettingsHandlerTests
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
 }
+
+public class UpsertFoodPlanNoteHandlerTests
+{
+    private readonly IRepository<FoodPlanNote> _noteRepo = Substitute.For<IRepository<FoodPlanNote>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+
+    public UpsertFoodPlanNoteHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public async Task Handle_WhenNoteDoesNotExist_CreatesAndReturnsCreated()
+    {
+        var date = new DateOnly(2026, 3, 11);
+        _noteRepo.Query().Returns(new List<FoodPlanNote>().AsAsyncQueryable());
+        var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _unitOfWork, _timeProvider);
+
+        var result = await handler.Handle(new UpsertFoodPlanNoteCommand(date, "Some note"), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created<FoodPlanNote>>(result);
+        _noteRepo.Received(1).Add(Arg.Is<FoodPlanNote>(n => n.Note == "Some note" && n.Date == date));
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenNoteExists_UpdatesAndReturnsOk()
+    {
+        var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
+        _timeProvider.GetUtcNow().Returns(now);
+        var date = new DateOnly(2026, 3, 11);
+        var existing = new FoodPlanNote { Id = 1, Date = date, Note = "Old note", CreatedOn = DateTime.UtcNow };
+        _noteRepo.Query().Returns(new List<FoodPlanNote> { existing }.AsAsyncQueryable());
+        var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _unitOfWork, _timeProvider);
+
+        var result = await handler.Handle(new UpsertFoodPlanNoteCommand(date, "Updated note"), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Ok<FoodPlanNote>>(result);
+        Assert.Equal("Updated note", existing.Note);
+        Assert.Equal(now.UtcDateTime, existing.ModifiedOn);
+        _noteRepo.Received(1).Update(existing);
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+}
+
+public class DeleteFoodPlanNoteHandlerTests
+{
+    private readonly IRepository<FoodPlanNote> _noteRepo = Substitute.For<IRepository<FoodPlanNote>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+
+    [Fact]
+    public async Task Handle_WhenNoteNotFound_ReturnsNotFound()
+    {
+        _noteRepo.Query().Returns(new List<FoodPlanNote>().AsAsyncQueryable());
+        var handler = new DeleteFoodPlanNoteHandler(_noteRepo, _unitOfWork);
+
+        var result = await handler.Handle(new DeleteFoodPlanNoteCommand(99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WhenNoteExists_RemovesAndReturnsNoContent()
+    {
+        var date = new DateOnly(2026, 3, 11);
+        var note = new FoodPlanNote { Id = 1, Date = date, Note = "A note", CreatedOn = DateTime.UtcNow };
+        _noteRepo.Query().Returns(new List<FoodPlanNote> { note }.AsAsyncQueryable());
+        var handler = new DeleteFoodPlanNoteHandler(_noteRepo, _unitOfWork);
+
+        var result = await handler.Handle(new DeleteFoodPlanNoteCommand(1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        _noteRepo.Received(1).Remove(note);
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+}
+
+public class GetFoodPlanNotesByDateRangeHandlerTests
+{
+    private readonly IRepository<FoodPlanNote> _repo = Substitute.For<IRepository<FoodPlanNote>>();
+
+    [Fact]
+    public async Task Handle_ReturnsNotesWithinDateRange()
+    {
+        var startDate = new DateOnly(2026, 3, 9);
+        var endDate = new DateOnly(2026, 3, 15);
+
+        _repo.Query().Returns(new List<FoodPlanNote>
+        {
+            new() { Id = 1, Note = "Monday note", Date = new DateOnly(2026, 3, 9) },
+            new() { Id = 2, Note = "Wednesday note", Date = new DateOnly(2026, 3, 11) },
+            new() { Id = 3, Note = "Outside range", Date = new DateOnly(2026, 3, 16) }
+        }.AsAsyncQueryable());
+
+        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
+            .Handle(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Monday note", result[0].Note);
+        Assert.Equal("Wednesday note", result[1].Note);
+    }
+
+    [Fact]
+    public async Task Handle_OrdersResultsByDate()
+    {
+        var startDate = new DateOnly(2026, 3, 9);
+        var endDate = new DateOnly(2026, 3, 15);
+
+        _repo.Query().Returns(new List<FoodPlanNote>
+        {
+            new() { Id = 1, Note = "Friday note", Date = new DateOnly(2026, 3, 13) },
+            new() { Id = 2, Note = "Monday note", Date = new DateOnly(2026, 3, 9) },
+            new() { Id = 3, Note = "Wednesday note", Date = new DateOnly(2026, 3, 11) }
+        }.AsAsyncQueryable());
+
+        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
+            .Handle(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
+
+        Assert.Equal("Monday note", result[0].Note);
+        Assert.Equal("Wednesday note", result[1].Note);
+        Assert.Equal("Friday note", result[2].Note);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsEmptyWhenNoNotesInRange()
+    {
+        var startDate = new DateOnly(2026, 4, 1);
+        var endDate = new DateOnly(2026, 4, 7);
+
+        _repo.Query().Returns(new List<FoodPlanNote>
+        {
+            new() { Id = 1, Note = "March note", Date = new DateOnly(2026, 3, 9) }
+        }.AsAsyncQueryable());
+
+        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
+            .Handle(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
+
+        Assert.Empty(result);
+    }
+}
