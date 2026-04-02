@@ -139,6 +139,14 @@ export default function NewRecipePage() {
 
         {mode === "url" && (
           <form onSubmit={handleParse} className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setMode("select")}
+              aria-label="Return to import mode selection"
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-2"
+            >
+              ← Back
+            </button>
             <div>
               <label htmlFor="parse-url" className={LABEL_CLASS}>
                 Recipe URL
