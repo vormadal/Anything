@@ -57,7 +57,7 @@ export default function NewRecipePage() {
           imageUrl: result.imageUrl ?? null,
         });
         toast.success("Recipe imported");
-        router.push(`/recipes/${imported.id}?edit=true`);
+        router.push(`/recipes/${imported.id}/edit`);
       }
     } catch (err) {
       const parseError = err as { status?: number };
@@ -81,12 +81,12 @@ export default function NewRecipePage() {
         name,
         link: link || undefined,
         notes: notes || undefined,
-        cookTimeMinutes: parsedCookTime && !isNaN(parsedCookTime) ? parsedCookTime : null,
-        servings: parsedServings && !isNaN(parsedServings) ? parsedServings : null,
+        cookTimeMinutes: parsedCookTime && !Number.isNaN(parsedCookTime) ? parsedCookTime : null,
+        servings: parsedServings && !Number.isNaN(parsedServings) ? parsedServings : null,
         servingsType: servingsType || null,
       });
       toast.success("Recipe created");
-      router.push(newRecipe?.id ? `/recipes/${newRecipe.id}?edit=true` : "/recipes");
+      router.push(newRecipe?.id ? `/recipes/${newRecipe.id}/edit` : "/recipes");
     } catch {
       toast.error("Failed to create recipe. Please try again.");
     }

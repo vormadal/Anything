@@ -26,7 +26,12 @@ export default function ShoppingListDetailPage() {
   const listId = Number(params.id);
 
   const searchParams = useSearchParams();
-  const [isEditMode, setIsEditMode] = useState(() => searchParams.get("edit") === "true");
+  const editParam = searchParams.get("edit") === "true";
+  const [isEditMode, setIsEditMode] = useState(editParam);
+
+  useEffect(() => {
+    setIsEditMode(editParam);
+  }, [editParam]);
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const handleDeleteListRef = useRef<() => void>(() => undefined);
