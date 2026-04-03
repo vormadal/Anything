@@ -405,6 +405,12 @@ export function createBillPriceHistoryFromDiscriminatorValue(parseNode: ParseNod
 export function createBillPriceHistoryResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoBillPriceHistoryResponse;
 }
+export interface CompleteShoppingListRequest extends Parsable {
+    /**
+     * The markUnchecked property
+     */
+    markUnchecked?: boolean | null;
+}
 export interface CreateBillRequest extends Parsable {
     /**
      * The category property
@@ -473,6 +479,15 @@ export function createBillSummaryResponseFromDiscriminatorValue(parseNode: Parse
 // @ts-ignore
 export function createChangePasswordRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoChangePasswordRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CompleteShoppingListRequest}
+ */
+// @ts-ignore
+export function createCompleteShoppingListRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCompleteShoppingListRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1526,6 +1541,17 @@ export function deserializeIntoChangePasswordRequest(changePasswordRequest: Part
 }
 /**
  * The deserialization information for the current model
+ * @param CompleteShoppingListRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCompleteShoppingListRequest(completeShoppingListRequest: Partial<CompleteShoppingListRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "markUnchecked": n => { completeShoppingListRequest.markUnchecked = n.getBooleanValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param CreateBillRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -2220,6 +2246,7 @@ export function deserializeIntoShoppingList(shoppingList: Partial<ShoppingList> 
 export function deserializeIntoShoppingListItem(shoppingListItem: Partial<ShoppingListItem> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "amount": n => { shoppingListItem.amount = n.getNumberValue(); },
+        "completedOn": n => { shoppingListItem.completedOn = n.getDateValue(); },
         "createdOn": n => { shoppingListItem.createdOn = n.getDateValue(); },
         "id": n => { shoppingListItem.id = n.getNumberValue(); },
         "isChecked": n => { shoppingListItem.isChecked = n.getBooleanValue(); },
@@ -3366,6 +3393,17 @@ export function serializeChangePasswordRequest(writer: SerializationWriter, chan
 }
 /**
  * Serializes information the current object
+ * @param CompleteShoppingListRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCompleteShoppingListRequest(writer: SerializationWriter, completeShoppingListRequest: Partial<CompleteShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!completeShoppingListRequest || isSerializingDerivedType) { return; }
+    writer.writeBooleanValue("markUnchecked", completeShoppingListRequest.markUnchecked);
+}
+/**
+ * Serializes information the current object
  * @param CreateBillRequest The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
@@ -4063,6 +4101,7 @@ export function serializeShoppingList(writer: SerializationWriter, shoppingList:
 export function serializeShoppingListItem(writer: SerializationWriter, shoppingListItem: Partial<ShoppingListItem> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!shoppingListItem || isSerializingDerivedType) { return; }
     writer.writeNumberValue("amount", shoppingListItem.amount);
+    writer.writeDateValue("completedOn", shoppingListItem.completedOn);
     writer.writeDateValue("createdOn", shoppingListItem.createdOn);
     writer.writeNumberValue("id", shoppingListItem.id);
     writer.writeBooleanValue("isChecked", shoppingListItem.isChecked);
@@ -4435,6 +4474,10 @@ export interface ShoppingListItem extends Parsable {
      * The amount property
      */
     amount?: number | null;
+    /**
+     * The completedOn property
+     */
+    completedOn?: Date | null;
     /**
      * The createdOn property
      */

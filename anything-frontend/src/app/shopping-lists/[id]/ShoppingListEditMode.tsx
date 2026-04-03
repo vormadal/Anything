@@ -74,7 +74,7 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
         r.name &&
         newItemName.trim().length > 0 &&
         r.name.toLowerCase().includes(newItemName.toLowerCase()) &&
-        !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase() && !i.isChecked)
+        !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase())
     ) ?? [];
 
   const parseAmount = (value: string): number | null => {
@@ -161,10 +161,7 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
     }
   };
 
-  const sortedItems = [
-    ...(items?.filter((i) => !i.isChecked) ?? []),
-    ...(items?.filter((i) => i.isChecked) ?? []),
-  ];
+  const sortedItems = items ?? [];
 
   return (
     <>
@@ -276,9 +273,7 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
           {sortedItems.map((item) => (
             <li
               key={item.id}
-              className={`flex items-center gap-2 py-2 px-3 transition-colors ${
-                item.isChecked ? "bg-gray-50 dark:bg-gray-900/30" : ""
-              }`}
+              className="flex items-center gap-2 py-2 px-3 transition-colors"
             >
               {editingItem !== null && editingItem.id === item.id ? (
                 <div
@@ -339,11 +334,7 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
                 <span
                   role="button"
                   tabIndex={0}
-                  className={`flex-1 text-sm cursor-pointer hover:text-blue-600 ${
-                    item.isChecked
-                      ? "line-through text-gray-400 dark:text-gray-600"
-                      : "text-gray-900 dark:text-white"
-                  }`}
+                  className="flex-1 text-sm cursor-pointer hover:text-blue-600 text-gray-900 dark:text-white"
                   onClick={() =>
                     setEditingItem({
                       id: item.id!,

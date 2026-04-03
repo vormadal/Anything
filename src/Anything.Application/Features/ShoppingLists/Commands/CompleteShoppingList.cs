@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.ShoppingLists.Commands;
 
-public record CompleteShoppingListCommand(int Id) : IRequest<IResult>;
+public record CompleteShoppingListCommand(int Id, bool MarkUnchecked = false) : IRequest<IResult>;
 
 public class CompleteShoppingListHandler(
     IRepository<ShoppingList> listRepository,
@@ -25,25 +25,30 @@ public class CompleteShoppingListHandler(
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         var items = await itemRepository.Query()
-            .Where(i => i.ShoppingListId == command.Id)
+            .Where(i => i.ShoppingListId == command.Id && i.CompletedOn == null)
             .ToListAsync(ct);
 
-        foreach (var item in items)
+        if (command.MarkUnchecked)
         {
-            if (!item.IsChecked)
+            foreach (var item in items)
             {
                 item.IsChecked = true;
+                item.CompletedOn = now;
+                item.ModifiedOn = now;
+            }
+        }
+        else
+        {
+            foreach (var item in items.Where(i => i.IsChecked))
+            {
+                item.CompletedOn = now;
                 item.ModifiedOn = now;
             }
         }
 
-        list.DeletedOn = now;
-
-        var newList = new ShoppingList { Name = list.Name, CreatedOn = timeProvider.GetUtcNow().UtcDateTime };
-        listRepository.Add(newList);
         await unitOfWork.SaveChanges(ct);
         await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), ct);
         await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.Id), ct);
-        return Results.Created($"/api/shopping-lists/{newList.Id}", newList);
+        return Results.NoContent();
     }
 }

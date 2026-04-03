@@ -143,23 +143,21 @@ describe('useShoppingLists hooks', () => {
   })
 
   describe('useCompleteShoppingList', () => {
-    it('should complete a shopping list and return the new list', async () => {
-      const mockNewList = { id: 2, name: 'Groceries', createdOn: '2024-01-02T00:00:00Z' }
-      mockCompletePost.mockResolvedValueOnce(mockNewList)
+    it('should complete a shopping list', async () => {
+      mockCompletePost.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useCompleteShoppingList(), {
         wrapper: createWrapper(),
       })
 
       await act(async () => {
-        result.current.mutate(1)
+        result.current.mutate({ id: 1, markUnchecked: true })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockCompletePost).toHaveBeenCalled()
-      expect(result.current.data).toEqual(mockNewList)
+      expect(mockCompletePost).toHaveBeenCalledWith({ markUnchecked: true })
     })
   })
 
