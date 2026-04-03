@@ -22,10 +22,8 @@ const mockItemsPost = jest.fn()
 const mockItemsItemPut = jest.fn()
 const mockItemsItemDelete = jest.fn()
 const mockItemsItemById = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
-const mockCompletePost = jest.fn()
 const mockItems = { get: mockItemsGet, post: mockItemsPost, byItemId: mockItemsItemById }
-const mockComplete = { post: mockCompletePost }
-const mockById = jest.fn(() => ({ delete: mockDelete, get: mockGet, put: mockPut, items: mockItems, complete: mockComplete }))
+const mockById = jest.fn(() => ({ delete: mockDelete, get: mockGet, put: mockPut, items: mockItems }))
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
