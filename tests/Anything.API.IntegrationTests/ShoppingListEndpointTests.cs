@@ -279,7 +279,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     // --- PUT /api/shopping-lists/{id}/items/{itemId} ---
 
     [Fact]
-    public async Task UpdateShoppingListItem_CheckingItemHidesItFromList()
+    public async Task UpdateShoppingListItem_CheckingItemKeepsItVisibleWithIsCheckedTrue()
     {
         var list = await CreateShoppingListAsync("My List");
         var item = await AddItemAsync(list.Id, "Milk", null, null);
@@ -290,11 +290,14 @@ public class ShoppingListEndpointTests : IntegrationTestBase
             new { name = "Whole Milk", isChecked = true }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
 
-        // Checked items are hidden from the items list (CompletedOn is set)
+        // Checked items remain visible in the list (IsChecked=true, CompletedOn=null)
+        // Only items with CompletedOn set are hidden
         var itemsResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}/items", TestContext.Current.CancellationToken);
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
-        Assert.Empty(items);
+        Assert.Single(items);
+        Assert.Equal("Whole Milk", items[0].Name);
+        Assert.True(items[0].IsChecked);
     }
 
     [Fact]
