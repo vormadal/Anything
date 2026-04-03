@@ -4,14 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type { ShoppingListResponse, ShoppingListItem } from "@/lib/api-client/models/index";
 
-export function useCompletedShoppingLists() {
-  return useQuery({
-    queryKey: ["completedShoppingLists"],
-    queryFn: () =>
-      apiClient.api.shoppingLists.completed.get() as unknown as Promise<ShoppingListResponse[]>,
-  });
-}
-
 export function useShoppingLists() {
   return useQuery({
     queryKey: ["shoppingLists"],
@@ -53,20 +45,6 @@ export function useDeleteShoppingList() {
       apiClient.api.shoppingLists.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
-    },
-  });
-}
-
-export function useCompleteShoppingList() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, markUnchecked }: { id: number; markUnchecked: boolean }) =>
-      apiClient.api.shoppingLists.byId(id).complete.post({ markUnchecked }),
-    onSuccess: (_data, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
-      queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
-      queryClient.invalidateQueries({ queryKey: ["shoppingListItems", id] });
     },
   });
 }

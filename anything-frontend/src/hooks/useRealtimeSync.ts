@@ -25,7 +25,6 @@ export function useRealtimeSync() {
         const data = JSON.parse(event.data) as SyncEvent;
         if (data.type === "shoppingLists") {
           queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
-          queryClient.invalidateQueries({ queryKey: ["completedShoppingLists"] });
         } else if (data.type === "shoppingListItems" && data.listId !== undefined) {
           queryClient.invalidateQueries({
             queryKey: ["shoppingListItems", data.listId],

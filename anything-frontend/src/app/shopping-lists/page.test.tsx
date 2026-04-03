@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 // Mock the apiClient module
 const mockShoppingListsGet = jest.fn()
 const mockShoppingListsPost = jest.fn()
-const mockShoppingListsCompletedGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -15,9 +14,6 @@ jest.mock('@/lib/apiClient', () => ({
       shoppingLists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
         post: (...args: unknown[]) => mockShoppingListsPost(...args),
-        completed: {
-          get: (...args: unknown[]) => mockShoppingListsCompletedGet(...args),
-        },
       },
     },
   },
@@ -47,7 +43,6 @@ describe('ShoppingListsPage', () => {
     jest.clearAllMocks()
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
-    mockShoppingListsCompletedGet.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -208,84 +203,6 @@ describe('ShoppingListsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Create list' }))
 
     expect(screen.getByRole('button', { name: 'Creating...' })).toBeInTheDocument()
-  })
-
-  it('should show context menu button', async () => {
-    mockShoppingListsGet.mockResolvedValue([])
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Shopping list options' })).toBeInTheDocument()
-    })
-  })
-
-  it('should toggle completed lists section when Show completed lists is clicked', async () => {
-    const user = userEvent.setup()
-    mockShoppingListsGet.mockResolvedValue([])
-    mockShoppingListsCompletedGet.mockResolvedValue([])
-
-    render(<ShoppingListsPage />)
-
-    await waitFor(() => {
-      expect(screen.queryByText('Completed lists')).not.toBeInTheDocument()
-    })
-
-    const menuButton = screen.getByRole('button', { name: 'Shopping list options' })
-    await user.click(menuButton)
-
-    const checkboxItem = await screen.findByText('Show completed lists')
-    await user.click(checkboxItem)
-
-    await waitFor(() => {
-      expect(screen.getByText('Completed lists')).toBeInTheDocument()
-    })
-  })
-
-  it('should display completed lists with completion date when toggle is on', async () => {
-    const user = userEvent.setup()
-    mockShoppingListsGet.mockResolvedValue([])
-    mockShoppingListsCompletedGet.mockResolvedValue([
-      { id: 10, name: 'Old Groceries', deletedOn: new Date('2024-03-01T10:00:00Z') },
-    ])
-
-    render(<ShoppingListsPage />)
-
-    const menuButton = screen.getByRole('button', { name: 'Shopping list options' })
-    await user.click(menuButton)
-
-    const checkboxItem = await screen.findByText('Show completed lists')
-    await user.click(checkboxItem)
-
-    await waitFor(() => {
-      expect(screen.getByText('Old Groceries')).toBeInTheDocument()
-      expect(screen.getByText(/Completed lists/i)).toBeInTheDocument()
-      expect(screen.getByText(/Completed \d/)).toBeInTheDocument()
-    })
-  })
-
-  it('should navigate to completed list detail when clicked', async () => {
-    const user = userEvent.setup()
-    mockShoppingListsGet.mockResolvedValue([])
-    mockShoppingListsCompletedGet.mockResolvedValue([
-      { id: 10, name: 'Old Groceries', deletedOn: new Date('2024-03-01T10:00:00Z') },
-    ])
-
-    render(<ShoppingListsPage />)
-
-    const menuButton = screen.getByRole('button', { name: 'Shopping list options' })
-    await user.click(menuButton)
-
-    const checkboxItem = await screen.findByText('Show completed lists')
-    await user.click(checkboxItem)
-
-    await waitFor(() => {
-      expect(screen.getByText('Old Groceries')).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: /Old Groceries/ }))
-
-    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/10')
   })
 
   it('should display unchecked item count badge when count > 0', async () => {

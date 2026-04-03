@@ -11,7 +11,6 @@ const mockItemsGet = jest.fn()
 const mockItemsPost = jest.fn()
 const mockItemsItemPut = jest.fn()
 const mockItemsItemDelete = jest.fn()
-const mockCompletePost = jest.fn()
 const mockItemsItemById = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
 const mockById = jest.fn(() => ({
   get: mockListGet,
@@ -22,7 +21,6 @@ const mockById = jest.fn(() => ({
     post: mockItemsPost,
     byItemId: mockItemsItemById,
   },
-  complete: { post: mockCompletePost },
 }))
 
 jest.mock('@/lib/apiClient', () => ({
@@ -182,8 +180,6 @@ describe('ShoppingListDetailPage', () => {
       expect(mockItemsItemById).toHaveBeenCalledWith(1)
       expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', isChecked: true }))
     })
-
-    expect(mockCompletePost).not.toHaveBeenCalled()
   })
 
   it('should show error when check fails', async () => {
@@ -546,78 +542,6 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
-  it('should show complete list button when all items are checked', async () => {
-    const mockItems = [
-      { id: 1, name: 'Milk', isChecked: true, shoppingListId: 1 },
-      { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
-      { id: 3, name: 'Eggs', isChecked: true, shoppingListId: 1 },
-      { id: 4, name: 'Butter', isChecked: true, shoppingListId: 1 },
-    ]
-    mockItemsGet.mockResolvedValue(mockItems)
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
-    })
-  })
-
-  it('should show complete list button when 3 or fewer unchecked items remain', async () => {
-    const mockItems = [
-      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
-      { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
-      { id: 3, name: 'Eggs', isChecked: true, shoppingListId: 1 },
-    ]
-    mockItemsGet.mockResolvedValue(mockItems)
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
-    })
-  })
-
-  it('should always show complete list button when items exist', async () => {
-    const mockItems = [
-      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
-      { id: 2, name: 'Bread', isChecked: false, shoppingListId: 1 },
-      { id: 3, name: 'Eggs', isChecked: false, shoppingListId: 1 },
-      { id: 4, name: 'Butter', isChecked: false, shoppingListId: 1 },
-    ]
-    mockItemsGet.mockResolvedValue(mockItems)
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
-    })
-  })
-
-  it('should complete immediately without dialog when all items are checked', async () => {
-    const user = userEvent.setup()
-    const mockItems = [
-      { id: 1, name: 'Milk', isChecked: true, shoppingListId: 1 },
-      { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
-    ]
-    mockItemsGet.mockResolvedValue(mockItems)
-    mockCompletePost.mockResolvedValueOnce(undefined)
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Complete List' }))
-
-    await waitFor(() => {
-      expect(mockCompletePost).toHaveBeenCalledWith(expect.objectContaining({ markUnchecked: false }))
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Shopping list completed!')
-    expect(screen.queryByText(/Complete shopping list\?/i)).not.toBeInTheDocument()
-  })
-
   it('should sort checked items to the bottom', async () => {
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
@@ -677,93 +601,6 @@ describe('ShoppingListDetailPage', () => {
     await user.keyboard('{Enter}')
 
     expect(screen.getByDisplayValue('Milk')).toBeInTheDocument()
-  })
-
-  it('should complete the list with dialog - mark all complete', async () => {
-    const user = userEvent.setup()
-    const mockItems = [
-      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
-      { id: 2, name: 'Bread', isChecked: false, shoppingListId: 1 },
-    ]
-    mockItemsGet.mockResolvedValue(mockItems)
-    mockCompletePost.mockResolvedValueOnce(undefined)
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Complete List' }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/Complete shopping list\?/i)).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Yes, mark all complete' }))
-
-    await waitFor(() => {
-      expect(mockCompletePost).toHaveBeenCalledWith(expect.objectContaining({ markUnchecked: true }))
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Shopping list completed!')
-    expect(mockPush).not.toHaveBeenCalled()
-  })
-
-  it('should complete the list with dialog - keep unchecked items', async () => {
-    const user = userEvent.setup()
-    const mockItems = [
-      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
-    ]
-    mockItemsGet.mockResolvedValue(mockItems)
-    mockCompletePost.mockResolvedValueOnce(undefined)
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Complete List' }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/Complete shopping list\?/i)).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'No, keep them' }))
-
-    await waitFor(() => {
-      expect(mockCompletePost).toHaveBeenCalledWith(expect.objectContaining({ markUnchecked: false }))
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Shopping list completed!')
-  })
-
-  it('should show error when complete fails', async () => {
-    const user = userEvent.setup()
-    const mockItems = [
-      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
-    ]
-    mockItemsGet.mockResolvedValue(mockItems)
-    mockCompletePost.mockRejectedValueOnce(new Error('Server error'))
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Complete List' }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/Complete shopping list\?/i)).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Yes, mark all complete' }))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to complete list. Please try again.')
-    })
   })
 
   it('should populate name field when suggestion is clicked, not add immediately', async () => {
@@ -932,13 +769,13 @@ describe('ShoppingListDetailPage', () => {
     const mockListDelete = jest.fn().mockResolvedValueOnce(undefined)
     mockById.mockReturnValue({
       get: mockListGet,
+      put: mockListPut,
       delete: mockListDelete,
       items: {
         get: mockItemsGet,
         post: mockItemsPost,
         byItemId: mockItemsItemById,
       },
-      complete: { post: mockCompletePost },
     })
     mockItemsGet.mockResolvedValue([])
 
@@ -969,13 +806,13 @@ describe('ShoppingListDetailPage', () => {
     const mockListDelete = jest.fn().mockRejectedValueOnce(new Error('Server error'))
     mockById.mockReturnValue({
       get: mockListGet,
+      put: mockListPut,
       delete: mockListDelete,
       items: {
         get: mockItemsGet,
         post: mockItemsPost,
         byItemId: mockItemsItemById,
       },
-      complete: { post: mockCompletePost },
     })
     mockItemsGet.mockResolvedValue([])
 
@@ -995,76 +832,6 @@ describe('ShoppingListDetailPage', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete shopping list. Please try again.')
-    })
-  })
-
-  describe('completed list (read-only)', () => {
-    const completedList = {
-      id: 1,
-      name: 'Old Groceries',
-      createdOn: '2024-01-01T00:00:00Z',
-      deletedOn: '2024-03-01T10:00:00Z',
-    }
-
-    beforeEach(() => {
-      mockListGet.mockResolvedValue(completedList)
-    })
-
-    it('should show completed banner with date', async () => {
-      mockItemsGet.mockResolvedValue([])
-
-      render(<ShoppingListDetailPage />)
-
-      await waitFor(() => {
-        expect(screen.getByText(/Completed on/i)).toBeInTheDocument()
-        expect(screen.getByText(/Read-only/i)).toBeInTheDocument()
-      })
-    })
-
-    it('should not show edit button for completed list', async () => {
-      mockItemsGet.mockResolvedValue([])
-
-      render(<ShoppingListDetailPage />)
-
-      await waitFor(() => {
-        expect(screen.queryByRole('button', { name: 'Edit list' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: 'More options' })).not.toBeInTheDocument()
-      })
-    })
-
-    it('should not show complete list button for completed list', async () => {
-      const checkedItems = [
-        { id: 1, name: 'Milk', isChecked: true, shoppingListId: 1 },
-        { id: 2, name: 'Eggs', isChecked: true, shoppingListId: 1 },
-      ]
-      mockItemsGet.mockResolvedValue(checkedItems)
-
-      render(<ShoppingListDetailPage />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Milk')).toBeInTheDocument()
-      })
-
-      expect(screen.queryByRole('button', { name: /Complete List/i })).not.toBeInTheDocument()
-    })
-
-    it('should show items as read-only (checkboxes disabled)', async () => {
-      const items = [
-        { id: 1, name: 'Milk', isChecked: true, shoppingListId: 1 },
-        { id: 2, name: 'Bread', isChecked: false, shoppingListId: 1 },
-      ]
-      mockItemsGet.mockResolvedValue(items)
-
-      render(<ShoppingListDetailPage />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Milk')).toBeInTheDocument()
-      })
-
-      const checkboxes = screen.getAllByRole('button', { name: /check item|uncheck item/i })
-      checkboxes.forEach((cb) => {
-        expect(cb).toBeDisabled()
-      })
     })
   })
 })

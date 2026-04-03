@@ -5,7 +5,6 @@ import {
   useShoppingLists,
   useCreateShoppingList,
   useDeleteShoppingList,
-  useCompleteShoppingList,
   useShoppingListItems,
   useAddShoppingListItem,
   useUpdateShoppingListItem,
@@ -27,7 +26,6 @@ const mockCompletePost = jest.fn()
 const mockItems = { get: mockItemsGet, post: mockItemsPost, byItemId: mockItemsItemById }
 const mockComplete = { post: mockCompletePost }
 const mockById = jest.fn(() => ({ delete: mockDelete, get: mockGet, put: mockPut, items: mockItems, complete: mockComplete }))
-
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
@@ -139,25 +137,6 @@ describe('useShoppingLists hooks', () => {
 
       expect(mockById).toHaveBeenCalledWith(1)
       expect(mockDelete).toHaveBeenCalled()
-    })
-  })
-
-  describe('useCompleteShoppingList', () => {
-    it('should complete a shopping list', async () => {
-      mockCompletePost.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useCompleteShoppingList(), {
-        wrapper: createWrapper(),
-      })
-
-      await act(async () => {
-        result.current.mutate({ id: 1, markUnchecked: true })
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockCompletePost).toHaveBeenCalledWith({ markUnchecked: true })
     })
   })
 

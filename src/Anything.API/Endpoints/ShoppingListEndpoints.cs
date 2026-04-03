@@ -3,7 +3,6 @@ using Anything.Application.Features.ShoppingLists.Queries;
 using Anything.Contracts.ShoppingLists;
 using Anything.Core.Entities;
 using Anything.Mediator;
-using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
 
@@ -18,13 +17,6 @@ public static class ShoppingListEndpoints
             return await mediator.Send(new GetShoppingListsQuery());
         })
         .WithName("GetShoppingLists")
-        .RequireAuthorization();
-
-        group.MapGet("/completed", async (IMediator mediator) =>
-        {
-            return await mediator.Send(new GetCompletedShoppingListsQuery());
-        })
-        .WithName("GetCompletedShoppingLists")
         .RequireAuthorization();
 
         group.MapGet("/{id}", async (int id, IMediator mediator) =>
@@ -109,16 +101,6 @@ public static class ShoppingListEndpoints
         .WithName("DeleteShoppingListItem")
         .Produces(204)
         .Produces(404)
-        .RequireAuthorization();
-
-        group.MapPost("/{id}/complete", async (int id, CompleteShoppingListRequest request, IMediator mediator) =>
-        {
-            return await mediator.Send(new CompleteShoppingListCommand(id, request.MarkUnchecked));
-        })
-        .WithName("CompleteShoppingList")
-        .Produces(204)
-        .Produces(404)
-        .WithParameterValidation()
         .RequireAuthorization();
     }
 }

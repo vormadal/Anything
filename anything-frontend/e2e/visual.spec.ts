@@ -159,10 +159,6 @@ async function setupApiMocks(page: Page) {
       route.continue();
     }
   });
-  // More-specific overrides (registered after → higher LIFO priority)
-  await page.route("**/api/shopping-lists/completed**", (route) =>
-    route.fulfill({ json: [] })
-  );
   await page.route(/\/api\/shopping-lists\/\d+\/items/, (route) =>
     route.fulfill({ json: mockShoppingListItems })
   );

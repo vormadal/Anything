@@ -95,13 +95,11 @@ jest.mock('@/lib/apiClient', () => ({
       shoppingLists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
         post: jest.fn(),
-        completed: { get: jest.fn().mockResolvedValue([]) },
         byId: jest.fn(() => ({
           get: jest.fn(),
           put: jest.fn(),
           delete: jest.fn(),
           items: { get: jest.fn(), post: jest.fn(), byItemId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
-          complete: { post: jest.fn() },
         })),
       },
     },

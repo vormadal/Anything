@@ -44,7 +44,6 @@ export default function ShoppingListDetailPage() {
   });
 
   const deleteList = useDeleteShoppingList();
-  const isCompleted = !!list?.deletedOn;
 
   // No dependency array: keeps the closure fresh without adding unstable refs to the header effect deps
   useEffect(() => {
@@ -62,60 +61,58 @@ export default function ShoppingListDetailPage() {
   useEffect(() => {
     setLeftAction({ type: "back", href: "/shopping-lists" });
     setHeaderActions(
-      isCompleted ? null : (
-        <div className="flex items-center gap-1 ml-auto">
-          {!isEditMode && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => { setIsEditMode(true); router.push("?edit=true"); }}
-              aria-label="Edit list"
-            >
-              <Pencil className="h-5 w-5" />
+      <div className="flex items-center gap-1 ml-auto">
+        {!isEditMode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => { setIsEditMode(true); router.push("?edit=true"); }}
+            aria-label="Edit list"
+          >
+            <Pencil className="h-5 w-5" />
+          </Button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="More options">
+              <MoreVertical className="h-5 w-5" />
             </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="More options">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {isEditMode && (
-                <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
-                  <SquarePen className="h-4 w-4" />
-                  Edit list name
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-                onSelect={() => handleDeleteListRef.current()}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete list
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {isEditMode && (
+              <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
+                <SquarePen className="h-4 w-4" />
+                Edit list name
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )
+            )}
+            <DropdownMenuItem
+              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+              onSelect={() => handleDeleteListRef.current()}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete list
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     );
     return () => {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [isEditMode, isCompleted, router, setHeaderActions, setLeftAction]);
+  }, [isEditMode, router, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <PageTitle>{list?.name ?? "Shopping List"}</PageTitle>
-      {isEditMode && !isCompleted ? (
+      {isEditMode ? (
         <ShoppingListEditMode
           listId={listId}
           list={list}
           openEditNameDialogRef={openEditNameDialogRef}
         />
       ) : (
-        <ShoppingListView listId={listId} list={list} isCompleted={isCompleted} />
+        <ShoppingListView listId={listId} list={list} />
       )}
     </div>
   );
