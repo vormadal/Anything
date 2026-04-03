@@ -18,7 +18,7 @@ public class GetShoppingListsHandler(IRepository<ShoppingList> listRepository, I
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.CreatedOn)
             .GroupJoin(
-                itemRepository.Query().Where(i => !i.IsChecked),
+                itemRepository.Query().Where(i => !i.IsChecked && i.CompletedOn == null),
                 l => l.Id,
                 i => i.ShoppingListId,
                 (l, items) => new ShoppingListResponse(

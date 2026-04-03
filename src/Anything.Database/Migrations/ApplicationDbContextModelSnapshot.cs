@@ -648,6 +648,9 @@ namespace Anything.Database.Migrations
                     b.Property<decimal?>("Amount")
                         .HasColumnType("numeric");
 
+                    b.Property<DateTime?>("CompletedOn")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 

@@ -335,7 +335,7 @@ public class GetShoppingListsHandlerTests
         var items = new List<ShoppingListItem>
         {
             new() { Id = 1, ShoppingListId = 1, Name = "Milk", IsChecked = false },
-            new() { Id = 2, ShoppingListId = 1, Name = "Bread", IsChecked = true },
+            new() { Id = 2, ShoppingListId = 1, Name = "Bread", IsChecked = true, CompletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
             new() { Id = 3, ShoppingListId = 1, Name = "Eggs", IsChecked = false },
         };
         _repo.Query().Returns(lists.AsAsyncQueryable());
@@ -349,7 +349,7 @@ public class GetShoppingListsHandlerTests
     }
 
     [Fact]
-    public async Task Handle_CheckedItemsAreNotCountedAsUnchecked()
+    public async Task Handle_CheckedButNotCompletedItemsAreNotCountedAsUnchecked()
     {
         var lists = new List<ShoppingList>
         {
@@ -358,7 +358,7 @@ public class GetShoppingListsHandlerTests
         var items = new List<ShoppingListItem>
         {
             new() { Id = 1, ShoppingListId = 1, Name = "Milk", IsChecked = false },
-            new() { Id = 2, ShoppingListId = 1, Name = "Bread", IsChecked = true },
+            new() { Id = 2, ShoppingListId = 1, Name = "Bread", IsChecked = true }, // checked but not completed
         };
         _repo.Query().Returns(lists.AsAsyncQueryable());
         _itemRepo.Query().Returns(items.AsQueryable());
@@ -367,7 +367,7 @@ public class GetShoppingListsHandlerTests
         var result = await handler.Handle(new GetShoppingListsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
-        Assert.Equal(1, result[0].UncheckedItemCount);
+        Assert.Equal(1, result[0].UncheckedItemCount); // only unchecked item counts
     }
 }
 

@@ -4,6 +4,8 @@
 // @ts-ignore
 import { createHttpValidationProblemDetailsFromDiscriminatorValue, createShoppingListFromDiscriminatorValue, serializeUpdateShoppingListRequest, type HttpValidationProblemDetails, type ShoppingList, type UpdateShoppingListRequest } from '../../../models/index';
 // @ts-ignore
+import { CompleteRequestBuilderRequestsMetadata, type CompleteRequestBuilder } from './complete/index';
+// @ts-ignore
 import { ItemsRequestBuilderNavigationMetadata, ItemsRequestBuilderRequestsMetadata, type ItemsRequestBuilder } from './items/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
@@ -12,6 +14,10 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  * Builds and executes requests for operations under /api/shopping-lists/{id}
  */
 export interface ShoppingListsItemRequestBuilder extends BaseRequestBuilder<ShoppingListsItemRequestBuilder> {
+    /**
+     * The complete property
+     */
+    get complete(): CompleteRequestBuilder;
     /**
      * The items property
      */
@@ -56,6 +62,9 @@ export const ShoppingListsItemRequestBuilderUriTemplate = "{+baseurl}/api/shoppi
  * Metadata for all the navigation properties in the request builder.
  */
 export const ShoppingListsItemRequestBuilderNavigationMetadata: Record<Exclude<keyof ShoppingListsItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
+    complete: {
+        requestsMetadata: CompleteRequestBuilderRequestsMetadata,
+    },
     items: {
         requestsMetadata: ItemsRequestBuilderRequestsMetadata,
         navigationMetadata: ItemsRequestBuilderNavigationMetadata,

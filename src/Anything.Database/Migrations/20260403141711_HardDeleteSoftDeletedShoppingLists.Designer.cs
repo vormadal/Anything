@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anything.Database.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260403135620_HardDeleteEmptyShoppingListsAndRemoveCompletedOn")]
-    partial class HardDeleteEmptyShoppingListsAndRemoveCompletedOn
+    [Migration("20260403141711_HardDeleteSoftDeletedShoppingLists")]
+    partial class HardDeleteSoftDeletedShoppingLists
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -650,6 +650,9 @@ namespace Anything.Database.Migrations
 
                     b.Property<decimal?>("Amount")
                         .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("CompletedOn")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");

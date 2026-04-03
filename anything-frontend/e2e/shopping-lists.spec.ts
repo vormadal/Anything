@@ -2,10 +2,10 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Shopping list full flow:
- * create list → add items → check items
+ * create list → add items → check items → complete list
  */
 
-test("create shopping list, add items, and check them", async ({ page }) => {
+test("create shopping list, add items, and complete it", async ({ page }) => {
   const listName = `E2E List ${Date.now()}`;
 
   // Navigate to shopping lists
@@ -55,8 +55,12 @@ test("create shopping list, add items, and check them", async ({ page }) => {
   await checkButtons.nth(0).click();
   await checkButtons.nth(1).click();
 
-  // Checked items should show with strikethrough
-  await expect(page.getByRole("button", { name: "Uncheck item" })).toHaveCount(2);
+  // The "Complete List" button appears when few unchecked items remain (≤3)
+  await expect(page.getByRole("button", { name: "Complete List" })).toBeVisible();
+  await page.getByRole("button", { name: "Complete List" }).click();
+
+  // After completion the app navigates to the new carry-over list or back to shopping lists
+  await expect(page).toHaveURL(/\/shopping-lists/);
 });
 
 test("shopping list can be renamed and deleted", async ({ page }) => {

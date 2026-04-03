@@ -49,6 +49,20 @@ export function useDeleteShoppingList() {
   });
 }
 
+export function useCompleteShoppingList() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, markUnchecked }: { id: number; markUnchecked: boolean }) =>
+      apiClient.api.shoppingLists.byId(id).complete.post({ markUnchecked }),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingListItems", id] });
+    },
+  });
+}
+
 export function useReorderShoppingLists() {
   const queryClient = useQueryClient();
 
