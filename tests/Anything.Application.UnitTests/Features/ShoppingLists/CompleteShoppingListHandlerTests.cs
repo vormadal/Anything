@@ -1,4 +1,5 @@
 using Anything.Application.Features.ShoppingLists.Commands;
+using Anything.Application.Realtime;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
@@ -14,9 +15,10 @@ public class CompleteShoppingListHandlerTests
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
 
     private CompleteShoppingListHandler CreateHandler() =>
-        new(_listRepo, _itemRepo, _unitOfWork, _timeProvider);
+        new(_listRepo, _itemRepo, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public CompleteShoppingListHandlerTests()
     {
