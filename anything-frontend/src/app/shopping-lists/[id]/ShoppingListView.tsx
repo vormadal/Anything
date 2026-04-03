@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Archive } from "lucide-react";
+import { Check, Archive } from "lucide-react";
 import {
   useShoppingListItems,
   useUpdateShoppingListItem,
@@ -29,6 +29,10 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
   const updateItem = useUpdateShoppingListItem(listId);
   const completeList = useCompleteShoppingList();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
+  const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
+  const checkedItems = items?.filter((i) => i.isChecked) ?? [];
+  const sortedItems = [...uncheckedItems, ...checkedItems];
 
   const handleToggleCheck = async (item: ShoppingListItem) => {
     try {
@@ -55,7 +59,7 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
   };
 
   const handleCompleteClick = () => {
-    if (items && items.length > 0) {
+    if (uncheckedItems.length > 0) {
       setConfirmDialogOpen(true);
     } else {
       handleCompleteList(false);
@@ -70,9 +74,9 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
             <DialogTitle>Complete shopping list?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            There {items?.length === 1 ? "is" : "are"} {items?.length ?? 0} unchecked{" "}
-            {items?.length === 1 ? "item" : "items"} remaining. Would you like to mark{" "}
-            {items?.length === 1 ? "it" : "them"} as complete too?
+            There {uncheckedItems.length === 1 ? "is" : "are"} {uncheckedItems.length} unchecked{" "}
+            {uncheckedItems.length === 1 ? "item" : "items"} remaining. Would you like to mark{" "}
+            {uncheckedItems.length === 1 ? "it" : "them"} as complete too?
           </p>
           <DialogFooter className="flex gap-2 sm:flex-row flex-col">
             <Button
@@ -117,25 +121,37 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
         </div>
       )}
 
-      {items && items.length > 0 && (
+      {sortedItems.length > 0 && (
         <>
           <ul>
-            {items.map((item) => (
+            {sortedItems.map((item) => (
               <Fragment key={item.id}>
                 <li
-                  className="flex items-center gap-2 py-2 px-3 transition-colors"
+                  className={`flex items-center gap-2 py-2 px-3 transition-colors ${
+                    item.isChecked ? "bg-gray-50 dark:bg-gray-900/30" : ""
+                  }`}
                 >
                   <button
                     type="button"
                     onClick={() => handleToggleCheck(item)}
                     disabled={isCompleted || updateItem.isPending || completeList.isPending}
-                    aria-label="Check item"
-                    className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 dark:border-gray-600 hover:border-blue-400 ${
-                      isCompleted ? "cursor-default opacity-60" : ""
-                    }`}
-                  />
+                    aria-label={item.isChecked ? "Uncheck item" : "Check item"}
+                    className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      item.isChecked
+                        ? "bg-gray-300 border-gray-300 dark:bg-gray-600 dark:border-gray-600"
+                        : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
+                    } ${isCompleted ? "cursor-default opacity-60" : ""}`}
+                  >
+                    {item.isChecked && <Check className="h-3 w-3 text-gray-500 dark:text-gray-400" />}
+                  </button>
 
-                  <span className="flex-1 text-sm text-gray-900 dark:text-white">
+                  <span
+                    className={`flex-1 text-sm ${
+                      item.isChecked
+                        ? "line-through text-gray-400 dark:text-gray-600"
+                        : "text-gray-900 dark:text-white"
+                    }`}
+                  >
                     {item.amount != null && item.unit && (
                       <span className="text-gray-400 dark:text-gray-500 mr-1">
                         {item.amount} {item.unit}

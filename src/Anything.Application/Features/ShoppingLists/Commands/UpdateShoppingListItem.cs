@@ -24,11 +24,6 @@ public class UpdateShoppingListItemHandler(IRepository<ShoppingListItem> reposit
         item.Unit = command.Unit;
         item.ModifiedOn = now;
 
-        if (command.IsChecked && item.CompletedOn == null)
-            item.CompletedOn = now;
-        else if (!command.IsChecked)
-            item.CompletedOn = null;
-
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

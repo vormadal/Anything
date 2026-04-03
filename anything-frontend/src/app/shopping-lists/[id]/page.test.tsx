@@ -123,7 +123,7 @@ describe('ShoppingListDetailPage', () => {
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
       { id: 2, name: 'Bread', isChecked: false, shoppingListId: 1 },
       { id: 3, name: 'Eggs', isChecked: false, shoppingListId: 1 },
-      { id: 4, name: 'Butter', isChecked: false, shoppingListId: 1 },
+      { id: 4, name: 'Butter', isChecked: true, shoppingListId: 1 },
     ]
     mockItemsGet.mockResolvedValue(mockItems)
 
@@ -135,9 +135,12 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Butter')).toBeInTheDocument()
     })
 
-    // All items have "Check item" buttons (checked items are hidden server-side)
+    // Unchecked items have "Check item" buttons
     const checkButtons = screen.getAllByRole('button', { name: 'Check item' })
-    expect(checkButtons).toHaveLength(4)
+    expect(checkButtons).toHaveLength(3)
+
+    // Checked item has "Uncheck item" button
+    expect(screen.getByRole('button', { name: 'Uncheck item' })).toBeInTheDocument()
   })
 
   it('should display amount and unit next to item name', async () => {
@@ -155,32 +158,6 @@ describe('ShoppingListDetailPage', () => {
 
     expect(screen.getByText('2 l')).toBeInTheDocument()
     expect(screen.getByText('12×')).toBeInTheDocument()
-  })
-
-  it('should toggle item check when clicked', async () => {
-    const user = userEvent.setup()
-    const mockItems = [
-      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
-      { id: 2, name: 'Bread', isChecked: false, shoppingListId: 1 },
-      { id: 3, name: 'Eggs', isChecked: false, shoppingListId: 1 },
-      { id: 4, name: 'Butter', isChecked: false, shoppingListId: 1 },
-    ]
-    mockItemsGet.mockResolvedValue(mockItems)
-    mockItemsItemPut.mockResolvedValueOnce(undefined)
-
-    render(<ShoppingListDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Milk')).toBeInTheDocument()
-    })
-
-    const checkButtons = screen.getAllByRole('button', { name: 'Check item' })
-    await user.click(checkButtons[0])
-
-    await waitFor(() => {
-      expect(mockItemsItemById).toHaveBeenCalledWith(1)
-      expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', isChecked: true }))
-    })
   })
 
   it('should toggle item check when checking an item', async () => {
@@ -614,6 +591,60 @@ describe('ShoppingListDetailPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
     })
+  })
+
+  it('should complete immediately without dialog when all items are checked', async () => {
+    const user = userEvent.setup()
+    const mockItems = [
+      { id: 1, name: 'Milk', isChecked: true, shoppingListId: 1 },
+      { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
+    ]
+    mockItemsGet.mockResolvedValue(mockItems)
+    mockCompletePost.mockResolvedValueOnce(undefined)
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Complete List' }))
+
+    await waitFor(() => {
+      expect(mockCompletePost).toHaveBeenCalledWith(expect.objectContaining({ markUnchecked: false }))
+    })
+
+    expect(toast.success).toHaveBeenCalledWith('Shopping list completed!')
+    expect(screen.queryByText(/Complete shopping list\?/i)).not.toBeInTheDocument()
+  })
+
+  it('should sort checked items to the bottom', async () => {
+    const mockItems = [
+      { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
+      { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
+      { id: 3, name: 'Eggs', isChecked: false, shoppingListId: 1 },
+      { id: 4, name: 'Butter', isChecked: true, shoppingListId: 1 },
+    ]
+    mockItemsGet.mockResolvedValue(mockItems)
+
+    render(<ShoppingListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Milk')).toBeInTheDocument()
+    })
+
+    const listItems = screen.getAllByRole('listitem')
+    const itemTexts = listItems.map((item) => item.textContent)
+
+    const milkIndex = itemTexts.findIndex((t) => t?.includes('Milk'))
+    const eggsIndex = itemTexts.findIndex((t) => t?.includes('Eggs'))
+    const breadIndex = itemTexts.findIndex((t) => t?.includes('Bread'))
+    const butterIndex = itemTexts.findIndex((t) => t?.includes('Butter'))
+
+    expect(milkIndex).toBeLessThan(breadIndex)
+    expect(eggsIndex).toBeLessThan(breadIndex)
+    expect(milkIndex).toBeLessThan(butterIndex)
+    expect(eggsIndex).toBeLessThan(butterIndex)
   })
 
   it('should navigate back to shopping lists when back button is clicked', async () => {
