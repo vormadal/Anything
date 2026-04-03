@@ -1,6 +1,7 @@
 "use client";
 
 import { useIsAuthenticated } from "@/hooks/useAuth";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
@@ -13,6 +14,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     () => false
   );
   const isAuthenticated = useIsAuthenticated();
+  useRealtimeSync();
   const router = useRouter();
   const pathname = usePathname();
 
