@@ -577,7 +577,7 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
-  it('should show complete list button when items exist', async () => {
+  it('should always show complete list button when items exist', async () => {
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
       { id: 2, name: 'Bread', isChecked: false, shoppingListId: 1 },
