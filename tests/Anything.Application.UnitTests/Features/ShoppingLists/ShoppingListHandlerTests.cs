@@ -380,7 +380,7 @@ public class GetShoppingListByIdHandlerTests
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((ShoppingList?)null);
+        _repo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new GetShoppingListByIdQuery(1), TestContext.Current.CancellationToken);
@@ -392,7 +392,7 @@ public class GetShoppingListByIdHandlerTests
     public async Task Handle_WhenListFound_ReturnsOkWithList()
     {
         var list = new ShoppingList { Id = 1, Name = "My List" };
-        _repo.GetById(1).Returns(list);
+        _repo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new GetShoppingListByIdQuery(1), TestContext.Current.CancellationToken);
@@ -400,60 +400,17 @@ public class GetShoppingListByIdHandlerTests
         var ok = Assert.IsType<Ok<ShoppingList>>(result);
         Assert.Equal("My List", ok.Value!.Name);
     }
-}
-
-public class GetCompletedShoppingListsHandlerTests
-{
-    private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
-
-    private GetCompletedShoppingListsHandler CreateHandler() => new(_repo);
 
     [Fact]
-    public async Task Handle_ReturnsOnlyDeletedLists()
+    public async Task Handle_WhenListIsSoftDeleted_ReturnsNotFound()
     {
-        var lists = new List<ShoppingList>
-        {
-            new() { Id = 1, Name = "Active" },
-            new() { Id = 2, Name = "Completed", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
-        };
-        _repo.Query().Returns(lists.AsAsyncQueryable());
+        var list = new ShoppingList { Id = 1, Name = "Deleted List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        _repo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        var result = await handler.Handle(new GetCompletedShoppingListsQuery(), TestContext.Current.CancellationToken);
+        var result = await handler.Handle(new GetShoppingListByIdQuery(1), TestContext.Current.CancellationToken);
 
-        Assert.Single(result);
-        Assert.Equal("Completed", result[0].Name);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsEmptyWhenNoCompletedLists()
-    {
-        _repo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
-
-        var handler = CreateHandler();
-        var result = await handler.Handle(new GetCompletedShoppingListsQuery(), TestContext.Current.CancellationToken);
-
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsListsOrderedByDeletedOnDescending()
-    {
-        var older = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var newer = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        var lists = new List<ShoppingList>
-        {
-            new() { Id = 1, Name = "OlderList", DeletedOn = older },
-            new() { Id = 2, Name = "NewerList", DeletedOn = newer }
-        };
-        _repo.Query().Returns(lists.AsAsyncQueryable());
-
-        var handler = CreateHandler();
-        var result = await handler.Handle(new GetCompletedShoppingListsQuery(), TestContext.Current.CancellationToken);
-
-        Assert.Equal("NewerList", result[0].Name);
-        Assert.Equal("OlderList", result[1].Name);
+        Assert.IsType<NotFound>(result);
     }
 }
 

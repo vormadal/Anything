@@ -142,11 +142,9 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var deleteResponse = await client.DeleteAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        // Soft-deleted lists are still accessible by ID (with DeletedOn set)
+        // Soft-deleted lists are no longer accessible by ID (returns 404)
         var getResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
-        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(result?.DeletedOn);
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
     [Fact]
@@ -358,58 +356,6 @@ public class ShoppingListEndpointTests : IntegrationTestBase
 
         var response = await client.DeleteAsync($"/api/shopping-lists/{list.Id}/items/99999", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    // --- GET /api/shopping-lists/completed ---
-
-    [Fact]
-    public async Task GetCompletedShoppingLists_WhenEmpty_ReturnsEmptyList()
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-lists/completed", TestContext.Current.CancellationToken);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GetCompletedShoppingLists_RequiresAuthentication()
-    {
-        var response = await HttpClient.GetAsync("/api/shopping-lists/completed", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task GetCompletedShoppingLists_ReturnsCompletedLists()
-    {
-        var list = await CreateShoppingListAsync("Weekly Shop");
-        var client = await GetAuthenticatedHttpClientAsync();
-
-        // Explicitly delete the list (soft-delete) to make it appear in completed lists
-        await client.DeleteAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
-
-        var response = await client.GetAsync("/api/shopping-lists/completed", TestContext.Current.CancellationToken);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
-
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("Weekly Shop", result[0].Name);
-        Assert.NotNull(result[0].DeletedOn);
-    }
-
-    [Fact]
-    public async Task GetCompletedShoppingLists_DoesNotReturnActiveLists()
-    {
-        await CreateShoppingListAsync("Active List");
-
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-lists/completed", TestContext.Current.CancellationToken);
-        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
-
-        Assert.NotNull(result);
-        Assert.Empty(result);
     }
 
     // --- POST /api/shopping-lists/{id}/complete ---

@@ -4,8 +4,6 @@
 // @ts-ignore
 import { createHttpValidationProblemDetailsFromDiscriminatorValue, createShoppingListFromDiscriminatorValue, createShoppingListResponseFromDiscriminatorValue, serializeCreateShoppingListRequest, serializeShoppingList, type CreateShoppingListRequest, type HttpValidationProblemDetails, type ShoppingList, type ShoppingListResponse } from '../../models/index';
 // @ts-ignore
-import { CompletedRequestBuilderRequestsMetadata, type CompletedRequestBuilder } from './completed/index';
-// @ts-ignore
 import { ShoppingListsItemRequestBuilderNavigationMetadata, ShoppingListsItemRequestBuilderRequestsMetadata, type ShoppingListsItemRequestBuilder } from './item/index';
 // @ts-ignore
 import { ReorderRequestBuilderRequestsMetadata, type ReorderRequestBuilder } from './reorder/index';
@@ -16,10 +14,6 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  * Builds and executes requests for operations under /api/shopping-lists
  */
 export interface ShoppingListsRequestBuilder extends BaseRequestBuilder<ShoppingListsRequestBuilder> {
-    /**
-     * The completed property
-     */
-    get completed(): CompletedRequestBuilder;
     /**
      * The reorder property
      */
@@ -66,9 +60,6 @@ export const ShoppingListsRequestBuilderNavigationMetadata: Record<Exclude<keyof
         requestsMetadata: ShoppingListsItemRequestBuilderRequestsMetadata,
         navigationMetadata: ShoppingListsItemRequestBuilderNavigationMetadata,
         pathParametersMappings: ["id"],
-    },
-    completed: {
-        requestsMetadata: CompletedRequestBuilderRequestsMetadata,
     },
     reorder: {
         requestsMetadata: ReorderRequestBuilderRequestsMetadata,

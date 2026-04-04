@@ -91,16 +91,3 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
   await expect(page).toHaveURL("/shopping-lists");
   await expect(page.getByText(newName)).not.toBeVisible();
 });
-
-test("completed lists can be viewed", async ({ page }) => {
-  await page.goto("/shopping-lists");
-
-  // Toggle completed lists visibility
-  await page.getByRole("button", { name: "Shopping list options" }).click();
-  await page.getByText("Show completed lists").click();
-
-  // The section heading should be visible (even if empty)
-  await expect(
-    page.getByRole("heading", { name: "Completed lists" })
-  ).toBeVisible();
-});

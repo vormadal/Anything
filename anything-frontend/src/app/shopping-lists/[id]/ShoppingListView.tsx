@@ -9,22 +9,20 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Check, Archive } from "lucide-react";
+import { Check } from "lucide-react";
 import {
   useShoppingListItems,
   useUpdateShoppingListItem,
   useCompleteShoppingList,
 } from "@/hooks/useShoppingLists";
 import { toast } from "sonner";
-import type { ShoppingList, ShoppingListItem } from "@/lib/api-client/models/index";
+import type { ShoppingListItem } from "@/lib/api-client/models/index";
 
 interface Props {
   listId: number;
-  list: ShoppingList | undefined;
-  isCompleted: boolean;
 }
 
-export function ShoppingListView({ listId, list, isCompleted }: Props) {
+export function ShoppingListView({ listId }: Props) {
   const { data: items, isLoading, error } = useShoppingListItems(listId);
   const updateItem = useUpdateShoppingListItem(listId);
   const completeList = useCompleteShoppingList();
@@ -96,15 +94,6 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
         </DialogContent>
       </Dialog>
 
-      {isCompleted && (
-        <div className="mb-4 flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
-          <Archive className="h-4 w-4" />
-          <span>
-            Completed{list?.deletedOn ? ` on ${new Date(list.deletedOn).toLocaleDateString()}` : ""} · Read-only
-          </span>
-        </div>
-      )}
-
       {isLoading && (
         <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading...</div>
       )}
@@ -134,13 +123,13 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
                   <button
                     type="button"
                     onClick={() => handleToggleCheck(item)}
-                    disabled={isCompleted || updateItem.isPending || completeList.isPending}
+                    disabled={updateItem.isPending || completeList.isPending}
                     aria-label={item.isChecked ? "Uncheck item" : "Check item"}
                     className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       item.isChecked
                         ? "bg-gray-300 border-gray-300 dark:bg-gray-600 dark:border-gray-600"
                         : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
-                    } ${isCompleted ? "cursor-default opacity-60" : ""}`}
+                    }`}
                   >
                     {item.isChecked && <Check className="h-3 w-3 text-gray-500 dark:text-gray-400" />}
                   </button>
@@ -169,8 +158,7 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
             ))}
           </ul>
 
-          {!isCompleted && (
-            <div className="flex justify-end py-2">
+          <div className="flex justify-end py-2">
               <Button
                 onClick={handleCompleteClick}
                 disabled={completeList.isPending}
@@ -179,7 +167,6 @@ export function ShoppingListView({ listId, list, isCompleted }: Props) {
                 {completeList.isPending ? "Completing..." : "Complete List"}
               </Button>
             </div>
-          )}
         </>
       )}
     </>

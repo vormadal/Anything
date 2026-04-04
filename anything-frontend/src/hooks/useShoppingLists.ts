@@ -4,14 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type { ShoppingListResponse, ShoppingListItem } from "@/lib/api-client/models/index";
 
-export function useCompletedShoppingLists() {
-  return useQuery({
-    queryKey: ["completedShoppingLists"],
-    queryFn: () =>
-      apiClient.api.shoppingLists.completed.get() as unknown as Promise<ShoppingListResponse[]>,
-  });
-}
-
 export function useShoppingLists() {
   return useQuery({
     queryKey: ["shoppingLists"],

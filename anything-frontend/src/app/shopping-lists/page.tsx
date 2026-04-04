@@ -1,20 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { CountBadge } from "@/components/ui/count-badge";
-import { useShoppingLists, useCreateShoppingList, useCompletedShoppingLists, useReorderShoppingLists } from "@/hooks/useShoppingLists";
+import { useShoppingLists, useCreateShoppingList, useReorderShoppingLists } from "@/hooks/useShoppingLists";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { MoreVertical, Plus, GripVertical } from "lucide-react";
+import { Plus, GripVertical } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -78,10 +72,8 @@ function DraggableShoppingListItem({ list, onClick }: { list: ShoppingListRespon
 export default function ShoppingListsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [newListName, setNewListName] = useState("");
-  const [showCompleted, setShowCompleted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: lists, isLoading, error } = useShoppingLists();
-  const { data: completedLists } = useCompletedShoppingLists();
   const createList = useCreateShoppingList();
   const reorderLists = useReorderShoppingLists();
   const router = useRouter();
@@ -138,25 +130,10 @@ export default function ShoppingListsPage() {
         >
           <Plus className="h-5 w-5" />
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Shopping list options">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuCheckboxItem
-              checked={showCompleted}
-              onCheckedChange={setShowCompleted}
-            >
-              Show completed lists
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions, showCompleted]);
+  }, [setHeaderActions]);
 
   useEffect(() => {
     if (isCreating) {
@@ -165,7 +142,6 @@ export default function ShoppingListsPage() {
   }, [isCreating]);
 
   const hasActiveLists = lists && lists.length > 0;
-  const hasCompletedLists = showCompleted && completedLists && completedLists.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
@@ -206,7 +182,7 @@ export default function ShoppingListsPage() {
         </div>
       )}
 
-      {lists && lists.length === 0 && !isCreating && !hasCompletedLists && (
+      {lists && lists.length === 0 && !isCreating && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           No shopping lists yet.
         </div>
@@ -233,38 +209,6 @@ export default function ShoppingListsPage() {
             </div>
           </SortableContext>
         </DndContext>
-      )}
-
-      {showCompleted && (
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-            Completed lists
-          </h2>
-          {completedLists && completedLists.length === 0 && (
-            <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
-              No completed lists yet.
-            </div>
-          )}
-          {hasCompletedLists && (
-            <div>
-              {completedLists.map((list) => (
-                <button
-                  key={list.id}
-                  type="button"
-                  className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={() => router.push(`/shopping-lists/${list.id}`)}
-                >
-                  <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-                    {list.name}
-                  </span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
-                    Completed {list.deletedOn ? new Date(list.deletedOn).toLocaleDateString() : ""}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
