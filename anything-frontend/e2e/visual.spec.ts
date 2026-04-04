@@ -401,6 +401,33 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  // "mandag" = Monday 2025-01-13, which has Pasta Carbonara + a note in the mock data.
+  // The page clock is set to 2025-01-15 (Wednesday), so Monday is 2 days back (no relative
+  // label), giving aria-label "mandag".
+  test("food plans - day dialog with entries and note", async ({ page }) => {
+    await page.goto("/food-plans");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "mandag" }).first().click();
+    await page.waitForSelector('[aria-label="Close dialog"]');
+    await expect(page).toHaveScreenshot(
+      "food-plans-day-dialog-with-entries.png",
+      screenshotOptions
+    );
+  });
+
+  // "torsdag" = Thursday 2025-01-16, one day after the fixed-date Wednesday.
+  // aria-label becomes "torsdag, i morgen" (tomorrow). Has no entries in mock data.
+  test("food plans - day dialog empty day", async ({ page }) => {
+    await page.goto("/food-plans");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /torsdag/i }).first().click();
+    await page.waitForSelector('[aria-label="Close dialog"]');
+    await expect(page).toHaveScreenshot(
+      "food-plans-day-dialog-empty.png",
+      screenshotOptions
+    );
+  });
+
   // ---- Profile ----
 
   test("profile page", async ({ page }) => {
