@@ -142,11 +142,9 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         var deleteResponse = await client.DeleteAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        // Soft-deleted lists are still accessible by ID (with DeletedOn set)
+        // Soft-deleted lists are no longer accessible by ID (returns 404)
         var getResponse = await client.GetAsync($"/api/shopping-lists/{list.Id}", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
-        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(result?.DeletedOn);
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
     [Fact]
