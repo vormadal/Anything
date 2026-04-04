@@ -36,6 +36,6 @@ public class UpdateHouseholdHandler(
         householdRepository.Update(household);
         await unitOfWork.SaveChanges(ct);
 
-        return Results.Ok(household);
+        return Results.NoContent();
     }
 }

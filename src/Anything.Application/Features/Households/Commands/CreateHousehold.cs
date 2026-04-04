@@ -23,11 +23,10 @@ public class CreateHouseholdHandler(
             CreatedOn = now
         };
         householdRepository.Add(household);
-        await unitOfWork.SaveChanges(ct);
 
         var member = new HouseholdMember
         {
-            HouseholdId = household.Id,
+            Household = household,
             UserId = command.UserId,
             Role = HouseholdRoles.Owner,
             JoinedOn = now

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { HOUSEHOLD_ID_KEY } from "@/lib/apiClient";
+import { HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER } from "@/lib/apiClient";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
@@ -99,7 +99,7 @@ export function useUpdateHousehold() {
           : null;
       const headers: HeadersInit = {
         ...getAuthHeaders(),
-        ...(householdId ? { "X-Household-Id": householdId } : {}),
+        ...(householdId ? { [HOUSEHOLD_HEADER]: householdId } : {}),
       };
       const response = await fetch(
         `${API_BASE_URL}/api/households/${data.id}`,

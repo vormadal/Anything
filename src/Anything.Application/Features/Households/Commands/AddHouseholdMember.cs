@@ -16,8 +16,17 @@ public class AddHouseholdMemberHandler(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<AddHouseholdMemberCommand, IResult>
 {
+    private static readonly HashSet<string> AllowedRoles =
+    [
+        HouseholdRoles.Owner,
+        HouseholdRoles.Member
+    ];
+
     public async Task<IResult> Handle(AddHouseholdMemberCommand command, CancellationToken ct = default)
     {
+        if (!AllowedRoles.Contains(command.Role))
+            return Results.BadRequest($"Invalid role. Allowed roles are: {string.Join(", ", AllowedRoles)}.");
+
         var household = await householdRepository.Query()
             .Where(h => h.Id == command.HouseholdId && h.DeletedOn == null)
             .AnyAsync(ct);

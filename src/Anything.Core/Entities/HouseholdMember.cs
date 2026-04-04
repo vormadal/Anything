@@ -7,4 +7,6 @@ public class HouseholdMember
     public int UserId { get; set; }
     public required string Role { get; set; }
     public DateTime JoinedOn { get; set; }
+
+    public Household? Household { get; set; }
 }

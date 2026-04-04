@@ -115,7 +115,7 @@ class UnauthorizedHandler implements Middleware {
 }
 
 // Kiota middleware that injects the X-Household-Id header from localStorage.
-class HouseholdHeaderHandler implements Middleware {
+export class HouseholdHeaderHandler implements Middleware {
   next: Middleware | undefined = undefined;
 
   async execute(

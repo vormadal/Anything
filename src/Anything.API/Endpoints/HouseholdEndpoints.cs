@@ -55,7 +55,7 @@ public static class HouseholdEndpoints
             return await mediator.Send(new UpdateHouseholdCommand(id, request.Name, userId));
         })
         .WithName("UpdateHousehold")
-        .Produces(200)
+        .Produces(204)
         .Produces(403)
         .Produces(404)
         .WithParameterValidation()

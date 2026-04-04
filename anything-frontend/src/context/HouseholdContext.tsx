@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -53,17 +54,20 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Derive the effective household ID: use stored selection if valid,
-  // otherwise fall back to the first household (and persist the fallback).
+  // otherwise fall back to the first household.
   const effectiveId = useMemo(() => {
     if (isLoading || households.length === 0) return selectedId;
 
     const isValid = selectedId !== null && households.some((h) => h.id === selectedId);
-    if (isValid) return selectedId;
-
-    const fallbackId = households[0].id;
-    persistHouseholdId(fallbackId);
-    return fallbackId;
+    return isValid ? selectedId : households[0].id;
   }, [selectedId, households, isLoading]);
+
+  // Persist the effective ID to localStorage whenever it changes (side effect outside render).
+  useEffect(() => {
+    if (effectiveId !== null) {
+      persistHouseholdId(effectiveId);
+    }
+  }, [effectiveId]);
 
   return (
     <HouseholdContext.Provider

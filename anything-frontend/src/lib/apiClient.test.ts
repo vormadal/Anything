@@ -25,7 +25,7 @@ jest.mock("@/lib/api-client/apiClient", () => ({
 }));
 
 // Must be imported after mocks are declared.
-import { attemptTokenRefresh } from "@/lib/apiClient";
+import { attemptTokenRefresh, HouseholdHeaderHandler, HOUSEHOLD_HEADER } from "@/lib/apiClient";
 
 const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
@@ -141,6 +141,63 @@ describe("attemptTokenRefresh", () => {
     // Storage should be unchanged — no partial writes on invalid payload
     expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe("my-refresh-token");
     expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HouseholdHeaderHandler tests
+// ---------------------------------------------------------------------------
+
+const HOUSEHOLD_ID_KEY = "householdId";
+
+describe("HouseholdHeaderHandler", () => {
+  let handler: HouseholdHeaderHandler;
+  let mockNext: { execute: jest.Mock };
+
+  const mockResponse = { status: 200, ok: true } as unknown as Response;
+
+  beforeEach(() => {
+    localStorage.clear();
+    handler = new HouseholdHeaderHandler();
+    mockNext = {
+      execute: jest.fn().mockResolvedValue(mockResponse),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    handler.next = mockNext as any;
+  });
+
+  it("injects X-Household-Id header when householdId is present in localStorage", async () => {
+    localStorage.setItem(HOUSEHOLD_ID_KEY, "42");
+
+    await handler.execute("https://api.example.com/test", {});
+
+    const calledInit = mockNext.execute.mock.calls[0][1] as RequestInit;
+    const headers = new Headers(calledInit.headers as HeadersInit);
+    expect(headers.get(HOUSEHOLD_HEADER)).toBe("42");
+  });
+
+  it("does not inject X-Household-Id header when householdId is absent from localStorage", async () => {
+    await handler.execute("https://api.example.com/test", {});
+
+    const calledInit = mockNext.execute.mock.calls[0][1] as RequestInit;
+    const headers = new Headers(calledInit.headers as HeadersInit);
+    expect(headers.get(HOUSEHOLD_HEADER)).toBeNull();
+  });
+
+  it("passes through to next middleware", async () => {
+    localStorage.setItem(HOUSEHOLD_ID_KEY, "7");
+
+    const result = await handler.execute("https://api.example.com/test", {});
+
+    expect(mockNext.execute).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe(200);
+  });
+  it("throws when next middleware returns no response", async () => {
+    mockNext.execute.mockResolvedValue(undefined);
+
+    await expect(
+      handler.execute("https://api.example.com/test", {})
+    ).rejects.toThrow("No response from next middleware");
   });
 });
 

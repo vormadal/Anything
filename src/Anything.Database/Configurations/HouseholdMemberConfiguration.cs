@@ -11,7 +11,7 @@ public class HouseholdMemberConfiguration : IEntityTypeConfiguration<HouseholdMe
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Role).IsRequired().HasMaxLength(50);
 
-        builder.HasOne<Household>()
+        builder.HasOne(e => e.Household)
             .WithMany()
             .HasForeignKey(e => e.HouseholdId)
             .OnDelete(DeleteBehavior.Cascade);
