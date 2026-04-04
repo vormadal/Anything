@@ -122,11 +122,15 @@ const mockFoodPlanSettings = {
   userId: 1,
 };
 
-// Entries spread across the week of 2025-01-13 (Mon) – 2025-01-19 (Sun)
+// Entries spread across the week of 2025-01-13 (Mon) – 2025-01-15 (Wed, = FIXED_DATE)
 const mockFoodPlanEntries = [
-  { id: 1, date: "2025-01-13", recipeName: "Pasta Carbonara", recipeId: 1, comment: null },
-  { id: 2, date: "2025-01-14", recipeName: "Chicken Stir Fry", recipeId: 2, comment: "Extra veg" },
-  { id: 3, date: "2025-01-15", recipeName: "Beef Tacos", recipeId: 3, comment: null },
+  { id: 1, date: "2025-01-13", name: "Pasta Carbonara", recipeId: 1, addedToShoppingListOn: null },
+  { id: 2, date: "2025-01-14", name: "Chicken Stir Fry", recipeId: 2, addedToShoppingListOn: null },
+  { id: 3, date: "2025-01-15", name: "Beef Tacos", recipeId: 3, addedToShoppingListOn: null },
+];
+
+const mockFoodPlanNotes = [
+  { id: 1, date: "2025-01-13", note: "Meal prep day" },
 ];
 
 const mockRecommendations = [
@@ -208,7 +212,7 @@ async function setupApiMocks(page: Page) {
     route.fulfill({ json: mockFoodPlanEntries })
   );
   await page.route("**/api/food-plan/notes**", (route) =>
-    route.fulfill({ status: 404, body: "" })
+    route.fulfill({ json: mockFoodPlanNotes })
   );
 
   // ---- Misc ----
@@ -393,6 +397,33 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "food-plans-empty.png",
+      screenshotOptions
+    );
+  });
+
+  // "mandag" = Monday 2025-01-13, which has Pasta Carbonara + a note in the mock data.
+  // The page clock is set to 2025-01-15 (Wednesday), so Monday is 2 days back (no relative
+  // label), giving aria-label "mandag".
+  test("food plans - day dialog with entries and note", async ({ page }) => {
+    await page.goto("/food-plans");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "mandag" }).first().click();
+    await page.waitForSelector('[aria-label="Close dialog"]');
+    await expect(page).toHaveScreenshot(
+      "food-plans-day-dialog-with-entries.png",
+      screenshotOptions
+    );
+  });
+
+  // "torsdag" = Thursday 2025-01-16, one day after the fixed-date Wednesday.
+  // aria-label becomes "torsdag, i morgen" (tomorrow). Has no entries in mock data.
+  test("food plans - day dialog empty day", async ({ page }) => {
+    await page.goto("/food-plans");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /torsdag/i }).first().click();
+    await page.waitForSelector('[aria-label="Close dialog"]');
+    await expect(page).toHaveScreenshot(
+      "food-plans-day-dialog-empty.png",
       screenshotOptions
     );
   });
