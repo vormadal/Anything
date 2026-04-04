@@ -122,11 +122,15 @@ const mockFoodPlanSettings = {
   userId: 1,
 };
 
-// Entries spread across the week of 2025-01-13 (Mon) – 2025-01-19 (Sun)
+// Entries spread across the week of 2025-01-13 (Mon) – 2025-01-15 (Wed, = FIXED_DATE)
 const mockFoodPlanEntries = [
-  { id: 1, date: "2025-01-13", recipeName: "Pasta Carbonara", recipeId: 1, comment: null },
-  { id: 2, date: "2025-01-14", recipeName: "Chicken Stir Fry", recipeId: 2, comment: "Extra veg" },
-  { id: 3, date: "2025-01-15", recipeName: "Beef Tacos", recipeId: 3, comment: null },
+  { id: 1, date: "2025-01-13", name: "Pasta Carbonara", recipeId: 1, addedToShoppingListOn: null },
+  { id: 2, date: "2025-01-14", name: "Chicken Stir Fry", recipeId: 2, addedToShoppingListOn: null },
+  { id: 3, date: "2025-01-15", name: "Beef Tacos", recipeId: 3, addedToShoppingListOn: null },
+];
+
+const mockFoodPlanNotes = [
+  { id: 1, date: "2025-01-13", note: "Meal prep day" },
 ];
 
 const mockRecommendations = [
@@ -208,7 +212,7 @@ async function setupApiMocks(page: Page) {
     route.fulfill({ json: mockFoodPlanEntries })
   );
   await page.route("**/api/food-plan/notes**", (route) =>
-    route.fulfill({ status: 404, body: "" })
+    route.fulfill({ json: mockFoodPlanNotes })
   );
 
   // ---- Misc ----
