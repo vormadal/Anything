@@ -112,7 +112,7 @@ export default function ShoppingListDetailPage() {
           openEditNameDialogRef={openEditNameDialogRef}
         />
       ) : (
-        <ShoppingListView listId={listId} list={list} />
+        <ShoppingListView listId={listId} />
       )}
     </div>
   );

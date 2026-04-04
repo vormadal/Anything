@@ -380,7 +380,7 @@ public class GetShoppingListByIdHandlerTests
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((ShoppingList?)null);
+        _repo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new GetShoppingListByIdQuery(1), TestContext.Current.CancellationToken);
@@ -392,13 +392,25 @@ public class GetShoppingListByIdHandlerTests
     public async Task Handle_WhenListFound_ReturnsOkWithList()
     {
         var list = new ShoppingList { Id = 1, Name = "My List" };
-        _repo.GetById(1).Returns(list);
+        _repo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new GetShoppingListByIdQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<ShoppingList>>(result);
         Assert.Equal("My List", ok.Value!.Name);
+    }
+
+    [Fact]
+    public async Task Handle_WhenListIsSoftDeleted_ReturnsNotFound()
+    {
+        var list = new ShoppingList { Id = 1, Name = "Deleted List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        _repo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new GetShoppingListByIdQuery(1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound>(result);
     }
 }
 

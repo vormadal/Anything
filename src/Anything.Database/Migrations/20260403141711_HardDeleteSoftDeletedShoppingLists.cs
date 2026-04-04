@@ -18,7 +18,8 @@ namespace Anything.Database.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-
+            // No-op: this migration permanently deletes soft-deleted shopping lists
+            // (and cascaded child records), so the removed data cannot be restored.
         }
     }
 }
