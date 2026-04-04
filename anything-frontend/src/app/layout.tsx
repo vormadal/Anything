@@ -3,6 +3,7 @@ import "./globals.css";
 import { QueryProvider } from "@/context/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthGuard } from "@/components/AuthGuard";
+import { HouseholdProvider } from "@/context/HouseholdContext";
 import { AppLayout } from "@/components/AppLayout";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
@@ -34,7 +35,9 @@ export default function RootLayout({
       <body className="antialiased">
         <QueryProvider>
           <AuthGuard>
-            <AppLayout>{children}</AppLayout>
+            <HouseholdProvider>
+              <AppLayout>{children}</AppLayout>
+            </HouseholdProvider>
           </AuthGuard>
         </QueryProvider>
         <Toaster />

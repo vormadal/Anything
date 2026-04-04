@@ -17,9 +17,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
 const USER_KEY = "user";
+const HOUSEHOLD_ID_KEY = "householdId";
+const HOUSEHOLD_HEADER = "X-Household-Id";
 
 // Re-export Kiota's error class so hooks can catch it for status-specific handling
 export { DefaultApiError as ApiError };
+
+export { HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER };
 
 // Singleton refresh promise to prevent concurrent token refresh requests
 let refreshPromise: Promise<string | null> | null = null;
@@ -110,6 +114,32 @@ class UnauthorizedHandler implements Middleware {
   }
 }
 
+// Kiota middleware that injects the X-Household-Id header from localStorage.
+class HouseholdHeaderHandler implements Middleware {
+  next: Middleware | undefined = undefined;
+
+  async execute(
+    url: string,
+    requestInit: RequestInit,
+    requestOptions?: Record<string, RequestOption>
+  ): Promise<Response> {
+    const householdId =
+      typeof window !== "undefined"
+        ? localStorage.getItem(HOUSEHOLD_ID_KEY)
+        : null;
+    if (householdId) {
+      const headers = new Headers(requestInit.headers as HeadersInit);
+      headers.set(HOUSEHOLD_HEADER, householdId);
+      requestInit = { ...requestInit, headers };
+    }
+    const response = await this.next?.execute(url, requestInit, requestOptions);
+    if (!response) {
+      throw new Error("No response from next middleware");
+    }
+    return response;
+  }
+}
+
 class LocalStorageAccessTokenProvider implements AccessTokenProvider {
   private readonly validator = new AllowedHostsValidator();
 
@@ -127,6 +157,7 @@ class LocalStorageAccessTokenProvider implements AccessTokenProvider {
 
 const httpClient = new HttpClient(
   undefined,
+  new HouseholdHeaderHandler(),
   new UnauthorizedHandler(),
   ...MiddlewareFactory.getDefaultMiddlewares()
 );

@@ -27,6 +27,10 @@ public static class DependencyInjection
             .AsImplementedInterfaces()
             .WithScopedLifetime());
 
+        // Household context
+        services.AddScoped<HouseholdContext>();
+        services.AddScoped<IHouseholdContext>(sp => sp.GetRequiredService<HouseholdContext>());
+
         // Services
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, TokenService>();

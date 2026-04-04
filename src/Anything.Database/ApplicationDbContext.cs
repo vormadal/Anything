@@ -10,6 +10,8 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    public DbSet<Household> Households => Set<Household>();
+    public DbSet<HouseholdMember> HouseholdMembers => Set<HouseholdMember>();
     public DbSet<Something> Somethings => Set<Something>();
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
