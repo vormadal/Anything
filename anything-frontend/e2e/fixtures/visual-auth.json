@@ -9,7 +9,8 @@
         {
           "name": "user",
           "value": "{\"email\":\"admin@anything.local\",\"name\":\"Admin\",\"role\":\"Admin\"}"
-        }
+        },
+        { "name": "householdId", "value": "1" }
       ]
     }
   ]
