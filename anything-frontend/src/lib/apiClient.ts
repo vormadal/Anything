@@ -2,6 +2,7 @@ import {
   AllowedHostsValidator,
   BaseBearerTokenAuthenticationProvider,
   DefaultApiError,
+  MultipartBody,
   type AccessTokenProvider,
   type RequestOption,
 } from "@microsoft/kiota-abstractions";
@@ -173,3 +174,12 @@ const adapter = new DefaultRequestAdapter(
 adapter.baseUrl = API_BASE_URL;
 
 export const apiClient = createApiClient(adapter);
+
+/**
+ * Creates a new Kiota MultipartBody instance for use in file upload mutations.
+ * Centralising this here ensures it is covered by the existing apiClient mock
+ * in tests, avoiding ESM import issues with the Kiota abstractions package.
+ */
+export function createMultipartBody(): MultipartBody {
+  return new MultipartBody();
+}

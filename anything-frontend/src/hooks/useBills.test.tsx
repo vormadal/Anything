@@ -40,11 +40,29 @@ const mockPriceHistory = {
   byHistoryId: (...args: unknown[]) => mockPriceHistoryById(...args),
 }
 
+const mockAttachmentsGet = jest.fn()
+const mockAttachmentsPost = jest.fn()
+const mockAttachmentItemPut = jest.fn()
+const mockAttachmentItemDelete = jest.fn()
+const mockAttachmentDownloadGet = jest.fn()
+const mockAttachmentItemById = jest.fn(() => ({
+  put: mockAttachmentItemPut,
+  delete: mockAttachmentItemDelete,
+  download: { get: mockAttachmentDownloadGet },
+}))
+
+const mockAttachments = {
+  get: (...args: unknown[]) => mockAttachmentsGet(...args),
+  post: (...args: unknown[]) => mockAttachmentsPost(...args),
+  byAttachmentId: (...args: unknown[]) => mockAttachmentItemById(...args),
+}
+
 const mockBillById = jest.fn(() => ({
   get: mockBillByIdGet,
   put: mockBillByIdPut,
   delete: mockBillByIdDelete,
   priceHistory: mockPriceHistory,
+  attachments: mockAttachments,
 }))
 
 jest.mock('@/lib/apiClient', () => ({
@@ -58,6 +76,7 @@ jest.mock('@/lib/apiClient', () => ({
       },
     },
   },
+  createMultipartBody: () => ({ addOrReplacePart: jest.fn() }),
 }))
 
 function createWrapper() {
@@ -326,7 +345,7 @@ describe('useBills hooks', () => {
   })
 
   describe('useBillAttachments', () => {
-    it('should fetch attachments via fetch API', async () => {
+    it('should fetch attachments via apiClient', async () => {
       const mockAttachment = {
         id: 1,
         billId: 1,
@@ -336,10 +355,7 @@ describe('useBills hooks', () => {
         thumbnailUrl: null,
         createdOn: '2024-01-01T00:00:00Z',
       }
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve([mockAttachment]),
-      } as Response)
+      mockAttachmentsGet.mockResolvedValueOnce([mockAttachment])
 
       const { result } = renderHook(() => useBillAttachments(1), { wrapper: createWrapper() })
 
@@ -351,10 +367,7 @@ describe('useBills hooks', () => {
 
   describe('useUploadBillAttachment', () => {
     it('should upload attachment successfully', async () => {
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({}),
-      } as Response)
+      mockAttachmentsPost.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useUploadBillAttachment(), { wrapper: createWrapper() })
 
@@ -363,12 +376,12 @@ describe('useBills hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(mockBillById).toHaveBeenCalledWith(1)
+      expect(mockAttachmentsPost).toHaveBeenCalled()
     })
 
     it('should handle upload error', async () => {
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: false,
-      } as Response)
+      mockAttachmentsPost.mockRejectedValueOnce(new Error('Upload failed'))
 
       const { result } = renderHook(() => useUploadBillAttachment(), { wrapper: createWrapper() })
 
@@ -380,9 +393,7 @@ describe('useBills hooks', () => {
 
   describe('useDeleteBillAttachment', () => {
     it('should delete attachment successfully', async () => {
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: true,
-      } as Response)
+      mockAttachmentItemDelete.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useDeleteBillAttachment(), { wrapper: createWrapper() })
 
@@ -391,14 +402,14 @@ describe('useBills hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(mockAttachmentItemById).toHaveBeenCalledWith(5)
+      expect(mockAttachmentItemDelete).toHaveBeenCalled()
     })
   })
 
   describe('useUpdateBillAttachment', () => {
     it('should update attachment name successfully', async () => {
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: true,
-      } as Response)
+      mockAttachmentItemPut.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useUpdateBillAttachment(), { wrapper: createWrapper() })
 
@@ -407,6 +418,8 @@ describe('useBills hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(mockAttachmentItemById).toHaveBeenCalledWith(5)
+      expect(mockAttachmentItemPut).toHaveBeenCalledWith({ name: 'New Name' })
     })
   })
 })
