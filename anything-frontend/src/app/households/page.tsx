@@ -61,7 +61,7 @@ export default function HouseholdsPage() {
               return (
                 <li
                   key={h.id}
-                  className={`flex items-center gap-3 rounded-lg border transition-colors ${
+                  className={`flex items-center gap-2 rounded-lg border transition-colors ${
                     isActive
                       ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400"
                       : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
@@ -79,25 +79,25 @@ export default function HouseholdsPage() {
                         {h.role}
                       </p>
                     </div>
-                    {isActive ? (
+                    {isActive && (
                       <span className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
                         <Check className="h-3.5 w-3.5" />
                         Active
                       </span>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setSelectedHouseholdId(h.id);
-                        }}
-                      >
-                        Switch
-                      </Button>
                     )}
                     <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                   </Link>
+                  {!isActive && (
+                    <div className="pr-3 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedHouseholdId(h.id)}
+                      >
+                        Switch
+                      </Button>
+                    </div>
+                  )}
                 </li>
               );
             })}

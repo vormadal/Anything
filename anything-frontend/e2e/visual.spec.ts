@@ -144,6 +144,16 @@ const mockHouseholds = [
   { id: 2, name: "Work Team", createdOn: "2024-02-01T00:00:00Z", role: "Member" },
 ];
 
+const mockHouseholdDetail = {
+  id: 1,
+  name: "Smith Family",
+  createdOn: "2024-01-01T00:00:00Z",
+  members: [
+    { userId: 1, name: "Admin", email: "admin@anything.local", role: "Owner", joinedOn: "2024-01-01T00:00:00Z" },
+    { userId: 2, name: "Jane Smith", email: "jane@example.com", role: "Member", joinedOn: "2024-01-15T00:00:00Z" },
+  ],
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -239,6 +249,17 @@ async function setupApiMocks(page: Page) {
       route.continue();
     }
   });
+  // More-specific: individual household detail (LIFO: registered after → higher priority)
+  await page.route(/\/api\/households\/\d+$/, (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockHouseholdDetail });
+    } else {
+      route.continue();
+    }
+  });
+  await page.route(/\/api\/households\/\d+\/members/, (route) =>
+    route.fulfill({ status: 204, body: "" })
+  );
 }
 
 /** Common options for toHaveScreenshot. */
@@ -512,6 +533,29 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "households-empty.png",
+      screenshotOptions
+    );
+  });
+
+  test("household detail page - with members", async ({ page }) => {
+    await page.goto("/households/1");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "household-detail-with-members.png",
+      screenshotOptions
+    );
+  });
+
+  test("household detail page - loading state", async ({ page }) => {
+    // Override household detail to never resolve so we get loading state
+    await page.route(/\/api\/households\/\d+$/, () => {
+      // intentionally hang to show loading state
+    });
+    await page.goto("/households/1");
+    // Don't wait for networkidle — capture the loading state
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page).toHaveScreenshot(
+      "household-detail-loading.png",
       screenshotOptions
     );
   });

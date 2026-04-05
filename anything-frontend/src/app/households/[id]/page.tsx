@@ -16,6 +16,7 @@ import {
   useUpdateHousehold,
   useAddHouseholdMember,
   useRemoveHouseholdMember,
+  type HouseholdMember,
 } from "@/hooks/useHouseholds";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import { Pencil, Trash2, UserPlus, Crown, User, Users } from "lucide-react";
@@ -23,41 +24,52 @@ import { toast } from "sonner";
 
 export default function HouseholdDetailPage() {
   const params = useParams();
-  const householdId = Number(params.id);
-  const { data: household, isLoading } = useHousehold(householdId);
+  const rawId = params.id;
+  const householdId =
+    typeof rawId === "string" && rawId !== "" ? Number(rawId) : NaN;
+  const isValidId = Number.isFinite(householdId) && householdId > 0;
+
+  const { data: household, isLoading } = useHousehold(isValidId ? householdId : null);
   const { selectedHouseholdId } = useHouseholdContext();
   const updateHousehold = useUpdateHousehold();
   const addMember = useAddHouseholdMember();
   const removeMember = useRemoveHouseholdMember();
-  const { setHeaderActions } = useHeaderActions();
+  const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const [showRename, setShowRename] = useState(false);
   const [newName, setNewName] = useState("");
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberUserId, setMemberUserId] = useState("");
   const [memberRole, setMemberRole] = useState("Member");
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<HouseholdMember | null>(null);
 
   useEffect(() => {
-    if (!household) return;
-    setHeaderActions(
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => {
-          setNewName(household.name);
-          setShowRename(true);
-        }}
-        aria-label="Rename household"
-      >
-        <Pencil className="h-5 w-5" />
-      </Button>
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions, household]);
+    setLeftAction({ type: "back", href: "/households" });
+    if (household) {
+      setHeaderActions(
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            setNewName(household.name);
+            setShowRename(true);
+          }}
+          aria-label="Rename household"
+        >
+          <Pencil className="h-5 w-5" />
+        </Button>
+      );
+    }
+    return () => {
+      setHeaderActions(null);
+      setLeftAction({ type: "menu" });
+    };
+  }, [setHeaderActions, setLeftAction, household]);
 
   const handleRename = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newName.trim() || !isValidId) return;
     try {
       await updateHousehold.mutateAsync({ id: householdId, name: newName.trim() });
       toast.success("Household renamed");
@@ -69,6 +81,7 @@ export default function HouseholdDetailPage() {
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidId) return;
     const userId = Number(memberUserId);
     if (Number.isNaN(userId) || userId <= 0) {
       toast.error("Please enter a valid user ID");
@@ -90,16 +103,31 @@ export default function HouseholdDetailPage() {
     }
   };
 
-  const handleRemoveMember = async (userId: number, memberName: string) => {
-    if (!confirm(`Remove ${memberName} from this household?`)) return;
+  const promptRemoveMember = (member: HouseholdMember) => {
+    setMemberToRemove(member);
+    setRemoveConfirmOpen(true);
+  };
+
+  const handleRemoveMember = async () => {
+    if (!memberToRemove || !isValidId) return;
     try {
-      await removeMember.mutateAsync({ householdId, userId });
-      toast.success(`${memberName} removed`);
+      await removeMember.mutateAsync({ householdId, userId: memberToRemove.userId });
+      toast.success(`${memberToRemove.name} removed`);
+      setRemoveConfirmOpen(false);
+      setMemberToRemove(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to remove member";
       toast.error(message);
     }
   };
+
+  if (!isValidId) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p className="text-gray-500 dark:text-gray-400">Invalid household ID.</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -165,7 +193,7 @@ export default function HouseholdDetailPage() {
             <MemberRow
               key={member.userId}
               member={member}
-              onRemove={handleRemoveMember}
+              onRemove={promptRemoveMember}
               removePending={removeMember.isPending}
             />
           ))}
@@ -174,7 +202,7 @@ export default function HouseholdDetailPage() {
             <MemberRow
               key={member.userId}
               member={member}
-              onRemove={handleRemoveMember}
+              onRemove={promptRemoveMember}
               removePending={removeMember.isPending}
             />
           ))}
@@ -265,6 +293,38 @@ export default function HouseholdDetailPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Remove member confirmation dialog */}
+      <Dialog open={removeConfirmOpen} onOpenChange={setRemoveConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Member</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Remove <span className="font-medium">{memberToRemove?.name}</span> from this household?
+          </p>
+          <div className="flex gap-2 justify-end mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setRemoveConfirmOpen(false);
+                setMemberToRemove(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleRemoveMember}
+              disabled={removeMember.isPending}
+            >
+              {removeMember.isPending ? "Removing..." : "Remove"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -274,8 +334,8 @@ function MemberRow({
   onRemove,
   removePending,
 }: {
-  member: { userId: number; name: string; email: string; role: string; joinedOn: string };
-  onRemove: (userId: number, name: string) => void;
+  member: HouseholdMember;
+  onRemove: (member: HouseholdMember) => void;
   removePending: boolean;
 }) {
   const isOwner = member.role === "Owner";
@@ -302,7 +362,7 @@ function MemberRow({
       </span>
       <button
         type="button"
-        onClick={() => onRemove(member.userId, member.name)}
+        onClick={() => onRemove(member)}
         disabled={removePending}
         className="p-1.5 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
         aria-label={`Remove ${member.name}`}
@@ -312,3 +372,4 @@ function MemberRow({
     </div>
   );
 }
+
