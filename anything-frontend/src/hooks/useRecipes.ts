@@ -1,10 +1,22 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER } from "@/lib/apiClient";
 import type { Recipe, RecipeIngredient, RecipeStep, RecipeImageResponse } from "@/lib/api-client/models/index";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
+
+function getHouseholdId(): string | null {
+  if (typeof globalThis.window !== "undefined") {
+    return localStorage.getItem(HOUSEHOLD_ID_KEY);
+  }
+  return null;
+}
+
+function getHouseholdHeader(): Record<string, string> {
+  const id = getHouseholdId();
+  return id !== null ? { [HOUSEHOLD_HEADER]: id } : {};
+}
 
 export interface TopTag {
   name: string;
@@ -25,7 +37,7 @@ export function useRecipes(search?: string, tag?: string) {
           : "";
       const response = await fetch(
         `${API_BASE_URL}/api/recipes${qs ? `?${qs}` : ""}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() } }
       );
       if (!response.ok) throw new Error(`Failed to fetch recipes: ${response.status}`);
       return response.json() as Promise<Recipe[]>;
@@ -43,7 +55,7 @@ export function useTopRecipeTags(count = 10) {
           : "";
       const response = await fetch(
         `${API_BASE_URL}/api/recipes/tags?count=${count}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() } }
       );
       if (!response.ok) throw new Error(`Failed to fetch top tags: ${response.status}`);
       return response.json() as Promise<TopTag[]>;
@@ -199,6 +211,7 @@ export function useReorderRecipeIngredients(recipeId: number) {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...getHouseholdHeader(),
           },
           body: JSON.stringify({ ids }),
         }
@@ -240,6 +253,7 @@ export function useReorderRecipeSteps(recipeId: number) {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...getHouseholdHeader(),
           },
           body: JSON.stringify({ ids }),
         }
@@ -334,6 +348,7 @@ export function useParseRecipeFromUrl() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...getHouseholdHeader(),
         },
         body: JSON.stringify({ url }),
       });
@@ -372,6 +387,7 @@ export function useImportRecipe() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...getHouseholdHeader(),
         },
         body: JSON.stringify({
           name: payload.name,
@@ -427,7 +443,7 @@ export function useUploadRecipeImage(recipeId: number) {
         `${API_BASE_URL}/api/recipes/${recipeId}/images/upload`,
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() },
           body: formData,
         }
       );
@@ -490,7 +506,7 @@ export function useRecipeTags(recipeId: number) {
           : "";
       const response = await fetch(
         `${API_BASE_URL}/api/recipes/${recipeId}/tags`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() } }
       );
       if (!response.ok) throw new Error(`Failed to fetch tags: ${response.status}`);
       return response.json() as Promise<RecipeTag[]>;
@@ -515,6 +531,7 @@ export function useAddRecipeTag(recipeId: number) {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...getHouseholdHeader(),
           },
           body: JSON.stringify({ name }),
         }
@@ -541,7 +558,7 @@ export function useDeleteRecipeTag(recipeId: number) {
         `${API_BASE_URL}/api/recipes/${recipeId}/tags/${tagId}`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() },
         }
       );
       if (!response.ok) throw new Error(`Failed to delete tag: ${response.status}`);
@@ -575,6 +592,7 @@ export function useReimportRecipe(recipeId: number) {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...getHouseholdHeader(),
           },
           body: JSON.stringify(payload),
         }

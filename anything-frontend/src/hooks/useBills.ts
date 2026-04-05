@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER } from "@/lib/apiClient";
 import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest } from "@/lib/api-client/models/index";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
@@ -11,6 +11,14 @@ function getAccessToken(): string {
     return localStorage.getItem("accessToken") ?? "";
   }
   return "";
+}
+
+function getHouseholdHeader(): Record<string, string> {
+  if (typeof window !== "undefined") {
+    const id = localStorage.getItem(HOUSEHOLD_ID_KEY);
+    if (id !== null) return { [HOUSEHOLD_HEADER]: id };
+  }
+  return {};
 }
 
 export type PaymentFrequency =
@@ -134,7 +142,7 @@ export function useBillAttachments(billId: number) {
     queryKey: ["billAttachments", billId],
     queryFn: async (): Promise<BillAttachmentResponse[]> => {
       const res = await fetch(`${API_BASE_URL}/api/bills/${billId}/attachments`, {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        headers: { Authorization: `Bearer ${getAccessToken()}`, ...getHouseholdHeader() },
       });
       if (!res.ok) throw new Error("Failed to fetch attachments");
       return res.json() as Promise<BillAttachmentResponse[]>;
@@ -306,7 +314,7 @@ export function useUploadBillAttachment() {
       const url = data.name ? `${baseUrl}?name=${encodeURIComponent(data.name)}` : baseUrl;
       const res = await fetch(url, {
         method: "POST",
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        headers: { Authorization: `Bearer ${getAccessToken()}`, ...getHouseholdHeader() },
         body: formData,
       });
       if (!res.ok) {
@@ -329,6 +337,7 @@ export function useUpdateBillAttachment() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getAccessToken()}`,
+          ...getHouseholdHeader(),
         },
         body: JSON.stringify({ name: data.name }),
       });
@@ -345,7 +354,7 @@ export function useDownloadBillAttachment() {
     mutationFn: async (data: { billId: number; attachmentId: number; name: string }) => {
       const res = await fetch(
         `${API_BASE_URL}/api/bills/${data.billId}/attachments/${data.attachmentId}/download`,
-        { headers: { Authorization: `Bearer ${getAccessToken()}` } }
+        { headers: { Authorization: `Bearer ${getAccessToken()}`, ...getHouseholdHeader() } }
       );
       if (!res.ok) throw new Error("Failed to download attachment");
       const blob = await res.blob();
@@ -365,7 +374,7 @@ export function useDeleteBillAttachment() {
     mutationFn: async (data: { billId: number; attachmentId: number }) => {
       const res = await fetch(`${API_BASE_URL}/api/bills/${data.billId}/attachments/${data.attachmentId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        headers: { Authorization: `Bearer ${getAccessToken()}`, ...getHouseholdHeader() },
       });
       if (!res.ok) throw new Error("Failed to delete attachment");
     },
