@@ -7,6 +7,7 @@ using Anything.Core.Services;
 using Anything.Database;
 using Anything.API;
 using Anything.API.Endpoints;
+using Anything.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -124,7 +125,10 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<HouseholdMiddleware>();
+
 // Map endpoints
+app.MapHouseholdEndpoints();
 app.MapAuthEndpoints();
 app.MapSomethingEndpoints();
 app.MapInventoryStorageUnitEndpoints();

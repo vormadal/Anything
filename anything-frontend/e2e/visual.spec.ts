@@ -139,6 +139,11 @@ const mockRecommendations = [
   { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null },
 ];
 
+const mockHouseholds = [
+  { id: 1, name: "Smith Family", createdOn: "2024-01-01T00:00:00Z", role: "Owner" },
+  { id: 2, name: "Work Team", createdOn: "2024-02-01T00:00:00Z", role: "Member" },
+];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -225,6 +230,15 @@ async function setupApiMocks(page: Page) {
   await page.route("**/api/auth/invites**", (route) =>
     route.fulfill({ json: [] })
   );
+
+  // ---- Households ----
+  await page.route("**/api/households**", (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockHouseholds });
+    } else {
+      route.continue();
+    }
+  });
 }
 
 /** Common options for toHaveScreenshot. */
@@ -455,6 +469,49 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "admin-suggestions-empty.png",
+      screenshotOptions
+    );
+  });
+
+  // ---- Households ----
+
+  test("households page - with multiple households", async ({ page }) => {
+    await page.goto("/households");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "households-with-data.png",
+      screenshotOptions
+    );
+  });
+
+  test("households page - single active household", async ({ page }) => {
+    await page.route("**/api/households**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: [mockHouseholds[0]] });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/households");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "households-single.png",
+      screenshotOptions
+    );
+  });
+
+  test("households page - empty state", async ({ page }) => {
+    await page.route("**/api/households**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: [] });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/households");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "households-empty.png",
       screenshotOptions
     );
   });
