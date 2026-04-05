@@ -332,7 +332,8 @@ export function useImportRecipe() {
           })),
           imageUrl: payload.imageUrl ?? null,
         });
-        return { id: result!.id! };
+        if (!result?.id) throw new Error("Invalid response from import endpoint");
+        return { id: result.id };
       } catch (e) {
         const kiota = e as { responseStatusCode?: number };
         if (kiota.responseStatusCode !== undefined) {
@@ -411,7 +412,7 @@ export function useRecipeTags(recipeId: number) {
   return useQuery({
     queryKey: ["recipeTags", recipeId],
     queryFn: () =>
-      apiClient.api.recipes.byId(recipeId).tags.get() as Promise<RecipeTag[]>,
+      apiClient.api.recipes.byId(recipeId).tags.get().then(r => r ?? []) as Promise<RecipeTag[]>,
     enabled: recipeId > 0,
   });
 }
@@ -420,8 +421,11 @@ export function useAddRecipeTag(recipeId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (name: string) =>
-      apiClient.api.recipes.byId(recipeId).tags.post({ name }) as Promise<RecipeTag>,
+    mutationFn: async (name: string): Promise<RecipeTag> => {
+      const result = await apiClient.api.recipes.byId(recipeId).tags.post({ name });
+      if (!result) throw new Error("Failed to create tag");
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeTags", recipeId] });
     },

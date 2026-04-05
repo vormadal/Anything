@@ -116,7 +116,7 @@ export function useBillAttachments(billId: number) {
   return useQuery({
     queryKey: ["billAttachments", billId],
     queryFn: () =>
-      apiClient.api.bills.byId(billId).attachments.get() as Promise<BillAttachmentResponse[]>,
+      apiClient.api.bills.byId(billId).attachments.get().then(r => r ?? []) as Promise<BillAttachmentResponse[]>,
     enabled: !!billId,
   });
 }
@@ -313,7 +313,7 @@ export function useDownloadBillAttachment() {
         .byId(data.billId)
         .attachments.byAttachmentId(data.attachmentId)
         .download.get();
-      if (!arrayBuffer) throw new Error("Failed to download attachment");
+      if (!arrayBuffer) throw new Error("Attachment data not returned by server");
       const blob = new Blob([arrayBuffer]);
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
