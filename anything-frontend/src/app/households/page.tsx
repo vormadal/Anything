@@ -5,7 +5,8 @@ import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import { useCreateHousehold } from "@/hooks/useHouseholds";
-import { Home, Plus, Check, Users } from "lucide-react";
+import { Home, Plus, Check, Users, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 
 export default function HouseholdsPage() {
@@ -60,34 +61,43 @@ export default function HouseholdsPage() {
               return (
                 <li
                   key={h.id}
-                  className={`flex items-center gap-3 p-4 rounded-lg border transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg border transition-colors ${
                     isActive
                       ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400"
                       : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                   }`}
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {h.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                      {h.role}
-                    </p>
-                  </div>
-                  {isActive ? (
-                    <span className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
-                      <Check className="h-3.5 w-3.5" />
-                      Active
-                    </span>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedHouseholdId(h.id)}
-                    >
-                      Switch
-                    </Button>
-                  )}
+                  <Link
+                    href={`/households/${h.id}`}
+                    className="flex items-center gap-3 flex-1 min-w-0 p-4"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {h.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                        {h.role}
+                      </p>
+                    </div>
+                    {isActive ? (
+                      <span className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
+                        <Check className="h-3.5 w-3.5" />
+                        Active
+                      </span>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedHouseholdId(h.id);
+                        }}
+                      >
+                        Switch
+                      </Button>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  </Link>
                 </li>
               );
             })}
