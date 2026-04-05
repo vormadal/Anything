@@ -100,7 +100,7 @@ export function ShoppingListView({ listId }: Props) {
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-          Failed to load items. Make sure the API is running on port 5238.
+          Failed to load items. Please try again later.
         </div>
       )}
 
