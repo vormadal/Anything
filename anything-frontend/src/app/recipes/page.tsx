@@ -221,7 +221,7 @@ export default function RecipesPage() {
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4">
-          Failed to load recipes. Make sure the API is running on port 5238.
+          Failed to load recipes. Please try again later.
         </div>
       )}
 
