@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { FoodPlanPage } from "./pages/FoodPlanPage";
 
 /**
  * Cross-feature integration flows.
@@ -121,11 +122,10 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
   await expect(page).toHaveURL(/\/recipes\/\d+/);
 
   // Step 3 — Schedule the recipe on the food plan via the food plan page
-  await page.goto("/food-plans");
-  const addMealButton = page
-    .getByRole("button", { name: /Add meal for/i })
-    .first();
-  await addMealButton.click();
+  const foodPlan = new FoodPlanPage(page);
+  await foodPlan.goto();
+  // Click the first day row card to open the day management dialog.
+  await foodPlan.openFirstDayDialog();
 
   const mealInput = page.getByPlaceholder("Meal name...");
   await mealInput.fill(recipeName);
