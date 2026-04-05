@@ -171,6 +171,7 @@ static async Task SeedAdminUser(WebApplication app)
     // Skip admin creation if email or password is not configured
     if (string.IsNullOrWhiteSpace(adminSettings.Email) || string.IsNullOrWhiteSpace(adminSettings.Password))
     {
+        await SeedDefaultHousehold(db, logger);
         return;
     }
 
@@ -195,47 +196,58 @@ static async Task SeedAdminUser(WebApplication app)
 
 static async Task SeedDefaultHousehold(ApplicationDbContext db, ILogger logger)
 {
-    if (await db.Households.AnyAsync())
-        return;
+    await using var transaction = await db.Database.BeginTransactionAsync(
+        System.Data.IsolationLevel.Serializable);
 
-    var adminUser = await db.Users
-        .FirstOrDefaultAsync(u => u.Role == UserRoles.Admin && u.DeletedOn == null);
-
-    if (adminUser == null)
-        return;
-
-    var household = new Household
+    try
     {
-        Name = "Default",
-        CreatedOn = DateTime.UtcNow
-    };
+        if (await db.Households.AnyAsync(h => h.DeletedOn == null))
+            return;
 
-    db.Households.Add(household);
-    await db.SaveChangesAsync();
+        var adminUser = await db.Users
+            .FirstOrDefaultAsync(u => u.Role == UserRoles.Admin && u.DeletedOn == null);
 
-    db.HouseholdMembers.Add(new HouseholdMember
-    {
-        HouseholdId = household.Id,
-        UserId = adminUser.Id,
-        Role = HouseholdRoles.Owner,
-        JoinedOn = DateTime.UtcNow
-    });
+        if (adminUser == null)
+            return;
 
-    var otherUsers = await db.Users
-        .Where(u => u.Id != adminUser.Id && u.DeletedOn == null)
-        .ToListAsync();
+        var household = new Household
+        {
+            Name = "Default",
+            CreatedOn = DateTime.UtcNow
+        };
 
-    foreach (var user in otherUsers)
-    {
+        db.Households.Add(household);
+        await db.SaveChangesAsync();
+
         db.HouseholdMembers.Add(new HouseholdMember
         {
             HouseholdId = household.Id,
-            UserId = user.Id,
-            Role = HouseholdRoles.Member,
+            UserId = adminUser.Id,
+            Role = HouseholdRoles.Owner,
             JoinedOn = DateTime.UtcNow
         });
-    }
 
-    await db.SaveChangesAsync();
-    logger.LogInformation("Created default household with admin as owner and {Count} other member(s)", otherUsers.Count);
+        var otherUsers = await db.Users
+            .Where(u => u.Id != adminUser.Id && u.DeletedOn == null)
+            .ToListAsync();
+
+        foreach (var user in otherUsers)
+        {
+            db.HouseholdMembers.Add(new HouseholdMember
+            {
+                HouseholdId = household.Id,
+                UserId = user.Id,
+                Role = HouseholdRoles.Member,
+                JoinedOn = DateTime.UtcNow
+            });
+        }
+
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        logger.LogInformation("Created default household with admin as owner and {Count} other member(s)", otherUsers.Count);
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Default household seeding skipped (concurrent instance may have already created it)");
+    }
 }
