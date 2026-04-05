@@ -2,7 +2,10 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, createMultipartBody } from "@/lib/apiClient";
-import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest } from "@/lib/api-client/models/index";
+import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest, BillAttachmentResponse } from "@/lib/api-client/models/index";
+
+// Re-export API model type so consumers can import it from this hook
+export type { BillAttachmentResponse };
 
 export type PaymentFrequency =
   | "None"
@@ -73,17 +76,6 @@ export interface BillPriceHistoryResponse {
   modifiedOn?: string;
 }
 
-export interface BillAttachmentResponse {
-  id: number;
-  billId: number;
-  name: string;
-  contentType: string;
-  url: string;
-  thumbnailUrl?: string;
-  createdOn: string;
-  modifiedOn?: string;
-}
-
 export function useBills() {
   return useQuery({
     queryKey: ["bills"],
@@ -124,7 +116,7 @@ export function useBillAttachments(billId: number) {
   return useQuery({
     queryKey: ["billAttachments", billId],
     queryFn: () =>
-      apiClient.api.bills.byId(billId).attachments.get() as unknown as Promise<BillAttachmentResponse[]>,
+      apiClient.api.bills.byId(billId).attachments.get() as Promise<BillAttachmentResponse[]>,
     enabled: !!billId,
   });
 }

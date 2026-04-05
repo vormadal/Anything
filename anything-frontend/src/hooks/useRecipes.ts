@@ -3,7 +3,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, createMultipartBody } from "@/lib/apiClient";
 import { getHouseholdHeader } from "@/lib/householdUtils";
-import type { Recipe, RecipeIngredient, RecipeStep, RecipeImageResponse } from "@/lib/api-client/models/index";
+import type {
+  Recipe,
+  RecipeIngredient,
+  RecipeStep,
+  RecipeImageResponse,
+  ParsedRecipeResponse,
+  ParsedIngredient,
+  ParsedStep,
+  RecipeTag,
+} from "@/lib/api-client/models/index";
+
+// Re-export API model types that consumers import from this hook
+export type { ParsedRecipeResponse, ParsedIngredient, ParsedStep, RecipeTag };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 
@@ -272,20 +284,10 @@ export function useDeleteRecipeStep(recipeId: number) {
   });
 }
 
-export interface ParsedIngredient {
-  amount?: number | null;
-  unit?: string | null;
-  name: string;
-}
-
-export interface ParsedStep {
-  order: number;
-  text: string;
-}
-
-export interface ParsedRecipeResponse {
+export interface ImportRecipePayload {
   name: string;
   link?: string | null;
+  notes?: string | null;
   ingredients: ParsedIngredient[];
   steps: ParsedStep[];
   imageUrl?: string | null;
@@ -296,7 +298,7 @@ export function useParseRecipeFromUrl() {
     mutationFn: async (url: string): Promise<ParsedRecipeResponse> => {
       try {
         const result = await apiClient.api.recipes.parseUrl.post({ url });
-        return result as unknown as ParsedRecipeResponse;
+        return result as ParsedRecipeResponse;
       } catch (e) {
         const kiota = e as { responseStatusCode?: number };
         if (kiota.responseStatusCode !== undefined) {
@@ -306,15 +308,6 @@ export function useParseRecipeFromUrl() {
       }
     },
   });
-}
-
-export interface ImportRecipePayload {
-  name: string;
-  link?: string | null;
-  notes?: string | null;
-  ingredients: ParsedIngredient[];
-  steps: ParsedStep[];
-  imageUrl?: string | null;
 }
 
 export function useImportRecipe() {
@@ -412,13 +405,6 @@ export function useAddIngredientsToShoppingList(recipeId: number) {
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems"] });
     },
   });
-}
-
-export interface RecipeTag {
-  id: number;
-  recipeId: number;
-  name: string;
-  createdOn: string;
 }
 
 export function useRecipeTags(recipeId: number) {
