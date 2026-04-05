@@ -1,22 +1,11 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER } from "@/lib/apiClient";
+import { apiClient } from "@/lib/apiClient";
+import { getHouseholdHeader } from "@/lib/householdUtils";
 import type { Recipe, RecipeIngredient, RecipeStep, RecipeImageResponse } from "@/lib/api-client/models/index";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
-
-function getHouseholdId(): string | null {
-  if (typeof globalThis.window !== "undefined") {
-    return localStorage.getItem(HOUSEHOLD_ID_KEY);
-  }
-  return null;
-}
-
-function getHouseholdHeader(): Record<string, string> {
-  const id = getHouseholdId();
-  return id !== null ? { [HOUSEHOLD_HEADER]: id } : {};
-}
 
 export interface TopTag {
   name: string;

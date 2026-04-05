@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER } from "@/lib/apiClient";
+import { apiClient } from "@/lib/apiClient";
+import { getHouseholdHeader } from "@/lib/householdUtils";
 import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest } from "@/lib/api-client/models/index";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
@@ -11,14 +12,6 @@ function getAccessToken(): string {
     return localStorage.getItem("accessToken") ?? "";
   }
   return "";
-}
-
-function getHouseholdHeader(): Record<string, string> {
-  if (typeof window !== "undefined") {
-    const id = localStorage.getItem(HOUSEHOLD_ID_KEY);
-    if (id !== null) return { [HOUSEHOLD_HEADER]: id };
-  }
-  return {};
 }
 
 export type PaymentFrequency =
