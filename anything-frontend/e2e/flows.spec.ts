@@ -122,10 +122,9 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
 
   // Step 3 — Schedule the recipe on the food plan via the food plan page
   await page.goto("/food-plans");
-  const addMealButton = page
-    .getByRole("button", { name: /Add meal for/i })
-    .first();
-  await addMealButton.click();
+  // Click the first day row card to open the day management dialog.
+  // Each day row is a <button> containing an <h3> with the weekday name.
+  await page.locator("button").filter({ has: page.locator("h3") }).first().click();
 
   const mealInput = page.getByPlaceholder("Meal name...");
   await mealInput.fill(recipeName);

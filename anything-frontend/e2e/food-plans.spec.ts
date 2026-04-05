@@ -14,13 +14,11 @@ test("add and remove a meal entry from the food plan", async ({ page }) => {
     page.getByRole("heading", { name: "Food Plan", level: 1 })
   ).toBeVisible();
 
-  // Click the "Add" button on the first visible day column
-  const addMealButton = page
-    .getByRole("button", { name: /Add meal for/i })
-    .first();
-  await addMealButton.click();
+  // Click the first visible day row card to open the day management dialog.
+  // Each day row is a <button> containing an <h3> with the weekday name.
+  await page.locator("button").filter({ has: page.locator("h3") }).first().click();
 
-  // The inline form should appear with a meal name input
+  // The day management dialog should appear with a meal name input
   const mealInput = page.getByPlaceholder("Meal name...");
   await expect(mealInput).toBeVisible();
   await mealInput.fill(mealName);
@@ -28,7 +26,7 @@ test("add and remove a meal entry from the food plan", async ({ page }) => {
   // Submit the form
   await page.locator('button[type="submit"]').click();
 
-  // The new entry should be visible on the plan
+  // The new entry should be visible in the dialog
   await expect(page.getByText(mealName)).toBeVisible();
 
   // Delete the specific entry we just added by scoping to its container
@@ -45,17 +43,18 @@ test("add and remove a meal entry from the food plan", async ({ page }) => {
 test("can navigate between weeks on the food plan", async ({ page }) => {
   await page.goto("/food-plans");
 
-  // The week label is visible (e.g. "Mar 17 – Mar 23, 2025")
-  const weekLabel = page.locator(".text-center button");
-  const initialLabel = await weekLabel.textContent();
+  // Today's day row should be visible (marked with data-today)
+  const todayRow = page.locator('button[data-today="true"]');
+  await expect(todayRow).toBeVisible();
 
-  // Navigate to next week
-  await page.getByRole("button", { name: "Next week" }).click();
-  await expect(weekLabel).not.toHaveText(initialLabel ?? "");
+  // Load more days into the future
+  await page.getByRole("button", { name: "Load more" }).click();
 
-  // Navigate back to current week by clicking the week label
-  await weekLabel.click();
-  await expect(weekLabel).toHaveText(initialLabel ?? "");
+  // Load earlier days into the past
+  await page.getByRole("button", { name: "Load earlier" }).click();
+
+  // Today's row should still be visible
+  await expect(todayRow).toBeVisible();
 });
 
 test("food plan settings page loads and shows day toggles", async ({
