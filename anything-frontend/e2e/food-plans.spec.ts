@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { FoodPlanPage } from "./pages/FoodPlanPage";
 
 /**
  * Food plan full flow:
@@ -8,15 +9,15 @@ import { test, expect } from "@playwright/test";
 
 test("add and remove a meal entry from the food plan", async ({ page }) => {
   const mealName = `E2E Meal ${Date.now()}`;
+  const foodPlan = new FoodPlanPage(page);
 
-  await page.goto("/food-plans");
+  await foodPlan.goto();
   await expect(
     page.getByRole("heading", { name: "Food Plan", level: 1 })
   ).toBeVisible();
 
   // Click the first visible day row card to open the day management dialog.
-  // Each day row is a <button> containing an <h3> with the weekday name.
-  await page.locator("button").filter({ has: page.locator("h3") }).first().click();
+  await foodPlan.openFirstDayDialog();
 
   // The day management dialog should appear with a meal name input
   const mealInput = page.getByPlaceholder("Meal name...");
@@ -41,10 +42,11 @@ test("add and remove a meal entry from the food plan", async ({ page }) => {
 });
 
 test("can navigate between weeks on the food plan", async ({ page }) => {
-  await page.goto("/food-plans");
+  const foodPlan = new FoodPlanPage(page);
+  await foodPlan.goto();
 
-  // Today's day row should be visible (marked with data-today)
-  const todayRow = page.locator('button[data-today="true"]');
+  // Today's day row should be visible (marked with data-today="true" by the page component)
+  const todayRow = foodPlan.todayRow();
   await expect(todayRow).toBeVisible();
 
   // Load more days into the future
