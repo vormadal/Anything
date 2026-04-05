@@ -24,8 +24,9 @@ export default function HouseholdsPage() {
       setNewName("");
       setShowCreate(false);
       toast.success("Household created");
-    } catch {
-      toast.error("Failed to create household");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create household";
+      toast.error(message);
     }
   };
 
