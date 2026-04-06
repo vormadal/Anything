@@ -27,15 +27,16 @@ test("add and remove a meal entry from the food plan", async ({ page }) => {
   // Submit the form
   await page.locator('button[type="submit"]').click();
 
-  // The new entry should be visible in the dialog
-  await expect(page.getByText(mealName)).toBeVisible();
+  // The new entry should be visible in the dialog's meal list.
+  // Scope to the <li> that has the "Remove entry" button to avoid a strict-mode
+  // violation caused by the entry also appearing as an EntryChip in the day row.
+  const entryInList = page
+    .locator("li")
+    .filter({ hasText: mealName, has: page.getByRole("button", { name: "Remove entry" }) });
+  await expect(entryInList).toBeVisible();
 
-  // Delete the specific entry we just added by scoping to its container
-  await page
-    .getByText(mealName)
-    .locator("xpath=..")
-    .getByRole("button", { name: "Remove entry" })
-    .click();
+  // Delete the specific entry we just added
+  await entryInList.getByRole("button", { name: "Remove entry" }).click();
 
   // Entry should be gone
   await expect(page.getByText(mealName)).not.toBeVisible();

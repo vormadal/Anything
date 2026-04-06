@@ -137,7 +137,13 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
   }
 
   await page.locator('button[type="submit"]').click();
-  await expect(page.getByText(recipeName)).toBeVisible();
+  // Scope to the <li> with a "Remove entry" button to avoid a strict-mode
+  // violation from the entry also appearing as an EntryChip in the day row.
+  await expect(
+    page
+      .locator("li")
+      .filter({ hasText: recipeName, has: page.getByRole("button", { name: "Remove entry" }) })
+  ).toBeVisible();
 
   // Step 4 — Add food plan recipes to the shopping list
   await page.getByRole("button", { name: "Add to shopping list" }).click();
