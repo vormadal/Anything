@@ -700,13 +700,13 @@ export default function RecipeEditPage() {
           <div className="flex flex-wrap gap-2">
             {tags?.map((tag) => (
               <span
-                key={tag.id}
+                key={tag.id ?? 0}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
               >
                 {tag.name}
                 <button
                   type="button"
-                  onClick={() => handleDeleteTag(tag.id)}
+                  onClick={() => handleDeleteTag(tag.id!)}
                   disabled={deleteTag.isPending}
                   aria-label={`Remove tag ${tag.name}`}
                   className="ml-0.5 text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100"
