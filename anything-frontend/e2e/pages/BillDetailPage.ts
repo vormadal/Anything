@@ -12,6 +12,24 @@ export class BillDetailPage {
   async uploadAttachment(file: FileInput) {
     const fileInput = this.page.locator('input[type="file"]');
     await fileInput.setInputFiles(file);
+
+    // The upload runs asynchronously after setInputFiles triggers the onChange
+    // handler.  Wait for it to complete: while the upload is in progress the
+    // "Add file" button shows "Uploading..." and is disabled; when it returns to
+    // "Add file" (enabled) the mutation has settled.
+    const uploadingButton = this.page.getByRole("button", {
+      name: "Uploading...",
+    });
+    try {
+      // Wait up to 2 s for the uploading state to appear (it may be very brief)
+      await uploadingButton.waitFor({ state: "visible", timeout: 2_000 });
+    } catch {
+      // Upload may have been instantaneous; continue to the completion wait
+    }
+    // Wait for the button to return to its idle state (upload done or failed)
+    await this.page
+      .getByRole("button", { name: "Add file" })
+      .waitFor({ state: "visible", timeout: 30_000 });
   }
 
   attachmentLink(name: string) {
