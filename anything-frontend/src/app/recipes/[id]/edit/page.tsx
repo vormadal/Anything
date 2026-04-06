@@ -700,7 +700,7 @@ export default function RecipeEditPage() {
           <div className="flex flex-wrap gap-2">
             {tags?.map((tag) => (
               <span
-                key={tag.id ?? 0}
+                key={tag.id!}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
               >
                 {tag.name}

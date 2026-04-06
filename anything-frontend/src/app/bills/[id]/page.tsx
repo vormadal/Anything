@@ -512,7 +512,7 @@ export default function BillDetailPage() {
               const contentType = att.contentType ?? "";
               const isImage = contentType.startsWith("image/");
               return (
-                <div key={att.id ?? 0} className="px-4 py-3 flex items-center gap-3">
+                <div key={att.id!} className="px-4 py-3 flex items-center gap-3">
                   <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center">
                     {isImage && att.thumbnailUrl ? (
                       <Image
@@ -528,14 +528,18 @@ export default function BillDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     {isImage ? (
-                      <a
-                        href={att.url ?? "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block"
-                      >
-                        {att.name}
-                      </a>
+                      att.url ? (
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block"
+                        >
+                          {att.name}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-medium truncate block">{att.name}</span>
+                      )
                     ) : (
                       <button
                         type="button"
