@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { act } from 'react'
 import { screen, waitFor, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
@@ -38,6 +38,30 @@ function buildEntry(
 // ---- Mock fetch globally (useRecipes now uses fetch directly) ----
 const mockFetch = jest.fn()
 global.fetch = mockFetch
+
+// ---- Mock window.scrollTo ----
+const mockScrollTo = jest.fn()
+Object.defineProperty(window, 'scrollTo', { value: mockScrollTo, writable: true })
+
+// ---- IntersectionObserver mock (jsdom does not implement it) ----
+type IntersectionCallback = (entries: IntersectionObserverEntry[]) => void
+let intersectionCallback: IntersectionCallback | null = null
+const mockIntersectionObserverDisconnect = jest.fn()
+const mockIntersectionObserverObserve = jest.fn()
+
+class MockIntersectionObserver {
+  constructor(callback: IntersectionCallback) {
+    intersectionCallback = callback
+  }
+  observe = mockIntersectionObserverObserve
+  disconnect = mockIntersectionObserverDisconnect
+}
+
+Object.defineProperty(window, 'IntersectionObserver', {
+  writable: true,
+  configurable: true,
+  value: MockIntersectionObserver,
+})
 
 function mockRecipesFetch(recipes: unknown[]) {
   mockFetch.mockImplementation((url: string) => {
@@ -1021,4 +1045,88 @@ describe('FoodPlanPage', () => {
     expect(chip).toBeInTheDocument()
     expect(chip?.className).not.toContain('bg-green-50')
   })
+
+  // ------- 12. Floating back-to-today button -------
+  it('should render the floating back-to-today button', async () => {
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Scroll to today' })).toBeInTheDocument()
+    })
+  })
+
+  it('should hide the floating button initially (today is visible)', async () => {
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Scroll to today' })).toBeInTheDocument()
+    })
+
+    const floatingBtn = screen.getByRole('button', { name: 'Scroll to today' })
+    expect(floatingBtn.className).toContain('opacity-0')
+    expect(floatingBtn.className).toContain('pointer-events-none')
+  })
+
+  it('should show the floating button when today scrolls out of view', async () => {
+    render(<FoodPlanPage />)
+
+    // Wait until today's row is rendered (data loaded, callback ref fired, observer set)
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    // Simulate today going out of view
+    act(() => {
+      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
+    })
+
+    await waitFor(() => {
+      const floatingBtn = screen.getByRole('button', { name: 'Scroll to today' })
+      expect(floatingBtn.className).toContain('opacity-100')
+      expect(floatingBtn.className).not.toContain('pointer-events-none')
+    })
+  })
+
+  it('should hide the floating button when today scrolls back into view', async () => {
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    // Simulate today going out of view then back in
+    act(() => {
+      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
+      intersectionCallback?.([{ isIntersecting: true } as IntersectionObserverEntry])
+    })
+
+    await waitFor(() => {
+      const floatingBtn = screen.getByRole('button', { name: 'Scroll to today' })
+      expect(floatingBtn.className).toContain('opacity-0')
+    })
+  })
+
+  it('should call window.scrollTo when the floating button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<FoodPlanPage />)
+
+    // Wait until today's row is rendered (data loaded, callback ref fired, observer set)
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    // Make button visible first
+    act(() => {
+      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Scroll to today' }).className).toContain('opacity-100')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Scroll to today' }))
+
+    expect(mockScrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }))
+  })
 })
+

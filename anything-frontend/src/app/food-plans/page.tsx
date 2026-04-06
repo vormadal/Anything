@@ -13,13 +13,13 @@ import {
 } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import type { FoodPlanEntry, FoodPlanNote, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, X, Settings } from "lucide-react";
+import { ShoppingCart, X, Settings, CalendarDays } from "lucide-react";
 import { bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
 import { format, isSameDay, addDays as dateFnsAddDays } from "date-fns";
 import { da } from "date-fns/locale";
@@ -80,7 +80,7 @@ function DayRow({
   entries: FoodPlanEntry[];
   note: FoodPlanNote | null;
   onOpen: () => void;
-  todayRef?: React.RefObject<HTMLButtonElement | null>;
+  todayRef?: React.Ref<HTMLButtonElement>;
 }) {
   const dateStr = toDateInputValue(date);
   const dayEntries = entries.filter((e) => {
@@ -494,7 +494,25 @@ export default function FoodPlanPage() {
   const [weeksForward, setWeeksForward] = useState(1);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
-  const todayRef = useRef<HTMLButtonElement>(null);
+  const [isTodayVisible, setIsTodayVisible] = useState(true);
+  const todayRef = useRef<HTMLButtonElement | null>(null);
+
+  // Combined callback ref: updates todayRef for scrolling and sets up IntersectionObserver.
+  // React 19 callback refs support returning a cleanup function, so this re-runs whenever
+  // the today element attaches to the DOM (e.g. after data finishes loading).
+  const todayRefCallback = useCallback(
+    (el: HTMLButtonElement | null) => {
+      todayRef.current = el;
+      if (!el) return;
+      const observer = new IntersectionObserver(
+        ([entry]) => setIsTodayVisible(entry.isIntersecting),
+        { threshold: 0.1 }
+      );
+      observer.observe(el);
+      return () => observer.disconnect();
+    },
+    []
+  );
   const { setHeaderActions } = useHeaderActions();
 
   const today = useMemo(() => {
@@ -548,10 +566,19 @@ export default function FoodPlanPage() {
     });
   };
 
+  // Scroll today into view, positioned ~1/4 down from the top of the viewport
+  const scrollToToday = useCallback(() => {
+    const el = todayRef.current;
+    if (!el) return;
+    const elementTop = el.getBoundingClientRect().top + window.scrollY;
+    const offset = window.innerHeight * 0.25;
+    window.scrollTo({ top: elementTop - offset, behavior: "smooth" });
+  }, []);
+
   // Scroll today into view on mount
   useEffect(() => {
-    todayRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, []);
+    scrollToToday();
+  }, [scrollToToday]);
 
   useEffect(() => {
     setHeaderActions(
@@ -609,7 +636,7 @@ export default function FoodPlanPage() {
               entries={entries ?? []}
               note={getNoteForDate(date)}
               onOpen={() => setSelectedDay(date)}
-              todayRef={todayRef}
+              todayRef={todayRefCallback}
             />
           ))}
         </div>
@@ -641,6 +668,18 @@ export default function FoodPlanPage() {
           onClose={() => setShowShoppingListDialog(false)}
         />
       )}
+
+      {/* Floating back-to-today button — fades in when today is scrolled out of view */}
+      <button
+        onClick={scrollToToday}
+        aria-label="Scroll to today"
+        className={`fixed bottom-20 right-4 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-opacity duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+          isTodayVisible ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+      >
+        <CalendarDays className="h-4 w-4" />
+        I dag
+      </button>
     </div>
   );
 }
