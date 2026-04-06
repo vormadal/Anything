@@ -278,8 +278,15 @@ export function useUploadBillAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { billId: number; file: File; name?: string }) => {
+      const buffer = await data.file.arrayBuffer();
       const multipartBody = createMultipartBody();
-      multipartBody.addOrReplacePart("file", data.file.type || "application/octet-stream", data.file);
+      multipartBody.addOrReplacePart(
+        "file",
+        data.file.type || "application/octet-stream",
+        buffer,
+        undefined,
+        data.file.name
+      );
       try {
         await apiClient.api.bills.byId(data.billId).attachments.post(multipartBody, {
           queryParameters: { name: data.name },

@@ -38,8 +38,8 @@ test("add and remove a meal entry from the food plan", async ({ page }) => {
   // Delete the specific entry we just added
   await entryInList.getByRole("button", { name: "Remove entry" }).click();
 
-  // Entry should be gone
-  await expect(page.getByText(mealName)).not.toBeVisible();
+  // Entry should be gone from the dialog list
+  await expect(entryInList).not.toBeVisible();
 });
 
 test("can navigate between weeks on the food plan", async ({ page }) => {

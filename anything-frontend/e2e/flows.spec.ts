@@ -145,6 +145,11 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
       .filter({ hasText: recipeName, has: page.getByRole("button", { name: "Remove entry" }) })
   ).toBeVisible();
 
+  // Close the day management dialog before interacting with the page behind it.
+  // Without this, the dialog backdrop intercepts pointer events on the header buttons.
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await expect(page.getByPlaceholder("Meal name...")).not.toBeVisible();
+
   // Step 4 — Add food plan recipes to the shopping list
   await page.getByRole("button", { name: "Add to shopping list" }).click();
   await expect(
