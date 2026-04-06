@@ -34,8 +34,14 @@ export class FoodPlanPage {
 
   /**
    * Opens the DayManagementDialog for the first visible day row.
+   *
+   * Clicks the h3 weekday heading rather than the button centre so that the
+   * click lands on the header area even when the day row contains entry-chip
+   * links (<a> elements) from previous test runs.  Clicking the button centre
+   * can inadvertently activate one of those links, navigating away from the
+   * food-plan page instead of opening the dialog.
    */
   async openFirstDayDialog() {
-    await this.dayRows().first().click();
+    await this.dayRows().first().locator("h3").first().click();
   }
 }

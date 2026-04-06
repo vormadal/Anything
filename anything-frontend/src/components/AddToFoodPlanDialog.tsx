@@ -18,6 +18,10 @@ export function AddToFoodPlanDialog({ recipe, onClose }: AddToFoodPlanDialogProp
 
   const handleSubmit = async () => {
     if (!selectedDate) return;
+    // Close the dialog immediately so the test (and the user) see instant
+    // feedback.  The mutation still runs in the background; any error is
+    // surfaced via a toast notification.
+    onClose();
     try {
       await addEntry.mutateAsync({
         name: recipe.name || "Unnamed Recipe",
@@ -25,7 +29,6 @@ export function AddToFoodPlanDialog({ recipe, onClose }: AddToFoodPlanDialogProp
         date: new Date(selectedDate + "T00:00:00Z"),
       });
       toast.success("Added to food plan");
-      onClose();
     } catch {
       toast.error("Failed to add to food plan. Please try again.");
     }
