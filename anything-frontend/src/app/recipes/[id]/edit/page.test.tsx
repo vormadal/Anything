@@ -16,6 +16,7 @@ const mockStepsPost = jest.fn()
 const mockStepByIdPut = jest.fn()
 const mockStepByIdDelete = jest.fn()
 const mockImagesGet = jest.fn()
+const mockImagesUploadPost = jest.fn().mockResolvedValue(undefined)
 const mockImageByIdDelete = jest.fn()
 const mockRecipeDelete = jest.fn()
 const mockIngredientById = jest.fn(() => ({ put: mockIngredientByIdPut, delete: mockIngredientByIdDelete }))
@@ -27,7 +28,7 @@ const mockById = jest.fn(() => ({
   delete: mockRecipeDelete,
   ingredients: { get: mockIngredientsGet, post: mockIngredientsPost, byIngredientId: mockIngredientById },
   steps: { get: mockStepsGet, post: mockStepsPost, byStepId: mockStepById },
-  images: { get: mockImagesGet, post: jest.fn(), byImageId: mockImageById },
+  images: { get: mockImagesGet, post: jest.fn(), byImageId: mockImageById, upload: { post: mockImagesUploadPost } },
   tags: { get: jest.fn().mockResolvedValue([]) },
 }))
 
@@ -49,6 +50,7 @@ jest.mock('@/lib/apiClient', () => ({
       },
     },
   },
+  createMultipartBody: () => ({ addOrReplacePart: jest.fn() }),
 }))
 
 jest.mock('@/hooks/useRecommendations', () => ({
@@ -309,35 +311,20 @@ describe('RecipeEditPage', () => {
 
   it('should add an image', async () => {
     const user = userEvent.setup()
-    const originalFetch = global.fetch
-    const mockFetch = jest.fn().mockImplementation((url: string) => {
-      if ((url as string).includes('/tags')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as unknown as Response)
-      }
-      return Promise.resolve({ ok: true } as Response)
+
+    render(<RecipeEditPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
     })
-    global.fetch = mockFetch
 
-    try {
-      render(<RecipeEditPage />)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
+    await user.upload(fileInput, file)
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
-      })
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-      const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
-      await user.upload(fileInput, file)
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/recipes/1/images/upload'),
-          expect.objectContaining({ method: 'POST' })
-        )
-      })
-    } finally {
-      global.fetch = originalFetch
-    }
+    await waitFor(() => {
+      expect(mockImagesUploadPost).toHaveBeenCalled()
+    })
   })
 
   it('should delete an image', async () => {

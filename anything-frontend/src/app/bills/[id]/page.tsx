@@ -509,14 +509,15 @@ export default function BillDetailPage() {
         {!attachmentsLoading && (attachments ?? []).length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
             {(attachments ?? []).map((att) => {
-              const isImage = att.contentType.startsWith("image/");
+              const contentType = att.contentType ?? "";
+              const isImage = contentType.startsWith("image/");
               return (
-                <div key={att.id} className="px-4 py-3 flex items-center gap-3">
+                <div key={att.id!} className="px-4 py-3 flex items-center gap-3">
                   <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center">
                     {isImage && att.thumbnailUrl ? (
                       <Image
                         src={att.thumbnailUrl}
-                        alt={att.name}
+                        alt={att.name ?? ""}
                         width={40}
                         height={40}
                         className="w-full h-full object-cover"
@@ -527,28 +528,32 @@ export default function BillDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     {isImage ? (
-                      <a
-                        href={att.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block"
-                      >
-                        {att.name}
-                      </a>
+                      att.url ? (
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block"
+                        >
+                          {att.name}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-medium truncate block">{att.name}</span>
+                      )
                     ) : (
                       <button
                         type="button"
-                        onClick={() => downloadAttachment.mutate({ billId: bill.id, attachmentId: att.id, name: att.name })}
+                        onClick={() => downloadAttachment.mutate({ billId: bill.id!, attachmentId: att.id!, name: att.name! })}
                         className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate text-left w-full block"
                       >
                         {att.name}
                       </button>
                     )}
-                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{att.contentType}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{contentType}</p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleOpenAttachmentDialog(att.id, att.name)}
+                    onClick={() => handleOpenAttachmentDialog(att.id!, att.name!)}
                     className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex-shrink-0"
                     aria-label="Attachment options"
                   >

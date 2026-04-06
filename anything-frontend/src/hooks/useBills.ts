@@ -1,17 +1,11 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
-import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest } from "@/lib/api-client/models/index";
+import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest, BillAttachmentResponse } from "@/lib/api-client/models/index";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
-
-function getAccessToken(): string {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("accessToken") ?? "";
-  }
-  return "";
-}
+// Re-export API model type so consumers can import it from this hook
+export type { BillAttachmentResponse };
 
 export type PaymentFrequency =
   | "None"
@@ -82,17 +76,6 @@ export interface BillPriceHistoryResponse {
   modifiedOn?: string;
 }
 
-export interface BillAttachmentResponse {
-  id: number;
-  billId: number;
-  name: string;
-  contentType: string;
-  url: string;
-  thumbnailUrl?: string;
-  createdOn: string;
-  modifiedOn?: string;
-}
-
 export function useBills() {
   return useQuery({
     queryKey: ["bills"],
@@ -132,13 +115,8 @@ export function useBillPriceHistory(billId: number) {
 export function useBillAttachments(billId: number) {
   return useQuery({
     queryKey: ["billAttachments", billId],
-    queryFn: async (): Promise<BillAttachmentResponse[]> => {
-      const res = await fetch(`${API_BASE_URL}/api/bills/${billId}/attachments`, {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch attachments");
-      return res.json() as Promise<BillAttachmentResponse[]>;
-    },
+    queryFn: () =>
+      apiClient.api.bills.byId(billId).attachments.get().then(r => r ?? []) as Promise<BillAttachmentResponse[]>,
     enabled: !!billId,
   });
 }
@@ -300,18 +278,15 @@ export function useUploadBillAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { billId: number; file: File; name?: string }) => {
-      const formData = new FormData();
-      formData.append("file", data.file);
-      const baseUrl = `${API_BASE_URL}/api/bills/${data.billId}/attachments`;
-      const url = data.name ? `${baseUrl}?name=${encodeURIComponent(data.name)}` : baseUrl;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
-        body: formData,
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || "Failed to upload attachment");
+      const multipartBody = createMultipartBody();
+      multipartBody.addOrReplacePart("file", data.file.type || "application/octet-stream", data.file);
+      try {
+        await apiClient.api.bills.byId(data.billId).attachments.post(multipartBody, {
+          queryParameters: { name: data.name },
+        });
+      } catch (e) {
+        const kiota = e as { message?: string };
+        throw new Error(kiota.message || "Failed to upload attachment");
       }
     },
     onSuccess: (_data, variables) => {
@@ -323,17 +298,8 @@ export function useUploadBillAttachment() {
 export function useUpdateBillAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { billId: number; attachmentId: number; name: string }) => {
-      const res = await fetch(`${API_BASE_URL}/api/bills/${data.billId}/attachments/${data.attachmentId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getAccessToken()}`,
-        },
-        body: JSON.stringify({ name: data.name }),
-      });
-      if (!res.ok) throw new Error("Failed to update attachment");
-    },
+    mutationFn: (data: { billId: number; attachmentId: number; name: string }) =>
+      apiClient.api.bills.byId(data.billId).attachments.byAttachmentId(data.attachmentId).put({ name: data.name }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billAttachments", variables.billId] });
     },
@@ -343,12 +309,12 @@ export function useUpdateBillAttachment() {
 export function useDownloadBillAttachment() {
   return useMutation({
     mutationFn: async (data: { billId: number; attachmentId: number; name: string }) => {
-      const res = await fetch(
-        `${API_BASE_URL}/api/bills/${data.billId}/attachments/${data.attachmentId}/download`,
-        { headers: { Authorization: `Bearer ${getAccessToken()}` } }
-      );
-      if (!res.ok) throw new Error("Failed to download attachment");
-      const blob = await res.blob();
+      const arrayBuffer = await apiClient.api.bills
+        .byId(data.billId)
+        .attachments.byAttachmentId(data.attachmentId)
+        .download.get();
+      if (!arrayBuffer) throw new Error("Attachment data not returned by server");
+      const blob = new Blob([arrayBuffer]);
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
@@ -362,13 +328,8 @@ export function useDownloadBillAttachment() {
 export function useDeleteBillAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { billId: number; attachmentId: number }) => {
-      const res = await fetch(`${API_BASE_URL}/api/bills/${data.billId}/attachments/${data.attachmentId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
-      });
-      if (!res.ok) throw new Error("Failed to delete attachment");
-    },
+    mutationFn: (data: { billId: number; attachmentId: number }) =>
+      apiClient.api.bills.byId(data.billId).attachments.byAttachmentId(data.attachmentId).delete(),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billAttachments", variables.billId] });
     },

@@ -1,8 +1,21 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
-import type { Recipe, RecipeIngredient, RecipeStep, RecipeImageResponse } from "@/lib/api-client/models/index";
+import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import { getHouseholdHeader } from "@/lib/householdUtils";
+import type {
+  Recipe,
+  RecipeIngredient,
+  RecipeStep,
+  RecipeImageResponse,
+  ParsedRecipeResponse,
+  ParsedIngredient,
+  ParsedStep,
+  RecipeTag,
+} from "@/lib/api-client/models/index";
+
+// Re-export API model types that consumers import from this hook
+export type { ParsedRecipeResponse, ParsedIngredient, ParsedStep, RecipeTag };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 
@@ -25,7 +38,7 @@ export function useRecipes(search?: string, tag?: string) {
           : "";
       const response = await fetch(
         `${API_BASE_URL}/api/recipes${qs ? `?${qs}` : ""}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() } }
       );
       if (!response.ok) throw new Error(`Failed to fetch recipes: ${response.status}`);
       return response.json() as Promise<Recipe[]>;
@@ -43,7 +56,7 @@ export function useTopRecipeTags(count = 10) {
           : "";
       const response = await fetch(
         `${API_BASE_URL}/api/recipes/tags?count=${count}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() } }
       );
       if (!response.ok) throw new Error(`Failed to fetch top tags: ${response.status}`);
       return response.json() as Promise<TopTag[]>;
@@ -187,24 +200,8 @@ export function useReorderRecipeIngredients(recipeId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (ids: number[]): Promise<void> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes/${recipeId}/ingredients/reorder`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ ids }),
-        }
-      );
-      if (!response.ok) throw new Error(`Failed to reorder ingredients: ${response.status}`);
-    },
+    mutationFn: (ids: number[]): Promise<void> =>
+      apiClient.api.recipes.byId(recipeId).ingredients.reorder.put({ ids }),
     onMutate: async (ids) => {
       await queryClient.cancelQueries({ queryKey: ["recipeIngredients", recipeId] });
       const previous = queryClient.getQueryData<RecipeIngredient[]>(["recipeIngredients", recipeId]);
@@ -228,24 +225,8 @@ export function useReorderRecipeSteps(recipeId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (ids: number[]): Promise<void> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes/${recipeId}/steps/reorder`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ ids }),
-        }
-      );
-      if (!response.ok) throw new Error(`Failed to reorder steps: ${response.status}`);
-    },
+    mutationFn: (ids: number[]): Promise<void> =>
+      apiClient.api.recipes.byId(recipeId).steps.reorder.put({ ids }),
     onMutate: async (ids) => {
       await queryClient.cancelQueries({ queryKey: ["recipeSteps", recipeId] });
       const previous = queryClient.getQueryData<RecipeStep[]>(["recipeSteps", recipeId]);
@@ -303,52 +284,6 @@ export function useDeleteRecipeStep(recipeId: number) {
   });
 }
 
-export interface ParsedIngredient {
-  amount?: number | null;
-  unit?: string | null;
-  name: string;
-}
-
-export interface ParsedStep {
-  order: number;
-  text: string;
-}
-
-export interface ParsedRecipeResponse {
-  name: string;
-  link?: string | null;
-  ingredients: ParsedIngredient[];
-  steps: ParsedStep[];
-  imageUrl?: string | null;
-}
-
-export function useParseRecipeFromUrl() {
-  return useMutation({
-    mutationFn: async (url: string): Promise<ParsedRecipeResponse> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(`${API_BASE_URL}/api/recipes/parse-url`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ url }),
-      });
-      if (!response.ok) {
-        const err = new Error(
-          (await response.text()) || `Error ${response.status}`
-        ) as Error & { status: number };
-        err.status = response.status;
-        throw err;
-      }
-      return response.json() as Promise<ParsedRecipeResponse>;
-    },
-  });
-}
-
 export interface ImportRecipePayload {
   name: string;
   link?: string | null;
@@ -358,22 +293,30 @@ export interface ImportRecipePayload {
   imageUrl?: string | null;
 }
 
+export function useParseRecipeFromUrl() {
+  return useMutation({
+    mutationFn: async (url: string): Promise<ParsedRecipeResponse> => {
+      try {
+        const result = await apiClient.api.recipes.parseUrl.post({ url });
+        return result as ParsedRecipeResponse;
+      } catch (e) {
+        const kiota = e as { responseStatusCode?: number };
+        if (kiota.responseStatusCode !== undefined) {
+          throw Object.assign(e as Error, { status: kiota.responseStatusCode });
+        }
+        throw e;
+      }
+    },
+  });
+}
+
 export function useImportRecipe() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: ImportRecipePayload): Promise<{ id: number }> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(`${API_BASE_URL}/api/recipes/import`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      try {
+        const result = await apiClient.api.recipes.importEscaped.post({
           name: payload.name,
           link: payload.link ?? null,
           notes: payload.notes ?? null,
@@ -388,16 +331,16 @@ export function useImportRecipe() {
             order: s.order,
           })),
           imageUrl: payload.imageUrl ?? null,
-        }),
-      });
-      if (!response.ok) {
-        const err = new Error(
-          (await response.text()) || `Error ${response.status}`
-        ) as Error & { status: number };
-        err.status = response.status;
-        throw err;
+        });
+        if (!result?.id) throw new Error("Invalid response from import endpoint");
+        return { id: result.id };
+      } catch (e) {
+        const kiota = e as { responseStatusCode?: number };
+        if (kiota.responseStatusCode !== undefined) {
+          throw Object.assign(e as Error, { status: kiota.responseStatusCode });
+        }
+        throw e;
       }
-      return response.json() as Promise<{ id: number }>;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
@@ -418,28 +361,20 @@ export function useUploadRecipeImage(recipeId: number) {
         );
       }
 
-      const formData = new FormData();
-      formData.append("file", file);
-      const token = typeof globalThis.window !== "undefined"
-        ? (localStorage.getItem("accessToken") ?? "")
-        : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes/${recipeId}/images/upload`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
+      const multipartBody = createMultipartBody();
+      multipartBody.addOrReplacePart("file", file.type || "application/octet-stream", file);
 
-      if (!response.ok) {
-        if (response.status === 413) {
+      try {
+        await apiClient.api.recipes.byId(recipeId).images.upload.post(multipartBody);
+      } catch (e) {
+        const kiota = e as { responseStatusCode?: number };
+        if (kiota.responseStatusCode === 413) {
           throw new Error("File is too large. Please use an image under 10 MB.");
         }
-        if (response.status === 401 || response.status === 403) {
+        if (kiota.responseStatusCode === 401 || kiota.responseStatusCode === 403) {
           throw new Error("You are not authorised to upload images.");
         }
-        throw new Error(`Upload failed (${response.status}). Please try again.`);
+        throw new Error(`Upload failed (${kiota.responseStatusCode ?? "unknown"}). Please try again.`);
       }
     },
     onSuccess: () => {
@@ -473,28 +408,11 @@ export function useAddIngredientsToShoppingList(recipeId: number) {
   });
 }
 
-export interface RecipeTag {
-  id: number;
-  recipeId: number;
-  name: string;
-  createdOn: string;
-}
-
 export function useRecipeTags(recipeId: number) {
   return useQuery({
     queryKey: ["recipeTags", recipeId],
-    queryFn: async (): Promise<RecipeTag[]> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes/${recipeId}/tags`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!response.ok) throw new Error(`Failed to fetch tags: ${response.status}`);
-      return response.json() as Promise<RecipeTag[]>;
-    },
+    queryFn: () =>
+      apiClient.api.recipes.byId(recipeId).tags.get().then(r => r ?? []) as Promise<RecipeTag[]>,
     enabled: recipeId > 0,
   });
 }
@@ -504,23 +422,9 @@ export function useAddRecipeTag(recipeId: number) {
 
   return useMutation({
     mutationFn: async (name: string): Promise<RecipeTag> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes/${recipeId}/tags`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ name }),
-        }
-      );
-      if (!response.ok) throw new Error(`Failed to add tag: ${response.status}`);
-      return response.json() as Promise<RecipeTag>;
+      const result = await apiClient.api.recipes.byId(recipeId).tags.post({ name });
+      if (!result) throw new Error("Failed to create tag");
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeTags", recipeId] });
@@ -532,20 +436,8 @@ export function useDeleteRecipeTag(recipeId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (tagId: number): Promise<void> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes/${recipeId}/tags/${tagId}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!response.ok) throw new Error(`Failed to delete tag: ${response.status}`);
-    },
+    mutationFn: (tagId: number) =>
+      apiClient.api.recipes.byId(recipeId).tags.byTagId(tagId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeTags", recipeId] });
     },
@@ -575,6 +467,7 @@ export function useReimportRecipe(recipeId: number) {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...getHouseholdHeader(),
           },
           body: JSON.stringify(payload),
         }

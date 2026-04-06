@@ -19,11 +19,11 @@ import {
   useAddIngredientsToShoppingList,
 } from '@/hooks/useRecipes'
 
-// Mock fetch globally for hooks that use it directly
+// Mock fetch globally for hooks that still use it directly (useRecipes, useTopRecipeTags, useReimportRecipe)
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
-// Mock the apiClient module (used by hooks other than useRecipes/useTopRecipeTags)
+// Mock the apiClient module
 const mockRecipeGet = jest.fn()
 const mockGet = mockRecipeGet
 const mockPost = jest.fn()
@@ -34,17 +34,28 @@ const mockIngredientsPost = jest.fn()
 const mockIngredientsItemPut = jest.fn()
 const mockIngredientsItemDelete = jest.fn()
 const mockIngredientsItemById = jest.fn(() => ({ put: mockIngredientsItemPut, delete: mockIngredientsItemDelete }))
-const mockIngredients = { get: mockIngredientsGet, post: mockIngredientsPost, byIngredientId: mockIngredientsItemById }
+const mockIngredientsReorderPut = jest.fn()
+const mockIngredientsReorder = { put: mockIngredientsReorderPut }
+const mockIngredients = { get: mockIngredientsGet, post: mockIngredientsPost, byIngredientId: mockIngredientsItemById, reorder: mockIngredientsReorder }
 const mockStepsGet = jest.fn()
 const mockStepsPost = jest.fn()
 const mockStepsItemById = jest.fn(() => ({ put: jest.fn(), delete: jest.fn() }))
-const mockSteps = { get: mockStepsGet, post: mockStepsPost, byStepId: mockStepsItemById }
+const mockStepsReorderPut = jest.fn()
+const mockStepsReorder = { put: mockStepsReorderPut }
+const mockSteps = { get: mockStepsGet, post: mockStepsPost, byStepId: mockStepsItemById, reorder: mockStepsReorder }
 const mockImagesGet = jest.fn()
 const mockImagesPost = jest.fn()
 const mockImagesItemById = jest.fn(() => ({ delete: jest.fn() }))
-const mockImages = { get: mockImagesGet, post: mockImagesPost, byImageId: mockImagesItemById }
+const mockImagesUploadPost = jest.fn()
+const mockImagesUpload = { post: mockImagesUploadPost }
+const mockImages = { get: mockImagesGet, post: mockImagesPost, byImageId: mockImagesItemById, upload: mockImagesUpload }
 const mockAddToShoppingListPost = jest.fn()
 const mockAddToShoppingList = { post: mockAddToShoppingListPost }
+const mockTagsGet = jest.fn()
+const mockTagsPost = jest.fn()
+const mockTagsItemDelete = jest.fn()
+const mockTagsItemById = jest.fn(() => ({ delete: mockTagsItemDelete }))
+const mockTags = { get: mockTagsGet, post: mockTagsPost, byTagId: mockTagsItemById }
 const mockById = jest.fn(() => ({
   get: mockGet,
   put: mockPut,
@@ -53,7 +64,14 @@ const mockById = jest.fn(() => ({
   steps: mockSteps,
   images: mockImages,
   addToShoppingList: mockAddToShoppingList,
+  tags: mockTags,
 }))
+
+const mockParseUrlPost = jest.fn()
+const mockImportPost = jest.fn()
+
+// Mock MultipartBody via the createMultipartBody factory exported from apiClient
+const mockMultipartBodyInstance = { addOrReplacePart: jest.fn() }
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -61,9 +79,18 @@ jest.mock('@/lib/apiClient', () => ({
       recipes: {
         post: (...args: unknown[]) => mockPost(...args),
         byId: (...args: unknown[]) => mockById(...args),
+        parseUrl: { post: (...args: unknown[]) => mockParseUrlPost(...args) },
+        importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
       },
     },
   },
+  createMultipartBody: () => mockMultipartBodyInstance,
+  HOUSEHOLD_ID_KEY: 'householdId',
+  HOUSEHOLD_HEADER: 'X-Household-Id',
+}))
+
+jest.mock('@/lib/householdUtils', () => ({
+  getHouseholdHeader: () => ({}),
 }))
 
 function createWrapper() {
@@ -433,30 +460,22 @@ describe('useRecipes hooks', () => {
 
   describe('useUploadRecipeImage', () => {
     it('should upload an image successfully', async () => {
-      const originalFetch = global.fetch
-      const mockFetch = jest.fn().mockResolvedValueOnce({ ok: true } as Response)
-      global.fetch = mockFetch
+      mockImagesUploadPost.mockResolvedValueOnce(undefined)
 
-      try {
-        const { result } = renderHook(() => useUploadRecipeImage(1), {
-          wrapper: createWrapper(),
-        })
+      const { result } = renderHook(() => useUploadRecipeImage(1), {
+        wrapper: createWrapper(),
+      })
 
-        const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
+      const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
 
-        await act(async () => {
-          result.current.mutate(file)
-        })
+      await act(async () => {
+        result.current.mutate(file)
+      })
 
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/recipes/1/images/upload'),
-          expect.objectContaining({ method: 'POST' })
-        )
-      } finally {
-        global.fetch = originalFetch
-      }
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockImagesUploadPost).toHaveBeenCalled()
     })
   })
 
