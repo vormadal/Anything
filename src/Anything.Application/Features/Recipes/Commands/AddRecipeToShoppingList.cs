@@ -35,6 +35,9 @@ public class AddRecipeToShoppingListHandler(
 
         var multiplier = command.Multiplier >= 0 ? command.Multiplier : 1.0;
 
+        if (multiplier == 0)
+            return Results.NoContent();
+
         var grouped = ingredients
             .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower()))
             .Select(g => (

@@ -47,6 +47,7 @@ public class AddFoodPlanToShoppingListHandler(
             ?? new Dictionary<int, double>();
 
         var grouped = ingredients
+            .Where(i => !multiplierLookup.TryGetValue(i.RecipeId, out var m) || m > 0)
             .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower()))
             .Select(g => (
                 Name: g.First().Name.Trim(),

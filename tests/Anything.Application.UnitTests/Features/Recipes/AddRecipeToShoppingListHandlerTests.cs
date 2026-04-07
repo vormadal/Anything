@@ -130,7 +130,7 @@ public class AddRecipeToShoppingListHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ZeroMultiplier_AddsItemWithNullAmount()
+    public async Task Handle_ZeroMultiplier_SkipsIngredients()
     {
         SetupValidRecipeAndList();
 
@@ -141,10 +141,10 @@ public class AddRecipeToShoppingListHandlerTests
         _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
 
         var handler = CreateHandler();
-        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10, 0), TestContext.Current.CancellationToken);
+        var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10, 0), TestContext.Current.CancellationToken);
 
-        _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
-            i.Amount == null));
+        _itemRepo.DidNotReceive().Add(Arg.Any<ShoppingListItem>());
+        Assert.IsType<NoContent>(result);
     }
 
     [Fact]

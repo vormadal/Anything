@@ -183,7 +183,7 @@ public class AddFoodPlanToShoppingListHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ZeroMultiplier_AddsItemWithNullAmount()
+    public async Task Handle_ZeroMultiplier_SkipsRecipeIngredients()
     {
         SetupValidList();
 
@@ -207,8 +207,7 @@ public class AddFoodPlanToShoppingListHandlerTests
         var handler = CreateHandler();
         await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate, multipliers), TestContext.Current.CancellationToken);
 
-        _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
-            i.Name == "Sugar" && i.Amount == null));
+        _itemRepo.DidNotReceive().Add(Arg.Any<ShoppingListItem>());
     }
 
     [Fact]
