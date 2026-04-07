@@ -388,7 +388,7 @@ function AddToShoppingListDialog({
   const setMultiplier = (recipeId: number, delta: number) => {
     setMultipliers((prev) => ({
       ...prev,
-      [recipeId]: Math.max(1, (prev[recipeId] ?? 1) + delta),
+      [recipeId]: Math.max(0, (prev[recipeId] ?? 1) + delta),
     }));
   };
 
@@ -434,7 +434,7 @@ function AddToShoppingListDialog({
                       <button
                         type="button"
                         onClick={() => setMultiplier(recipeId, -1)}
-                        disabled={(multipliers[recipeId] ?? 1) <= 1}
+                        disabled={(multipliers[recipeId] ?? 1) <= 0}
                         className="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold disabled:opacity-50"
                         aria-label={`Decrease multiplier for ${recipe?.name}`}
                       >

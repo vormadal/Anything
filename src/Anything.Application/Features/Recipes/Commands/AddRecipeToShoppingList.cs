@@ -33,7 +33,10 @@ public class AddRecipeToShoppingListHandler(
             .Where(i => i.RecipeId == command.RecipeId && i.DeletedOn == null)
             .ToListAsync(ct);
 
-        var multiplier = command.Multiplier > 0 ? command.Multiplier : 1.0;
+        var multiplier = command.Multiplier >= 0 ? command.Multiplier : 1.0;
+
+        if (multiplier == 0)
+            return Results.NoContent();
 
         var grouped = ingredients
             .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower()))

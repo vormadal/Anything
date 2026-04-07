@@ -299,9 +299,9 @@ export default function RecipeDetailPage() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setMultiplier((m) => Math.max(1, m - 1))}
+                  onClick={() => setMultiplier((m) => Math.max(0, m - 1))}
                   className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-lg disabled:opacity-50"
-                  disabled={multiplier <= 1}
+                  disabled={multiplier <= 0}
                   aria-label="Decrease multiplier"
                 >
                   −

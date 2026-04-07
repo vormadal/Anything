@@ -183,7 +183,7 @@ public class AddFoodPlanToShoppingListHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ZeroMultiplier_DefaultsToOne()
+    public async Task Handle_ZeroMultiplier_SkipsRecipeIngredients()
     {
         SetupValidList();
 
@@ -202,6 +202,34 @@ public class AddFoodPlanToShoppingListHandlerTests
         var multipliers = new List<Contracts.FoodPlans.RecipeMultiplier>
         {
             new(100, 0)
+        };
+
+        var handler = CreateHandler();
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate, multipliers), TestContext.Current.CancellationToken);
+
+        _itemRepo.DidNotReceive().Add(Arg.Any<ShoppingListItem>());
+    }
+
+    [Fact]
+    public async Task Handle_NegativeMultiplier_DefaultsToOne()
+    {
+        SetupValidList();
+
+        var entries = new List<FoodPlanEntry>
+        {
+            new() { Id = 1, RecipeId = 100, Name = "Monday", DayOfWeek = 0, Date = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc) }
+        };
+        _entryRepo.Query().Returns(entries.AsAsyncQueryable());
+
+        var ingredients = new List<RecipeIngredient>
+        {
+            new() { Id = 1, RecipeId = 100, Name = "Sugar", Amount = 50, Unit = "g" }
+        };
+        _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
+
+        var multipliers = new List<Contracts.FoodPlans.RecipeMultiplier>
+        {
+            new(100, -1)
         };
 
         var handler = CreateHandler();
