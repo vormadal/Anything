@@ -45,6 +45,9 @@ namespace Anything.Database.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsAutomated")
                         .HasColumnType("boolean");
 
@@ -71,6 +74,8 @@ namespace Anything.Database.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("LocationId");
 
@@ -178,6 +183,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -192,6 +200,8 @@ namespace Anything.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Date");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("RecipeId");
 
@@ -212,6 +222,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -222,7 +235,7 @@ namespace Anything.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Date")
+                    b.HasIndex("HouseholdId", "Date")
                         .IsUnique();
 
                     b.ToTable("FoodPlanNotes");

@@ -1,5 +1,6 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -10,11 +11,14 @@ public record GetShoppingListItemsQuery(int ShoppingListId) : IRequest<IResult>;
 
 public class GetShoppingListItemsHandler(
     IRepository<ShoppingList> listRepository,
-    IRepository<ShoppingListItem> itemRepository) : IRequestHandler<GetShoppingListItemsQuery, IResult>
+    IRepository<ShoppingListItem> itemRepository,
+    IHouseholdContext householdContext) : IRequestHandler<GetShoppingListItemsQuery, IResult>
 {
     public async Task<IResult> Handle(GetShoppingListItemsQuery query, CancellationToken ct = default)
     {
-        var list = await listRepository.GetById(query.ShoppingListId);
+        var list = await listRepository.Query()
+            .Where(l => l.Id == query.ShoppingListId && l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
         if (list is null)
             return Results.NotFound("Shopping list not found.");
 

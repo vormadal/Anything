@@ -2,6 +2,7 @@ using Anything.Application.Features.Bills;
 using Anything.Contracts.Bills;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,13 +12,14 @@ public record GetBillSummaryQuery : IRequest<BillSummaryResponse>;
 
 public class GetBillSummaryHandler(
     IRepository<Bill> billRepository,
-    IRepository<BillPriceHistory> priceHistoryRepository)
+    IRepository<BillPriceHistory> priceHistoryRepository,
+    IHouseholdContext householdContext)
     : IRequestHandler<GetBillSummaryQuery, BillSummaryResponse>
 {
     public async Task<BillSummaryResponse> Handle(GetBillSummaryQuery query, CancellationToken ct = default)
     {
         var bills = await billRepository.Query()
-            .Where(b => b.DeletedOn == null)
+            .Where(b => b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .ToListAsync(ct);
 
         if (bills.Count == 0)

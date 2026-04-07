@@ -28,12 +28,14 @@ public class ImportRecipeHandler(
     IRepository<RecipeImage> imageRepository,
     IRecipeImageService recipeImageService,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider) : IRequestHandler<ImportRecipeCommand, Recipe>
+    TimeProvider timeProvider,
+    IHouseholdContext householdContext) : IRequestHandler<ImportRecipeCommand, Recipe>
 {
     public async Task<Recipe> Handle(ImportRecipeCommand command, CancellationToken ct = default)
     {
         var recipe = new Recipe
         {
+            HouseholdId = householdContext.HouseholdId,
             Name = command.Name,
             Link = command.Link,
             Notes = command.Notes,

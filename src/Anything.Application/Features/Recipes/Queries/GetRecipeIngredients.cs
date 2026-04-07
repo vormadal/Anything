@@ -1,5 +1,6 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -10,14 +11,17 @@ public record GetRecipeIngredientsQuery(int RecipeId) : IRequest<IResult>;
 
 public class GetRecipeIngredientsHandler(
     IRepository<Recipe> recipeRepository,
-    IRepository<RecipeIngredient> ingredientRepository) : IRequestHandler<GetRecipeIngredientsQuery, IResult>
+    IRepository<RecipeIngredient> ingredientRepository,
+    IHouseholdContext householdContext) : IRequestHandler<GetRecipeIngredientsQuery, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
 
     public async Task<IResult> Handle(GetRecipeIngredientsQuery query, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.GetById(query.RecipeId);
-        if (recipe is null || recipe.DeletedOn != null)
+        var recipe = await recipeRepository.Query()
+            .Where(r => r.Id == query.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
         var ingredients = await ingredientRepository.Query()

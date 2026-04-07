@@ -13,7 +13,8 @@ public record GetBillAttachmentsQuery(int BillId) : IRequest<IResult>;
 public class GetBillAttachmentsHandler(
     IRepository<Bill> billRepository,
     IRepository<BillAttachment> attachmentRepository,
-    IImageStorageService imageStorageService) : IRequestHandler<GetBillAttachmentsQuery, IResult>
+    IImageStorageService imageStorageService,
+    IHouseholdContext householdContext) : IRequestHandler<GetBillAttachmentsQuery, IResult>
 {
     private const string BillNotFound = "Bill not found.";
 
@@ -22,8 +23,10 @@ public class GetBillAttachmentsHandler(
 
     public async Task<IResult> Handle(GetBillAttachmentsQuery query, CancellationToken ct = default)
     {
-        var bill = await billRepository.GetById(query.BillId);
-        if (bill is null || bill.DeletedOn != null)
+        var bill = await billRepository.Query()
+            .Where(b => b.Id == query.BillId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (bill is null)
             return Results.NotFound(BillNotFound);
 
         var attachments = await attachmentRepository.Query()

@@ -12,6 +12,10 @@ public class ShoppingListRecommendationConfiguration : IEntityTypeConfiguration<
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.Property(e => e.PreferredUnit).HasMaxLength(50);
         builder.HasIndex(e => e.Name).IsUnique().HasFilter("\"DeletedOn\" IS NULL");
+        builder.HasOne<Household>()
+            .WithMany()
+            .HasForeignKey(e => e.HouseholdId)
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(e => e.Category)
             .WithMany()
             .HasForeignKey(e => e.CategoryId)

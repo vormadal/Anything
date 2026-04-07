@@ -1,18 +1,20 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 
 namespace Anything.Application.Features.Recipes.Commands;
 
 public record CreateRecipeCommand(string Name, string? Link, string? Notes, int? CookTimeMinutes, int? Servings, ServingsType ServingsType) : IRequest<Recipe>;
 
-public class CreateRecipeHandler(IRepository<Recipe> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
+public class CreateRecipeHandler(IRepository<Recipe> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider, IHouseholdContext householdContext)
     : IRequestHandler<CreateRecipeCommand, Recipe>
 {
     public async Task<Recipe> Handle(CreateRecipeCommand command, CancellationToken ct = default)
     {
         var recipe = new Recipe
         {
+            HouseholdId = householdContext.HouseholdId,
             Name = command.Name,
             Link = command.Link,
             Notes = command.Notes,
