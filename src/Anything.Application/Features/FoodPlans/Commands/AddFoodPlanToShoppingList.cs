@@ -43,7 +43,7 @@ public class AddFoodPlanToShoppingListHandler(
             .ToListAsync(ct);
 
         var multiplierLookup = command.RecipeMultipliers?
-            .ToDictionary(m => m.RecipeId, m => m.Multiplier > 0 ? m.Multiplier : 1.0)
+            .ToDictionary(m => m.RecipeId, m => m.Multiplier >= 0 ? m.Multiplier : 1.0)
             ?? new Dictionary<int, double>();
 
         var grouped = ingredients

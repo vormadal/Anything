@@ -130,7 +130,7 @@ public class AddRecipeToShoppingListHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ZeroOrNegativeMultiplier_DefaultsToOne()
+    public async Task Handle_ZeroMultiplier_AddsItemWithNullAmount()
     {
         SetupValidRecipeAndList();
 
@@ -142,6 +142,24 @@ public class AddRecipeToShoppingListHandlerTests
 
         var handler = CreateHandler();
         await handler.Handle(new AddRecipeToShoppingListCommand(1, 10, 0), TestContext.Current.CancellationToken);
+
+        _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
+            i.Amount == null));
+    }
+
+    [Fact]
+    public async Task Handle_NegativeMultiplier_DefaultsToOne()
+    {
+        SetupValidRecipeAndList();
+
+        var ingredients = new List<RecipeIngredient>
+        {
+            new() { Id = 1, RecipeId = 1, Name = "Salt", Amount = 10, Unit = "g" }
+        };
+        _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        await handler.Handle(new AddRecipeToShoppingListCommand(1, 10, -1), TestContext.Current.CancellationToken);
 
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
             i.Amount == 10));
