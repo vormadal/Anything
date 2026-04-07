@@ -504,6 +504,13 @@ export default function FoodPlanPage() {
     (el: HTMLButtonElement | null) => {
       todayRef.current = el;
       if (!el) return;
+
+      // Scroll today into view immediately when it first attaches to the DOM
+      // (data may not have been available at mount time, so we do this here instead of useEffect).
+      const elementTop = el.getBoundingClientRect().top + window.scrollY;
+      const offset = window.innerHeight * 0.25;
+      window.scrollTo({ top: elementTop - offset, behavior: "instant" });
+
       const observer = new IntersectionObserver(
         ([entry]) => setIsTodayVisible(entry.isIntersecting),
         { threshold: 0.1 }
@@ -574,11 +581,6 @@ export default function FoodPlanPage() {
     const offset = window.innerHeight * 0.25;
     window.scrollTo({ top: elementTop - offset, behavior: "smooth" });
   }, []);
-
-  // Scroll today into view on mount
-  useEffect(() => {
-    scrollToToday();
-  }, [scrollToToday]);
 
   useEffect(() => {
     setHeaderActions(

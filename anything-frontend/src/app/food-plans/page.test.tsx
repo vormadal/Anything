@@ -1106,6 +1106,18 @@ describe('FoodPlanPage', () => {
     })
   })
 
+  it('should automatically scroll to today when data loads (initial centering)', async () => {
+    render(<FoodPlanPage />)
+
+    // Wait until today's row is rendered (data loaded, callback ref fired)
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    // window.scrollTo should have been called with behavior: 'instant' from the callback ref
+    expect(mockScrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'instant' }))
+  })
+
   it('should call window.scrollTo when the floating button is clicked', async () => {
     const user = userEvent.setup()
     render(<FoodPlanPage />)
@@ -1114,6 +1126,8 @@ describe('FoodPlanPage', () => {
     await waitFor(() => {
       expect(screen.getByText('i dag')).toBeInTheDocument()
     })
+
+    mockScrollTo.mockClear()
 
     // Make button visible first
     act(() => {
