@@ -168,6 +168,7 @@ function DayManagementDialog({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [noteText, setNoteText] = useState(note?.note ?? "");
   const lastSavedNote = useRef(note?.note ?? "");
+  const [isSaving, setIsSaving] = useState(false);
 
   const addEntry = useAddFoodPlanEntry();
   const deleteEntry = useDeleteFoodPlanEntry();
@@ -220,18 +221,44 @@ function DayManagementDialog({
     }
   };
 
-  const handleNoteBlur = async () => {
-    const trimmed = noteText.trim();
-    if (trimmed === lastSavedNote.current) return;
-    lastSavedNote.current = trimmed;
+  const handleSave = async () => {
+    setIsSaving(true);
     try {
-      if (trimmed) {
-        await upsertNote.mutateAsync({ date: dateStr, note: trimmed });
-      } else if (note?.id != null) {
-        await deleteNote.mutateAsync(note.id);
+      const trimmed = noteText.trim();
+      const noteDirty = trimmed !== lastSavedNote.current;
+
+      const saves: Promise<unknown>[] = [];
+
+      if (noteDirty) {
+        if (trimmed) {
+          saves.push(upsertNote.mutateAsync({ date: dateStr, note: trimmed }));
+        } else if (note?.id != null) {
+          saves.push(deleteNote.mutateAsync(note.id));
+        }
       }
+
+      if (name.trim()) {
+        saves.push(
+          addEntry.mutateAsync({
+            name: name.trim(),
+            recipeId: selectedRecipeId,
+            date: toUtcMidnight(date),
+          })
+        );
+      }
+
+      await Promise.all(saves);
+
+      if (noteDirty) {
+        lastSavedNote.current = trimmed;
+      }
+
+      toast.success("Saved");
+      onClose();
     } catch {
-      toast.error("Failed to save note. Please try again.");
+      toast.error("Failed to save. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -330,7 +357,7 @@ function DayManagementDialog({
         </div>
 
         {/* Note section */}
-        <div>
+        <div className="mb-5">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
             Note
           </h4>
@@ -338,7 +365,6 @@ function DayManagementDialog({
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              onBlur={handleNoteBlur}
               placeholder="Add a note..."
               rows={2}
               maxLength={500}
@@ -356,6 +382,15 @@ function DayManagementDialog({
             )}
           </div>
         </div>
+
+        {/* Save button */}
+        <Button
+          className="w-full"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </Button>
       </div>
     </div>
   );

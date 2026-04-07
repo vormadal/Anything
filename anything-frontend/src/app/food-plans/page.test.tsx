@@ -626,7 +626,7 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  it('should save note on blur when text has changed', async () => {
+  it('should save note when Save button is clicked', async () => {
     const user = userEvent.setup()
     mockNotesGet.mockResolvedValue([])
     mockNotesByDatePut.mockResolvedValue({ id: 1, date: today.toISOString(), note: 'New note' })
@@ -642,7 +642,7 @@ describe('FoodPlanPage', () => {
     const textarea = screen.getByPlaceholderText('Add a note...')
     await user.type(textarea, 'New note')
 
-    fireEvent.blur(textarea)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(mockNotesByDatePut).toHaveBeenCalledWith(
@@ -651,7 +651,7 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  it('should delete note when textarea is cleared and blurred', async () => {
+  it('should delete note when textarea is cleared and Save is clicked', async () => {
     mockNotesGet.mockResolvedValue([
       { id: 42, date: today.toISOString(), note: 'Old note' }
     ])
@@ -676,8 +676,8 @@ describe('FoodPlanPage', () => {
 
     expect(screen.getByPlaceholderText('Add a note...')).toHaveValue('')
 
-    // Blur to trigger note deletion
-    fireEvent.blur(screen.getByPlaceholderText('Add a note...'))
+    // Click Save to trigger note deletion
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(mockNotesByNoteId).toHaveBeenCalledWith(42)
