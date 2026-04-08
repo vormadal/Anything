@@ -1,19 +1,23 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Recommendations.Commands;
 
 public record UpdateRecommendationCommand(int Id, string Name, string? PreferredUnit, int? CategoryId) : IRequest<IResult>;
 
-public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
+public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateRecommendationCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateRecommendationCommand command, CancellationToken ct = default)
     {
-        var recommendation = await repository.GetById(command.Id);
-        if (recommendation is null || recommendation.DeletedOn != null)
+        var recommendation = await repository.Query()
+            .Where(r => r.Id == command.Id && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (recommendation is null)
             return Results.NotFound(RecommendationErrors.NotFound);
 
         recommendation.Name = command.Name;

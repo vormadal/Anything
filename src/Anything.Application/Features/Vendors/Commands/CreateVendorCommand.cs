@@ -1,5 +1,6 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 
 namespace Anything.Application.Features.Vendors.Commands;
@@ -8,6 +9,7 @@ public record CreateVendorCommand(string Name, string? Website) : IRequest<Vendo
 
 public class CreateVendorHandler(
     IRepository<Vendor> repository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
     : IRequestHandler<CreateVendorCommand, Vendor>
@@ -16,6 +18,7 @@ public class CreateVendorHandler(
     {
         var vendor = new Vendor
         {
+            HouseholdId = householdContext.HouseholdId,
             Name = command.Name,
             Website = command.Website,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime

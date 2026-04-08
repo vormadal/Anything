@@ -1,5 +1,6 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -12,13 +13,16 @@ public class DeleteInventoryStorageUnitHandler(
     IRepository<InventoryStorageUnit> storageUnitRepo,
     IRepository<InventoryBox> boxRepo,
     IRepository<InventoryItem> itemRepo,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<DeleteInventoryStorageUnitCommand, IResult>
 {
     public async Task<IResult> Handle(DeleteInventoryStorageUnitCommand command, CancellationToken ct = default)
     {
-        var storageUnit = await storageUnitRepo.GetById(command.Id);
-        if (storageUnit is null || storageUnit.DeletedOn != null)
+        var storageUnit = await storageUnitRepo.Query()
+            .Where(s => s.Id == command.Id && s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (storageUnit is null)
             return Results.NotFound();
 
         var hasActiveBoxes = await boxRepo.Query()

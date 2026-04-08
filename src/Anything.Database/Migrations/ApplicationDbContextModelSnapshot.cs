@@ -257,10 +257,15 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.ToTable("FoodPlanSettings");
                 });
@@ -338,6 +343,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -348,6 +356,8 @@ namespace Anything.Database.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("StorageUnitId");
 
@@ -375,6 +385,9 @@ namespace Anything.Database.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -389,6 +402,8 @@ namespace Anything.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BoxId");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("StorageUnitId");
 
@@ -409,6 +424,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -422,6 +440,8 @@ namespace Anything.Database.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.ToTable("InventoryStorageUnits");
                 });
@@ -440,6 +460,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -449,6 +472,8 @@ namespace Anything.Database.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.ToTable("Locations");
                 });
@@ -469,6 +494,9 @@ namespace Anything.Database.Migrations
 
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Link")
                         .HasMaxLength(500)
@@ -497,6 +525,8 @@ namespace Anything.Database.Migrations
                         .HasDefaultValue("People");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.ToTable("Recipes");
                 });
@@ -691,6 +721,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -705,6 +738,8 @@ namespace Anything.Database.Migrations
                         .HasDefaultValue(0);
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.ToTable("ShoppingLists");
                 });
@@ -768,6 +803,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsApproved")
                         .HasColumnType("boolean");
 
@@ -786,6 +824,8 @@ namespace Anything.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("Name")
                         .IsUnique()
@@ -808,6 +848,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -817,6 +860,8 @@ namespace Anything.Database.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.ToTable("Somethings");
                 });
@@ -835,6 +880,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -847,6 +895,8 @@ namespace Anything.Database.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("Name")
                         .IsUnique()
@@ -953,6 +1003,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -967,11 +1020,19 @@ namespace Anything.Database.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("HouseholdId");
+
                     b.ToTable("Vendors");
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.Bill", b =>
                 {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Anything.Core.Entities.Location", null)
                         .WithMany()
                         .HasForeignKey("LocationId")
@@ -1005,10 +1066,34 @@ namespace Anything.Database.Migrations
 
             modelBuilder.Entity("Anything.Core.Entities.FoodPlanEntry", b =>
                 {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Anything.Core.Entities.Recipe", null)
                         .WithMany()
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.FoodPlanNote", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.FoodPlanSettings", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.HouseholdMember", b =>
@@ -1030,6 +1115,12 @@ namespace Anything.Database.Migrations
 
             modelBuilder.Entity("Anything.Core.Entities.InventoryBox", b =>
                 {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Anything.Core.Entities.InventoryStorageUnit", null)
                         .WithMany()
                         .HasForeignKey("StorageUnitId")
@@ -1043,10 +1134,43 @@ namespace Anything.Database.Migrations
                         .HasForeignKey("BoxId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Anything.Core.Entities.InventoryStorageUnit", null)
                         .WithMany()
                         .HasForeignKey("StorageUnitId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.InventoryStorageUnit", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.Location", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.Recipe", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.RecipeImage", b =>
@@ -1094,6 +1218,15 @@ namespace Anything.Database.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Anything.Core.Entities.ShoppingList", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Anything.Core.Entities.ShoppingListItem", b =>
                 {
                     b.HasOne("Anything.Core.Entities.ShoppingList", null)
@@ -1110,7 +1243,31 @@ namespace Anything.Database.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.Something", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.SuggestionCategory", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.UserInvite", b =>
@@ -1118,6 +1275,15 @@ namespace Anything.Database.Migrations
                     b.HasOne("Anything.Core.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.Vendor", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

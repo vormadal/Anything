@@ -1,5 +1,6 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ public record DeleteFoodPlanEntryCommand(int EntryId) : IRequest<IResult>;
 
 public class DeleteFoodPlanEntryHandler(
     IRepository<FoodPlanEntry> entryRepository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<DeleteFoodPlanEntryCommand, IResult>
 {
@@ -18,7 +20,8 @@ public class DeleteFoodPlanEntryHandler(
     public async Task<IResult> Handle(DeleteFoodPlanEntryCommand command, CancellationToken ct = default)
     {
         var entry = await entryRepository.Query()
-            .FirstOrDefaultAsync(e => e.Id == command.EntryId && e.DeletedOn == null, ct);
+            .Where(e => e.Id == command.EntryId && e.DeletedOn == null && e.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
         if (entry is null)
             return Results.NotFound(EntryNotFound);
 

@@ -1,6 +1,7 @@
 using Anything.Contracts.Bills;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 
@@ -21,6 +22,7 @@ public record CreateBillCommand(
 public class CreateBillHandler(
     IRepository<Bill> billRepository,
     IRepository<BillPriceHistory> priceHistoryRepository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
     : IRequestHandler<CreateBillCommand, IResult>
@@ -34,6 +36,7 @@ public class CreateBillHandler(
 
         var bill = new Bill
         {
+            HouseholdId = householdContext.HouseholdId,
             Name = command.Name,
             VendorId = command.VendorId,
             Frequency = frequency,

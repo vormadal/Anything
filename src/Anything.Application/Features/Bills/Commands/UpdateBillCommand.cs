@@ -1,7 +1,9 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Bills.Commands;
 
@@ -18,6 +20,7 @@ public record UpdateBillCommand(
 
 public class UpdateBillHandler(
     IRepository<Bill> repository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
     : IRequestHandler<UpdateBillCommand, IResult>
@@ -27,8 +30,10 @@ public class UpdateBillHandler(
         if (!BillHelpers.TryParseFrequency(command.Frequency, out var frequency))
             return Results.BadRequest($"Invalid frequency '{command.Frequency}'.");
 
-        var bill = await repository.GetById(command.Id);
-        if (bill is null || bill.DeletedOn != null)
+        var bill = await repository.Query()
+            .Where(b => b.Id == command.Id && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (bill is null)
             return Results.NotFound();
 
         bill.Name = command.Name;
