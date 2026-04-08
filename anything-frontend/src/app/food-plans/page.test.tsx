@@ -762,7 +762,7 @@ describe('FoodPlanPage', () => {
     })
   })
 
-
+  // ------- 8. Shopping list dialog -------
   it('should open the shopping list dialog via header action', async () => {
     mockShoppingListsGet.mockResolvedValue([{ id: 1, name: 'Weekly Groceries' }])
 

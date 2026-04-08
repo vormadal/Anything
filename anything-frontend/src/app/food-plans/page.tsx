@@ -598,7 +598,7 @@ export default function FoodPlanPage() {
       // n.date is a Date object (from Kiota parsing a DateOnly JSON string).
       // The DateOnly value is parsed as UTC midnight, so use UTC date getters
       // to avoid local-timezone shifts turning "2026-04-08" into "2026-04-07".
-      const nd = n.date instanceof Date ? n.date : new Date(n.date as string);
+      const nd = n.date instanceof Date ? n.date : new Date(n.date);
       return nd.toISOString().substring(0, 10) === ds;
     }) ?? null;
   };
