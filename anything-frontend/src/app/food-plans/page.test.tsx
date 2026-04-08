@@ -592,7 +592,7 @@ describe('FoodPlanPage', () => {
   // ------- 7. Note in dialog -------
   it('should show a note preview on the day row when a note exists', async () => {
     mockNotesGet.mockResolvedValue([
-      { id: 1, date: today.toISOString(), note: 'Eating at friends' }
+      { id: 1, date: toDateInputValue(today), note: 'Eating at friends' }
     ])
 
     render(<FoodPlanPage />)
@@ -607,7 +607,7 @@ describe('FoodPlanPage', () => {
 
   it('should pre-fill the note textarea with existing note text', async () => {
     mockNotesGet.mockResolvedValue([
-      { id: 1, date: today.toISOString(), note: 'Eating at friends' }
+      { id: 1, date: toDateInputValue(today), note: 'Eating at friends' }
     ])
 
     const user = userEvent.setup()
@@ -629,7 +629,7 @@ describe('FoodPlanPage', () => {
   it('should save note when Save button is clicked', async () => {
     const user = userEvent.setup()
     mockNotesGet.mockResolvedValue([])
-    mockNotesByDatePut.mockResolvedValue({ id: 1, date: today.toISOString(), note: 'New note' })
+    mockNotesByDatePut.mockResolvedValue({ id: 1, date: toDateInputValue(today), note: 'New note' })
 
     render(<FoodPlanPage />)
 
@@ -653,7 +653,7 @@ describe('FoodPlanPage', () => {
 
   it('should delete note when textarea is cleared and Save is clicked', async () => {
     mockNotesGet.mockResolvedValue([
-      { id: 42, date: today.toISOString(), note: 'Old note' }
+      { id: 42, date: toDateInputValue(today), note: 'Old note' }
     ])
     mockNotesByNoteIdDelete.mockResolvedValue(undefined)
 
@@ -705,7 +705,64 @@ describe('FoodPlanPage', () => {
     expect(screen.getByRole('button', { name: 'Clear note' })).toBeInTheDocument()
   })
 
-  // ------- 8. Shopping list dialog -------
+  it('should fetch notes with date-only strings (not datetime strings)', async () => {
+    // Regression test: the notes GET endpoint expects DateOnly query params
+    // (yyyy-MM-dd), not datetime strings (yyyy-MM-ddTHH:mm:ssZ).
+    // Passing datetime strings would cause a 400 and notes would never load.
+    mockNotesGet.mockResolvedValue([])
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(mockNotesGet).toHaveBeenCalled()
+    })
+
+    const callArgs = mockNotesGet.mock.calls[0][0]
+    const { startDate, endDate } = callArgs.queryParameters
+    // Must be date-only strings: "yyyy-MM-dd" (10 chars, no 'T')
+    expect(typeof startDate).toBe('string')
+    expect(typeof endDate).toBe('string')
+    expect(startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('should show note preview on day row after saving a new note', async () => {
+    // Regression test: after saving a note, the notes query is invalidated
+    // and the note preview must appear on the day row.
+    const savedNote = { id: 1, date: toDateInputValue(today), note: 'Dinner with family' }
+    mockNotesGet
+      .mockResolvedValueOnce([])         // initial load — no notes yet
+      .mockResolvedValue([savedNote])    // after save invalidation — note exists
+
+    mockNotesByDatePut.mockResolvedValue(savedNote)
+
+    const user = userEvent.setup()
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    // Open today's dialog
+    await user.click(screen.getByRole('button', { name: /i dag/ }))
+
+    // Type a note and save
+    await user.type(screen.getByPlaceholderText('Add a note...'), 'Dinner with family')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(mockNotesByDatePut).toHaveBeenCalledWith(
+        expect.objectContaining({ note: 'Dinner with family' })
+      )
+    })
+
+    // After save, query is invalidated → re-fetched → note preview shown on day row
+    await waitFor(() => {
+      expect(screen.getByText('Dinner with family')).toBeInTheDocument()
+    })
+  })
+
+
   it('should open the shopping list dialog via header action', async () => {
     mockShoppingListsGet.mockResolvedValue([{ id: 1, name: 'Weekly Groceries' }])
 
