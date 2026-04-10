@@ -51,7 +51,7 @@ public class UpdateSomethingHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Something?)null);
+        _repo.Query().Returns(new List<Something>().AsAsyncQueryable());
         var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
@@ -62,7 +62,7 @@ public class UpdateSomethingHandlerTests
     [Fact]
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Something> { new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
@@ -76,7 +76,7 @@ public class UpdateSomethingHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new Something { Id = 1, Name = "Old" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Something> { entity }.AsAsyncQueryable());
         var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
@@ -103,7 +103,7 @@ public class DeleteSomethingHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Something?)null);
+        _repo.Query().Returns(new List<Something>().AsAsyncQueryable());
         var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
@@ -114,7 +114,7 @@ public class DeleteSomethingHandlerTests
     [Fact]
     public async Task Handle_WhenAlreadyDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Something> { new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
@@ -128,7 +128,7 @@ public class DeleteSomethingHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new Something { Id = 1, Name = "X" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Something> { entity }.AsAsyncQueryable());
         var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
@@ -169,7 +169,7 @@ public class GetSomethingByIdHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Something?)null);
+        _repo.Query().Returns(new List<Something>().AsAsyncQueryable());
         var handler = new GetSomethingByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);
@@ -180,7 +180,7 @@ public class GetSomethingByIdHandlerTests
     [Fact]
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Something> { new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new GetSomethingByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);
@@ -192,7 +192,7 @@ public class GetSomethingByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOkWithEntity()
     {
         var entity = new Something { Id = 1, Name = "My List" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Something> { entity }.AsAsyncQueryable());
         var handler = new GetSomethingByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);

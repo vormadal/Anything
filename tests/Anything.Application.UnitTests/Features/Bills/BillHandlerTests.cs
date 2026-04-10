@@ -274,7 +274,7 @@ public class UpdateBillHandlerTests
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Bill?)null);
+        _repo.Query().Returns(new List<Bill>().AsAsyncQueryable());
         var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -285,7 +285,7 @@ public class UpdateBillHandlerTests
     [Fact]
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Bill { Id = 1, Name = "Netflix", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -297,7 +297,7 @@ public class UpdateBillHandlerTests
     public async Task Handle_ValidUpdate_UpdatesFieldsAndReturnsNoContent()
     {
         var bill = new Bill { Id = 1, Name = "Old", Frequency = PaymentFrequency.Monthly };
-        _repo.GetById(1).Returns(bill);
+        _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
         var command = new UpdateBillCommand(1, "New Name", 5, "Weekly", true, 10, "https://manage.example.com", "Utilities", "Note");
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -334,7 +334,7 @@ public class DeleteBillHandlerTests
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Bill?)null);
+        _repo.Query().Returns(new List<Bill>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new DeleteBillCommand(1), TestContext.Current.CancellationToken);
 
@@ -344,7 +344,7 @@ public class DeleteBillHandlerTests
     [Fact]
     public async Task Handle_BillAlreadyDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new DeleteBillCommand(1), TestContext.Current.CancellationToken);
 
@@ -355,7 +355,7 @@ public class DeleteBillHandlerTests
     public async Task Handle_ValidBill_SetsDeletedOnAndReturnsNoContent()
     {
         var bill = new Bill { Id = 1, Name = "Netflix" };
-        _repo.GetById(1).Returns(bill);
+        _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new DeleteBillCommand(1), TestContext.Current.CancellationToken);
 
@@ -384,7 +384,7 @@ public class AddBillPriceHandlerTests
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
-        _billRepo.GetById(1).Returns((Bill?)null);
+        _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
         var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -395,7 +395,7 @@ public class AddBillPriceHandlerTests
     [Fact]
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -407,7 +407,7 @@ public class AddBillPriceHandlerTests
     public async Task Handle_ValidBill_AddsPriceEntryAndSaves()
     {
         var bill = new Bill { Id = 1, Name = "Netflix" };
-        _billRepo.GetById(1).Returns(bill);
+        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var command = new AddBillPriceCommand(1, 19.99m, effectiveDate, "Price increase");
 
@@ -423,7 +423,7 @@ public class AddBillPriceHandlerTests
     public async Task Handle_ValidBill_SetsCreatedOnTimestamp()
     {
         var bill = new Bill { Id = 1, Name = "Netflix" };
-        _billRepo.GetById(1).Returns(bill);
+        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
         var command = new AddBillPriceCommand(1, 10m, DateTime.UtcNow, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -444,6 +444,7 @@ public class UpdateBillPriceHandlerTests
     public UpdateBillPriceHandlerTests()
     {
         _timeProvider.GetUtcNow().Returns(_now);
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = string.Empty } }.AsAsyncQueryable());
     }
 
     private UpdateBillPriceHandler CreateHandler() => new(_billRepo, _priceRepo, _householdContext, _unitOfWork, _timeProvider);
@@ -496,6 +497,11 @@ public class DeleteBillPriceHandlerTests
     private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+
+    public DeleteBillPriceHandlerTests()
+    {
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = string.Empty } }.AsAsyncQueryable());
+    }
 
     private DeleteBillPriceHandler CreateHandler() => new(_billRepo, _priceRepo, _householdContext, _unitOfWork);
 
@@ -650,7 +656,7 @@ public class GetBillByIdHandlerTests
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
-        _billRepo.GetById(1).Returns((Bill?)null);
+        _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
 
@@ -660,7 +666,7 @@ public class GetBillByIdHandlerTests
     [Fact]
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
 
@@ -672,7 +678,7 @@ public class GetBillByIdHandlerTests
     {
         var now = DateTime.UtcNow;
         var bill = new Bill { Id = 1, Name = "Netflix", Frequency = PaymentFrequency.Monthly, CreatedOn = now };
-        _billRepo.GetById(1).Returns(bill);
+        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
         var priceHistories = new List<BillPriceHistory>
         {
             new() { Id = 1, BillId = 1, Amount = 15m, EffectiveDate = now }
@@ -690,7 +696,7 @@ public class GetBillByIdHandlerTests
     public async Task Handle_BillWithNoLocation_DoesNotQueryLocationRepo()
     {
         var bill = new Bill { Id = 1, Name = "Netflix", Frequency = PaymentFrequency.Monthly };
-        _billRepo.GetById(1).Returns(bill);
+        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
         await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
@@ -702,7 +708,7 @@ public class GetBillByIdHandlerTests
     public async Task Handle_BillWithNoVendor_DoesNotQueryVendorRepo()
     {
         var bill = new Bill { Id = 1, Name = "Netflix", Frequency = PaymentFrequency.Monthly };
-        _billRepo.GetById(1).Returns(bill);
+        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
         await CreateHandler().Handle(new GetBillByIdQuery(1), TestContext.Current.CancellationToken);
@@ -826,7 +832,7 @@ public class GetBillPriceHistoryHandlerTests
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
-        _billRepo.GetById(1).Returns((Bill?)null);
+        _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
 
@@ -836,7 +842,7 @@ public class GetBillPriceHistoryHandlerTests
     [Fact]
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
 
@@ -847,7 +853,7 @@ public class GetBillPriceHistoryHandlerTests
     public async Task Handle_ValidBill_ReturnsOrderedHistory()
     {
         var now = DateTime.UtcNow;
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Netflix" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix" } }.AsAsyncQueryable());
         var entries = new List<BillPriceHistory>
         {
             new() { Id = 1, BillId = 1, Amount = 10m, EffectiveDate = now.AddMonths(-2), CreatedOn = now.AddMonths(-2) },
@@ -871,7 +877,7 @@ public class GetBillPriceHistoryHandlerTests
     public async Task Handle_SetsCorrectPreviousAmount()
     {
         var now = DateTime.UtcNow;
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Netflix" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix" } }.AsAsyncQueryable());
         var entries = new List<BillPriceHistory>
         {
             new() { Id = 1, BillId = 1, Amount = 10m, EffectiveDate = now.AddMonths(-1), CreatedOn = now.AddMonths(-1) },
@@ -892,7 +898,7 @@ public class GetBillPriceHistoryHandlerTests
     [Fact]
     public async Task Handle_EmptyHistory_ReturnsEmptyList()
     {
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Netflix" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix" } }.AsAsyncQueryable());
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
@@ -905,7 +911,7 @@ public class GetBillPriceHistoryHandlerTests
     public async Task Handle_SingleEntry_NullPreviousAmount()
     {
         var now = DateTime.UtcNow;
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Netflix" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix" } }.AsAsyncQueryable());
         var entries = new List<BillPriceHistory>
         {
             new() { Id = 1, BillId = 1, Amount = 15m, EffectiveDate = now, CreatedOn = now }
@@ -1045,7 +1051,7 @@ public class UploadBillAttachmentHandlerTests
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
-        _billRepo.GetById(1).Returns((Bill?)null);
+        _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
 
         var command = new UploadBillAttachmentCommand(1, Stream.Null, "file.pdf", "application/pdf", 100);
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -1056,7 +1062,7 @@ public class UploadBillAttachmentHandlerTests
     [Fact]
     public async Task Handle_EmptyFile_ReturnsBadRequest()
     {
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Test" } }.AsAsyncQueryable());
 
         var command = new UploadBillAttachmentCommand(1, Stream.Null, "file.pdf", "application/pdf", 0);
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -1068,7 +1074,7 @@ public class UploadBillAttachmentHandlerTests
     public async Task Handle_ValidUpload_ReturnsCreated()
     {
         var now = DateTime.UtcNow;
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Test" } }.AsAsyncQueryable());
         _storageService.Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), Arg.Any<string>())
             .Returns("bills/test.pdf");
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(now));
@@ -1087,7 +1093,7 @@ public class UploadBillAttachmentHandlerTests
     public async Task Handle_CustomAttachmentName_UsesProvidedName()
     {
         var now = DateTime.UtcNow;
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Test" } }.AsAsyncQueryable());
         _storageService.Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), Arg.Any<string>())
             .Returns("bills/test.pdf");
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(now));
@@ -1115,7 +1121,8 @@ public class DeleteBillAttachmentHandlerTests
     [Fact]
     public async Task Handle_AttachmentNotFound_ReturnsNotFound()
     {
-        _attachmentRepo.GetById(1).Returns((BillAttachment?)null);
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = string.Empty } }.AsAsyncQueryable());
+        _attachmentRepo.Query().Returns(new List<BillAttachment>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new DeleteBillAttachmentCommand(1, 1), TestContext.Current.CancellationToken);
 
@@ -1125,10 +1132,11 @@ public class DeleteBillAttachmentHandlerTests
     [Fact]
     public async Task Handle_AttachmentBelongsToDifferentBill_ReturnsNotFound()
     {
-        _attachmentRepo.GetById(1).Returns(new BillAttachment
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = string.Empty } }.AsAsyncQueryable());
+        _attachmentRepo.Query().Returns(new List<BillAttachment>
         {
-            Id = 1, BillId = 99, StorageKey = "bills/file.pdf", Name = "File", ContentType = "application/pdf", CreatedOn = DateTime.UtcNow
-        });
+            new BillAttachment { Id = 1, BillId = 99, StorageKey = "bills/file.pdf", Name = "File", ContentType = "application/pdf", CreatedOn = DateTime.UtcNow }
+        }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new DeleteBillAttachmentCommand(1, 1), TestContext.Current.CancellationToken);
 
@@ -1143,7 +1151,8 @@ public class DeleteBillAttachmentHandlerTests
         {
             Id = 1, BillId = 1, StorageKey = "bills/file.pdf", Name = "File", ContentType = "application/pdf", CreatedOn = now
         };
-        _attachmentRepo.GetById(1).Returns(attachment);
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = string.Empty } }.AsAsyncQueryable());
+        _attachmentRepo.Query().Returns(new List<BillAttachment> { attachment }.AsAsyncQueryable());
         _storageService.Delete(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(now));
 
@@ -1169,7 +1178,8 @@ public class UpdateBillAttachmentHandlerTests
     [Fact]
     public async Task Handle_AttachmentNotFound_ReturnsNotFound()
     {
-        _attachmentRepo.GetById(1).Returns((BillAttachment?)null);
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = string.Empty } }.AsAsyncQueryable());
+        _attachmentRepo.Query().Returns(new List<BillAttachment>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new UpdateBillAttachmentCommand(1, 1, "New Name"), TestContext.Current.CancellationToken);
 
@@ -1184,7 +1194,8 @@ public class UpdateBillAttachmentHandlerTests
         {
             Id = 1, BillId = 1, StorageKey = "bills/file.pdf", Name = "Old Name", ContentType = "application/pdf", CreatedOn = now
         };
-        _attachmentRepo.GetById(1).Returns(attachment);
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = string.Empty } }.AsAsyncQueryable());
+        _attachmentRepo.Query().Returns(new List<BillAttachment> { attachment }.AsAsyncQueryable());
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(now));
 
         var result = await CreateHandler().Handle(new UpdateBillAttachmentCommand(1, 1, "New Name"), TestContext.Current.CancellationToken);
@@ -1208,7 +1219,7 @@ public class GetBillAttachmentsHandlerTests
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
-        _billRepo.GetById(1).Returns((Bill?)null);
+        _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new GetBillAttachmentsQuery(1), TestContext.Current.CancellationToken);
 
@@ -1219,7 +1230,7 @@ public class GetBillAttachmentsHandlerTests
     public async Task Handle_ImageAttachment_UsesThumbnailUrl()
     {
         var now = DateTime.UtcNow;
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Test" } }.AsAsyncQueryable());
         var attachments = new List<BillAttachment>
         {
             new() { Id = 1, BillId = 1, StorageKey = "bills/img.jpg", Name = "Photo", ContentType = "image/jpeg", CreatedOn = now }
@@ -1241,7 +1252,7 @@ public class GetBillAttachmentsHandlerTests
     public async Task Handle_NonImageAttachment_NullThumbnailUrl()
     {
         var now = DateTime.UtcNow;
-        _billRepo.GetById(1).Returns(new Bill { Id = 1, Name = "Test" });
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Test" } }.AsAsyncQueryable());
         var attachments = new List<BillAttachment>
         {
             new() { Id = 1, BillId = 1, StorageKey = "bills/doc.pdf", Name = "Invoice", ContentType = "application/pdf", CreatedOn = now }

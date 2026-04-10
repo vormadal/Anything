@@ -33,7 +33,7 @@ public class AddFoodPlanToShoppingListHandlerTests
 
     private void SetupValidList(int listId = 10)
     {
-        _shoppingListRepo.GetById(listId).Returns(new ShoppingList { Id = listId, Name = "My List" });
+        _shoppingListRepo.Query().Returns(new List<ShoppingList> { new ShoppingList { Id = listId, Name = "My List" } }.AsAsyncQueryable());
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
     }
@@ -41,7 +41,7 @@ public class AddFoodPlanToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenShoppingListNotFound_ReturnsNotFound()
     {
-        _shoppingListRepo.GetById(10).Returns((ShoppingList?)null);
+        _shoppingListRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
@@ -52,7 +52,7 @@ public class AddFoodPlanToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenShoppingListDeleted_ReturnsNotFound()
     {
-        _shoppingListRepo.GetById(10).Returns(new ShoppingList { Id = 10, Name = "Deleted", DeletedOn = DateTime.UtcNow });
+        _shoppingListRepo.Query().Returns(new List<ShoppingList> { new ShoppingList { Id = 10, Name = "Deleted", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);

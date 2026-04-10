@@ -29,7 +29,7 @@ public class DeleteInventoryStorageUnitHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _storageUnitRepo.GetById(1).Returns((InventoryStorageUnit?)null);
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
@@ -40,10 +40,10 @@ public class DeleteInventoryStorageUnitHandlerTests
     [Fact]
     public async Task Handle_WhenAlreadyDeleted_ReturnsNotFound()
     {
-        _storageUnitRepo.GetById(1).Returns(new InventoryStorageUnit
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit>
         {
-            Id = 1, Name = "Unit", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
+            new InventoryStorageUnit { Id = 1, Name = "Unit", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+        }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
@@ -54,7 +54,7 @@ public class DeleteInventoryStorageUnitHandlerTests
     [Fact]
     public async Task Handle_WithActiveBoxes_ReturnsConflict()
     {
-        _storageUnitRepo.GetById(1).Returns(new InventoryStorageUnit { Id = 1, Name = "Unit" });
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit> { new InventoryStorageUnit { Id = 1, Name = "Unit" } }.AsAsyncQueryable());
 
         var boxes = new List<InventoryBox> { new() { Id = 1, Number = 1, StorageUnitId = 1 } };
         _boxRepo.Query().Returns(boxes.AsAsyncQueryable());
@@ -69,7 +69,7 @@ public class DeleteInventoryStorageUnitHandlerTests
     [Fact]
     public async Task Handle_WithActiveItems_ReturnsConflict()
     {
-        _storageUnitRepo.GetById(1).Returns(new InventoryStorageUnit { Id = 1, Name = "Unit" });
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit> { new InventoryStorageUnit { Id = 1, Name = "Unit" } }.AsAsyncQueryable());
 
         _boxRepo.Query().Returns(new List<InventoryBox>().AsAsyncQueryable());
         var items = new List<InventoryItem>
@@ -88,7 +88,7 @@ public class DeleteInventoryStorageUnitHandlerTests
     public async Task Handle_WithNoActiveChildren_SoftDeletesSuccessfully()
     {
         var unit = new InventoryStorageUnit { Id = 1, Name = "Unit" };
-        _storageUnitRepo.GetById(1).Returns(unit);
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit> { unit }.AsAsyncQueryable());
 
         _boxRepo.Query().Returns(new List<InventoryBox>().AsAsyncQueryable());
         _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
@@ -105,7 +105,7 @@ public class DeleteInventoryStorageUnitHandlerTests
     public async Task Handle_WithDeletedBoxesOnly_SoftDeletesSuccessfully()
     {
         var unit = new InventoryStorageUnit { Id = 1, Name = "Unit" };
-        _storageUnitRepo.GetById(1).Returns(unit);
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit> { unit }.AsAsyncQueryable());
 
         // The query filters DeletedOn == null, so deleted boxes won't appear
         _boxRepo.Query().Returns(new List<InventoryBox>().AsAsyncQueryable());

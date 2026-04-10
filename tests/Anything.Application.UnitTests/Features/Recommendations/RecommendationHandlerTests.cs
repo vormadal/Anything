@@ -27,7 +27,7 @@ public class UpdateRecommendationHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((ShoppingListRecommendation?)null);
+        _repo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null, null), TestContext.Current.CancellationToken);
 
@@ -37,10 +37,10 @@ public class UpdateRecommendationHandlerTests
     [Fact]
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new ShoppingListRecommendation
+        _repo.Query().Returns(new List<ShoppingListRecommendation>
         {
-            Id = 1, Name = "X", DeletedOn = DateTime.UtcNow
-        });
+            new ShoppingListRecommendation { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow }
+        }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", null, null), TestContext.Current.CancellationToken);
 
@@ -53,7 +53,7 @@ public class UpdateRecommendationHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new ShoppingListRecommendation { Id = 1, Name = "Old" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<ShoppingListRecommendation> { entity }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new UpdateRecommendationCommand(1, "New", "kg", null), TestContext.Current.CancellationToken);
 
@@ -82,7 +82,7 @@ public class ApproveRecommendationHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((ShoppingListRecommendation?)null);
+        _repo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new ApproveRecommendationCommand(1), TestContext.Current.CancellationToken);
 
@@ -93,7 +93,7 @@ public class ApproveRecommendationHandlerTests
     public async Task Handle_SetsIsApprovedTrueAndReturnsNoContent()
     {
         var entity = new ShoppingListRecommendation { Id = 1, Name = "Sugar", IsApproved = false };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<ShoppingListRecommendation> { entity }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new ApproveRecommendationCommand(1), TestContext.Current.CancellationToken);
 
@@ -120,7 +120,7 @@ public class DeleteRecommendationHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((ShoppingListRecommendation?)null);
+        _repo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new DeleteRecommendationCommand(1), TestContext.Current.CancellationToken);
 
@@ -133,7 +133,7 @@ public class DeleteRecommendationHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new ShoppingListRecommendation { Id = 1, Name = "Sugar" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<ShoppingListRecommendation> { entity }.AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new DeleteRecommendationCommand(1), TestContext.Current.CancellationToken);
 

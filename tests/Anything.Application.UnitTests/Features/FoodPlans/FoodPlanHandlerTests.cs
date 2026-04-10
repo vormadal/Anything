@@ -26,7 +26,7 @@ public class AddFoodPlanEntryHandlerTests
     [Fact]
     public async Task Handle_WithExistingRecipeId_AddsEntryAndReturnsCreated()
     {
-        _recipeRepo.GetById(5).Returns(new Recipe { Id = 5, Name = "Pasta" });
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 5, Name = "Pasta" } }.AsAsyncQueryable());
         var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc); // Wednesday
 
@@ -42,7 +42,7 @@ public class AddFoodPlanEntryHandlerTests
     [Fact]
     public async Task Handle_WithDeletedRecipe_ReturnsNotFound()
     {
-        _recipeRepo.GetById(5).Returns(new Recipe { Id = 5, Name = "Pasta", DeletedOn = DateTime.UtcNow });
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 5, Name = "Pasta", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
 
@@ -54,7 +54,7 @@ public class AddFoodPlanEntryHandlerTests
     [Fact]
     public async Task Handle_WithNonExistentRecipeId_ReturnsNotFound()
     {
-        _recipeRepo.GetById(99).Returns((Recipe?)null);
+        _recipeRepo.Query().Returns(new List<Recipe>().AsAsyncQueryable());
         var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
 
@@ -123,7 +123,7 @@ public class UpdateFoodPlanEntryHandlerTests
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
         var entry = new FoodPlanEntry { Id = 1, Name = "Old", DayOfWeek = 0, Date = date };
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
-        _recipeRepo.GetById(99).Returns((Recipe?)null);
+        _recipeRepo.Query().Returns(new List<Recipe>().AsAsyncQueryable());
         var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "Pasta", 99, date), TestContext.Current.CancellationToken);

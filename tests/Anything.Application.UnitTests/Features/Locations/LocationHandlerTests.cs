@@ -74,7 +74,7 @@ public class UpdateLocationHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Location?)null);
+        _repo.Query().Returns(new List<Location>().AsAsyncQueryable());
         var handler = new UpdateLocationHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -85,7 +85,7 @@ public class UpdateLocationHandlerTests
     [Fact]
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Location { Id = 1, Name = "Old", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Location> { new Location { Id = 1, Name = "Old", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new UpdateLocationHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -99,7 +99,7 @@ public class UpdateLocationHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new Location { Id = 1, Name = "Old Name" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Location> { entity }.AsAsyncQueryable());
         var handler = new UpdateLocationHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateLocationCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -114,7 +114,7 @@ public class UpdateLocationHandlerTests
     public async Task Handle_WhenFound_SavesChanges()
     {
         var entity = new Location { Id = 2, Name = "Location X" };
-        _repo.GetById(2).Returns(entity);
+        _repo.Query().Returns(new List<Location> { entity }.AsAsyncQueryable());
         var handler = new UpdateLocationHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         await handler.Handle(new UpdateLocationCommand(2, "Location Y"), TestContext.Current.CancellationToken);
@@ -138,7 +138,7 @@ public class DeleteLocationHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Location?)null);
+        _repo.Query().Returns(new List<Location>().AsAsyncQueryable());
         var handler = new DeleteLocationHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteLocationCommand(1), TestContext.Current.CancellationToken);
@@ -149,7 +149,7 @@ public class DeleteLocationHandlerTests
     [Fact]
     public async Task Handle_WhenAlreadyDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Location { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Location> { new Location { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new DeleteLocationHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteLocationCommand(1), TestContext.Current.CancellationToken);
@@ -163,7 +163,7 @@ public class DeleteLocationHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new Location { Id = 1, Name = "X" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Location> { entity }.AsAsyncQueryable());
         var handler = new DeleteLocationHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteLocationCommand(1), TestContext.Current.CancellationToken);
@@ -176,7 +176,7 @@ public class DeleteLocationHandlerTests
     [Fact]
     public async Task Handle_DoesNotSaveChanges_WhenNotFound()
     {
-        _repo.GetById(99).Returns((Location?)null);
+        _repo.Query().Returns(new List<Location>().AsAsyncQueryable());
         var handler = new DeleteLocationHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         await handler.Handle(new DeleteLocationCommand(99), TestContext.Current.CancellationToken);
@@ -245,7 +245,7 @@ public class GetLocationByIdHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Location?)null);
+        _repo.Query().Returns(new List<Location>().AsAsyncQueryable());
         var handler = new GetLocationByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetLocationByIdQuery(1), TestContext.Current.CancellationToken);
@@ -256,7 +256,7 @@ public class GetLocationByIdHandlerTests
     [Fact]
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Location { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Location> { new Location { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new GetLocationByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetLocationByIdQuery(1), TestContext.Current.CancellationToken);
@@ -268,7 +268,7 @@ public class GetLocationByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOkWithEntity()
     {
         var entity = new Location { Id = 1, Name = "Main Warehouse" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Location> { entity }.AsAsyncQueryable());
         var handler = new GetLocationByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetLocationByIdQuery(1), TestContext.Current.CancellationToken);
@@ -281,7 +281,7 @@ public class GetLocationByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsCorrectId()
     {
         var entity = new Location { Id = 42, Name = "Storage Unit" };
-        _repo.GetById(42).Returns(entity);
+        _repo.Query().Returns(new List<Location> { entity }.AsAsyncQueryable());
         var handler = new GetLocationByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetLocationByIdQuery(42), TestContext.Current.CancellationToken);

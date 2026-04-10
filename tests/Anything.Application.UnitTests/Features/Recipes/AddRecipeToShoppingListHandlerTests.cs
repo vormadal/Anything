@@ -31,8 +31,8 @@ public class AddRecipeToShoppingListHandlerTests
 
     private void SetupValidRecipeAndList(int recipeId = 1, int listId = 10)
     {
-        _recipeRepo.GetById(recipeId).Returns(new Recipe { Id = recipeId, Name = "Test" });
-        _shoppingListRepo.GetById(listId).Returns(new ShoppingList { Id = listId, Name = "My List" });
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = recipeId, Name = "Test" } }.AsAsyncQueryable());
+        _shoppingListRepo.Query().Returns(new List<ShoppingList> { new ShoppingList { Id = listId, Name = "My List" } }.AsAsyncQueryable());
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
     }
@@ -40,7 +40,7 @@ public class AddRecipeToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
-        _recipeRepo.GetById(1).Returns((Recipe?)null);
+        _recipeRepo.Query().Returns(new List<Recipe>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
@@ -51,7 +51,7 @@ public class AddRecipeToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenRecipeDeleted_ReturnsNotFound()
     {
-        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Test", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "Test", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) } }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
@@ -62,8 +62,8 @@ public class AddRecipeToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenShoppingListNotFound_ReturnsNotFound()
     {
-        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Test" });
-        _shoppingListRepo.GetById(10).Returns((ShoppingList?)null);
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "Test" } }.AsAsyncQueryable());
+        _shoppingListRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
@@ -170,8 +170,8 @@ public class AddRecipeToShoppingListHandlerTests
     [Fact]
     public async Task Handle_MergesWithExistingItems()
     {
-        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Test" });
-        _shoppingListRepo.GetById(10).Returns(new ShoppingList { Id = 10, Name = "My List" });
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "Test" } }.AsAsyncQueryable());
+        _shoppingListRepo.Query().Returns(new List<ShoppingList> { new ShoppingList { Id = 10, Name = "My List" } }.AsAsyncQueryable());
 
         var existingItem = new ShoppingListItem
         {
@@ -216,8 +216,8 @@ public class AddRecipeToShoppingListHandlerTests
     [Fact]
     public async Task Handle_DoesNotDuplicateExistingRecommendations()
     {
-        _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Test" });
-        _shoppingListRepo.GetById(10).Returns(new ShoppingList { Id = 10, Name = "My List" });
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "Test" } }.AsAsyncQueryable());
+        _shoppingListRepo.Query().Returns(new List<ShoppingList> { new ShoppingList { Id = 10, Name = "My List" } }.AsAsyncQueryable());
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
 
         _recommendationRepo.Query().Returns(

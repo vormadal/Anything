@@ -17,9 +17,10 @@ public class CreateShoppingListHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private CreateShoppingListHandler CreateHandler() =>
-        new(_repo, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_repo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public CreateShoppingListHandlerTests()
     {
@@ -82,9 +83,10 @@ public class UpdateShoppingListHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private UpdateShoppingListHandler CreateHandler() =>
-        new(_repo, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_repo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public UpdateShoppingListHandlerTests()
     {
@@ -94,7 +96,7 @@ public class UpdateShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((ShoppingList?)null);
+        _repo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -105,10 +107,10 @@ public class UpdateShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenListDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new ShoppingList
+        _repo.Query().Returns(new List<ShoppingList>
         {
-            Id = 1, Name = "Old", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
+            new ShoppingList { Id = 1, Name = "Old", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+        }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -120,7 +122,7 @@ public class UpdateShoppingListHandlerTests
     public async Task Handle_UpdatesNameAndReturnsNoContent()
     {
         var list = new ShoppingList { Id = 1, Name = "Old Name" };
-        _repo.GetById(1).Returns(list);
+        _repo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new UpdateShoppingListCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -138,9 +140,10 @@ public class DeleteShoppingListHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private DeleteShoppingListHandler CreateHandler() =>
-        new(_repo, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_repo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public DeleteShoppingListHandlerTests()
     {
@@ -150,7 +153,7 @@ public class DeleteShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((ShoppingList?)null);
+        _repo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteShoppingListCommand(1), TestContext.Current.CancellationToken);
@@ -161,10 +164,10 @@ public class DeleteShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenListAlreadyDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new ShoppingList
+        _repo.Query().Returns(new List<ShoppingList>
         {
-            Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
+            new ShoppingList { Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+        }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteShoppingListCommand(1), TestContext.Current.CancellationToken);
@@ -176,7 +179,7 @@ public class DeleteShoppingListHandlerTests
     public async Task Handle_SoftDeletesListAndReturnsNoContent()
     {
         var list = new ShoppingList { Id = 1, Name = "Weekly Shop" };
-        _repo.GetById(1).Returns(list);
+        _repo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteShoppingListCommand(1), TestContext.Current.CancellationToken);
@@ -189,17 +192,21 @@ public class DeleteShoppingListHandlerTests
 
 public class DeleteShoppingListItemHandlerTests
 {
+    private readonly IRepository<ShoppingList> _listRepo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private DeleteShoppingListItemHandler CreateHandler() =>
-        new(_itemRepo, _unitOfWork, _realtimeNotifier);
+        new(_listRepo, _itemRepo, _householdContext, _unitOfWork, _realtimeNotifier);
 
     [Fact]
     public async Task Handle_WhenItemNotFound_ReturnsNotFound()
     {
-        _itemRepo.GetById(1).Returns((ShoppingListItem?)null);
+        var list = new ShoppingList { Id = 1, Name = "Test", HouseholdId = 0 };
+        _listRepo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 1), TestContext.Current.CancellationToken);
@@ -208,9 +215,9 @@ public class DeleteShoppingListItemHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenItemBelongsToDifferentList_ReturnsNotFound()
+    public async Task Handle_WhenListNotFound_ReturnsNotFound()
     {
-        _itemRepo.GetById(5).Returns(new ShoppingListItem { Id = 5, Name = "Milk", ShoppingListId = 99 });
+        _listRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 5), TestContext.Current.CancellationToken);
@@ -221,8 +228,10 @@ public class DeleteShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_RemovesItemAndReturnsNoContent()
     {
+        var list = new ShoppingList { Id = 1, Name = "Test", HouseholdId = 0 };
         var item = new ShoppingListItem { Id = 5, Name = "Milk", ShoppingListId = 1 };
-        _itemRepo.GetById(5).Returns(item);
+        _listRepo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem> { item }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteShoppingListItemCommand(1, 5), TestContext.Current.CancellationToken);
@@ -235,13 +244,15 @@ public class DeleteShoppingListItemHandlerTests
 
 public class UpdateShoppingListItemHandlerTests
 {
+    private readonly IRepository<ShoppingList> _listRepo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private UpdateShoppingListItemHandler CreateHandler() =>
-        new(_itemRepo, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_listRepo, _itemRepo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public UpdateShoppingListItemHandlerTests()
     {
@@ -249,9 +260,9 @@ public class UpdateShoppingListItemHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenItemNotFound_ReturnsNotFound()
+    public async Task Handle_WhenListNotFound_ReturnsNotFound()
     {
-        _itemRepo.GetById(1).Returns((ShoppingListItem?)null);
+        _listRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 1, "Milk", false, null, null), TestContext.Current.CancellationToken);
@@ -260,9 +271,11 @@ public class UpdateShoppingListItemHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenItemBelongsToDifferentList_ReturnsNotFound()
+    public async Task Handle_WhenItemNotFound_ReturnsNotFound()
     {
-        _itemRepo.GetById(5).Returns(new ShoppingListItem { Id = 5, Name = "Milk", ShoppingListId = 99 });
+        var list = new ShoppingList { Id = 1, Name = "Test", HouseholdId = 0 };
+        _listRepo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 5, "Milk", false, null, null), TestContext.Current.CancellationToken);
@@ -273,8 +286,10 @@ public class UpdateShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_UpdatesItemAndReturnsNoContent()
     {
+        var list = new ShoppingList { Id = 1, Name = "Test", HouseholdId = 0 };
         var item = new ShoppingListItem { Id = 5, Name = "Milk", ShoppingListId = 1, IsChecked = false };
-        _itemRepo.GetById(5).Returns(item);
+        _listRepo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem> { item }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new UpdateShoppingListItemCommand(1, 5, "Oat Milk", true, 2.5m, "L"), TestContext.Current.CancellationToken);
@@ -293,8 +308,9 @@ public class GetShoppingListsHandlerTests
 {
     private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IRepository<ShoppingListItem> _itemRepo = Substitute.For<IRepository<ShoppingListItem>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private GetShoppingListsHandler CreateHandler() => new(_repo, _itemRepo);
+    private GetShoppingListsHandler CreateHandler() => new(_repo, _itemRepo, _householdContext);
 
     [Fact]
     public async Task Handle_ReturnsOnlyNonDeletedLists()
@@ -375,8 +391,9 @@ public class GetShoppingListsHandlerTests
 public class GetShoppingListByIdHandlerTests
 {
     private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private GetShoppingListByIdHandler CreateHandler() => new(_repo);
+    private GetShoppingListByIdHandler CreateHandler() => new(_repo, _householdContext);
 
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
@@ -420,8 +437,9 @@ public class ReorderShoppingListsHandlerTests
     private readonly IRepository<ShoppingList> _repo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private ReorderShoppingListsHandler CreateHandler() => new(_repo, _unitOfWork, _realtimeNotifier);
+    private ReorderShoppingListsHandler CreateHandler() => new(_repo, _householdContext, _unitOfWork, _realtimeNotifier);
 
     [Fact]
     public async Task Handle_UpdatesSortOrderForAllMatchingLists()

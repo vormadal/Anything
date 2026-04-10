@@ -67,7 +67,7 @@ public class UpdateSuggestionCategoryHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((SuggestionCategory?)null);
+        _repo.Query().Returns(new List<SuggestionCategory>().AsAsyncQueryable());
         var handler = new UpdateSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateSuggestionCategoryCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -78,7 +78,7 @@ public class UpdateSuggestionCategoryHandlerTests
     [Fact]
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new SuggestionCategory { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<SuggestionCategory> { new SuggestionCategory { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new UpdateSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateSuggestionCategoryCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -92,7 +92,7 @@ public class UpdateSuggestionCategoryHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new SuggestionCategory { Id = 1, Name = "Old Name" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<SuggestionCategory> { entity }.AsAsyncQueryable());
         var handler = new UpdateSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateSuggestionCategoryCommand(1, "New Name"), TestContext.Current.CancellationToken);
@@ -119,7 +119,7 @@ public class DeleteSuggestionCategoryHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((SuggestionCategory?)null);
+        _repo.Query().Returns(new List<SuggestionCategory>().AsAsyncQueryable());
         var handler = new DeleteSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteSuggestionCategoryCommand(1), TestContext.Current.CancellationToken);
@@ -130,7 +130,7 @@ public class DeleteSuggestionCategoryHandlerTests
     [Fact]
     public async Task Handle_WhenAlreadyDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new SuggestionCategory { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<SuggestionCategory> { new SuggestionCategory { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new DeleteSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteSuggestionCategoryCommand(1), TestContext.Current.CancellationToken);
@@ -144,7 +144,7 @@ public class DeleteSuggestionCategoryHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new SuggestionCategory { Id = 1, Name = "X" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<SuggestionCategory> { entity }.AsAsyncQueryable());
         var handler = new DeleteSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteSuggestionCategoryCommand(1), TestContext.Current.CancellationToken);

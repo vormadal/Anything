@@ -86,7 +86,7 @@ public class UpdateVendorHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Vendor?)null);
+        _repo.Query().Returns(new List<Vendor>().AsAsyncQueryable());
         var handler = new UpdateVendorHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", null), TestContext.Current.CancellationToken);
@@ -97,7 +97,7 @@ public class UpdateVendorHandlerTests
     [Fact]
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Vendor { Id = 1, Name = "Old", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Vendor> { new Vendor { Id = 1, Name = "Old", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new UpdateVendorHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", null), TestContext.Current.CancellationToken);
@@ -111,7 +111,7 @@ public class UpdateVendorHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new Vendor { Id = 1, Name = "Old Name", Website = "https://old.com" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Vendor> { entity }.AsAsyncQueryable());
         var handler = new UpdateVendorHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateVendorCommand(1, "New Name", "https://new.com"), TestContext.Current.CancellationToken);
@@ -127,7 +127,7 @@ public class UpdateVendorHandlerTests
     public async Task Handle_CanClearWebsite()
     {
         var entity = new Vendor { Id = 1, Name = "Vendor", Website = "https://old.com" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Vendor> { entity }.AsAsyncQueryable());
         var handler = new UpdateVendorHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         await handler.Handle(new UpdateVendorCommand(1, "Vendor", null), TestContext.Current.CancellationToken);
@@ -151,7 +151,7 @@ public class DeleteVendorHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Vendor?)null);
+        _repo.Query().Returns(new List<Vendor>().AsAsyncQueryable());
         var handler = new DeleteVendorHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteVendorCommand(1), TestContext.Current.CancellationToken);
@@ -162,7 +162,7 @@ public class DeleteVendorHandlerTests
     [Fact]
     public async Task Handle_WhenAlreadyDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Vendor { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Vendor> { new Vendor { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new DeleteVendorHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteVendorCommand(1), TestContext.Current.CancellationToken);
@@ -176,7 +176,7 @@ public class DeleteVendorHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new Vendor { Id = 1, Name = "X" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Vendor> { entity }.AsAsyncQueryable());
         var handler = new DeleteVendorHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteVendorCommand(1), TestContext.Current.CancellationToken);
@@ -189,7 +189,7 @@ public class DeleteVendorHandlerTests
     [Fact]
     public async Task Handle_DoesNotSaveChanges_WhenNotFound()
     {
-        _repo.GetById(99).Returns((Vendor?)null);
+        _repo.Query().Returns(new List<Vendor>().AsAsyncQueryable());
         var handler = new DeleteVendorHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         await handler.Handle(new DeleteVendorCommand(99), TestContext.Current.CancellationToken);
@@ -258,7 +258,7 @@ public class GetVendorByIdHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns((Vendor?)null);
+        _repo.Query().Returns(new List<Vendor>().AsAsyncQueryable());
         var handler = new GetVendorByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetVendorByIdQuery(1), TestContext.Current.CancellationToken);
@@ -269,7 +269,7 @@ public class GetVendorByIdHandlerTests
     [Fact]
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
-        _repo.GetById(1).Returns(new Vendor { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
+        _repo.Query().Returns(new List<Vendor> { new Vendor { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
         var handler = new GetVendorByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetVendorByIdQuery(1), TestContext.Current.CancellationToken);
@@ -281,7 +281,7 @@ public class GetVendorByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOkWithEntity()
     {
         var entity = new Vendor { Id = 1, Name = "Best Vendor", Website = "https://best.com" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Vendor> { entity }.AsAsyncQueryable());
         var handler = new GetVendorByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetVendorByIdQuery(1), TestContext.Current.CancellationToken);
@@ -295,7 +295,7 @@ public class GetVendorByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsCorrectId()
     {
         var entity = new Vendor { Id = 7, Name = "Vendor Seven" };
-        _repo.GetById(7).Returns(entity);
+        _repo.Query().Returns(new List<Vendor> { entity }.AsAsyncQueryable());
         var handler = new GetVendorByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetVendorByIdQuery(7), TestContext.Current.CancellationToken);

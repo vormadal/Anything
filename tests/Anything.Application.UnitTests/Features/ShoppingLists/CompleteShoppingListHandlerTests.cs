@@ -17,9 +17,10 @@ public class CompleteShoppingListHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private CompleteShoppingListHandler CreateHandler() =>
-        new(_listRepo, _itemRepo, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_listRepo, _itemRepo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public CompleteShoppingListHandlerTests()
     {
@@ -29,7 +30,7 @@ public class CompleteShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
     {
-        _listRepo.GetById(1).Returns((ShoppingList?)null);
+        _listRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
@@ -40,10 +41,10 @@ public class CompleteShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenListDeleted_ReturnsNotFound()
     {
-        _listRepo.GetById(1).Returns(new ShoppingList
+        _listRepo.Query().Returns(new List<ShoppingList>
         {
-            Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
+            new() { Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+        }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CompleteShoppingListCommand(1), TestContext.Current.CancellationToken);
@@ -54,8 +55,8 @@ public class CompleteShoppingListHandlerTests
     [Fact]
     public async Task Handle_WithMarkUnchecked_CompletesAllUncheckedItems()
     {
-        var list = new ShoppingList { Id = 1, Name = "Weekly Shop" };
-        _listRepo.GetById(1).Returns(list);
+        var list = new ShoppingList { Id = 1, Name = "Weekly Shop", HouseholdId = 0 };
+        _listRepo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
 
         var items = new List<ShoppingListItem>
         {
@@ -76,8 +77,8 @@ public class CompleteShoppingListHandlerTests
     [Fact]
     public async Task Handle_WithoutMarkUnchecked_OnlyCompletesAlreadyCheckedItems()
     {
-        var list = new ShoppingList { Id = 1, Name = "Weekly Shop" };
-        _listRepo.GetById(1).Returns(list);
+        var list = new ShoppingList { Id = 1, Name = "Weekly Shop", HouseholdId = 0 };
+        _listRepo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
 
         var items = new List<ShoppingListItem>
         {
@@ -97,8 +98,8 @@ public class CompleteShoppingListHandlerTests
     [Fact]
     public async Task Handle_DoesNotSoftDeleteListOrCreateNewList()
     {
-        var list = new ShoppingList { Id = 1, Name = "Weekly Shop" };
-        _listRepo.GetById(1).Returns(list);
+        var list = new ShoppingList { Id = 1, Name = "Weekly Shop", HouseholdId = 0 };
+        _listRepo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
@@ -112,8 +113,8 @@ public class CompleteShoppingListHandlerTests
     [Fact]
     public async Task Handle_WithEmptyList_ReturnsNoContent()
     {
-        var list = new ShoppingList { Id = 1, Name = "Empty List" };
-        _listRepo.GetById(1).Returns(list);
+        var list = new ShoppingList { Id = 1, Name = "Empty List", HouseholdId = 0 };
+        _listRepo.Query().Returns(new List<ShoppingList> { list }.AsAsyncQueryable());
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
