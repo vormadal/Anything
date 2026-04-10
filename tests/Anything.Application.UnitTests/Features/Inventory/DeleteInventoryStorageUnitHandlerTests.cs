@@ -2,6 +2,7 @@ using Anything.Application.Features.Inventory.Commands;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -15,9 +16,10 @@ public class DeleteInventoryStorageUnitHandlerTests
     private readonly IRepository<InventoryItem> _itemRepo = Substitute.For<IRepository<InventoryItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private DeleteInventoryStorageUnitHandler CreateHandler() =>
-        new(_storageUnitRepo, _boxRepo, _itemRepo, _unitOfWork, _timeProvider);
+        new(_storageUnitRepo, _boxRepo, _itemRepo, _householdContext, _unitOfWork, _timeProvider);
 
     public DeleteInventoryStorageUnitHandlerTests()
     {

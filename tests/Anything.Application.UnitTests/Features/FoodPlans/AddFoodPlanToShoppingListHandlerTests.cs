@@ -2,6 +2,7 @@ using Anything.Application.Features.FoodPlans.Commands;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -17,12 +18,13 @@ public class AddFoodPlanToShoppingListHandlerTests
     private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private readonly DateTime _startDate = new(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
     private readonly DateTime _endDate = new(2026, 3, 15, 0, 0, 0, DateTimeKind.Utc);
 
     private AddFoodPlanToShoppingListHandler CreateHandler() =>
-        new(_entryRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _unitOfWork, _timeProvider);
+        new(_entryRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _householdContext, _unitOfWork, _timeProvider);
 
     public AddFoodPlanToShoppingListHandlerTests()
     {

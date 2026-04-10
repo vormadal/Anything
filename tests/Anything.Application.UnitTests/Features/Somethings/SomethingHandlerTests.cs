@@ -3,6 +3,7 @@ using Anything.Application.Features.Somethings.Queries;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -14,6 +15,7 @@ public class CreateSomethingHandlerTests
     private readonly IRepository<Something> _repo = Substitute.For<IRepository<Something>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public CreateSomethingHandlerTests()
     {
@@ -23,7 +25,7 @@ public class CreateSomethingHandlerTests
     [Fact]
     public async Task Handle_CreatesEntityWithNameAndTimestamp()
     {
-        var handler = new CreateSomethingHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new CreateSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new CreateSomethingCommand("My List"), TestContext.Current.CancellationToken);
 
@@ -39,6 +41,7 @@ public class UpdateSomethingHandlerTests
     private readonly IRepository<Something> _repo = Substitute.For<IRepository<Something>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateSomethingHandlerTests()
     {
@@ -49,7 +52,7 @@ public class UpdateSomethingHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Something?)null);
-        var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
 
@@ -60,7 +63,7 @@ public class UpdateSomethingHandlerTests
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
-        var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
 
@@ -74,7 +77,7 @@ public class UpdateSomethingHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new Something { Id = 1, Name = "Old" };
         _repo.GetById(1).Returns(entity);
-        var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new UpdateSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new UpdateSomethingCommand(1, "New"), TestContext.Current.CancellationToken);
 
@@ -90,6 +93,7 @@ public class DeleteSomethingHandlerTests
     private readonly IRepository<Something> _repo = Substitute.For<IRepository<Something>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public DeleteSomethingHandlerTests()
     {
@@ -100,7 +104,7 @@ public class DeleteSomethingHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Something?)null);
-        var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
 
@@ -111,7 +115,7 @@ public class DeleteSomethingHandlerTests
     public async Task Handle_WhenAlreadyDeleted_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
-        var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
 
@@ -125,7 +129,7 @@ public class DeleteSomethingHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new Something { Id = 1, Name = "X" };
         _repo.GetById(1).Returns(entity);
-        var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new DeleteSomethingHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new DeleteSomethingCommand(1), TestContext.Current.CancellationToken);
 
@@ -138,6 +142,7 @@ public class DeleteSomethingHandlerTests
 public class GetSomethingsHandlerTests
 {
     private readonly IRepository<Something> _repo = Substitute.For<IRepository<Something>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_ReturnsOnlyNonDeletedItems()
@@ -148,7 +153,7 @@ public class GetSomethingsHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var handler = new GetSomethingsHandler(_repo);
+        var handler = new GetSomethingsHandler(_repo, _householdContext);
         var result = await handler.Handle(new GetSomethingsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
@@ -159,12 +164,13 @@ public class GetSomethingsHandlerTests
 public class GetSomethingByIdHandlerTests
 {
     private readonly IRepository<Something> _repo = Substitute.For<IRepository<Something>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Something?)null);
-        var handler = new GetSomethingByIdHandler(_repo);
+        var handler = new GetSomethingByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);
 
@@ -175,7 +181,7 @@ public class GetSomethingByIdHandlerTests
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new Something { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
-        var handler = new GetSomethingByIdHandler(_repo);
+        var handler = new GetSomethingByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);
 
@@ -187,7 +193,7 @@ public class GetSomethingByIdHandlerTests
     {
         var entity = new Something { Id = 1, Name = "My List" };
         _repo.GetById(1).Returns(entity);
-        var handler = new GetSomethingByIdHandler(_repo);
+        var handler = new GetSomethingByIdHandler(_repo, _householdContext);
 
         var result = await handler.Handle(new GetSomethingByIdQuery(1), TestContext.Current.CancellationToken);
 

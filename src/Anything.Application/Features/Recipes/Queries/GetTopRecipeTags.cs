@@ -15,8 +15,12 @@ public class GetTopRecipeTagsHandler(IRepository<RecipeTag> tagRepository, IRepo
     public async Task<List<TopTagResponse>> Handle(GetTopRecipeTagsQuery query, CancellationToken ct = default)
     {
         var groups = await tagRepository.Query()
-            .Where(t => t.DeletedOn == null
-                && recipeRepository.Query().Any(r => r.Id == t.RecipeId && r.HouseholdId == householdContext.HouseholdId && r.DeletedOn == null))
+            .Where(t => t.DeletedOn == null)
+            .Join(
+                recipeRepository.Query().Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId),
+                t => t.RecipeId,
+                r => r.Id,
+                (t, r) => t)
             .GroupBy(t => t.Name.ToLower())
             .Select(g => new { Name = g.Key, Count = g.Count() })
             .OrderByDescending(t => t.Count)

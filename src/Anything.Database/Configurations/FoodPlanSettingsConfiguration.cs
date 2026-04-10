@@ -10,6 +10,7 @@ public class FoodPlanSettingsConfiguration : IEntityTypeConfiguration<FoodPlanSe
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.ActiveDays).HasDefaultValue(31);
+        builder.HasIndex(e => e.HouseholdId).IsUnique();
         builder.HasOne<Household>()
             .WithMany()
             .HasForeignKey(e => e.HouseholdId)

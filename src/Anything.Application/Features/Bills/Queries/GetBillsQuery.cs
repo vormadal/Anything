@@ -39,13 +39,13 @@ public class GetBillsHandler(
 
         var locations = locationIds.Count > 0
             ? await locationRepository.Query()
-                .Where(l => l.DeletedOn == null && locationIds.Contains(l.Id))
+                .Where(l => l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId && locationIds.Contains(l.Id))
                 .ToListAsync(ct)
             : [];
 
         var vendors = vendorIds.Count > 0
             ? await vendorRepository.Query()
-                .Where(v => v.DeletedOn == null && vendorIds.Contains(v.Id))
+                .Where(v => v.DeletedOn == null && v.HouseholdId == householdContext.HouseholdId && vendorIds.Contains(v.Id))
                 .ToListAsync(ct)
             : [];
 

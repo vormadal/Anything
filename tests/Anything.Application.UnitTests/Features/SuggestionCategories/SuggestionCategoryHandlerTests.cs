@@ -3,6 +3,7 @@ using Anything.Application.Features.SuggestionCategories.Queries;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -14,6 +15,7 @@ public class CreateSuggestionCategoryHandlerTests
     private readonly IRepository<SuggestionCategory> _repo = Substitute.For<IRepository<SuggestionCategory>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public CreateSuggestionCategoryHandlerTests()
     {
@@ -24,7 +26,7 @@ public class CreateSuggestionCategoryHandlerTests
     [Fact]
     public async Task Handle_CreatesCategoryWithNameAndSortOrder()
     {
-        var handler = new CreateSuggestionCategoryHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new CreateSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new CreateSuggestionCategoryCommand("Dairy"), TestContext.Current.CancellationToken);
 
@@ -41,7 +43,7 @@ public class CreateSuggestionCategoryHandlerTests
     {
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
-        var handler = new CreateSuggestionCategoryHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new CreateSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new CreateSuggestionCategoryCommand("Produce"), TestContext.Current.CancellationToken);
 
@@ -55,6 +57,7 @@ public class UpdateSuggestionCategoryHandlerTests
     private readonly IRepository<SuggestionCategory> _repo = Substitute.For<IRepository<SuggestionCategory>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateSuggestionCategoryHandlerTests()
     {
@@ -65,7 +68,7 @@ public class UpdateSuggestionCategoryHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((SuggestionCategory?)null);
-        var handler = new UpdateSuggestionCategoryHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new UpdateSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateSuggestionCategoryCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
@@ -76,7 +79,7 @@ public class UpdateSuggestionCategoryHandlerTests
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new SuggestionCategory { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
-        var handler = new UpdateSuggestionCategoryHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new UpdateSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateSuggestionCategoryCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
@@ -90,7 +93,7 @@ public class UpdateSuggestionCategoryHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new SuggestionCategory { Id = 1, Name = "Old Name" };
         _repo.GetById(1).Returns(entity);
-        var handler = new UpdateSuggestionCategoryHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new UpdateSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateSuggestionCategoryCommand(1, "New Name"), TestContext.Current.CancellationToken);
 
@@ -106,6 +109,7 @@ public class DeleteSuggestionCategoryHandlerTests
     private readonly IRepository<SuggestionCategory> _repo = Substitute.For<IRepository<SuggestionCategory>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public DeleteSuggestionCategoryHandlerTests()
     {
@@ -116,7 +120,7 @@ public class DeleteSuggestionCategoryHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((SuggestionCategory?)null);
-        var handler = new DeleteSuggestionCategoryHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new DeleteSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteSuggestionCategoryCommand(1), TestContext.Current.CancellationToken);
 
@@ -127,7 +131,7 @@ public class DeleteSuggestionCategoryHandlerTests
     public async Task Handle_WhenAlreadyDeleted_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new SuggestionCategory { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
-        var handler = new DeleteSuggestionCategoryHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new DeleteSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteSuggestionCategoryCommand(1), TestContext.Current.CancellationToken);
 
@@ -141,7 +145,7 @@ public class DeleteSuggestionCategoryHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new SuggestionCategory { Id = 1, Name = "X" };
         _repo.GetById(1).Returns(entity);
-        var handler = new DeleteSuggestionCategoryHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new DeleteSuggestionCategoryHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteSuggestionCategoryCommand(1), TestContext.Current.CancellationToken);
 

@@ -265,7 +265,8 @@ namespace Anything.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HouseholdId");
+                    b.HasIndex("HouseholdId")
+                        .IsUnique();
 
                     b.ToTable("FoodPlanSettings");
                 });
@@ -827,7 +828,7 @@ namespace Anything.Database.Migrations
 
                     b.HasIndex("HouseholdId");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("HouseholdId", "Name")
                         .IsUnique()
                         .HasFilter("\"DeletedOn\" IS NULL");
 
@@ -898,7 +899,7 @@ namespace Anything.Database.Migrations
 
                     b.HasIndex("HouseholdId");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("HouseholdId", "Name")
                         .IsUnique()
                         .HasFilter("\"DeletedOn\" IS NULL");
 

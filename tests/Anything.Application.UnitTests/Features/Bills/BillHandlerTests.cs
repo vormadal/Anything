@@ -176,6 +176,7 @@ public class CreateBillHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly DateTimeOffset _now = new(2026, 1, 15, 10, 0, 0, TimeSpan.Zero);
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public CreateBillHandlerTests()
     {
@@ -183,7 +184,7 @@ public class CreateBillHandlerTests
     }
 
     private CreateBillHandler CreateHandler() =>
-        new(_billRepo, _priceRepo, _unitOfWork, _timeProvider);
+        new(_billRepo, _priceRepo, _householdContext, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_InvalidFrequency_ReturnsBadRequest()
@@ -251,13 +252,14 @@ public class UpdateBillHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly DateTimeOffset _now = new(2026, 1, 15, 10, 0, 0, TimeSpan.Zero);
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateBillHandlerTests()
     {
         _timeProvider.GetUtcNow().Returns(_now);
     }
 
-    private UpdateBillHandler CreateHandler() => new(_repo, _unitOfWork, _timeProvider);
+    private UpdateBillHandler CreateHandler() => new(_repo, _householdContext, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_InvalidFrequency_ReturnsBadRequest()
@@ -320,13 +322,14 @@ public class DeleteBillHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly DateTimeOffset _now = new(2026, 1, 15, 10, 0, 0, TimeSpan.Zero);
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public DeleteBillHandlerTests()
     {
         _timeProvider.GetUtcNow().Returns(_now);
     }
 
-    private DeleteBillHandler CreateHandler() => new(_repo, _unitOfWork, _timeProvider);
+    private DeleteBillHandler CreateHandler() => new(_repo, _householdContext, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
@@ -369,13 +372,14 @@ public class AddBillPriceHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly DateTimeOffset _now = new(2026, 1, 15, 10, 0, 0, TimeSpan.Zero);
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public AddBillPriceHandlerTests()
     {
         _timeProvider.GetUtcNow().Returns(_now);
     }
 
-    private AddBillPriceHandler CreateHandler() => new(_billRepo, _priceRepo, _unitOfWork, _timeProvider);
+    private AddBillPriceHandler CreateHandler() => new(_billRepo, _priceRepo, _householdContext, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
@@ -430,17 +434,19 @@ public class AddBillPriceHandlerTests
 
 public class UpdateBillPriceHandlerTests
 {
+    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
     private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly DateTimeOffset _now = new(2026, 1, 15, 10, 0, 0, TimeSpan.Zero);
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateBillPriceHandlerTests()
     {
         _timeProvider.GetUtcNow().Returns(_now);
     }
 
-    private UpdateBillPriceHandler CreateHandler() => new(_priceRepo, _unitOfWork, _timeProvider);
+    private UpdateBillPriceHandler CreateHandler() => new(_billRepo, _priceRepo, _householdContext, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_EntryNotFound_ReturnsNotFound()
@@ -486,10 +492,12 @@ public class UpdateBillPriceHandlerTests
 
 public class DeleteBillPriceHandlerTests
 {
+    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
     private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private DeleteBillPriceHandler CreateHandler() => new(_priceRepo, _unitOfWork);
+    private DeleteBillPriceHandler CreateHandler() => new(_billRepo, _priceRepo, _householdContext, _unitOfWork);
 
     [Fact]
     public async Task Handle_EntryNotFound_ReturnsNotFound()
@@ -535,8 +543,9 @@ public class GetBillsHandlerTests
     private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
     private readonly IRepository<Location> _locationRepo = Substitute.For<IRepository<Location>>();
     private readonly IRepository<Vendor> _vendorRepo = Substitute.For<IRepository<Vendor>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private GetBillsHandler CreateHandler() => new(_billRepo, _priceRepo, _locationRepo, _vendorRepo);
+    private GetBillsHandler CreateHandler() => new(_billRepo, _priceRepo, _locationRepo, _vendorRepo, _householdContext);
 
     [Fact]
     public async Task Handle_NoBills_ReturnsEmptyList()
@@ -634,8 +643,9 @@ public class GetBillByIdHandlerTests
     private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
     private readonly IRepository<Location> _locationRepo = Substitute.For<IRepository<Location>>();
     private readonly IRepository<Vendor> _vendorRepo = Substitute.For<IRepository<Vendor>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private GetBillByIdHandler CreateHandler() => new(_billRepo, _priceRepo, _locationRepo, _vendorRepo);
+    private GetBillByIdHandler CreateHandler() => new(_billRepo, _priceRepo, _locationRepo, _vendorRepo, _householdContext);
 
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
@@ -705,8 +715,9 @@ public class GetBillSummaryHandlerTests
 {
     private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
     private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private GetBillSummaryHandler CreateHandler() => new(_billRepo, _priceRepo);
+    private GetBillSummaryHandler CreateHandler() => new(_billRepo, _priceRepo, _householdContext);
 
     [Fact]
     public async Task Handle_NoBills_ReturnsZeroSummary()
@@ -808,8 +819,9 @@ public class GetBillPriceHistoryHandlerTests
 {
     private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
     private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private GetBillPriceHistoryHandler CreateHandler() => new(_billRepo, _priceRepo);
+    private GetBillPriceHistoryHandler CreateHandler() => new(_billRepo, _priceRepo, _householdContext);
 
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
@@ -934,8 +946,9 @@ public class GetBillSummaryHandler_NoneFrequencyTests
 {
     private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
     private readonly IRepository<BillPriceHistory> _priceRepo = Substitute.For<IRepository<BillPriceHistory>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private GetBillSummaryHandler CreateHandler() => new(_billRepo, _priceRepo);
+    private GetBillSummaryHandler CreateHandler() => new(_billRepo, _priceRepo, _householdContext);
 
     [Fact]
     public async Task Handle_NoneFrequencyBill_ExcludedFromMonthlyEquivalent()
@@ -1024,9 +1037,10 @@ public class UploadBillAttachmentHandlerTests
     private readonly IImageStorageService _storageService = Substitute.For<IImageStorageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private UploadBillAttachmentHandler CreateHandler() =>
-        new(_billRepo, _attachmentRepo, _storageService, _unitOfWork, _timeProvider);
+        new(_billRepo, _attachmentRepo, _storageService, _householdContext, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()
@@ -1088,13 +1102,15 @@ public class UploadBillAttachmentHandlerTests
 
 public class DeleteBillAttachmentHandlerTests
 {
+    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
     private readonly IRepository<BillAttachment> _attachmentRepo = Substitute.For<IRepository<BillAttachment>>();
     private readonly IImageStorageService _storageService = Substitute.For<IImageStorageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private DeleteBillAttachmentHandler CreateHandler() =>
-        new(_attachmentRepo, _storageService, _unitOfWork, _timeProvider);
+        new(_billRepo, _attachmentRepo, _storageService, _householdContext, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_AttachmentNotFound_ReturnsNotFound()
@@ -1141,12 +1157,14 @@ public class DeleteBillAttachmentHandlerTests
 
 public class UpdateBillAttachmentHandlerTests
 {
+    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
     private readonly IRepository<BillAttachment> _attachmentRepo = Substitute.For<IRepository<BillAttachment>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private UpdateBillAttachmentHandler CreateHandler() =>
-        new(_attachmentRepo, _unitOfWork, _timeProvider);
+        new(_billRepo, _attachmentRepo, _householdContext, _unitOfWork, _timeProvider);
 
     [Fact]
     public async Task Handle_AttachmentNotFound_ReturnsNotFound()
@@ -1182,9 +1200,10 @@ public class GetBillAttachmentsHandlerTests
     private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
     private readonly IRepository<BillAttachment> _attachmentRepo = Substitute.For<IRepository<BillAttachment>>();
     private readonly IImageStorageService _storageService = Substitute.For<IImageStorageService>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private GetBillAttachmentsHandler CreateHandler() =>
-        new(_billRepo, _attachmentRepo, _storageService);
+        new(_billRepo, _attachmentRepo, _storageService, _householdContext);
 
     [Fact]
     public async Task Handle_BillNotFound_ReturnsNotFound()

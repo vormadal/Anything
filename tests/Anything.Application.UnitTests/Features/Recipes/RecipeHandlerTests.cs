@@ -17,6 +17,7 @@ public class CreateRecipeHandlerTests
     private readonly IRepository<Recipe> _repo = Substitute.For<IRepository<Recipe>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public CreateRecipeHandlerTests()
     {
@@ -26,7 +27,7 @@ public class CreateRecipeHandlerTests
     [Fact]
     public async Task Handle_CreatesRecipeWithFieldsAndReturnsEntity()
     {
-        var handler = new CreateRecipeHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new CreateRecipeHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new CreateRecipeCommand("Pasta", "https://example.com", "Great recipe", null, null, ServingsType.People), TestContext.Current.CancellationToken);
 
@@ -41,7 +42,7 @@ public class CreateRecipeHandlerTests
     [Fact]
     public async Task Handle_CreatesRecipeWithTimeAndServings()
     {
-        var handler = new CreateRecipeHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new CreateRecipeHandler(_repo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new CreateRecipeCommand("Pancakes", null, null, 20, 8, ServingsType.Pieces), TestContext.Current.CancellationToken);
 
@@ -56,6 +57,7 @@ public class UpdateRecipeHandlerTests
     private readonly IRepository<Recipe> _repo = Substitute.For<IRepository<Recipe>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateRecipeHandlerTests()
     {
@@ -66,7 +68,7 @@ public class UpdateRecipeHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Recipe?)null);
-        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null, null, null, ServingsType.People), TestContext.Current.CancellationToken);
+        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider, _householdContext).Handle(new UpdateRecipeCommand(1, "X", null, null, null, null, ServingsType.People), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -74,7 +76,7 @@ public class UpdateRecipeHandlerTests
     public async Task Handle_WhenDeleted_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new Recipe { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow });
-        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new UpdateRecipeCommand(1, "X", null, null, null, null, ServingsType.People), TestContext.Current.CancellationToken);
+        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider, _householdContext).Handle(new UpdateRecipeCommand(1, "X", null, null, null, null, ServingsType.People), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -86,7 +88,7 @@ public class UpdateRecipeHandlerTests
         var entity = new Recipe { Id = 1, Name = "Old" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider, _householdContext)
             .Handle(new UpdateRecipeCommand(1, "New", "https://link.com", "Notes", null, null, ServingsType.People), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
@@ -103,7 +105,7 @@ public class UpdateRecipeHandlerTests
         var entity = new Recipe { Id = 1, Name = "Old" };
         _repo.GetById(1).Returns(entity);
 
-        await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider)
+        await new UpdateRecipeHandler(_repo, _unitOfWork, _timeProvider, _householdContext)
             .Handle(new UpdateRecipeCommand(1, "Old", null, null, 45, 4, ServingsType.Quantity), TestContext.Current.CancellationToken);
 
         Assert.Equal(45, entity.CookTimeMinutes);
@@ -117,6 +119,7 @@ public class DeleteRecipeHandlerTests
     private readonly IRepository<Recipe> _repo = Substitute.For<IRepository<Recipe>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public DeleteRecipeHandlerTests()
     {
@@ -127,7 +130,7 @@ public class DeleteRecipeHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Recipe?)null);
-        var result = await new DeleteRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteRecipeCommand(1), TestContext.Current.CancellationToken);
+        var result = await new DeleteRecipeHandler(_repo, _unitOfWork, _timeProvider, _householdContext).Handle(new DeleteRecipeCommand(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -139,7 +142,7 @@ public class DeleteRecipeHandlerTests
         var entity = new Recipe { Id = 1, Name = "Pasta" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new DeleteRecipeHandler(_repo, _unitOfWork, _timeProvider).Handle(new DeleteRecipeCommand(1), TestContext.Current.CancellationToken);
+        var result = await new DeleteRecipeHandler(_repo, _unitOfWork, _timeProvider, _householdContext).Handle(new DeleteRecipeCommand(1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(now.UtcDateTime, entity.DeletedOn);
@@ -156,9 +159,10 @@ public class ImportRecipeHandlerTests
     private readonly IRecipeImageService _recipeImageService = Substitute.For<IRecipeImageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private ImportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recipeImageService, _unitOfWork, _timeProvider);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recipeImageService, _unitOfWork, _timeProvider, _householdContext);
 
     [Fact]
     public async Task Handle_CreatesRecipeWithIngredientsAndSteps()
@@ -236,6 +240,7 @@ public class GetRecipesHandlerTests
     private readonly IRepository<Recipe> _repo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeTag> _tagRepo = Substitute.For<IRepository<RecipeTag>>();
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public GetRecipesHandlerTests()
     {
@@ -252,7 +257,7 @@ public class GetRecipesHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipesHandler(_repo, _tagRepo, _ingredientRepo).Handle(new GetRecipesQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetRecipesHandler(_repo, _tagRepo, _ingredientRepo, _householdContext).Handle(new GetRecipesQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Pasta", result[0].Name);
@@ -262,12 +267,13 @@ public class GetRecipesHandlerTests
 public class GetRecipeByIdHandlerTests
 {
     private readonly IRepository<Recipe> _repo = Substitute.For<IRepository<Recipe>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((Recipe?)null);
-        var result = await new GetRecipeByIdHandler(_repo).Handle(new GetRecipeByIdQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetRecipeByIdHandler(_repo, _householdContext).Handle(new GetRecipeByIdQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -277,7 +283,7 @@ public class GetRecipeByIdHandlerTests
         var entity = new Recipe { Id = 1, Name = "Pasta" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new GetRecipeByIdHandler(_repo).Handle(new GetRecipeByIdQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetRecipeByIdHandler(_repo, _householdContext).Handle(new GetRecipeByIdQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<Recipe>>(result);
         Assert.Equal("Pasta", ok.Value!.Name);
@@ -290,6 +296,7 @@ public class AddRecipeIngredientHandlerTests
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public AddRecipeIngredientHandlerTests()
     {
@@ -300,7 +307,7 @@ public class AddRecipeIngredientHandlerTests
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
-        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider);
+        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 1.5m, "cup", null), TestContext.Current.CancellationToken);
 
@@ -311,7 +318,7 @@ public class AddRecipeIngredientHandlerTests
     public async Task Handle_AddsIngredientAndReturnsCreated()
     {
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta" });
-        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider);
+        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 2m, "cups", "dry"), TestContext.Current.CancellationToken);
 
@@ -324,9 +331,11 @@ public class AddRecipeIngredientHandlerTests
 
 public class UpdateRecipeIngredientHandlerTests
 {
+    private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeIngredient> _repo = Substitute.For<IRepository<RecipeIngredient>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateRecipeIngredientHandlerTests()
     {
@@ -337,7 +346,7 @@ public class UpdateRecipeIngredientHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((RecipeIngredient?)null);
-        var result = await new UpdateRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new UpdateRecipeIngredientCommand(1, 1, "X", null, null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -346,7 +355,7 @@ public class UpdateRecipeIngredientHandlerTests
     public async Task Handle_WhenBelongsToDifferentRecipe_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new RecipeIngredient { Id = 1, RecipeId = 99, Name = "X" });
-        var result = await new UpdateRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new UpdateRecipeIngredientCommand(1, 1, "Y", null, null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -359,7 +368,7 @@ public class UpdateRecipeIngredientHandlerTests
         var entity = new RecipeIngredient { Id = 1, RecipeId = 1, Name = "Old", Amount = 1m, Unit = "cup" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new UpdateRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new UpdateRecipeIngredientCommand(1, 1, "New", 2m, "tbsp", "wet"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
@@ -372,9 +381,11 @@ public class UpdateRecipeIngredientHandlerTests
 
 public class DeleteRecipeIngredientHandlerTests
 {
+    private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeIngredient> _repo = Substitute.For<IRepository<RecipeIngredient>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public DeleteRecipeIngredientHandlerTests()
     {
@@ -385,7 +396,7 @@ public class DeleteRecipeIngredientHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((RecipeIngredient?)null);
-        var result = await new DeleteRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new DeleteRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeIngredientCommand(1, 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -398,7 +409,7 @@ public class DeleteRecipeIngredientHandlerTests
         var entity = new RecipeIngredient { Id = 1, RecipeId = 1, Name = "Flour" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new DeleteRecipeIngredientHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new DeleteRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeIngredientCommand(1, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
@@ -412,6 +423,7 @@ public class AddRecipeStepHandlerTests
     private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public AddRecipeStepHandlerTests()
     {
@@ -422,7 +434,7 @@ public class AddRecipeStepHandlerTests
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
-        var result = await new AddRecipeStepHandler(_recipeRepo, _stepRepo, _unitOfWork, _timeProvider)
+        var result = await new AddRecipeStepHandler(_recipeRepo, _stepRepo, _unitOfWork, _timeProvider, _householdContext)
             .Handle(new AddRecipeStepCommand(1, "Mix well", 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -431,7 +443,7 @@ public class AddRecipeStepHandlerTests
     public async Task Handle_AddsStepAndReturnsCreated()
     {
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta" });
-        var result = await new AddRecipeStepHandler(_recipeRepo, _stepRepo, _unitOfWork, _timeProvider)
+        var result = await new AddRecipeStepHandler(_recipeRepo, _stepRepo, _unitOfWork, _timeProvider, _householdContext)
             .Handle(new AddRecipeStepCommand(1, "Boil water", 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<RecipeStep>>(result);
@@ -441,9 +453,11 @@ public class AddRecipeStepHandlerTests
 
 public class UpdateRecipeStepHandlerTests
 {
+    private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeStep> _repo = Substitute.For<IRepository<RecipeStep>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateRecipeStepHandlerTests()
     {
@@ -454,7 +468,7 @@ public class UpdateRecipeStepHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((RecipeStep?)null);
-        var result = await new UpdateRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeStepHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new UpdateRecipeStepCommand(1, 1, "Text", 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -463,7 +477,7 @@ public class UpdateRecipeStepHandlerTests
     public async Task Handle_WhenBelongsToDifferentRecipe_ReturnsNotFound()
     {
         _repo.GetById(1).Returns(new RecipeStep { Id = 1, RecipeId = 99, Text = "X", Order = 1 });
-        var result = await new UpdateRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeStepHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new UpdateRecipeStepCommand(1, 1, "Y", 2), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -474,7 +488,7 @@ public class UpdateRecipeStepHandlerTests
         var entity = new RecipeStep { Id = 1, RecipeId = 1, Text = "Old", Order = 1 };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new UpdateRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeStepHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new UpdateRecipeStepCommand(1, 1, "New", 2), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
@@ -485,9 +499,11 @@ public class UpdateRecipeStepHandlerTests
 
 public class DeleteRecipeStepHandlerTests
 {
+    private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeStep> _repo = Substitute.For<IRepository<RecipeStep>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public DeleteRecipeStepHandlerTests()
     {
@@ -498,7 +514,7 @@ public class DeleteRecipeStepHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((RecipeStep?)null);
-        var result = await new DeleteRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new DeleteRecipeStepHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeStepCommand(1, 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -511,7 +527,7 @@ public class DeleteRecipeStepHandlerTests
         var entity = new RecipeStep { Id = 1, RecipeId = 1, Text = "Mix", Order = 1 };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new DeleteRecipeStepHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new DeleteRecipeStepHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeStepCommand(1, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
@@ -525,6 +541,7 @@ public class AddRecipeTagHandlerTests
     private readonly IRepository<RecipeTag> _tagRepo = Substitute.For<IRepository<RecipeTag>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public AddRecipeTagHandlerTests()
     {
@@ -535,7 +552,7 @@ public class AddRecipeTagHandlerTests
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
-        var result = await new AddRecipeTagHandler(_recipeRepo, _tagRepo, _unitOfWork, _timeProvider)
+        var result = await new AddRecipeTagHandler(_recipeRepo, _tagRepo, _unitOfWork, _timeProvider, _householdContext)
             .Handle(new AddRecipeTagCommand(1, "Italian"), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -544,7 +561,7 @@ public class AddRecipeTagHandlerTests
     public async Task Handle_AddsTagAndReturnsCreated()
     {
         _recipeRepo.GetById(1).Returns(new Recipe { Id = 1, Name = "Pasta" });
-        var result = await new AddRecipeTagHandler(_recipeRepo, _tagRepo, _unitOfWork, _timeProvider)
+        var result = await new AddRecipeTagHandler(_recipeRepo, _tagRepo, _unitOfWork, _timeProvider, _householdContext)
             .Handle(new AddRecipeTagCommand(1, "Italian"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<RecipeTag>>(result);
@@ -554,9 +571,11 @@ public class AddRecipeTagHandlerTests
 
 public class DeleteRecipeTagHandlerTests
 {
+    private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeTag> _repo = Substitute.For<IRepository<RecipeTag>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public DeleteRecipeTagHandlerTests()
     {
@@ -567,7 +586,7 @@ public class DeleteRecipeTagHandlerTests
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.GetById(1).Returns((RecipeTag?)null);
-        var result = await new DeleteRecipeTagHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new DeleteRecipeTagHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeTagCommand(1, 1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -580,7 +599,7 @@ public class DeleteRecipeTagHandlerTests
         var entity = new RecipeTag { Id = 1, RecipeId = 1, Name = "Italian" };
         _repo.GetById(1).Returns(entity);
 
-        var result = await new DeleteRecipeTagHandler(_repo, _unitOfWork, _timeProvider)
+        var result = await new DeleteRecipeTagHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeTagCommand(1, 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
@@ -592,12 +611,13 @@ public class GetRecipeIngredientsHandlerTests
 {
     private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
-        var result = await new GetRecipeIngredientsHandler(_recipeRepo, _ingredientRepo)
+        var result = await new GetRecipeIngredientsHandler(_recipeRepo, _ingredientRepo, _householdContext)
             .Handle(new GetRecipeIngredientsQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -612,7 +632,7 @@ public class GetRecipeIngredientsHandlerTests
             new() { Id = 2, RecipeId = 2, Name = "Other recipe ingredient" }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipeIngredientsHandler(_recipeRepo, _ingredientRepo)
+        var result = await new GetRecipeIngredientsHandler(_recipeRepo, _ingredientRepo, _householdContext)
             .Handle(new GetRecipeIngredientsQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<RecipeIngredient>>>(result);
@@ -625,12 +645,13 @@ public class GetRecipeStepsHandlerTests
 {
     private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
-        var result = await new GetRecipeStepsHandler(_recipeRepo, _stepRepo).Handle(new GetRecipeStepsQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetRecipeStepsHandler(_recipeRepo, _stepRepo, _householdContext).Handle(new GetRecipeStepsQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -643,7 +664,7 @@ public class GetRecipeStepsHandlerTests
             new() { Id = 1, RecipeId = 1, Text = "Boil", Order = 1 }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipeStepsHandler(_recipeRepo, _stepRepo).Handle(new GetRecipeStepsQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetRecipeStepsHandler(_recipeRepo, _stepRepo, _householdContext).Handle(new GetRecipeStepsQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<RecipeStep>>>(result);
         Assert.Single(ok.Value!);
@@ -654,12 +675,13 @@ public class GetRecipeTagsHandlerTests
 {
     private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeTag> _tagRepo = Substitute.For<IRepository<RecipeTag>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.GetById(1).Returns((Recipe?)null);
-        var result = await new GetRecipeTagsHandler(_recipeRepo, _tagRepo).Handle(new GetRecipeTagsQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetRecipeTagsHandler(_recipeRepo, _tagRepo, _householdContext).Handle(new GetRecipeTagsQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
 
@@ -672,7 +694,7 @@ public class GetRecipeTagsHandlerTests
             new() { Id = 1, RecipeId = 1, Name = "Italian" }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipeTagsHandler(_recipeRepo, _tagRepo).Handle(new GetRecipeTagsQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetRecipeTagsHandler(_recipeRepo, _tagRepo, _householdContext).Handle(new GetRecipeTagsQuery(1), TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<List<RecipeTag>>>(result);
         Assert.Single(ok.Value!);
@@ -689,6 +711,7 @@ public class ReimportRecipeHandlerTests
     private readonly IRecipeImageService _recipeImageService = Substitute.For<IRecipeImageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public ReimportRecipeHandlerTests()
     {
@@ -699,7 +722,7 @@ public class ReimportRecipeHandlerTests
     }
 
     private ReimportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _parserService, _recipeImageService, _unitOfWork, _timeProvider);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _parserService, _recipeImageService, _unitOfWork, _timeProvider, _householdContext);
 
     [Fact]
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()

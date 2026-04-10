@@ -14,6 +14,6 @@ public class SuggestionCategoryConfiguration : IEntityTypeConfiguration<Suggesti
             .WithMany()
             .HasForeignKey(e => e.HouseholdId)
             .OnDelete(DeleteBehavior.Cascade);
-        builder.HasIndex(e => e.Name).IsUnique().HasFilter("\"DeletedOn\" IS NULL");
+        builder.HasIndex(e => new { e.HouseholdId, e.Name }).IsUnique().HasFilter("\"DeletedOn\" IS NULL");
     }
 }

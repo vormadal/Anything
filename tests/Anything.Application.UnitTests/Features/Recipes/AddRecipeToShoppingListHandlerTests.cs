@@ -2,6 +2,7 @@ using Anything.Application.Features.Recipes.Commands;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
@@ -18,9 +19,10 @@ public class AddRecipeToShoppingListHandlerTests
     private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private AddRecipeToShoppingListHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _unitOfWork, _timeProvider);
+        new(_recipeRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _householdContext, _unitOfWork, _timeProvider);
 
     public AddRecipeToShoppingListHandlerTests()
     {

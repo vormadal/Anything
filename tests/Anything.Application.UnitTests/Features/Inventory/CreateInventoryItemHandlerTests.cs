@@ -1,6 +1,7 @@
 using Anything.Application.Features.Inventory.Commands;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
@@ -15,9 +16,10 @@ public class CreateInventoryItemHandlerTests
     private readonly IRepository<InventoryStorageUnit> _storageUnitRepo = Substitute.For<IRepository<InventoryStorageUnit>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private CreateInventoryItemHandler CreateHandler() =>
-        new(_itemRepo, _boxRepo, _storageUnitRepo, _unitOfWork, _timeProvider);
+        new(_itemRepo, _boxRepo, _storageUnitRepo, _householdContext, _unitOfWork, _timeProvider);
 
     public CreateInventoryItemHandlerTests()
     {

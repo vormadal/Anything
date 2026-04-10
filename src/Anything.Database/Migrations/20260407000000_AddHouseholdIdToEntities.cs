@@ -29,19 +29,44 @@ namespace Anything.Database.Migrations
                     nullable: true);
             }
 
-            // Populate HouseholdId from the default (first non-deleted) household
+            // Populate HouseholdId from the default (lowest-id non-deleted) household.
+            // If there are existing rows but no household, the migration aborts with an error.
             migrationBuilder.Sql(@"
 DO $$
 DECLARE
     v_household_id INTEGER;
+    v_has_rows BOOLEAN := FALSE;
 BEGIN
-    SELECT ""Id"" INTO v_household_id
-    FROM ""Households""
-    WHERE ""DeletedOn"" IS NULL
-    ORDER BY ""Id""
-    LIMIT 1;
+    -- Check if any of the domain tables have rows that need populating
+    SELECT EXISTS(
+        SELECT 1 FROM ""Somethings"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""Recipes"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""Bills"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""ShoppingLists"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""ShoppingListRecommendations"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""SuggestionCategories"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""FoodPlanEntries"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""FoodPlanNotes"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""FoodPlanSettings"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""Locations"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""Vendors"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""InventoryStorageUnits"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""InventoryBoxes"" WHERE ""HouseholdId"" IS NULL
+        UNION ALL SELECT 1 FROM ""InventoryItems"" WHERE ""HouseholdId"" IS NULL
+    ) INTO v_has_rows;
 
-    IF v_household_id IS NOT NULL THEN
+    IF v_has_rows THEN
+        -- Pick the household with the most members; fall back to lowest Id
+        SELECT h.""Id"" INTO v_household_id
+        FROM ""Households"" h
+        WHERE h.""DeletedOn"" IS NULL
+        ORDER BY (SELECT COUNT(*) FROM ""HouseholdMembers"" m WHERE m.""HouseholdId"" = h.""Id"") DESC, h.""Id"" ASC
+        LIMIT 1;
+
+        IF v_household_id IS NULL THEN
+            RAISE EXCEPTION 'Migration failed: existing data rows found but no active household exists to assign them to.';
+        END IF;
+
         UPDATE ""Somethings"" SET ""HouseholdId"" = v_household_id WHERE ""HouseholdId"" IS NULL;
         UPDATE ""Recipes"" SET ""HouseholdId"" = v_household_id WHERE ""HouseholdId"" IS NULL;
         UPDATE ""Bills"" SET ""HouseholdId"" = v_household_id WHERE ""HouseholdId"" IS NULL;
@@ -60,7 +85,7 @@ BEGIN
 END $$;
 ");
 
-            // Make HouseholdId non-nullable on all tables
+            // Make HouseholdId non-nullable on all tables (no column-level default — NULL rows must already be populated above)
             foreach (var table in tables)
             {
                 migrationBuilder.AlterColumn<int>(
@@ -68,7 +93,6 @@ END $$;
                     table: table,
                     type: "integer",
                     nullable: false,
-                    defaultValue: 0,
                     oldClrType: typeof(int),
                     oldType: "integer",
                     oldNullable: true);
@@ -101,6 +125,37 @@ END $$;
                 table: "FoodPlanNotes",
                 columns: new[] { "HouseholdId", "Date" },
                 unique: true);
+
+            // Update SuggestionCategories unique index from (Name) to (HouseholdId, Name)
+            migrationBuilder.DropIndex(
+                name: "IX_SuggestionCategories_Name",
+                table: "SuggestionCategories");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SuggestionCategories_HouseholdId_Name",
+                table: "SuggestionCategories",
+                columns: new[] { "HouseholdId", "Name" },
+                unique: true,
+                filter: "\"DeletedOn\" IS NULL");
+
+            // Update ShoppingListRecommendations unique index from (Name) to (HouseholdId, Name)
+            migrationBuilder.DropIndex(
+                name: "IX_ShoppingListRecommendations_Name",
+                table: "ShoppingListRecommendations");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ShoppingListRecommendations_HouseholdId_Name",
+                table: "ShoppingListRecommendations",
+                columns: new[] { "HouseholdId", "Name" },
+                unique: true,
+                filter: "\"DeletedOn\" IS NULL");
+
+            // Add unique constraint on FoodPlanSettings.HouseholdId (one settings row per household)
+            migrationBuilder.CreateIndex(
+                name: "IX_FoodPlanSettings_HouseholdId_Unique",
+                table: "FoodPlanSettings",
+                column: "HouseholdId",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -114,6 +169,35 @@ END $$;
                 "Locations", "Vendors",
                 "InventoryStorageUnits", "InventoryBoxes", "InventoryItems"
             };
+
+            // Restore FoodPlanSettings unique index
+            migrationBuilder.DropIndex(
+                name: "IX_FoodPlanSettings_HouseholdId_Unique",
+                table: "FoodPlanSettings");
+
+            // Restore ShoppingListRecommendations unique index
+            migrationBuilder.DropIndex(
+                name: "IX_ShoppingListRecommendations_HouseholdId_Name",
+                table: "ShoppingListRecommendations");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ShoppingListRecommendations_Name",
+                table: "ShoppingListRecommendations",
+                column: "Name",
+                unique: true,
+                filter: "\"DeletedOn\" IS NULL");
+
+            // Restore SuggestionCategories unique index
+            migrationBuilder.DropIndex(
+                name: "IX_SuggestionCategories_HouseholdId_Name",
+                table: "SuggestionCategories");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SuggestionCategories_Name",
+                table: "SuggestionCategories",
+                column: "Name",
+                unique: true,
+                filter: "\"DeletedOn\" IS NULL");
 
             // Restore FoodPlanNotes unique index
             migrationBuilder.DropIndex(

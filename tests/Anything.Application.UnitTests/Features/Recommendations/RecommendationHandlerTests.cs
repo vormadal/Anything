@@ -3,6 +3,7 @@ using Anything.Application.Features.Recommendations.Queries;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -14,8 +15,9 @@ public class UpdateRecommendationHandlerTests
     private readonly IRepository<ShoppingListRecommendation> _repo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private UpdateRecommendationHandler CreateHandler() => new(_repo, _unitOfWork, _timeProvider);
+    private UpdateRecommendationHandler CreateHandler() => new(_repo, _householdContext, _unitOfWork, _timeProvider);
 
     public UpdateRecommendationHandlerTests()
     {
@@ -68,8 +70,9 @@ public class ApproveRecommendationHandlerTests
     private readonly IRepository<ShoppingListRecommendation> _repo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private ApproveRecommendationHandler CreateHandler() => new(_repo, _unitOfWork, _timeProvider);
+    private ApproveRecommendationHandler CreateHandler() => new(_repo, _householdContext, _unitOfWork, _timeProvider);
 
     public ApproveRecommendationHandlerTests()
     {
@@ -105,8 +108,9 @@ public class DeleteRecommendationHandlerTests
     private readonly IRepository<ShoppingListRecommendation> _repo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
-    private DeleteRecommendationHandler CreateHandler() => new(_repo, _unitOfWork, _timeProvider);
+    private DeleteRecommendationHandler CreateHandler() => new(_repo, _householdContext, _unitOfWork, _timeProvider);
 
     public DeleteRecommendationHandlerTests()
     {
@@ -142,6 +146,7 @@ public class DeleteRecommendationHandlerTests
 public class GetAllRecommendationsHandlerTests
 {
     private readonly IRepository<ShoppingListRecommendation> _repo = Substitute.For<IRepository<ShoppingListRecommendation>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_ReturnsOnlyNonDeletedItems()
@@ -152,7 +157,7 @@ public class GetAllRecommendationsHandlerTests
             new() { Id = 2, Name = "Salt", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetAllRecommendationsHandler(_repo).Handle(new GetAllRecommendationsQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetAllRecommendationsHandler(_repo, _householdContext).Handle(new GetAllRecommendationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Bread", result[0].Name);
@@ -162,6 +167,7 @@ public class GetAllRecommendationsHandlerTests
 public class GetPendingRecommendationsHandlerTests
 {
     private readonly IRepository<ShoppingListRecommendation> _repo = Substitute.For<IRepository<ShoppingListRecommendation>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_ReturnsOnlyPendingItems()
@@ -173,7 +179,7 @@ public class GetPendingRecommendationsHandlerTests
             new() { Id = 3, Name = "Butter", IsApproved = false, DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetPendingRecommendationsHandler(_repo).Handle(new GetPendingRecommendationsQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetPendingRecommendationsHandler(_repo, _householdContext).Handle(new GetPendingRecommendationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Milk", result[0].Name);
@@ -183,6 +189,7 @@ public class GetPendingRecommendationsHandlerTests
 public class GetApprovedRecommendationsHandlerTests
 {
     private readonly IRepository<ShoppingListRecommendation> _repo = Substitute.For<IRepository<ShoppingListRecommendation>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_ReturnsOnlyApprovedItems()
@@ -194,7 +201,7 @@ public class GetApprovedRecommendationsHandlerTests
             new() { Id = 3, Name = "Oil", IsApproved = true, DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetApprovedRecommendationsHandler(_repo).Handle(new GetApprovedRecommendationsQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetApprovedRecommendationsHandler(_repo, _householdContext).Handle(new GetApprovedRecommendationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Flour", result[0].Name);

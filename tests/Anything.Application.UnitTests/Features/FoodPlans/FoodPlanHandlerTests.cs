@@ -3,6 +3,7 @@ using Anything.Application.Features.FoodPlans.Queries;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -15,6 +16,7 @@ public class AddFoodPlanEntryHandlerTests
     private readonly IRepository<FoodPlanEntry> _entryRepo = Substitute.For<IRepository<FoodPlanEntry>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public AddFoodPlanEntryHandlerTests()
     {
@@ -25,7 +27,7 @@ public class AddFoodPlanEntryHandlerTests
     public async Task Handle_WithExistingRecipeId_AddsEntryAndReturnsCreated()
     {
         _recipeRepo.GetById(5).Returns(new Recipe { Id = 5, Name = "Pasta" });
-        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc); // Wednesday
 
         var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 5, date), TestContext.Current.CancellationToken);
@@ -41,7 +43,7 @@ public class AddFoodPlanEntryHandlerTests
     public async Task Handle_WithDeletedRecipe_ReturnsNotFound()
     {
         _recipeRepo.GetById(5).Returns(new Recipe { Id = 5, Name = "Pasta", DeletedOn = DateTime.UtcNow });
-        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
 
         var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 5, date), TestContext.Current.CancellationToken);
@@ -53,7 +55,7 @@ public class AddFoodPlanEntryHandlerTests
     public async Task Handle_WithNonExistentRecipeId_ReturnsNotFound()
     {
         _recipeRepo.GetById(99).Returns((Recipe?)null);
-        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
 
         var result = await handler.Handle(new AddFoodPlanEntryCommand("Pasta", 99, date), TestContext.Current.CancellationToken);
@@ -64,7 +66,7 @@ public class AddFoodPlanEntryHandlerTests
     [Fact]
     public async Task Handle_WithNoRecipeId_CreatesNewRecipeAndEntry()
     {
-        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 12, 0, 0, 0, DateTimeKind.Utc); // Thursday
 
         var result = await handler.Handle(new AddFoodPlanEntryCommand("Custom Meal", null, date), TestContext.Current.CancellationToken);
@@ -80,7 +82,7 @@ public class AddFoodPlanEntryHandlerTests
     [Fact]
     public async Task Handle_SetsDayOfWeekFromDate()
     {
-        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new AddFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         // Monday 2026-03-09: DayOfWeek=1(Monday), mapped = (1+6)%7 = 0
         var monday = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
 
@@ -96,6 +98,7 @@ public class UpdateFoodPlanEntryHandlerTests
     private readonly IRepository<FoodPlanEntry> _entryRepo = Substitute.For<IRepository<FoodPlanEntry>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateFoodPlanEntryHandlerTests()
     {
@@ -106,7 +109,7 @@ public class UpdateFoodPlanEntryHandlerTests
     public async Task Handle_WhenEntryNotFound_ReturnsNotFound()
     {
         _entryRepo.Query().Returns(new List<FoodPlanEntry>().AsAsyncQueryable());
-        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
 
         var result = await handler.Handle(new UpdateFoodPlanEntryCommand(99, "Pasta", null, date), TestContext.Current.CancellationToken);
@@ -121,7 +124,7 @@ public class UpdateFoodPlanEntryHandlerTests
         var entry = new FoodPlanEntry { Id = 1, Name = "Old", DayOfWeek = 0, Date = date };
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
         _recipeRepo.GetById(99).Returns((Recipe?)null);
-        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "Pasta", 99, date), TestContext.Current.CancellationToken);
 
@@ -137,7 +140,7 @@ public class UpdateFoodPlanEntryHandlerTests
         var newDate = new DateTime(2026, 3, 12, 0, 0, 0, DateTimeKind.Utc); // Thursday
         var entry = new FoodPlanEntry { Id = 1, Name = "Old", DayOfWeek = 0, Date = oldDate };
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
-        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "New Meal", null, newDate), TestContext.Current.CancellationToken);
 
@@ -155,7 +158,7 @@ public class UpdateFoodPlanEntryHandlerTests
         var date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc);
         var entry = new FoodPlanEntry { Id = 1, Name = "Deleted", DayOfWeek = 0, Date = date, DeletedOn = DateTime.UtcNow };
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
-        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _unitOfWork, _timeProvider);
+        var handler = new UpdateFoodPlanEntryHandler(_recipeRepo, _entryRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateFoodPlanEntryCommand(1, "New", null, date), TestContext.Current.CancellationToken);
 
@@ -168,6 +171,7 @@ public class DeleteFoodPlanEntryHandlerTests
     private readonly IRepository<FoodPlanEntry> _entryRepo = Substitute.For<IRepository<FoodPlanEntry>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public DeleteFoodPlanEntryHandlerTests()
     {
@@ -178,7 +182,7 @@ public class DeleteFoodPlanEntryHandlerTests
     public async Task Handle_WhenEntryNotFound_ReturnsNotFound()
     {
         _entryRepo.Query().Returns(new List<FoodPlanEntry>().AsAsyncQueryable());
-        var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _unitOfWork, _timeProvider);
+        var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteFoodPlanEntryCommand(99), TestContext.Current.CancellationToken);
 
@@ -193,7 +197,7 @@ public class DeleteFoodPlanEntryHandlerTests
         var date = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
         var entry = new FoodPlanEntry { Id = 1, Name = "Pasta", DayOfWeek = 0, Date = date };
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
-        var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _unitOfWork, _timeProvider);
+        var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteFoodPlanEntryCommand(1), TestContext.Current.CancellationToken);
 
@@ -208,7 +212,7 @@ public class DeleteFoodPlanEntryHandlerTests
         var date = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
         var entry = new FoodPlanEntry { Id = 1, Name = "Pasta", DayOfWeek = 0, Date = date, DeletedOn = DateTime.UtcNow };
         _entryRepo.Query().Returns(new List<FoodPlanEntry> { entry }.AsAsyncQueryable());
-        var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _unitOfWork, _timeProvider);
+        var handler = new DeleteFoodPlanEntryHandler(_entryRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new DeleteFoodPlanEntryCommand(1), TestContext.Current.CancellationToken);
 
@@ -219,6 +223,7 @@ public class DeleteFoodPlanEntryHandlerTests
 public class GetFoodPlanEntriesByDateRangeHandlerTests
 {
     private readonly IRepository<FoodPlanEntry> _repo = Substitute.For<IRepository<FoodPlanEntry>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_ReturnsEntriesWithinDateRange()
@@ -234,7 +239,7 @@ public class GetFoodPlanEntriesByDateRangeHandlerTests
             new() { Id = 4, Name = "Deleted", DayOfWeek = 1, Date = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc), DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo)
+        var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo, _householdContext)
             .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, result.Count);
@@ -253,7 +258,7 @@ public class GetFoodPlanEntriesByDateRangeHandlerTests
             new() { Id = 1, Name = "March Entry", DayOfWeek = 0, Date = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc) }
         }.AsAsyncQueryable());
 
-        var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo)
+        var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo, _householdContext)
             .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
@@ -272,7 +277,7 @@ public class GetFoodPlanEntriesByDateRangeHandlerTests
             new() { Id = 3, Name = "Wednesday", DayOfWeek = 2, Date = new DateTime(2026, 3, 11, 0, 0, 0, DateTimeKind.Utc) }
         }.AsAsyncQueryable());
 
-        var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo)
+        var result = await new GetFoodPlanEntriesByDateRangeHandler(_repo, _householdContext)
             .Handle(new GetFoodPlanEntriesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Equal("Monday", result[0].Name);
@@ -284,6 +289,7 @@ public class GetFoodPlanEntriesByDateRangeHandlerTests
 public class GetFoodPlanSettingsHandlerTests
 {
     private readonly IRepository<FoodPlanSettings> _repo = Substitute.For<IRepository<FoodPlanSettings>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenSettingsExist_ReturnsSettings()
@@ -291,7 +297,7 @@ public class GetFoodPlanSettingsHandlerTests
         var settings = new FoodPlanSettings { Id = 1, ActiveDays = 63 };
         _repo.Query().Returns(new List<FoodPlanSettings> { settings }.AsAsyncQueryable());
 
-        var result = await new GetFoodPlanSettingsHandler(_repo).Handle(new GetFoodPlanSettingsQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetFoodPlanSettingsHandler(_repo, _householdContext).Handle(new GetFoodPlanSettingsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(63, result.ActiveDays);
         Assert.Equal(1, result.Id);
@@ -302,7 +308,7 @@ public class GetFoodPlanSettingsHandlerTests
     {
         _repo.Query().Returns(new List<FoodPlanSettings>().AsAsyncQueryable());
 
-        var result = await new GetFoodPlanSettingsHandler(_repo).Handle(new GetFoodPlanSettingsQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetFoodPlanSettingsHandler(_repo, _householdContext).Handle(new GetFoodPlanSettingsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(31, result.ActiveDays);
         Assert.Equal(0, result.Id);
@@ -314,6 +320,7 @@ public class UpdateFoodPlanSettingsHandlerTests
     private readonly IRepository<FoodPlanSettings> _repo = Substitute.For<IRepository<FoodPlanSettings>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpdateFoodPlanSettingsHandlerTests()
     {
@@ -324,7 +331,7 @@ public class UpdateFoodPlanSettingsHandlerTests
     public async Task Handle_WhenNoSettingsExist_CreatesNew()
     {
         _repo.Query().Returns(new List<FoodPlanSettings>().AsAsyncQueryable());
-        var handler = new UpdateFoodPlanSettingsHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new UpdateFoodPlanSettingsHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateFoodPlanSettingsCommand(63), TestContext.Current.CancellationToken);
 
@@ -340,7 +347,7 @@ public class UpdateFoodPlanSettingsHandlerTests
         _timeProvider.GetUtcNow().Returns(now);
         var existing = new FoodPlanSettings { Id = 1, ActiveDays = 31 };
         _repo.Query().Returns(new List<FoodPlanSettings> { existing }.AsAsyncQueryable());
-        var handler = new UpdateFoodPlanSettingsHandler(_repo, _unitOfWork, _timeProvider);
+        var handler = new UpdateFoodPlanSettingsHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpdateFoodPlanSettingsCommand(127), TestContext.Current.CancellationToken);
 
@@ -357,6 +364,7 @@ public class UpsertFoodPlanNoteHandlerTests
     private readonly IRepository<FoodPlanNote> _noteRepo = Substitute.For<IRepository<FoodPlanNote>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public UpsertFoodPlanNoteHandlerTests()
     {
@@ -368,7 +376,7 @@ public class UpsertFoodPlanNoteHandlerTests
     {
         var date = new DateOnly(2026, 3, 11);
         _noteRepo.Query().Returns(new List<FoodPlanNote>().AsAsyncQueryable());
-        var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _unitOfWork, _timeProvider);
+        var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpsertFoodPlanNoteCommand(date, "Some note"), TestContext.Current.CancellationToken);
 
@@ -385,7 +393,7 @@ public class UpsertFoodPlanNoteHandlerTests
         var date = new DateOnly(2026, 3, 11);
         var existing = new FoodPlanNote { Id = 1, Date = date, Note = "Old note", CreatedOn = DateTime.UtcNow };
         _noteRepo.Query().Returns(new List<FoodPlanNote> { existing }.AsAsyncQueryable());
-        var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _unitOfWork, _timeProvider);
+        var handler = new UpsertFoodPlanNoteHandler(_noteRepo, _householdContext, _unitOfWork, _timeProvider);
 
         var result = await handler.Handle(new UpsertFoodPlanNoteCommand(date, "Updated note"), TestContext.Current.CancellationToken);
 
@@ -401,12 +409,13 @@ public class DeleteFoodPlanNoteHandlerTests
 {
     private readonly IRepository<FoodPlanNote> _noteRepo = Substitute.For<IRepository<FoodPlanNote>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenNoteNotFound_ReturnsNotFound()
     {
         _noteRepo.Query().Returns(new List<FoodPlanNote>().AsAsyncQueryable());
-        var handler = new DeleteFoodPlanNoteHandler(_noteRepo, _unitOfWork);
+        var handler = new DeleteFoodPlanNoteHandler(_noteRepo, _householdContext, _unitOfWork);
 
         var result = await handler.Handle(new DeleteFoodPlanNoteCommand(99), TestContext.Current.CancellationToken);
 
@@ -419,7 +428,7 @@ public class DeleteFoodPlanNoteHandlerTests
         var date = new DateOnly(2026, 3, 11);
         var note = new FoodPlanNote { Id = 1, Date = date, Note = "A note", CreatedOn = DateTime.UtcNow };
         _noteRepo.Query().Returns(new List<FoodPlanNote> { note }.AsAsyncQueryable());
-        var handler = new DeleteFoodPlanNoteHandler(_noteRepo, _unitOfWork);
+        var handler = new DeleteFoodPlanNoteHandler(_noteRepo, _householdContext, _unitOfWork);
 
         var result = await handler.Handle(new DeleteFoodPlanNoteCommand(1), TestContext.Current.CancellationToken);
 
@@ -432,6 +441,7 @@ public class DeleteFoodPlanNoteHandlerTests
 public class GetFoodPlanNotesByDateRangeHandlerTests
 {
     private readonly IRepository<FoodPlanNote> _repo = Substitute.For<IRepository<FoodPlanNote>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_ReturnsNotesWithinDateRange()
@@ -446,7 +456,7 @@ public class GetFoodPlanNotesByDateRangeHandlerTests
             new() { Id = 3, Note = "Outside range", Date = new DateOnly(2026, 3, 16) }
         }.AsAsyncQueryable());
 
-        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
+        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo, _householdContext)
             .Handle(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, result.Count);
@@ -467,7 +477,7 @@ public class GetFoodPlanNotesByDateRangeHandlerTests
             new() { Id = 3, Note = "Wednesday note", Date = new DateOnly(2026, 3, 11) }
         }.AsAsyncQueryable());
 
-        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
+        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo, _householdContext)
             .Handle(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Equal("Monday note", result[0].Note);
@@ -486,7 +496,7 @@ public class GetFoodPlanNotesByDateRangeHandlerTests
             new() { Id = 1, Note = "March note", Date = new DateOnly(2026, 3, 9) }
         }.AsAsyncQueryable());
 
-        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo)
+        var result = await new GetFoodPlanNotesByDateRangeHandler(_repo, _householdContext)
             .Handle(new GetFoodPlanNotesByDateRangeQuery(startDate, endDate), TestContext.Current.CancellationToken);
 
         Assert.Empty(result);

@@ -34,13 +34,13 @@ public class GetBillByIdHandler(
 
         var locationsById = bill.LocationId.HasValue
             ? await locationRepository.Query()
-                .Where(l => l.DeletedOn == null && l.Id == bill.LocationId.Value)
+                .Where(l => l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId && l.Id == bill.LocationId.Value)
                 .ToDictionaryAsync(l => l.Id, ct)
             : [];
 
         var vendorsById = bill.VendorId.HasValue
             ? await vendorRepository.Query()
-                .Where(v => v.DeletedOn == null && v.Id == bill.VendorId.Value)
+                .Where(v => v.DeletedOn == null && v.HouseholdId == householdContext.HouseholdId && v.Id == bill.VendorId.Value)
                 .ToDictionaryAsync(v => v.Id, ct)
             : [];
 
