@@ -281,7 +281,7 @@ public class GetRecipeByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOkWithRecipe()
     {
         var entity = new Recipe { Id = 1, Name = "Pasta" };
-        _repo.GetById(1).Returns(entity);
+        _repo.Query().Returns(new List<Recipe> { entity }.AsAsyncQueryable());
 
         var result = await new GetRecipeByIdHandler(_repo, _householdContext).Handle(new GetRecipeByIdQuery(1), TestContext.Current.CancellationToken);
 
@@ -318,6 +318,7 @@ public class AddRecipeIngredientHandlerTests
     public async Task Handle_AddsIngredientAndReturnsCreated()
     {
         _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "Pasta" } }.AsAsyncQueryable());
+        _ingredientRepo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
         var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext);
 
         var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 2m, "cups", "dry"), TestContext.Current.CancellationToken);
@@ -368,7 +369,8 @@ public class UpdateRecipeIngredientHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new RecipeIngredient { Id = 1, RecipeId = 1, Name = "Old", Amount = 1m, Unit = "cup" };
-        _repo.GetById(1).Returns(entity);
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "X" } }.AsAsyncQueryable());
+        _repo.Query().Returns(new List<RecipeIngredient> { entity }.AsAsyncQueryable());
 
         var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new UpdateRecipeIngredientCommand(1, 1, "New", 2m, "tbsp", "wet"), TestContext.Current.CancellationToken);
@@ -410,7 +412,8 @@ public class DeleteRecipeIngredientHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new RecipeIngredient { Id = 1, RecipeId = 1, Name = "Flour" };
-        _repo.GetById(1).Returns(entity);
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "X" } }.AsAsyncQueryable());
+        _repo.Query().Returns(new List<RecipeIngredient> { entity }.AsAsyncQueryable());
 
         var result = await new DeleteRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeIngredientCommand(1, 1), TestContext.Current.CancellationToken);
@@ -491,7 +494,8 @@ public class UpdateRecipeStepHandlerTests
     public async Task Handle_UpdatesTextAndOrderAndReturnsNoContent()
     {
         var entity = new RecipeStep { Id = 1, RecipeId = 1, Text = "Old", Order = 1 };
-        _repo.GetById(1).Returns(entity);
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "X" } }.AsAsyncQueryable());
+        _repo.Query().Returns(new List<RecipeStep> { entity }.AsAsyncQueryable());
 
         var result = await new UpdateRecipeStepHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new UpdateRecipeStepCommand(1, 1, "New", 2), TestContext.Current.CancellationToken);
@@ -531,7 +535,8 @@ public class DeleteRecipeStepHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new RecipeStep { Id = 1, RecipeId = 1, Text = "Mix", Order = 1 };
-        _repo.GetById(1).Returns(entity);
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "X" } }.AsAsyncQueryable());
+        _repo.Query().Returns(new List<RecipeStep> { entity }.AsAsyncQueryable());
 
         var result = await new DeleteRecipeStepHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeStepCommand(1, 1), TestContext.Current.CancellationToken);
@@ -604,7 +609,8 @@ public class DeleteRecipeTagHandlerTests
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
         var entity = new RecipeTag { Id = 1, RecipeId = 1, Name = "Italian" };
-        _repo.GetById(1).Returns(entity);
+        _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "X" } }.AsAsyncQueryable());
+        _repo.Query().Returns(new List<RecipeTag> { entity }.AsAsyncQueryable());
 
         var result = await new DeleteRecipeTagHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
             .Handle(new DeleteRecipeTagCommand(1, 1), TestContext.Current.CancellationToken);
@@ -776,7 +782,7 @@ public class ReimportRecipeHandlerTests
     public async Task Handle_ImportName_UpdatesRecipeName()
     {
         var recipe = new Recipe { Id = 1, Name = "Old Name", Link = "https://example.com/recipe" };
-        _recipeRepo.GetById(1).Returns(recipe);
+        _recipeRepo.Query().Returns(new List<Recipe> { recipe }.AsAsyncQueryable());
         _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new ParsedRecipeResponse("New Name", null, [], [], null));
 
@@ -864,7 +870,7 @@ public class ReimportRecipeHandlerTests
     public async Task Handle_ImportName_WhenParsedNameIsEmpty_DoesNotUpdateName()
     {
         var recipe = new Recipe { Id = 1, Name = "Original", Link = "https://example.com/recipe" };
-        _recipeRepo.GetById(1).Returns(recipe);
+        _recipeRepo.Query().Returns(new List<Recipe> { recipe }.AsAsyncQueryable());
         _parserService.ParseFromUrl(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new ParsedRecipeResponse(string.Empty, null, [], [], null));
 
