@@ -1,11 +1,14 @@
 import { test, expect } from "@playwright/test";
 import { FoodPlanPage } from "./pages/FoodPlanPage";
+import { getEnv } from "./env";
 
 /**
  * Food plan full flow:
  * add meal entry → verify it appears → delete it
  * navigate between weeks → visit settings
  */
+
+const env = getEnv();
 
 test("add and remove a meal entry from the food plan", async ({ page }) => {
   const mealName = `E2E Meal ${Date.now()}`;
@@ -46,6 +49,33 @@ test("can navigate between weeks on the food plan", async ({ page }) => {
   const foodPlan = new FoodPlanPage(page);
   await foodPlan.goto();
 
+  // Ensure all 7 days are active so today's row is always visible regardless of
+  // the day of the week.  The default setting (Mon–Fri only) hides weekend rows,
+  // which makes this assertion flaky when the test runs on a Saturday or Sunday.
+  const accessToken = await page.evaluate(() =>
+    localStorage.getItem("accessToken")
+  );
+  const householdId = await page.evaluate(() =>
+    localStorage.getItem("householdId")
+  );
+  await page.evaluate(
+    async ([apiUrl, token, hid]) => {
+      await fetch(`${apiUrl}/api/food-plan/settings`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-Household-Id": hid ?? "",
+        },
+        body: JSON.stringify({ activeDays: 127 }),
+      });
+    },
+    [env.apiUrl, accessToken, householdId] as [string, string | null, string | null]
+  );
+
+  // Reload to pick up the updated settings
+  await foodPlan.goto();
+
   // Today's day row should be visible (marked with data-today="true" by the page component)
   const todayRow = foodPlan.todayRow();
   await expect(todayRow).toBeVisible();
@@ -59,6 +89,7 @@ test("can navigate between weeks on the food plan", async ({ page }) => {
   // Today's row should still be visible
   await expect(todayRow).toBeVisible();
 });
+
 
 test("food plan settings page loads and shows day toggles", async ({
   page,

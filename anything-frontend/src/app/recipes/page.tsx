@@ -119,10 +119,6 @@ export default function RecipesPage() {
   const { data: recipes, isLoading, error } = useRecipes(debouncedSearch || undefined, activeTag ?? undefined);
   const { data: topTags } = useTopRecipeTags(10);
   const router = useRouter();
-  const routerRef = useRef(router);
-  useEffect(() => {
-    routerRef.current = router;
-  });
   const { setHeaderActions } = useHeaderActions();
 
   // Debounce the search query so we don't fire a request on every keystroke
@@ -151,7 +147,7 @@ export default function RecipesPage() {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => routerRef.current.push("/recipes/new")}
+        onClick={() => router.push("/recipes/new")}
         aria-label="Create recipe"
       >
         <Plus className="h-5 w-5" />
@@ -160,7 +156,7 @@ export default function RecipesPage() {
     );
 
     return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  }, [setHeaderActions, router]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
