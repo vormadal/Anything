@@ -3,6 +3,7 @@ using Anything.Core.Repositories;
 using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Bills.Commands;
 
@@ -18,6 +19,7 @@ public class UploadBillAttachmentHandler(
     IRepository<Bill> billRepository,
     IRepository<BillAttachment> attachmentRepository,
     IImageStorageService imageStorageService,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<UploadBillAttachmentCommand, IResult>
 {
@@ -26,8 +28,10 @@ public class UploadBillAttachmentHandler(
 
     public async Task<IResult> Handle(UploadBillAttachmentCommand command, CancellationToken ct = default)
     {
-        var bill = await billRepository.GetById(command.BillId);
-        if (bill is null || bill.DeletedOn != null)
+        var bill = await billRepository.Query()
+            .Where(b => b.Id == command.BillId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (bill is null)
             return Results.NotFound(BillNotFound);
 
         if (command.ContentLength == 0)

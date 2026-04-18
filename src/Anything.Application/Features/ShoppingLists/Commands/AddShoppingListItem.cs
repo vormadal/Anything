@@ -1,6 +1,7 @@
 using Anything.Application.Realtime;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -13,15 +14,20 @@ public class AddShoppingListItemHandler(
     IRepository<ShoppingList> listRepository,
     IRepository<ShoppingListItem> itemRepository,
     IRepository<ShoppingListRecommendation> recommendationRepository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     IRealtimeNotifier realtimeNotifier) : IRequestHandler<AddShoppingListItemCommand, IResult>
 {
+    private const string ShoppingListNotFound = "Shopping list not found.";
+
     public async Task<IResult> Handle(AddShoppingListItemCommand command, CancellationToken ct = default)
     {
-        var list = await listRepository.GetById(command.ShoppingListId);
-        if (list is null || list.DeletedOn != null)
-            return Results.NotFound("Shopping list not found.");
+        var list = await listRepository.Query()
+            .Where(l => l.Id == command.ShoppingListId && l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (list is null)
+            return Results.NotFound(ShoppingListNotFound);
 
         var item = new ShoppingListItem
         {
@@ -41,6 +47,7 @@ public class AddShoppingListItemHandler(
         {
             recommendationRepository.Add(new ShoppingListRecommendation
             {
+                HouseholdId = householdContext.HouseholdId,
                 Name = nameNormalized,
                 IsApproved = true,
                 CreatedOn = timeProvider.GetUtcNow().UtcDateTime

@@ -1,6 +1,7 @@
 using Anything.Contracts.Bills;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +12,16 @@ public record GetBillPriceHistoryQuery(int BillId) : IRequest<IResult>;
 
 public class GetBillPriceHistoryHandler(
     IRepository<Bill> billRepository,
-    IRepository<BillPriceHistory> priceHistoryRepository)
+    IRepository<BillPriceHistory> priceHistoryRepository,
+    IHouseholdContext householdContext)
     : IRequestHandler<GetBillPriceHistoryQuery, IResult>
 {
     public async Task<IResult> Handle(GetBillPriceHistoryQuery query, CancellationToken ct = default)
     {
-        var bill = await billRepository.GetById(query.BillId);
-        if (bill is null || bill.DeletedOn != null)
+        var bill = await billRepository.Query()
+            .Where(b => b.Id == query.BillId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (bill is null)
             return Results.NotFound();
 
         var entries = await priceHistoryRepository.Query()

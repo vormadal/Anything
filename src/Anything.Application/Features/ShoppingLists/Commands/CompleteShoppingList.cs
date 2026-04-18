@@ -1,6 +1,7 @@
 using Anything.Application.Realtime;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -12,14 +13,17 @@ public record CompleteShoppingListCommand(int Id, bool MarkUnchecked = false) : 
 public class CompleteShoppingListHandler(
     IRepository<ShoppingList> listRepository,
     IRepository<ShoppingListItem> itemRepository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     IRealtimeNotifier realtimeNotifier) : IRequestHandler<CompleteShoppingListCommand, IResult>
 {
     public async Task<IResult> Handle(CompleteShoppingListCommand command, CancellationToken ct = default)
     {
-        var list = await listRepository.GetById(command.Id);
-        if (list is null || list.DeletedOn != null)
+        var list = await listRepository.Query()
+            .Where(l => l.Id == command.Id && l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (list is null)
             return Results.NotFound();
 
         var now = timeProvider.GetUtcNow().UtcDateTime;

@@ -1,5 +1,6 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,12 +11,13 @@ public record GetRecipesQuery(string? Search = null, string? Tag = null) : IRequ
 public class GetRecipesHandler(
     IRepository<Recipe> repository,
     IRepository<RecipeTag> tagRepository,
-    IRepository<RecipeIngredient> ingredientRepository)
+    IRepository<RecipeIngredient> ingredientRepository,
+    IHouseholdContext householdContext)
     : IRequestHandler<GetRecipesQuery, List<Recipe>>
 {
     public async Task<List<Recipe>> Handle(GetRecipesQuery query, CancellationToken ct = default)
     {
-        var baseQuery = repository.Query().Where(r => r.DeletedOn == null);
+        var baseQuery = repository.Query().Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId);
 
         if (!string.IsNullOrWhiteSpace(query.Tag))
         {

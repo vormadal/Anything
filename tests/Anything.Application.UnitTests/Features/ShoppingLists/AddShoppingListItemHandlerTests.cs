@@ -3,6 +3,7 @@ using Anything.Application.Realtime;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -17,9 +18,10 @@ public class AddShoppingListItemHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private AddShoppingListItemHandler CreateHandler() =>
-        new(_listRepo, _itemRepo, _recommendationRepo, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_listRepo, _itemRepo, _recommendationRepo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier);
 
     public AddShoppingListItemHandlerTests()
     {
@@ -29,7 +31,7 @@ public class AddShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_WhenListNotFound_ReturnsNotFound()
     {
-        _listRepo.GetById(1).Returns((ShoppingList?)null);
+        _listRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null), TestContext.Current.CancellationToken);
@@ -40,7 +42,10 @@ public class AddShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_WhenListDeleted_ReturnsNotFound()
     {
-        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
+        _listRepo.Query().Returns(new List<ShoppingList>
+        {
+            new() { Id = 1, Name = "List", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+        }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddShoppingListItemCommand(1, "Milk", null, null), TestContext.Current.CancellationToken);
@@ -51,7 +56,7 @@ public class AddShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_AddsItemAndCreatesRecommendation()
     {
-        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var handler = CreateHandler();
@@ -72,7 +77,7 @@ public class AddShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_DoesNotCreateDuplicateRecommendation_CaseInsensitive()
     {
-        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
         _recommendationRepo.Query().Returns(
             new List<ShoppingListRecommendation>
             {
@@ -88,7 +93,7 @@ public class AddShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_TrimsNameForRecommendation()
     {
-        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var handler = CreateHandler();
@@ -101,7 +106,7 @@ public class AddShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_DoesNotCreateRecommendationWhenSoftDeletedOneExists()
     {
-        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
         _recommendationRepo.Query().Returns(
             new List<ShoppingListRecommendation>
             {
@@ -117,7 +122,7 @@ public class AddShoppingListItemHandlerTests
     [Fact]
     public async Task Handle_AutoApprovesNewRecommendation()
     {
-        _listRepo.GetById(1).Returns(new ShoppingList { Id = 1, Name = "My List" });
+        _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var handler = CreateHandler();

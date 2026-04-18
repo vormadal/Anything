@@ -2,6 +2,7 @@ using Anything.Application.Features.Inventory.Commands;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -14,9 +15,10 @@ public class DeleteInventoryBoxHandlerTests
     private readonly IRepository<InventoryItem> _itemRepo = Substitute.For<IRepository<InventoryItem>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private DeleteInventoryBoxHandler CreateHandler() =>
-        new(_boxRepo, _itemRepo, _unitOfWork, _timeProvider);
+        new(_boxRepo, _itemRepo, _householdContext, _unitOfWork, _timeProvider);
 
     public DeleteInventoryBoxHandlerTests()
     {
@@ -26,7 +28,7 @@ public class DeleteInventoryBoxHandlerTests
     [Fact]
     public async Task Handle_WhenBoxNotFound_ReturnsNotFound()
     {
-        _boxRepo.GetById(1).Returns((InventoryBox?)null);
+        _boxRepo.Query().Returns(new List<InventoryBox>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteInventoryBoxCommand(1), TestContext.Current.CancellationToken);
@@ -37,10 +39,10 @@ public class DeleteInventoryBoxHandlerTests
     [Fact]
     public async Task Handle_WhenBoxAlreadyDeleted_ReturnsNotFound()
     {
-        _boxRepo.GetById(1).Returns(new InventoryBox
+        _boxRepo.Query().Returns(new List<InventoryBox>
         {
-            Id = 1, Number = 1, DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
+            new InventoryBox { Id = 1, Number = 1, DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+        }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new DeleteInventoryBoxCommand(1), TestContext.Current.CancellationToken);
@@ -52,7 +54,7 @@ public class DeleteInventoryBoxHandlerTests
     public async Task Handle_SoftDeletesBoxAndNullifiesItemBoxIds()
     {
         var box = new InventoryBox { Id = 1, Number = 1 };
-        _boxRepo.GetById(1).Returns(box);
+        _boxRepo.Query().Returns(new List<InventoryBox> { box }.AsAsyncQueryable());
 
         var items = new List<InventoryItem>
         {
@@ -79,7 +81,7 @@ public class DeleteInventoryBoxHandlerTests
     public async Task Handle_WithNoItemsInBox_StillSoftDeletesBox()
     {
         var box = new InventoryBox { Id = 1, Number = 1 };
-        _boxRepo.GetById(1).Returns(box);
+        _boxRepo.Query().Returns(new List<InventoryBox> { box }.AsAsyncQueryable());
         _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
 
         var handler = CreateHandler();
@@ -93,7 +95,7 @@ public class DeleteInventoryBoxHandlerTests
     public async Task Handle_DoesNotAffectDeletedItemsInBox()
     {
         var box = new InventoryBox { Id = 1, Number = 1 };
-        _boxRepo.GetById(1).Returns(box);
+        _boxRepo.Query().Returns(new List<InventoryBox> { box }.AsAsyncQueryable());
 
         // The query filters DeletedOn == null, so deleted items won't appear
         _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());

@@ -1,6 +1,8 @@
 using Anything.Application.Features.Inventory.Commands;
+using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
@@ -15,9 +17,10 @@ public class CreateInventoryItemHandlerTests
     private readonly IRepository<InventoryStorageUnit> _storageUnitRepo = Substitute.For<IRepository<InventoryStorageUnit>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private CreateInventoryItemHandler CreateHandler() =>
-        new(_itemRepo, _boxRepo, _storageUnitRepo, _unitOfWork, _timeProvider);
+        new(_itemRepo, _boxRepo, _storageUnitRepo, _householdContext, _unitOfWork, _timeProvider);
 
     public CreateInventoryItemHandlerTests()
     {
@@ -39,7 +42,7 @@ public class CreateInventoryItemHandlerTests
     [Fact]
     public async Task Handle_WithValidBox_CreatesItem()
     {
-        _boxRepo.GetById(1).Returns(new InventoryBox { Id = 1, Number = 1 });
+        _boxRepo.Query().Returns(new List<InventoryBox> { new InventoryBox { Id = 1, Number = 1 } }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, null), TestContext.Current.CancellationToken);
@@ -52,7 +55,7 @@ public class CreateInventoryItemHandlerTests
     [Fact]
     public async Task Handle_WithNonExistentBox_ReturnsBadRequest()
     {
-        _boxRepo.GetById(99).Returns((InventoryBox?)null);
+        _boxRepo.Query().Returns(new List<InventoryBox>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 99, null), TestContext.Current.CancellationToken);
@@ -63,7 +66,7 @@ public class CreateInventoryItemHandlerTests
     [Fact]
     public async Task Handle_WithDeletedBox_ReturnsBadRequest()
     {
-        _boxRepo.GetById(1).Returns(new InventoryBox { Id = 1, Number = 1, DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
+        _boxRepo.Query().Returns(new List<InventoryBox> { new InventoryBox { Id = 1, Number = 1, DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) } }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, null), TestContext.Current.CancellationToken);
@@ -74,7 +77,7 @@ public class CreateInventoryItemHandlerTests
     [Fact]
     public async Task Handle_WithNonExistentStorageUnit_ReturnsBadRequest()
     {
-        _storageUnitRepo.GetById(99).Returns((InventoryStorageUnit?)null);
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, null, 99), TestContext.Current.CancellationToken);
@@ -85,7 +88,7 @@ public class CreateInventoryItemHandlerTests
     [Fact]
     public async Task Handle_WithDeletedStorageUnit_ReturnsBadRequest()
     {
-        _storageUnitRepo.GetById(1).Returns(new InventoryStorageUnit { Id = 1, Name = "Unit", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit> { new InventoryStorageUnit { Id = 1, Name = "Unit", DeletedOn = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) } }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, null, 1), TestContext.Current.CancellationToken);
@@ -97,13 +100,13 @@ public class CreateInventoryItemHandlerTests
     public async Task Handle_ValidatesBoxBeforeStorageUnit()
     {
         // If box is invalid, should return bad request before checking storage unit
-        _boxRepo.GetById(99).Returns((InventoryBox?)null);
+        _boxRepo.Query().Returns(new List<InventoryBox>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 99, 88), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
         // Storage unit should not have been checked
-        await _storageUnitRepo.DidNotReceive().GetById(88);
+        _storageUnitRepo.DidNotReceive().Query();
     }
 }

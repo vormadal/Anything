@@ -3,6 +3,7 @@ namespace Anything.Core.Entities;
 public class ShoppingListRecommendation
 {
     public int Id { get; set; }
+    public int HouseholdId { get; set; }
     public required string Name { get; set; }
     public string? PreferredUnit { get; set; }
     public bool IsApproved { get; set; }

@@ -1,7 +1,9 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Recipes.Commands;
 
@@ -11,21 +13,23 @@ public class AddRecipeIngredientHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<RecipeIngredient> ingredientRepository,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider) : IRequestHandler<AddRecipeIngredientCommand, IResult>
+    TimeProvider timeProvider,
+    IHouseholdContext householdContext) : IRequestHandler<AddRecipeIngredientCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
 
     public async Task<IResult> Handle(AddRecipeIngredientCommand command, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.GetById(command.RecipeId);
-        if (recipe is null || recipe.DeletedOn != null)
+        var recipe = await recipeRepository.Query()
+            .Where(r => r.Id == command.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
-        var existing = await ingredientRepository.GetAll();
-        var maxSortOrder = (existing ?? [])
+        var maxSortOrder = await ingredientRepository.Query()
             .Where(i => i.RecipeId == command.RecipeId && i.DeletedOn == null)
             .Select(i => (int?)i.SortOrder)
-            .Max() ?? -1;
+            .MaxAsync(ct) ?? -1;
 
         var ingredient = new RecipeIngredient
         {

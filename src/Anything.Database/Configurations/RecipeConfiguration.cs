@@ -10,6 +10,10 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
+        builder.HasOne<Household>()
+            .WithMany()
+            .HasForeignKey(e => e.HouseholdId)
+            .OnDelete(DeleteBehavior.Cascade);
         builder.Property(e => e.Link).HasMaxLength(500);
         builder.Property(e => e.Notes).HasMaxLength(5000);
         builder.Property(e => e.ServingsType)

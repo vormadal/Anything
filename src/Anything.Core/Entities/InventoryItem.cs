@@ -3,6 +3,7 @@ namespace Anything.Core.Entities;
 public class InventoryItem
 {
     public int Id { get; set; }
+    public int HouseholdId { get; set; }
     public required string Name { get; set; }
     public string? Description { get; set; }
     public int? BoxId { get; set; }

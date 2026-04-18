@@ -15,6 +15,11 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
         builder.Property(e => e.Category).HasMaxLength(100);
         builder.Property(e => e.Notes).HasMaxLength(1000);
 
+        builder.HasOne<Household>()
+            .WithMany()
+            .HasForeignKey(e => e.HouseholdId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasOne<Vendor>()
             .WithMany()
             .HasForeignKey(e => e.VendorId)

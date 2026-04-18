@@ -1,7 +1,9 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Inventory.Commands;
 
@@ -10,6 +12,7 @@ public record CreateInventoryBoxCommand(int Number, int? StorageUnitId) : IReque
 public class CreateInventoryBoxHandler(
     IRepository<InventoryBox> boxRepository,
     IRepository<InventoryStorageUnit> storageUnitRepository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<CreateInventoryBoxCommand, IResult>
 {
@@ -17,13 +20,16 @@ public class CreateInventoryBoxHandler(
     {
         if (command.StorageUnitId.HasValue)
         {
-            var storageUnit = await storageUnitRepository.GetById(command.StorageUnitId.Value);
-            if (storageUnit is null || storageUnit.DeletedOn != null)
+            var storageUnit = await storageUnitRepository.Query()
+                .Where(s => s.Id == command.StorageUnitId.Value && s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
+                .FirstOrDefaultAsync(ct);
+            if (storageUnit is null)
                 return Results.BadRequest("Invalid storage unit ID.");
         }
 
         var box = new InventoryBox
         {
+            HouseholdId = householdContext.HouseholdId,
             Number = command.Number,
             StorageUnitId = command.StorageUnitId,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime

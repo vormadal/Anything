@@ -1,7 +1,9 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Bills.Commands;
 
@@ -14,15 +16,20 @@ public record AddBillPriceCommand(
 public class AddBillPriceHandler(
     IRepository<Bill> billRepository,
     IRepository<BillPriceHistory> priceHistoryRepository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
     : IRequestHandler<AddBillPriceCommand, IResult>
 {
+    private const string BillNotFound = "Bill not found.";
+
     public async Task<IResult> Handle(AddBillPriceCommand command, CancellationToken ct = default)
     {
-        var bill = await billRepository.GetById(command.BillId);
-        if (bill is null || bill.DeletedOn != null)
-            return Results.NotFound("Bill not found.");
+        var bill = await billRepository.Query()
+            .Where(b => b.Id == command.BillId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (bill is null)
+            return Results.NotFound(BillNotFound);
 
         var entry = new BillPriceHistory
         {
