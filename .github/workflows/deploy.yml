@@ -53,6 +53,10 @@ jobs:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          # In the deployed environment the API is served at the same origin as the
+          # frontend (nginx proxies /api/ to the backend), so the API URL equals the
+          # frontend base URL.
+          E2E_API_URL: ${{ secrets.E2E_BASE_URL }}
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
