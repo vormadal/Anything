@@ -1,7 +1,9 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.FoodPlans.Commands;
 
@@ -10,6 +12,7 @@ public record AddFoodPlanEntryCommand(string Name, int? RecipeId, DateTime Date)
 public class AddFoodPlanEntryHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<FoodPlanEntry> entryRepository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<AddFoodPlanEntryCommand, IResult>
 {
@@ -20,13 +23,20 @@ public class AddFoodPlanEntryHandler(
         int? recipeId = command.RecipeId;
         if (recipeId.HasValue)
         {
-            var recipe = await recipeRepository.GetById(recipeId.Value);
-            if (recipe is null || recipe.DeletedOn != null)
+            var recipe = await recipeRepository.Query()
+                .Where(r => r.Id == recipeId.Value && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+                .FirstOrDefaultAsync(ct);
+            if (recipe is null)
                 return Results.NotFound(RecipeNotFound);
         }
         else
         {
-            var newRecipe = new Recipe { Name = command.Name, CreatedOn = timeProvider.GetUtcNow().UtcDateTime };
+            var newRecipe = new Recipe
+            {
+                HouseholdId = householdContext.HouseholdId,
+                Name = command.Name,
+                CreatedOn = timeProvider.GetUtcNow().UtcDateTime
+            };
             recipeRepository.Add(newRecipe);
             await unitOfWork.SaveChanges(ct);
             recipeId = newRecipe.Id;
@@ -34,6 +44,7 @@ public class AddFoodPlanEntryHandler(
 
         var entry = new FoodPlanEntry
         {
+            HouseholdId = householdContext.HouseholdId,
             Name = command.Name,
             RecipeId = recipeId,
             Date = command.Date,

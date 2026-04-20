@@ -1,5 +1,6 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -10,16 +11,19 @@ public record UpdateFoodPlanSettingsCommand(int ActiveDays) : IRequest<IResult>;
 
 public class UpdateFoodPlanSettingsHandler(
     IRepository<FoodPlanSettings> repository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<UpdateFoodPlanSettingsCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateFoodPlanSettingsCommand command, CancellationToken ct = default)
     {
-        var settings = await repository.Query().FirstOrDefaultAsync(ct);
+        var settings = await repository.Query()
+            .FirstOrDefaultAsync(s => s.HouseholdId == householdContext.HouseholdId, ct);
         if (settings is null)
         {
             settings = new FoodPlanSettings
             {
+                HouseholdId = householdContext.HouseholdId,
                 ActiveDays = command.ActiveDays,
                 CreatedOn = timeProvider.GetUtcNow().UtcDateTime
             };

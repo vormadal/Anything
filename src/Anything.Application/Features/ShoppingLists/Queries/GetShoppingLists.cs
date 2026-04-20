@@ -1,6 +1,7 @@
 using Anything.Contracts.ShoppingLists;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,13 +9,13 @@ namespace Anything.Application.Features.ShoppingLists.Queries;
 
 public record GetShoppingListsQuery : IRequest<List<ShoppingListResponse>>;
 
-public class GetShoppingListsHandler(IRepository<ShoppingList> listRepository, IRepository<ShoppingListItem> itemRepository)
+public class GetShoppingListsHandler(IRepository<ShoppingList> listRepository, IRepository<ShoppingListItem> itemRepository, IHouseholdContext householdContext)
     : IRequestHandler<GetShoppingListsQuery, List<ShoppingListResponse>>
 {
     public async Task<List<ShoppingListResponse>> Handle(GetShoppingListsQuery query, CancellationToken ct = default)
     {
         return await listRepository.Query()
-            .Where(l => l.DeletedOn == null)
+            .Where(l => l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.CreatedOn)
             .GroupJoin(

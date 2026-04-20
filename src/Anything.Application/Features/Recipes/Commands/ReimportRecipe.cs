@@ -24,7 +24,8 @@ public class ReimportRecipeHandler(
     IRecipeParserService parserService,
     IRecipeImageService recipeImageService,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider) : IRequestHandler<ReimportRecipeCommand, IResult>
+    TimeProvider timeProvider,
+    IHouseholdContext householdContext) : IRequestHandler<ReimportRecipeCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
     private const string RecipeHasNoLink = "Recipe does not have a URL to reimport from.";
@@ -32,8 +33,10 @@ public class ReimportRecipeHandler(
 
     public async Task<IResult> Handle(ReimportRecipeCommand command, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.GetById(command.RecipeId);
-        if (recipe is null || recipe.DeletedOn != null)
+        var recipe = await recipeRepository.Query()
+            .Where(r => r.Id == command.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
         if (string.IsNullOrWhiteSpace(recipe.Link))

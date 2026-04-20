@@ -13,14 +13,17 @@ public record GetRecipeImagesQuery(int RecipeId) : IRequest<IResult>;
 public class GetRecipeImagesHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<RecipeImage> imageRepository,
-    IImageStorageService imageStorageService) : IRequestHandler<GetRecipeImagesQuery, IResult>
+    IImageStorageService imageStorageService,
+    IHouseholdContext householdContext) : IRequestHandler<GetRecipeImagesQuery, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
 
     public async Task<IResult> Handle(GetRecipeImagesQuery query, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.GetById(query.RecipeId);
-        if (recipe is null || recipe.DeletedOn != null)
+        var recipe = await recipeRepository.Query()
+            .Where(r => r.Id == query.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
         var images = await imageRepository.Query()

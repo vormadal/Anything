@@ -10,6 +10,10 @@ public class InventoryBoxConfiguration : IEntityTypeConfiguration<InventoryBox>
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Number).IsRequired();
+        builder.HasOne<Household>()
+            .WithMany()
+            .HasForeignKey(e => e.HouseholdId)
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<InventoryStorageUnit>()
             .WithMany()
             .HasForeignKey(e => e.StorageUnitId)

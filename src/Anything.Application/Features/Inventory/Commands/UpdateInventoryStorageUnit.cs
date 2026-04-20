@@ -1,19 +1,23 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Inventory.Commands;
 
 public record UpdateInventoryStorageUnitCommand(int Id, string Name, string? Type) : IRequest<IResult>;
 
-public class UpdateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit> repository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
+public class UpdateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateInventoryStorageUnitCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateInventoryStorageUnitCommand command, CancellationToken ct = default)
     {
-        var storageUnit = await repository.GetById(command.Id);
-        if (storageUnit is null || storageUnit.DeletedOn != null)
+        var storageUnit = await repository.Query()
+            .Where(s => s.Id == command.Id && s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (storageUnit is null)
             return Results.NotFound();
 
         storageUnit.Name = command.Name;

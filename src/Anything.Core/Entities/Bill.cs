@@ -3,6 +3,7 @@ namespace Anything.Core.Entities;
 public class Bill
 {
     public int Id { get; set; }
+    public int HouseholdId { get; set; }
     public required string Name { get; set; }
     public int? VendorId { get; set; }
     public PaymentFrequency Frequency { get; set; }

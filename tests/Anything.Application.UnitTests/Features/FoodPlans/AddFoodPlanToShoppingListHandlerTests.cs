@@ -2,6 +2,7 @@ using Anything.Application.Features.FoodPlans.Commands;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -17,12 +18,13 @@ public class AddFoodPlanToShoppingListHandlerTests
     private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     private readonly DateTime _startDate = new(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc);
     private readonly DateTime _endDate = new(2026, 3, 15, 0, 0, 0, DateTimeKind.Utc);
 
     private AddFoodPlanToShoppingListHandler CreateHandler() =>
-        new(_entryRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _unitOfWork, _timeProvider);
+        new(_entryRepo, _ingredientRepo, _shoppingListRepo, _itemRepo, _recommendationRepo, _householdContext, _unitOfWork, _timeProvider);
 
     public AddFoodPlanToShoppingListHandlerTests()
     {
@@ -31,7 +33,7 @@ public class AddFoodPlanToShoppingListHandlerTests
 
     private void SetupValidList(int listId = 10)
     {
-        _shoppingListRepo.GetById(listId).Returns(new ShoppingList { Id = listId, Name = "My List" });
+        _shoppingListRepo.Query().Returns(new List<ShoppingList> { new ShoppingList { Id = listId, Name = "My List" } }.AsAsyncQueryable());
         _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
     }
@@ -39,7 +41,7 @@ public class AddFoodPlanToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenShoppingListNotFound_ReturnsNotFound()
     {
-        _shoppingListRepo.GetById(10).Returns((ShoppingList?)null);
+        _shoppingListRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
@@ -50,7 +52,7 @@ public class AddFoodPlanToShoppingListHandlerTests
     [Fact]
     public async Task Handle_WhenShoppingListDeleted_ReturnsNotFound()
     {
-        _shoppingListRepo.GetById(10).Returns(new ShoppingList { Id = 10, Name = "Deleted", DeletedOn = DateTime.UtcNow });
+        _shoppingListRepo.Query().Returns(new List<ShoppingList> { new ShoppingList { Id = 10, Name = "Deleted", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
 
         var handler = CreateHandler();
         var result = await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);

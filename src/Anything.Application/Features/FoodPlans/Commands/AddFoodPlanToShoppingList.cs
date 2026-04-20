@@ -1,5 +1,6 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ public class AddFoodPlanToShoppingListHandler(
     IRepository<ShoppingList> shoppingListRepository,
     IRepository<ShoppingListItem> shoppingListItemRepository,
     IRepository<ShoppingListRecommendation> recommendationRepository,
+    IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<AddFoodPlanToShoppingListCommand, IResult>
 {
@@ -25,12 +27,14 @@ public class AddFoodPlanToShoppingListHandler(
 
     public async Task<IResult> Handle(AddFoodPlanToShoppingListCommand command, CancellationToken ct = default)
     {
-        var shoppingList = await shoppingListRepository.GetById(command.ShoppingListId);
-        if (shoppingList is null || shoppingList.DeletedOn != null)
+        var shoppingList = await shoppingListRepository.Query()
+            .Where(l => l.Id == command.ShoppingListId && l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
+            .FirstOrDefaultAsync(ct);
+        if (shoppingList is null)
             return Results.NotFound(ShoppingListNotFound);
 
         var entries = await entryRepository.Query()
-            .Where(e => e.DeletedOn == null && e.Date >= command.StartDate && e.Date <= command.EndDate && e.RecipeId != null)
+            .Where(e => e.DeletedOn == null && e.HouseholdId == householdContext.HouseholdId && e.Date >= command.StartDate && e.Date <= command.EndDate && e.RecipeId != null)
             .ToListAsync(ct);
 
         var recipeIds = entries
@@ -66,7 +70,7 @@ public class AddFoodPlanToShoppingListHandler(
 
         var ingredientNamesLower = grouped.Select(g => g.Name.ToLower()).ToHashSet();
         var existingRecommendations = await recommendationRepository.Query()
-            .Where(r => r.DeletedOn == null && ingredientNamesLower.Contains(r.Name.ToLower()))
+            .Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId && ingredientNamesLower.Contains(r.Name.ToLower()))
             .Select(r => r.Name.ToLower())
             .ToHashSetAsync(ct);
 
@@ -100,6 +104,7 @@ public class AddFoodPlanToShoppingListHandler(
             {
                 recommendationRepository.Add(new ShoppingListRecommendation
                 {
+                    HouseholdId = householdContext.HouseholdId,
                     Name = name,
                     IsApproved = false,
                     CreatedOn = timeProvider.GetUtcNow().UtcDateTime

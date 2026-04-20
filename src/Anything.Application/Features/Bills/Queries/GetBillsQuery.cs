@@ -2,6 +2,7 @@ using Anything.Application.Features.Bills;
 using Anything.Contracts.Bills;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,13 +14,14 @@ public class GetBillsHandler(
     IRepository<Bill> billRepository,
     IRepository<BillPriceHistory> priceHistoryRepository,
     IRepository<Location> locationRepository,
-    IRepository<Vendor> vendorRepository)
+    IRepository<Vendor> vendorRepository,
+    IHouseholdContext householdContext)
     : IRequestHandler<GetBillsQuery, List<BillResponse>>
 {
     public async Task<List<BillResponse>> Handle(GetBillsQuery query, CancellationToken ct = default)
     {
         var bills = await billRepository.Query()
-            .Where(b => b.DeletedOn == null)
+            .Where(b => b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .OrderBy(b => b.Name)
             .ToListAsync(ct);
 
@@ -37,13 +39,13 @@ public class GetBillsHandler(
 
         var locations = locationIds.Count > 0
             ? await locationRepository.Query()
-                .Where(l => l.DeletedOn == null && locationIds.Contains(l.Id))
+                .Where(l => l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId && locationIds.Contains(l.Id))
                 .ToListAsync(ct)
             : [];
 
         var vendors = vendorIds.Count > 0
             ? await vendorRepository.Query()
-                .Where(v => v.DeletedOn == null && vendorIds.Contains(v.Id))
+                .Where(v => v.DeletedOn == null && v.HouseholdId == householdContext.HouseholdId && vendorIds.Contains(v.Id))
                 .ToListAsync(ct)
             : [];
 
