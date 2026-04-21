@@ -121,3 +121,37 @@ test("food plan shows add-to-shopping-list dialog", async ({ page }) => {
     page.getByRole("heading", { name: "Add to Shopping List" })
   ).not.toBeVisible();
 });
+
+test("saved note persists on the day row after dialog closes", async ({ page }) => {
+  const noteText = `E2E Note ${Date.now()}`;
+  const foodPlan = new FoodPlanPage(page);
+
+  await foodPlan.goto();
+  await expect(
+    page.getByRole("heading", { name: "Food Plan", level: 1 })
+  ).toBeVisible();
+
+  // Open today's day row dialog
+  const todayRow = foodPlan.todayRow();
+  await todayRow.locator("h3").first().click();
+
+  // Wait for dialog to open
+  await expect(page.getByPlaceholder("Add a note...")).toBeVisible();
+
+  // Type the note
+  await page.getByPlaceholder("Add a note...").fill(noteText);
+
+  // Save
+  await page.getByRole("button", { name: "Save" }).click();
+
+  // Dialog should close
+  await expect(page.getByPlaceholder("Add a note...")).not.toBeVisible();
+
+  // The note preview should now appear on today's day row card
+  await expect(todayRow.getByText(noteText)).toBeVisible();
+
+  // Clean up: re-open dialog and delete the note
+  await todayRow.locator("h3").first().click();
+  await page.getByRole("button", { name: "Clear note" }).click();
+  await page.getByRole("button", { name: "Save" }).click();
+});

@@ -574,10 +574,7 @@ export default function FoodPlanPage() {
     startDateStr + "T00:00:00Z",
     endDateStr + "T23:59:59Z"
   );
-  const { data: notes } = useFoodPlanNotes(
-    startDateStr + "T00:00:00Z",
-    endDateStr + "T23:59:59Z"
-  );
+  const { data: notes } = useFoodPlanNotes(startDateStr, endDateStr);
   const { data: recipes } = useRecipes();
 
   const activeDays = settings?.activeDays ?? DEFAULT_ACTIVE_DAYS;
@@ -596,7 +593,14 @@ export default function FoodPlanPage() {
   const getNoteForDate = (date: Date): FoodPlanNote | null => {
     if (!notes) return null;
     const ds = toDateInputValue(date);
-    return notes.find((n) => n.date && toDateInputValue(new Date(n.date)) === ds) ?? null;
+    return notes.find((n) => {
+      if (!n.date) return false;
+      // n.date is a Date object (from Kiota parsing a DateOnly JSON string).
+      // The DateOnly value is parsed as UTC midnight, so use UTC date getters
+      // to avoid local-timezone shifts turning "2026-04-08" into "2026-04-07".
+      const nd = n.date instanceof Date ? n.date : new Date(n.date);
+      return nd.toISOString().substring(0, 10) === ds;
+    }) ?? null;
   };
 
   const getEntriesForDate = (date: Date): FoodPlanEntry[] => {

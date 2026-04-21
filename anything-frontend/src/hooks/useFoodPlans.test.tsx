@@ -293,18 +293,24 @@ describe('useFoodPlans hooks', () => {
   })
 
   describe('useFoodPlanNotes', () => {
-    it('should fetch notes by date range', async () => {
-      const mockNotes = [{ id: 1, date: '2026-03-10T00:00:00Z', note: 'Eating at friends' }]
+    it('should fetch notes by date range with date-only strings', async () => {
+      const mockNotes = [{ id: 1, date: '2026-03-10', note: 'Eating at friends' }]
       mockNotesGet.mockResolvedValueOnce(mockNotes)
 
       const { result } = renderHook(
-        () => useFoodPlanNotes('2026-03-10T00:00:00Z', '2026-03-16T23:59:59Z'),
+        () => useFoodPlanNotes('2026-03-10', '2026-03-16'),
         { wrapper: createWrapper() }
       )
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockNotes)
+      expect(mockNotesGet).toHaveBeenCalledWith({
+        queryParameters: {
+          startDate: '2026-03-10',
+          endDate: '2026-03-16',
+        },
+      })
     })
 
     it('should not fetch when dates are empty', () => {
@@ -320,19 +326,19 @@ describe('useFoodPlans hooks', () => {
 
   describe('useUpsertFoodPlanNote', () => {
     it('should upsert a note for a specific date', async () => {
-      mockNotesByDatePut.mockResolvedValueOnce({ id: 1, date: '2026-03-10T00:00:00Z', note: 'Leftovers' })
+      mockNotesByDatePut.mockResolvedValueOnce({ id: 1, date: '2026-03-10', note: 'Leftovers' })
 
       const { result } = renderHook(() => useUpsertFoodPlanNote(), {
         wrapper: createWrapper(),
       })
 
       await act(async () => {
-        result.current.mutate({ date: '2026-03-10T00:00:00Z', note: 'Leftovers' })
+        result.current.mutate({ date: '2026-03-10', note: 'Leftovers' })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockNotesByDate).toHaveBeenCalledWith('2026-03-10T00:00:00Z')
+      expect(mockNotesByDate).toHaveBeenCalledWith('2026-03-10')
       expect(mockNotesByDatePut).toHaveBeenCalledWith({ note: 'Leftovers' })
     })
   })
