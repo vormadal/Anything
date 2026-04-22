@@ -9,13 +9,15 @@ import {
   useDeleteRecommendation,
   useUpdateRecommendation,
   useCreateRecommendation,
+  useExportRecommendations,
+  useImportRecommendations,
 } from "@/hooks/useRecommendations";
 import { useSuggestionCategories } from "@/hooks/useSuggestionCategories";
 import { isAdmin } from "@/lib/roles";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useMemo } from "react";
+import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight, Download, Upload } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
 import type { SuggestionCategory } from "@/lib/api-client/models/index";
 
 const PAGE_SIZE = 20;
@@ -158,12 +160,16 @@ export default function SuggestionsPage() {
   const [createName, setCreateName] = useState("");
   const [createPreferredUnit, setCreatePreferredUnit] = useState("");
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { data: allRecs, isLoading: isLoadingAll } = useAllRecommendations();
   const { data: uncategorizedRecs, isLoading: isLoadingUncategorized } = useUncategorizedRecommendations();
   const { data: categories = [] } = useSuggestionCategories();
   const deleteRecommendation = useDeleteRecommendation();
   const updateRecommendation = useUpdateRecommendation();
   const createRecommendation = useCreateRecommendation();
+  const exportRecommendations = useExportRecommendations();
+  const importRecommendations = useImportRecommendations();
 
   const currentList = useMemo(
     () => (activeTab === "uncategorized" ? (uncategorizedRecs ?? []) : (allRecs ?? [])),
@@ -244,6 +250,32 @@ export default function SuggestionsPage() {
     setShowCreateForm(false);
   };
 
+  const handleExport = async () => {
+    try {
+      await exportRecommendations.mutateAsync();
+      toast.success("Suggestions exported.");
+    } catch {
+      toast.error("Failed to export suggestions.");
+    }
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text) as { recommendations: Array<{ name: string; preferredUnit?: string | null; category?: string | null }> };
+      await importRecommendations.mutateAsync(data);
+      toast.success("Suggestions imported.");
+    } catch {
+      toast.error("Failed to import suggestions.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     setSearchQuery("");
@@ -267,16 +299,44 @@ export default function SuggestionsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Suggestions appear as autocomplete options in shopping lists.
           </p>
-          <Button
-            size="sm"
-            onClick={() => setShowCreateForm((v) => !v)}
-            aria-label="Create suggestion"
-            className="shrink-0 ml-2"
-          >
-            <Plus className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">New</span>
-          </Button>
+          <div className="flex items-center gap-1 shrink-0 ml-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExport}
+              disabled={exportRecommendations.isPending}
+              aria-label="Export suggestions"
+            >
+              <Download className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleImportClick}
+              disabled={importRecommendations.isPending}
+              aria-label="Import suggestions"
+            >
+              <Upload className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowCreateForm((v) => !v)}
+              aria-label="Create suggestion"
+            >
+              <Plus className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">New</span>
+            </Button>
+          </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={handleImportFile}
+        />
 
         {showCreateForm && (
           <div className="mb-4 p-3 border border-blue-200 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/20 flex flex-col gap-2">

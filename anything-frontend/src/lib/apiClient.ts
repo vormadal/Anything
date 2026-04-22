@@ -183,3 +183,37 @@ export const apiClient = createApiClient(adapter);
 export function createMultipartBody(): MultipartBody {
   return new MultipartBody();
 }
+
+/**
+ * Authenticated fetch helper for endpoints not covered by the generated Kiota client.
+ * Applies the same Bearer token and household header as the Kiota middleware chain,
+ * and retries once after a token refresh on 401 responses.
+ */
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const buildHeaders = (token: string | null): Headers => {
+    const headers = new Headers(init?.headers as HeadersInit | undefined);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    const householdId = typeof window !== "undefined" ? localStorage.getItem(HOUSEHOLD_ID_KEY) : null;
+    if (householdId) headers.set(HOUSEHOLD_HEADER, householdId);
+    if (init?.body !== undefined) headers.set("Content-Type", "application/json");
+    return headers;
+  };
+
+  const token = typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: buildHeaders(token) });
+
+  if (response.status === 401 && !path.includes("/api/auth/")) {
+    const newToken = await attemptTokenRefresh();
+    if (newToken) {
+      return fetch(`${API_BASE_URL}${path}`, { ...init, headers: buildHeaders(newToken) });
+    }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      window.dispatchEvent(new Event("auth:unauthorized"));
+    }
+  }
+
+  return response;
+}

@@ -9,12 +9,14 @@ import {
   useUpdateSuggestionCategory,
   useDeleteSuggestionCategory,
   useReorderSuggestionCategories,
+  useExportSuggestionCategories,
+  useImportSuggestionCategories,
 } from "@/hooks/useSuggestionCategories";
 import { isAdmin } from "@/lib/roles";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { X, Pencil, Plus, GripVertical } from "lucide-react";
-import { useState } from "react";
+import { X, Pencil, Plus, GripVertical, Download, Upload } from "lucide-react";
+import { useState, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -106,11 +108,15 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { data: categories = [], isLoading } = useSuggestionCategories();
   const createCategory = useCreateSuggestionCategory();
   const updateCategory = useUpdateSuggestionCategory();
   const deleteCategory = useDeleteSuggestionCategory();
   const reorderCategories = useReorderSuggestionCategories();
+  const exportCategories = useExportSuggestionCategories();
+  const importCategories = useImportSuggestionCategories();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -173,6 +179,32 @@ export default function CategoriesPage() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      await exportCategories.mutateAsync();
+      toast.success("Categories exported.");
+    } catch {
+      toast.error("Failed to export categories.");
+    }
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text) as { categories: Array<{ name: string }> };
+      await importCategories.mutateAsync(data);
+      toast.success("Categories imported.");
+    } catch {
+      toast.error("Failed to import categories.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <PageTitle>Suggestion Categories</PageTitle>
@@ -181,16 +213,44 @@ export default function CategoriesPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Drag to reorder categories.
           </p>
-          <Button
-            size="sm"
-            onClick={() => setShowCreateForm((v) => !v)}
-            aria-label="Create category"
-            className="shrink-0 ml-2"
-          >
-            <Plus className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">New</span>
-          </Button>
+          <div className="flex items-center gap-1 shrink-0 ml-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExport}
+              disabled={exportCategories.isPending}
+              aria-label="Export categories"
+            >
+              <Download className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleImportClick}
+              disabled={importCategories.isPending}
+              aria-label="Import categories"
+            >
+              <Upload className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowCreateForm((v) => !v)}
+              aria-label="Create category"
+            >
+              <Plus className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">New</span>
+            </Button>
+          </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={handleImportFile}
+        />
 
         {showCreateForm && (
           <div className="mb-4 p-3 border border-blue-200 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/20 flex flex-col gap-2">

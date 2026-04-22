@@ -58,5 +58,22 @@ public static class SuggestionCategoryEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
         .RequireAuthorization(UserRoles.Admin);
+
+        group.MapGet("/export", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new ExportSuggestionCategoriesQuery());
+        })
+        .WithName("ExportSuggestionCategories")
+        .Produces<ExportSuggestionCategoriesResponse>(StatusCodes.Status200OK)
+        .RequireAuthorization(UserRoles.Admin);
+
+        group.MapPost("/import", async ([FromBody] ImportSuggestionCategoriesRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ImportSuggestionCategoriesCommand(request.Categories));
+        })
+        .WithName("ImportSuggestionCategories")
+        .Produces(StatusCodes.Status204NoContent)
+        .WithParameterValidation()
+        .RequireAuthorization(UserRoles.Admin);
     }
 }

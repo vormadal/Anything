@@ -82,5 +82,22 @@ public static class RecommendationEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
         .RequireAuthorization(UserRoles.Admin);
+
+        group.MapGet("/export", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new ExportRecommendationsQuery());
+        })
+        .WithName("ExportRecommendations")
+        .Produces<ExportRecommendationsResponse>(StatusCodes.Status200OK)
+        .RequireAuthorization(UserRoles.Admin);
+
+        group.MapPost("/import", async ([FromBody] ImportRecommendationsRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ImportRecommendationsCommand(request.Recommendations));
+        })
+        .WithName("ImportRecommendations")
+        .Produces(StatusCodes.Status204NoContent)
+        .WithParameterValidation()
+        .RequireAuthorization(UserRoles.Admin);
     }
 }
