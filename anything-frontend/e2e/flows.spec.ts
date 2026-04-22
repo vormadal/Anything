@@ -53,12 +53,27 @@ test("recipe can be added to the food plan from the recipes page", async ({
   monday.setDate(now.getDate() + daysToNextMonday);
   const dateStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
   await page.fill('input[type="date"]', dateStr);
+
+  // Capture the API response promise before clicking so we can wait for it
+  // after the dialog closes.  The dialog closes immediately on click (before
+  // the mutation completes), so without this guard the subsequent page.goto()
+  // would trigger a full-page navigation that cancels the in-flight POST and
+  // the entry would never be saved to the database.
+  const entryCreatedResponse = page.waitForResponse(
+    (resp) =>
+      resp.url().includes("/api/food-plan/entries") &&
+      resp.request().method() === "POST"
+  );
   await page.getByRole("button", { name: "Add to plan" }).click();
 
   // 5. Dialog should close after success
   await expect(
     page.getByRole("heading", { name: "Add to Food Plan" })
   ).not.toBeVisible();
+
+  // Wait for the POST to complete before navigating; a full-page navigation
+  // (page.goto) would otherwise cancel the in-flight fetch request.
+  await entryCreatedResponse;
 
   // 6. Navigate to food plan and verify the entry is there
   await page.goto("/food-plans");
