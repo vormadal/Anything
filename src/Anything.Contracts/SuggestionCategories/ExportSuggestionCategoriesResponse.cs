@@ -1,0 +1,3 @@
+namespace Anything.Contracts.SuggestionCategories;
+
+public record ExportSuggestionCategoriesResponse(List<SuggestionCategoryImportExportItem> Categories);
