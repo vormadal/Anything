@@ -10,6 +10,7 @@ const mockCategoriesGet = jest.fn();
 const mockDeleteFn = jest.fn();
 const mockUpdatePut = jest.fn();
 const mockCreatePost = jest.fn();
+const mockApiFetch = jest.fn();
 const mockItemById = jest.fn((id: number) => ({
   delete: (...args: unknown[]) => mockDeleteFn(id, ...args),
   put: (...args: unknown[]) => mockUpdatePut(id, ...args),
@@ -29,6 +30,7 @@ jest.mock("@/lib/apiClient", () => ({
       },
     },
   },
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
 
 const mockPush = jest.fn();
@@ -398,6 +400,129 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Banana")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Export Suggestions", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+      mockAllGet.mockResolvedValue([]);
+
+      global.URL.createObjectURL = jest.fn(() => "blob:mock-url");
+      global.URL.revokeObjectURL = jest.fn();
+      const originalCreateElement = document.createElement.bind(document);
+      const mockClick = jest.fn();
+      jest.spyOn(document, "createElement").mockImplementation((tag: string) => {
+        const el = originalCreateElement(tag);
+        if (tag === "a") {
+          el.click = mockClick;
+        }
+        return el;
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("exports suggestions successfully", async () => {
+      const user = userEvent.setup();
+      mockApiFetch.mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ recommendations: [{ name: "Milk", preferredUnit: "L" }] }),
+      });
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Export suggestions" }));
+
+      await waitFor(() => {
+        expect(mockApiFetch).toHaveBeenCalledWith("/api/shopping-list-recommendations/export");
+        expect(toast.success).toHaveBeenCalledWith("Suggestions exported.");
+      });
+    });
+
+    it("shows error toast when export fails", async () => {
+      const user = userEvent.setup();
+      mockApiFetch.mockResolvedValueOnce({ ok: false });
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Export suggestions" }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to export suggestions.");
+      });
+    });
+  });
+
+  describe("Import Suggestions", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+      mockAllGet.mockResolvedValue([]);
+    });
+
+    it("imports suggestions from a valid JSON file successfully", async () => {
+      const user = userEvent.setup();
+      mockApiFetch.mockResolvedValueOnce({ ok: true });
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Import suggestions" })).toBeInTheDocument());
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const fileContent = JSON.stringify({ recommendations: [{ name: "Milk", preferredUnit: "L" }] });
+      const file = new File([fileContent], "recommendations.json", { type: "application/json" });
+      await user.upload(fileInput, file);
+
+      await waitFor(() => {
+        expect(mockApiFetch).toHaveBeenCalledWith(
+          "/api/shopping-list-recommendations/import",
+          expect.objectContaining({ method: "POST" })
+        );
+        expect(toast.success).toHaveBeenCalledWith("Suggestions imported.");
+      });
+    });
+
+    it("shows error toast when import API call fails", async () => {
+      const user = userEvent.setup();
+      mockApiFetch.mockResolvedValueOnce({ ok: false });
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Import suggestions" })).toBeInTheDocument());
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = new File(
+        [JSON.stringify({ recommendations: [{ name: "Bread" }] })],
+        "recommendations.json",
+        { type: "application/json" }
+      );
+      await user.upload(fileInput, file);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to import suggestions.");
+      });
+    });
+
+    it("shows error toast when file contains invalid JSON", async () => {
+      const user = userEvent.setup();
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Import suggestions" })).toBeInTheDocument());
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = new File(["not valid json"], "recommendations.json", { type: "application/json" });
+      await user.upload(fileInput, file);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to import suggestions.");
       });
     });
   });
