@@ -176,5 +176,119 @@ public class SuggestionCategoryEndpointTests : IntegrationTestBase
         Assert.Equal(cat2.Id, ordered[2].Id);
     }
 
+    // --- GET /api/suggestion-categories/export ---
+
+    [Fact]
+    public async Task ExportCategories_WhenEmpty_ReturnsEmptyList()
+    {
+        var client = await GetAdminClientAsync();
+        var response = await client.GetAsync("/api/suggestion-categories/export");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Empty(result.Categories);
+    }
+
+    [Fact]
+    public async Task ExportCategories_ReturnsAllCategories()
+    {
+        await CreateCategoryAsync("Fruits");
+        await CreateCategoryAsync("Vegetables");
+
+        var client = await GetAdminClientAsync();
+        var response = await client.GetAsync("/api/suggestion-categories/export");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Contains(result.Categories, c => c.Name == "Fruits");
+        Assert.Contains(result.Categories, c => c.Name == "Vegetables");
+    }
+
+    [Fact]
+    public async Task ExportCategories_RequiresAdminRole()
+    {
+        var response = await HttpClient.GetAsync("/api/suggestion-categories/export");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // --- POST /api/suggestion-categories/import ---
+
+    [Fact]
+    public async Task ImportCategories_AddsNewCategories()
+    {
+        var client = await GetAdminClientAsync();
+        var importResponse = await client.PostAsJsonAsync("/api/suggestion-categories/import",
+            new { categories = new[] { new { name = "Dairy" }, new { name = "Meat" } } });
+        Assert.Equal(HttpStatusCode.NoContent, importResponse.StatusCode);
+
+        var getResponse = await client.GetAsync("/api/suggestion-categories");
+        var result = await getResponse.Content.ReadFromJsonAsync<CategoryDto[]>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Contains(result, c => c.Name == "Dairy");
+        Assert.Contains(result, c => c.Name == "Meat");
+    }
+
+    [Fact]
+    public async Task ImportCategories_SkipsExistingCategoryNames()
+    {
+        await CreateCategoryAsync("Bakery");
+
+        var client = await GetAdminClientAsync();
+        var importResponse = await client.PostAsJsonAsync("/api/suggestion-categories/import",
+            new { categories = new[] { new { name = "Bakery" }, new { name = "Seafood" } } });
+        Assert.Equal(HttpStatusCode.NoContent, importResponse.StatusCode);
+
+        var getResponse = await client.GetAsync("/api/suggestion-categories");
+        var result = await getResponse.Content.ReadFromJsonAsync<CategoryDto[]>(JsonOptions);
+        Assert.NotNull(result);
+        // Bakery already existed — still only one entry
+        Assert.Single(result.Where(c => c.Name == "Bakery"));
+        // Seafood was new — should be added
+        Assert.Contains(result, c => c.Name == "Seafood");
+    }
+
+    [Fact]
+    public async Task ImportCategories_AssignsIncrementing_SortOrder()
+    {
+        var existing = await CreateCategoryAsync("Existing");
+
+        var client = await GetAdminClientAsync();
+        await client.PostAsJsonAsync("/api/suggestion-categories/import",
+            new { categories = new[] { new { name = "NewA" }, new { name = "NewB" } } });
+
+        var getResponse = await client.GetAsync("/api/suggestion-categories");
+        var result = await getResponse.Content.ReadFromJsonAsync<CategoryDto[]>(JsonOptions);
+        Assert.NotNull(result);
+
+        var newA = result.FirstOrDefault(c => c.Name == "NewA");
+        var newB = result.FirstOrDefault(c => c.Name == "NewB");
+        Assert.NotNull(newA);
+        Assert.NotNull(newB);
+        // Imported categories should have a sort order higher than any existing one
+        Assert.True(newA.SortOrder > existing.SortOrder);
+        Assert.True(newB.SortOrder > newA.SortOrder);
+    }
+
+    [Fact]
+    public async Task ImportCategories_RequiresAdminRole()
+    {
+        var response = await HttpClient.PostAsJsonAsync("/api/suggestion-categories/import",
+            new { categories = new[] { new { name = "Test" } } });
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportCategories_WithEmptyList_ReturnsNoContent()
+    {
+        var client = await GetAdminClientAsync();
+        var response = await client.PostAsJsonAsync("/api/suggestion-categories/import",
+            new { categories = Array.Empty<object>() });
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
     private record CategoryDto(int Id, string Name, int SortOrder);
+    private record ExportDto(List<ExportCategoryItem> Categories);
+    private record ExportCategoryItem(string Name);
 }

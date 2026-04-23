@@ -231,8 +231,14 @@ async function setupApiMocks(page: Page) {
   );
 
   // ---- Misc ----
+  await page.route("**/api/shopping-list-recommendations/export**", (route) =>
+    route.fulfill({ json: { recommendations: [] } })
+  );
   await page.route("**/api/shopping-list-recommendations**", (route) =>
     route.fulfill({ json: mockRecommendations })
+  );
+  await page.route("**/api/suggestion-categories/export**", (route) =>
+    route.fulfill({ json: { categories: [] } })
   );
   await page.route("**/api/suggestion-categories**", (route) =>
     route.fulfill({ json: [] })
@@ -490,6 +496,31 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "admin-suggestions-empty.png",
+      screenshotOptions
+    );
+  });
+
+  test("admin categories page - with categories", async ({ page }) => {
+    await page.route("**/api/suggestion-categories**", (route) =>
+      route.fulfill({ json: [
+        { id: 1, name: "Dairy", sortOrder: 0 },
+        { id: 2, name: "Produce", sortOrder: 1 },
+        { id: 3, name: "Bakery", sortOrder: 2 },
+      ] })
+    );
+    await page.goto("/admin/suggestions/categories");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "admin-categories-with-data.png",
+      screenshotOptions
+    );
+  });
+
+  test("admin categories page - empty state", async ({ page }) => {
+    await page.goto("/admin/suggestions/categories");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "admin-categories-empty.png",
       screenshotOptions
     );
   });

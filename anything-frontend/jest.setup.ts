@@ -13,3 +13,16 @@ if (typeof Blob !== 'undefined' && !Blob.prototype.arrayBuffer) {
     })
   }
 }
+
+// jsdom does not implement Blob/File.text() — polyfill it so that import
+// handlers that call file.text() work in tests.
+if (typeof Blob !== 'undefined' && !Blob.prototype.text) {
+  Blob.prototype.text = function () {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(this)
+    })
+  }
+}

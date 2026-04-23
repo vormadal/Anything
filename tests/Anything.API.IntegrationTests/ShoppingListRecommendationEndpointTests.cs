@@ -328,9 +328,184 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         Assert.DoesNotContain(uncat, r => r.Name == "Yogurt");
     }
 
+    // --- GET /api/shopping-list-recommendations/export ---
+
+    [Fact]
+    public async Task ExportRecommendations_WhenEmpty_ReturnsEmptyList()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync("/api/shopping-list-recommendations/export");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Empty(result.Recommendations);
+    }
+
+    [Fact]
+    public async Task ExportRecommendations_ReturnsApprovedRecommendations()
+    {
+        await CreateRecommendationAsync("Milk", "L");
+        await CreateRecommendationAsync("Bread");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync("/api/shopping-list-recommendations/export");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Contains(result.Recommendations, r => r.Name == "Milk" && r.PreferredUnit == "L");
+        Assert.Contains(result.Recommendations, r => r.Name == "Bread");
+    }
+
+    [Fact]
+    public async Task ExportRecommendations_IncludesCategoryName()
+    {
+        var catResponse = await (await GetAuthenticatedHttpClientAsync())
+            .PostAsJsonAsync("/api/suggestion-categories", new { name = "Beverages" });
+        var category = await catResponse.Content.ReadFromJsonAsync<CategoryDto>(JsonOptions);
+
+        var rec = await CreateRecommendationAsync("Juice");
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PutAsJsonAsync($"/api/shopping-list-recommendations/{rec.Id}",
+            new { name = "Juice", preferredUnit = (string?)null, categoryId = category!.Id });
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/export");
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        var juice = result.Recommendations.FirstOrDefault(r => r.Name == "Juice");
+        Assert.NotNull(juice);
+        Assert.Equal("Beverages", juice.Category);
+    }
+
+    [Fact]
+    public async Task ExportRecommendations_RequiresAdminRole()
+    {
+        var userClient = await GetUserHttpClientAsync();
+        var response = await userClient.GetAsync("/api/shopping-list-recommendations/export");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    // --- POST /api/shopping-list-recommendations/import ---
+
+    [Fact]
+    public async Task ImportRecommendations_AddsNewRecommendations()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var importResponse = await client.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new { recommendations = new[] { new { name = "Tomato", preferredUnit = "kg" } } });
+        Assert.Equal(HttpStatusCode.NoContent, importResponse.StatusCode);
+
+        var getResponse = await client.GetAsync("/api/shopping-list-recommendations");
+        var result = await getResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Contains(result, r => r.Name == "Tomato" && r.IsApproved);
+    }
+
+    [Fact]
+    public async Task ImportRecommendations_UpdatesExistingRecommendations()
+    {
+        var rec = await CreateRecommendationAsync("Carrot");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var importResponse = await client.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new { recommendations = new[] { new { name = "Carrot", preferredUnit = "bunch" } } });
+        Assert.Equal(HttpStatusCode.NoContent, importResponse.StatusCode);
+
+        var getResponse = await client.GetAsync("/api/shopping-list-recommendations/all");
+        var result = await getResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(result);
+        // Still only one Carrot entry, but now with preferredUnit
+        Assert.Single(result.Where(r => r.Name == "Carrot"));
+    }
+
+    [Fact]
+    public async Task ImportRecommendations_CreatesNewCategoryIfMissing()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var importResponse = await client.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new
+            {
+                recommendations = new[]
+                {
+                    new { name = "Salmon", preferredUnit = (string?)null, category = "Fish" }
+                }
+            });
+        Assert.Equal(HttpStatusCode.NoContent, importResponse.StatusCode);
+
+        // The "Fish" category should have been created automatically
+        var catResponse = await client.GetAsync("/api/suggestion-categories");
+        var categories = await catResponse.Content.ReadFromJsonAsync<CategoryDto[]>(JsonOptions);
+        Assert.NotNull(categories);
+        Assert.Contains(categories, c => c.Name == "Fish");
+
+        // And the recommendation should be assigned to it
+        var uncatResponse = await client.GetAsync("/api/shopping-list-recommendations/uncategorized");
+        var uncat = await uncatResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(uncat);
+        Assert.DoesNotContain(uncat, r => r.Name == "Salmon");
+    }
+
+    [Fact]
+    public async Task ImportRecommendations_UsesExistingCategoryIfPresent()
+    {
+        var catResponse = await (await GetAuthenticatedHttpClientAsync())
+            .PostAsJsonAsync("/api/suggestion-categories", new { name = "Grains" });
+        catResponse.EnsureSuccessStatusCode();
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new
+            {
+                recommendations = new[]
+                {
+                    new { name = "Rice", preferredUnit = (string?)null, category = "Grains" }
+                }
+            });
+
+        // Only one "Grains" category should exist
+        var catGetResponse = await client.GetAsync("/api/suggestion-categories");
+        var categories = await catGetResponse.Content.ReadFromJsonAsync<CategoryDto[]>(JsonOptions);
+        Assert.NotNull(categories);
+        Assert.Single(categories.Where(c => c.Name == "Grains"));
+    }
+
+    [Fact]
+    public async Task ImportRecommendations_WithNullCategory_RecommendationRemainsUncategorized()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new { recommendations = new[] { new { name = "Pepper", preferredUnit = (string?)null, category = (string?)null } } });
+
+        var uncatResponse = await client.GetAsync("/api/shopping-list-recommendations/uncategorized");
+        var uncat = await uncatResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(uncat);
+        Assert.Contains(uncat, r => r.Name == "Pepper");
+    }
+
+    [Fact]
+    public async Task ImportRecommendations_RequiresAdminRole()
+    {
+        var userClient = await GetUserHttpClientAsync();
+        var response = await userClient.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new { recommendations = new[] { new { name = "Test" } } });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRecommendations_WithEmptyList_ReturnsNoContent()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new { recommendations = Array.Empty<object>() });
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);
     private record RecommendationDto(int Id, string? Name, bool IsApproved, int? CategoryId = null);
     private record CategoryDto(int Id, string Name, int SortOrder);
+    private record ExportDto(List<ExportRecommendationItem> Recommendations);
+    private record ExportRecommendationItem(string Name, string? PreferredUnit, string? Category);
 }
