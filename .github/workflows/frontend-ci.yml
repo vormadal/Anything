@@ -254,8 +254,8 @@ jobs:
       run: |
         pkill -f "Anything.API" || true
         pkill -f "standalone/server.js" || true
-        docker stop minio || true
-        docker rm minio || true
+        docker stop minio || echo 'Minio container was not running'
+        docker rm minio || echo 'Minio container could not be removed'
 
     - name: Upload Playwright report
       if: always()
