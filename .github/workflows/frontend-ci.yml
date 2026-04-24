@@ -206,7 +206,10 @@ jobs:
         ASPIRE__DISABLE_DASHBOARD: "true"
 
     - name: Start Next.js application
-      run: npx next start -p 3001 &
+      run: |
+        cp -r .next/static .next/standalone/.next/static
+        cp -r public .next/standalone/public 2>/dev/null || true
+        PORT=3001 node .next/standalone/server.js &
 
     - name: Wait for API to be ready
       run: timeout 60 bash -c 'until curl -sf http://localhost:5238/health; do sleep 2; done'
@@ -226,7 +229,7 @@ jobs:
       if: always()
       run: |
         pkill -f "Anything.API" || true
-        pkill -f "next start" || true
+        pkill -f "standalone/server.js" || true
 
     - name: Upload Playwright report
       if: always()
