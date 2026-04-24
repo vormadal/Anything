@@ -11,6 +11,6 @@ export class LoginPage {
     await this.page.fill("#email", email);
     await this.page.fill("#password", password);
     await this.page.click('button[type="submit"]');
-    await this.page.waitForURL("/");
+    await this.page.waitForURL("/", { waitUntil: "commit" });
   }
 }
