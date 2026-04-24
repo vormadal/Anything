@@ -195,6 +195,28 @@ jobs:
     - name: Install Playwright browsers
       run: npx playwright install --with-deps chromium
 
+    - name: Start Minio
+      run: |
+        docker run -d \
+          --name minio \
+          -p 9000:9000 \
+          -e MINIO_ROOT_USER=minioadmin \
+          -e MINIO_ROOT_PASSWORD=minioadmin \
+          minio/minio:latest server /data
+      working-directory: ${{ github.workspace }}
+
+    - name: Wait for Minio to be ready
+      run: timeout 60 bash -c 'until curl -sf http://localhost:9000/minio/health/live; do sleep 2; done'
+      working-directory: ${{ github.workspace }}
+
+    - name: Create Minio bucket
+      run: |
+        AWS_ACCESS_KEY_ID=minioadmin \
+        AWS_SECRET_ACCESS_KEY=minioadmin \
+        AWS_DEFAULT_REGION=us-east-1 \
+          aws s3 mb s3://recipe-images --endpoint-url http://localhost:9000
+      working-directory: ${{ github.workspace }}
+
     - name: Start .NET API
       run: dotnet run --project src/Anything.API/Anything.API.csproj --no-build --configuration Release --no-launch-profile &
       working-directory: ${{ github.workspace }}
@@ -232,6 +254,8 @@ jobs:
       run: |
         pkill -f "Anything.API" || true
         pkill -f "standalone/server.js" || true
+        docker stop minio || echo 'Minio container was not running'
+        docker rm minio || echo 'Minio container could not be removed'
 
     - name: Upload Playwright report
       if: always()
