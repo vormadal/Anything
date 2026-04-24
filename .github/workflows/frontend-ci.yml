@@ -196,7 +196,7 @@ jobs:
       run: npx playwright install --with-deps chromium
 
     - name: Start .NET API
-      run: dotnet run --project src/Anything.API/Anything.API.csproj --no-build --configuration Release &
+      run: dotnet run --project src/Anything.API/Anything.API.csproj --no-build --configuration Release --no-launch-profile &
       working-directory: ${{ github.workspace }}
       env:
         ASPNETCORE_ENVIRONMENT: CI
