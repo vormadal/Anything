@@ -39,7 +39,7 @@ test("unauthenticated access redirects to login", async ({ browser }) => {
 
   await page.goto("/shopping-lists");
   // The redirect is client-side (AuthGuard), so wait for the navigation to complete
-  await page.waitForURL(/\/login/, { timeout: 15000 });
+  await page.waitForURL(/\/login/, { waitUntil: "commit", timeout: 15000 });
 
   await context.close();
 });
