@@ -325,17 +325,30 @@ export default function RecipeDetailPage() {
           {sortedSteps.length > 0 && (
             <ol className="space-y-3">
               {sortedSteps.map((step, index) => {
-                const stepId = step.id ?? index;
-                const done = isCooking && completedStepIds.has(stepId);
+                const stepId = step.id;
+                const done = isCooking && stepId != null && completedStepIds.has(stepId);
+                const handleToggle =
+                  isCooking && stepId != null ? () => toggleStep(stepId) : undefined;
                 return (
                   <li
-                    key={step.id}
-                    className={`flex items-start gap-3 ${isCooking ? "cursor-pointer select-none" : ""}`}
-                    onClick={isCooking ? () => toggleStep(stepId) : undefined}
-                    role={isCooking ? "button" : undefined}
-                    aria-pressed={isCooking ? done : undefined}
+                    key={step.id ?? index}
+                    className={`flex items-start gap-3 ${isCooking && stepId != null ? "cursor-pointer select-none" : ""}`}
+                    onClick={handleToggle}
+                    onKeyDown={
+                      handleToggle
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleToggle();
+                            }
+                          }
+                        : undefined
+                    }
+                    role={handleToggle ? "button" : undefined}
+                    tabIndex={handleToggle ? 0 : undefined}
+                    aria-pressed={handleToggle ? done : undefined}
                   >
-                    <span className={`shrink-0 text-sm font-semibold w-5 text-right mt-0.5 ${done ? "text-gray-300 dark:text-gray-600" : "text-gray-300 dark:text-gray-600"}`}>
+                    <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-0.5">
                       {index + 1}.
                     </span>
                     <span className={`flex-1 min-w-0 text-sm leading-relaxed transition-colors ${done ? "line-through text-gray-400 dark:text-gray-600" : "text-gray-800 dark:text-gray-200"}`}>
