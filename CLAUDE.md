@@ -137,3 +137,13 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 - Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
 - always run linter, build and tests before committing changes.
 - **Visual regression tests:** After any UI change (components, pages, layouts, styles) run `npm run test:e2e:visual:update` (from `anything-frontend/`) to regenerate the Playwright baseline screenshots, then commit the updated PNGs in `e2e/visual.spec.ts-snapshots/` together with the code change.
+
+## E2E Testing Rules (CI vs Deploy)
+
+The CI workflow uses a fresh local database; the deploy workflow runs against the live deployed environment with persistent data and real network latency. Write tests to be robust against both:
+
+- **Use `page.goto()` for setup navigation.** When a test navigates to a page only as setup (e.g., going to `/recipes/new` to create a recipe), use `page.goto()` directly instead of clicking a UI navigation element. Clicking header icon-links is unreliable in the deployed environment because in-flight API data-loading can cause React re-renders that momentarily detach the element. Reserve UI navigation clicks only for tests that specifically assert the navigation element works.
+- **Use `page.waitForURL(pattern)` when navigation IS what's being tested.** After a user action that triggers navigation (button click, form submit), prefer `page.waitForURL("**/path")` over `expect(page).toHaveURL(...)` — `waitForURL` is purpose-built for navigation and avoids races where the assertion runs before the router has committed the new URL.
+- **Always use timestamp-based unique names for test data** (e.g., `` `E2E Item ${Date.now()}` ``) to avoid collisions with data accumulated from previous test runs in the persistent deploy database.
+- **Clean up test data after each test** — delete records created during a test (via the UI or a direct API call via `page.evaluate`) so they do not accumulate in the deploy environment and slow down data-fetching for subsequent tests.
+- **Read `env.apiUrl` for direct API calls in `page.evaluate`**, not a hard-coded `localhost` URL. In the deploy environment the API is proxied at the same origin as the frontend (`E2E_API_URL=E2E_BASE_URL`), so direct fetch calls inside tests must use `env.apiUrl` from `e2e/env.ts`.
