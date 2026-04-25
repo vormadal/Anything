@@ -15,7 +15,7 @@ test("create recipe manually and find it in the list", async ({ page }) => {
   ).toBeVisible();
 
   // Open new recipe page
-  const createButton = page.getByRole("button", { name: "Create recipe" });
+  const createButton = page.getByRole("link", { name: "Create recipe" });
   await expect(createButton).toBeVisible();
   await createButton.click();
   await expect(page).toHaveURL("/recipes/new");

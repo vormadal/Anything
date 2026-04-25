@@ -3,6 +3,7 @@
 import { useRecipes, useTopRecipeTags, useRecipeImages, useRecipeTags } from "@/hooks/useRecipes";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
@@ -144,19 +145,16 @@ export default function RecipesPage() {
   // Header: just the create-recipe button
   useEffect(() => {
     setHeaderActions(
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => router.push("/recipes/new")}
-        aria-label="Create recipe"
-      >
-        <Plus className="h-5 w-5" />
+      <Button variant="ghost" size="icon" aria-label="Create recipe" asChild>
+        <Link href="/recipes/new">
+          <Plus className="h-5 w-5" />
+        </Link>
       </Button>,
       false,
     );
 
     return () => setHeaderActions(null);
-  }, [setHeaderActions, router]);
+  }, [setHeaderActions]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
