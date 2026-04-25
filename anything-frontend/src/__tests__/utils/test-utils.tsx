@@ -2,6 +2,7 @@ import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PageActionsProvider, useHeaderActions } from '@/context/PageActionsContext'
+import { CookingModeProvider } from '@/context/CookingModeContext'
 import { useSmartBack } from '@/hooks/useSmartBack'
 
 function HeaderActionsSlot() {
@@ -37,10 +38,12 @@ function TestProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <PageActionsProvider>
-        <LeftActionSlot />
-        <PageTitleSlot />
-        <HeaderActionsSlot />
-        {children}
+        <CookingModeProvider>
+          <LeftActionSlot />
+          <PageTitleSlot />
+          <HeaderActionsSlot />
+          {children}
+        </CookingModeProvider>
       </PageActionsProvider>
     </QueryClientProvider>
   )

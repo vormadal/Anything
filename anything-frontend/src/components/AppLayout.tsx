@@ -32,6 +32,8 @@ import {
   PageActionsProvider,
   useHeaderActions,
 } from "@/context/PageActionsContext";
+import { CookingModeProvider } from "@/context/CookingModeContext";
+import { CookingModeDrawer } from "@/components/CookingModeDrawer";
 import { useSmartBack } from "@/hooks/useSmartBack";
 import { useIsAuthenticated } from "@/hooks/useAuth";
 
@@ -58,7 +60,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <PageActionsProvider>
-      <AppLayoutInner>{children}</AppLayoutInner>
+      <CookingModeProvider>
+        <AppLayoutInner>{children}</AppLayoutInner>
+      </CookingModeProvider>
     </PageActionsProvider>
   );
 }
@@ -228,6 +232,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       <main>{children}</main>
+      <CookingModeDrawer />
     </div>
   );
 }
