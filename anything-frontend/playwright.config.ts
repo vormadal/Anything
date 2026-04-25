@@ -23,8 +23,16 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL,
     trace: "on-first-retry",
+    // Allow extra time for actions and navigations in the deployed environment
+    // where the API is remote and responses are slower than localhost.
+    actionTimeout: 15000,
+    navigationTimeout: 15000,
   },
+  // Increase the assertion timeout from the default 5 s to 10 s so that
+  // assertions that poll (e.g. toHaveURL, toBeVisible) have enough time to
+  // succeed on slower remote environments.
   expect: {
+    timeout: 10000,
     toHaveScreenshot: {
       // Allow up to 2 % pixel difference to tolerate minor antialiasing and
       // font-rendering variations across environments.
