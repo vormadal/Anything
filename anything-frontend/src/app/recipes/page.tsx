@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { Search, X, CookingPot, Plus, CalendarPlus, Clock, Users, Package, Layers } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import type { Recipe } from "@/lib/api-client/models/index";
 
@@ -145,11 +146,13 @@ export default function RecipesPage() {
   // Header: just the create-recipe button
   useEffect(() => {
     setHeaderActions(
-      <Button variant="ghost" size="icon" aria-label="Create recipe" asChild>
-        <Link href="/recipes/new">
-          <Plus className="h-5 w-5" />
-        </Link>
-      </Button>,
+      <Link
+        href="/recipes/new"
+        aria-label="Create recipe"
+        className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+      >
+        <Plus className="h-5 w-5" />
+      </Link>,
       false,
     );
 
