@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, ShoppingCart, MoreVertical, CalendarPlus, Trash2, Clock, Users, Package, Layers, ImageIcon } from "lucide-react";
+import { Pencil, ShoppingCart, MoreVertical, CalendarPlus, Trash2, Clock, Users, Package, Layers, ImageIcon, ChefHat } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,41 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useCookingMode, type CookingSession } from "@/context/CookingModeContext";
+
+// Reads live cooking state from context so the button reflects current state
+// even when the header actions are only set once in a useEffect.
+function CookingHeaderButton({
+  recipeId,
+  sessionGetter,
+}: {
+  recipeId: number;
+  sessionGetter: React.RefObject<() => CookingSession | null>;
+}) {
+  const { session, startCooking, stopCooking } = useCookingMode();
+  const isCooking = session?.recipeId === recipeId;
+
+  const handleClick = () => {
+    if (isCooking) {
+      stopCooking();
+    } else {
+      const s = sessionGetter.current?.();
+      if (s) startCooking(s);
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleClick}
+      aria-label={isCooking ? "Stop cooking mode" : "Start cooking mode"}
+      className={isCooking ? "text-orange-600 bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/40" : ""}
+    >
+      <ChefHat className="h-5 w-5" />
+    </Button>
+  );
+}
 
 export default function RecipeDetailPage() {
   const params = useParams();
@@ -67,6 +102,22 @@ export default function RecipeDetailPage() {
   const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
   const heroImageUrl = images?.[0]?.originalUrl ?? "";
 
+  const { session, completedStepIds, stopCooking, toggleStep } = useCookingMode();
+  const isCooking = session?.recipeId === recipeId;
+
+  // Stable ref for the session builder so CookingHeaderButton can read current recipe/steps
+  const sessionBuilderRef = useRef<() => CookingSession | null>(() => null);
+  useEffect(() => {
+    sessionBuilderRef.current = () =>
+      recipe
+        ? {
+            recipeId,
+            recipeName: recipe.name ?? "Recipe",
+            steps: sortedSteps,
+          }
+        : null;
+  });
+
   const handleAddToShoppingList = async (shoppingListId: number) => {
     try {
       await addToShoppingList.mutateAsync({ shoppingListId, multiplier });
@@ -99,6 +150,7 @@ export default function RecipeDetailPage() {
     setLeftAction({ type: "back", href: "/recipes" });
     setHeaderActions(
       <div className="flex items-center gap-1 ml-auto">
+        <CookingHeaderButton recipeId={recipeId} sessionGetter={sessionBuilderRef} />
         <Button
           variant="ghost"
           size="icon"
@@ -272,17 +324,36 @@ export default function RecipeDetailPage() {
           )}
           {sortedSteps.length > 0 && (
             <ol className="space-y-3">
-              {sortedSteps.map((step, index) => (
-                <li key={step.id} className="flex items-start gap-3">
-                  <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-0.5">
-                    {index + 1}.
-                  </span>
-                  <span className="flex-1 min-w-0 text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
-                    {step.text}
-                  </span>
-                </li>
-              ))}
+              {sortedSteps.map((step, index) => {
+                const stepId = step.id ?? index;
+                const done = isCooking && completedStepIds.has(stepId);
+                return (
+                  <li
+                    key={step.id}
+                    className={`flex items-start gap-3 ${isCooking ? "cursor-pointer select-none" : ""}`}
+                    onClick={isCooking ? () => toggleStep(stepId) : undefined}
+                    role={isCooking ? "button" : undefined}
+                    aria-pressed={isCooking ? done : undefined}
+                  >
+                    <span className={`shrink-0 text-sm font-semibold w-5 text-right mt-0.5 ${done ? "text-gray-300 dark:text-gray-600" : "text-gray-300 dark:text-gray-600"}`}>
+                      {index + 1}.
+                    </span>
+                    <span className={`flex-1 min-w-0 text-sm leading-relaxed transition-colors ${done ? "line-through text-gray-400 dark:text-gray-600" : "text-gray-800 dark:text-gray-200"}`}>
+                      {step.text}
+                    </span>
+                  </li>
+                );
+              })}
             </ol>
+          )}
+          {isCooking && (
+            <button
+              type="button"
+              onClick={stopCooking}
+              className="mt-6 w-full py-2.5 px-4 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+            >
+              Stop cooking mode
+            </button>
           )}
         </div>
 
