@@ -86,6 +86,7 @@ public class AddRecipeToShoppingListHandler(
                     Name = name,
                     Amount = amount,
                     Unit = unit,
+                    AddedByRecipe = recipe.Name,
                     CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
             }
