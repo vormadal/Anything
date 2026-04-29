@@ -8,11 +8,13 @@ import {
   useApproveRecommendation,
   useDeleteRecommendation,
   useUpdateRecommendation,
+  useExportRecommendations,
 } from '@/hooks/useRecommendations'
 
 const mockApprovedGet = jest.fn()
 const mockPendingGet = jest.fn()
 const mockAllGet = jest.fn()
+const mockApiFetch = jest.fn()
 const mockApprovePost = jest.fn()
 const mockDeleteFn = jest.fn()
 const mockPutFn = jest.fn()
@@ -30,6 +32,7 @@ jest.mock('@/lib/apiClient', () => ({
       },
     },
   },
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }))
 
 function createWrapper() {
@@ -215,6 +218,84 @@ describe('useRecommendations hooks', () => {
           await result.current.mutateAsync({ id: 1, name: 'Milk' })
         })
       ).rejects.toThrow('Forbidden')
+    })
+  })
+
+  describe('useExportRecommendations', () => {
+    let createObjectURLMock: jest.Mock
+    let revokeObjectURLMock: jest.Mock
+    let clickMock: jest.Mock
+
+    beforeEach(() => {
+      createObjectURLMock = jest.fn(() => 'blob:mock-url')
+      revokeObjectURLMock = jest.fn()
+      clickMock = jest.fn()
+      global.URL.createObjectURL = createObjectURLMock
+      global.URL.revokeObjectURL = revokeObjectURLMock
+      const originalCreateElement = document.createElement.bind(document)
+      jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        if (tag === 'a') {
+          return { href: '', download: '', click: clickMock } as unknown as HTMLElement
+        }
+        return originalCreateElement(tag)
+      })
+    })
+
+    afterEach(() => {
+      jest.restoreAllMocks()
+    })
+
+    it('calls export endpoint without uncategorizedOnly flag', async () => {
+      const mockData = { recommendations: [{ name: 'Milk' }] }
+      mockApiFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData,
+      })
+
+      const { result } = renderHook(() => useExportRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({ uncategorizedOnly: false })
+      })
+
+      expect(mockApiFetch).toHaveBeenCalledWith('/api/shopping-list-recommendations/export')
+      expect(clickMock).toHaveBeenCalled()
+      expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:mock-url')
+    })
+
+    it('calls export endpoint with uncategorizedOnly=true', async () => {
+      const mockData = { recommendations: [{ name: 'UncatItem' }] }
+      mockApiFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData,
+      })
+
+      const { result } = renderHook(() => useExportRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({ uncategorizedOnly: true })
+      })
+
+      expect(mockApiFetch).toHaveBeenCalledWith('/api/shopping-list-recommendations/export?uncategorizedOnly=true')
+      expect(clickMock).toHaveBeenCalled()
+    })
+
+    it('throws when export request fails', async () => {
+      mockApiFetch.mockResolvedValueOnce({ ok: false })
+
+      const { result } = renderHook(() => useExportRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      await expect(
+        act(async () => {
+          await result.current.mutateAsync({ uncategorizedOnly: false })
+        })
+      ).rejects.toThrow('Export failed')
     })
   })
 })

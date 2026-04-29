@@ -1,6 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageTitle } from "@/components/PageTitle";
 import { useCurrentUser } from "@/hooks/useAuth";
 import {
@@ -250,9 +256,9 @@ export default function SuggestionsPage() {
     setShowCreateForm(false);
   };
 
-  const handleExport = async () => {
+  const handleExport = async (uncategorizedOnly: boolean) => {
     try {
-      await exportRecommendations.mutateAsync();
+      await exportRecommendations.mutateAsync({ uncategorizedOnly });
       toast.success("Suggestions exported.");
     } catch {
       toast.error("Failed to export suggestions.");
@@ -300,16 +306,27 @@ export default function SuggestionsPage() {
             Suggestions appear as autocomplete options in shopping lists.
           </p>
           <div className="flex items-center gap-1 shrink-0 ml-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleExport}
-              disabled={exportRecommendations.isPending}
-              aria-label="Export suggestions"
-            >
-              <Download className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Export</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={exportRecommendations.isPending}
+                  aria-label="Export suggestions"
+                >
+                  <Download className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport(false)}>
+                  Export All
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport(true)}>
+                  Export Uncategorized
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               size="sm"
               variant="outline"

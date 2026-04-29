@@ -93,17 +93,20 @@ export function useDeleteRecommendation() {
 
 export function useExportRecommendations() {
   return useMutation({
-    mutationFn: async () => {
-      const response = await apiFetch("/api/shopping-list-recommendations/export");
+    mutationFn: async ({ uncategorizedOnly }: { uncategorizedOnly: boolean }) => {
+      const path = uncategorizedOnly
+        ? "/api/shopping-list-recommendations/export?uncategorizedOnly=true"
+        : "/api/shopping-list-recommendations/export";
+      const response = await apiFetch(path);
       if (!response.ok) throw new Error("Export failed");
       const data = await response.json() as RecommendationExportData;
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+      const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "recommendations.json";
+      anchor.href = objectUrl;
+      anchor.download = uncategorizedOnly ? "recommendations-uncategorized.json" : "recommendations.json";
       anchor.click();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
     },
   });
 }

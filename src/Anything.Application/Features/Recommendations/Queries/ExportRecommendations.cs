@@ -7,15 +7,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Recommendations.Queries;
 
-public record ExportRecommendationsQuery : IRequest<ExportRecommendationsResponse>;
+public record ExportRecommendationsQuery(bool UncategorizedOnly = false) : IRequest<ExportRecommendationsResponse>;
 
 public class ExportRecommendationsHandler(IRepository<ShoppingListRecommendation> repository, IHouseholdContext householdContext)
     : IRequestHandler<ExportRecommendationsQuery, ExportRecommendationsResponse>
 {
     public async Task<ExportRecommendationsResponse> Handle(ExportRecommendationsQuery query, CancellationToken ct = default)
     {
-        var items = await repository.Query()
-            .Where(r => r.IsApproved && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+        var q = repository.Query()
+            .Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId);
+
+        if (query.UncategorizedOnly)
+            q = q.Where(r => r.CategoryId == null);
+
+        var items = await q
             .OrderBy(r => r.Name)
             .Select(r => new RecommendationImportExportItem(
                 r.Name,

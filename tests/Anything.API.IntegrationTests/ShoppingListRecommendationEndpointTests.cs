@@ -343,7 +343,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task ExportRecommendations_ReturnsApprovedRecommendations()
+    public async Task ExportRecommendations_ReturnsAllNonDeletedRecommendations()
     {
         await CreateRecommendationAsync("Milk", "L");
         await CreateRecommendationAsync("Bread");
@@ -384,6 +384,60 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         var userClient = await GetUserHttpClientAsync();
         var response = await userClient.GetAsync("/api/shopping-list-recommendations/export");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExportRecommendations_ExcludesDeletedRecommendations()
+    {
+        var rec = await CreateRecommendationAsync("DeletedItem");
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.DeleteAsync($"/api/shopping-list-recommendations/{rec.Id}");
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/export");
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.DoesNotContain(result.Recommendations, r => r.Name == "DeletedItem");
+    }
+
+    [Fact]
+    public async Task ExportRecommendations_UncategorizedOnly_ReturnsOnlyUncategorized()
+    {
+        var catResponse = await (await GetAuthenticatedHttpClientAsync())
+            .PostAsJsonAsync("/api/suggestion-categories", new { name = "ExportTestCat" });
+        var category = await catResponse.Content.ReadFromJsonAsync<CategoryDto>(JsonOptions);
+
+        var uncatRec = await CreateRecommendationAsync("UncatExportItem");
+        var catRec = await CreateRecommendationAsync("CatExportItem");
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PutAsJsonAsync($"/api/shopping-list-recommendations/{catRec.Id}",
+            new { name = catRec.Name, preferredUnit = (string?)null, categoryId = category!.Id });
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/export?uncategorizedOnly=true");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Contains(result.Recommendations, r => r.Name == "UncatExportItem");
+        Assert.DoesNotContain(result.Recommendations, r => r.Name == "CatExportItem");
+    }
+
+    [Fact]
+    public async Task ExportRecommendations_UncategorizedOnlyFalse_ReturnsAll()
+    {
+        var catResponse = await (await GetAuthenticatedHttpClientAsync())
+            .PostAsJsonAsync("/api/suggestion-categories", new { name = "ExportAllCat" });
+        var category = await catResponse.Content.ReadFromJsonAsync<CategoryDto>(JsonOptions);
+
+        var uncatRec = await CreateRecommendationAsync("UncatAllItem");
+        var catRec = await CreateRecommendationAsync("CatAllItem");
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PutAsJsonAsync($"/api/shopping-list-recommendations/{catRec.Id}",
+            new { name = catRec.Name, preferredUnit = (string?)null, categoryId = category!.Id });
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/export?uncategorizedOnly=false");
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Contains(result.Recommendations, r => r.Name == "UncatAllItem");
+        Assert.Contains(result.Recommendations, r => r.Name == "CatAllItem");
     }
 
     // --- POST /api/shopping-list-recommendations/import ---

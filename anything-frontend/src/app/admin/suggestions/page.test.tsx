@@ -438,6 +438,8 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
       await user.click(screen.getByRole("button", { name: "Export suggestions" }));
+      await waitFor(() => expect(screen.getByText("Export All")).toBeInTheDocument());
+      await user.click(screen.getByText("Export All"));
 
       await waitFor(() => {
         expect(mockApiFetch).toHaveBeenCalledWith("/api/shopping-list-recommendations/export");
@@ -453,6 +455,8 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
       await user.click(screen.getByRole("button", { name: "Export suggestions" }));
+      await waitFor(() => expect(screen.getByText("Export All")).toBeInTheDocument());
+      await user.click(screen.getByText("Export All"));
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith("Failed to export suggestions.");
