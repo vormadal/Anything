@@ -4,8 +4,7 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "09:00"
     open-pull-requests-limit: 10
     labels: []
@@ -18,8 +17,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/anything-frontend"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "09:00"
     open-pull-requests-limit: 10
     labels: []
@@ -32,8 +30,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "09:00"
     open-pull-requests-limit: 5
     labels: []
