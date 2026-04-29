@@ -193,8 +193,8 @@ export function ShoppingListView({ listId }: Props) {
           </div>
 
           <ul>
-            {groups.map((group, groupIndex) => (
-              <Fragment key={groupIndex}>
+            {groups.map((group) => (
+              <Fragment key={group.label ?? "__checked__"}>
                 {group.label !== null && (
                   <li className="flex items-center gap-1.5 px-3 pt-3 pb-1">
                     <ChefHat className="h-3.5 w-3.5 text-blue-500 shrink-0" />
