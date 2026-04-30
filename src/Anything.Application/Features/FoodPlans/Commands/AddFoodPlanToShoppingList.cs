@@ -57,7 +57,7 @@ public class AddFoodPlanToShoppingListHandler(
 
         var grouped = ingredients
             .Where(i => !multiplierLookup.TryGetValue(i.RecipeId, out var m) || m > 0)
-            .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower()))
+            .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower(), RecipeId: i.RecipeId))
             .Select(g => (
                 Name: g.First().Name.Trim(),
                 Amount: g.Sum(i =>
@@ -66,11 +66,7 @@ public class AddFoodPlanToShoppingListHandler(
                     return i.Amount * (decimal)mult;
                 }) is var s && s > 0 ? s : (decimal?)null,
                 Unit: string.IsNullOrWhiteSpace(g.First().Unit) ? null : g.First().Unit?.Trim(),
-                AddedByRecipe: string.Join(", ", g
-                    .Select(i => recipeNameLookup.TryGetValue(i.RecipeId, out var n) ? n : null)
-                    .Where(n => n != null)
-                    .Distinct()
-                    .OrderBy(n => n))
+                AddedByRecipe: recipeNameLookup.TryGetValue(g.Key.RecipeId, out var n) ? n : null
             ))
             .ToList();
 
@@ -90,7 +86,8 @@ public class AddFoodPlanToShoppingListHandler(
             var unitKey = (unit ?? "").ToLower();
             var existing = existingItems.FirstOrDefault(i =>
                 i.Name.Trim().ToLower() == nameKey &&
-                (i.Unit ?? "").Trim().ToLower() == unitKey);
+                (i.Unit ?? "").Trim().ToLower() == unitKey &&
+                i.AddedByRecipe == addedByRecipe);
 
             if (existing != null)
             {

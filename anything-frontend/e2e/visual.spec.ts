@@ -54,6 +54,7 @@ const mockShoppingListItems = [
   { id: 3, listId: 1, name: "Eggs", amount: 12, unit: null, isChecked: false, completedOn: null, addedByRecipe: "Pasta Carbonara", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
   { id: 4, listId: 1, name: "Spaghetti", amount: 500, unit: "g", isChecked: false, completedOn: null, addedByRecipe: "Pasta Carbonara", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
   { id: 5, listId: 1, name: "Chicken breast", amount: 600, unit: "g", isChecked: false, completedOn: null, addedByRecipe: "Chicken Stir Fry", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 6, listId: 1, name: "Eggs", amount: 6, unit: null, isChecked: false, completedOn: null, addedByRecipe: "Chicken Stir Fry", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
 ];
 
 const mockBills = [
