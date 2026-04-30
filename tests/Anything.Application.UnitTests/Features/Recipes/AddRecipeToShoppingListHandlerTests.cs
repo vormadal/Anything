@@ -175,7 +175,7 @@ public class AddRecipeToShoppingListHandlerTests
 
         var existingItem = new ShoppingListItem
         {
-            Id = 100, ShoppingListId = 10, Name = "Flour", Amount = 200, Unit = "g"
+            Id = 100, ShoppingListId = 10, Name = "Flour", Amount = 200, Unit = "g", AddedByRecipe = "Test"
         };
         _itemRepo.Query().Returns(new List<ShoppingListItem> { existingItem }.AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());

@@ -140,7 +140,7 @@ public class AddFoodPlanToShoppingListHandlerTests
     }
 
     [Fact]
-    public async Task Handle_MergesIngredientsFromMultipleRecipesWithSameNameAndUnit()
+    public async Task Handle_KeepsIngredientsFromDifferentRecipesSeparate()
     {
         SetupValidList();
 
@@ -161,8 +161,11 @@ public class AddFoodPlanToShoppingListHandlerTests
         var handler = CreateHandler();
         await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
 
+        // Ingredients from different recipes are stored as separate rows
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
-            i.Name == "Flour" && i.Amount == 500 && i.Unit == "g"));
+            i.Name == "Flour" && i.Amount == 200 && i.Unit == "g" && i.AddedByRecipe == "Monday"));
+        _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
+            i.Name == "Flour" && i.Amount == 300 && i.Unit == "g" && i.AddedByRecipe == "Tuesday"));
     }
 
     [Fact]
