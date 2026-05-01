@@ -11,6 +11,7 @@ public class ShoppingListItemConfiguration : IEntityTypeConfiguration<ShoppingLi
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.Property(e => e.Unit).HasMaxLength(50);
+        builder.Property(e => e.AddedByRecipe);
         builder.HasOne<ShoppingList>()
             .WithMany()
             .HasForeignKey(e => e.ShoppingListId)

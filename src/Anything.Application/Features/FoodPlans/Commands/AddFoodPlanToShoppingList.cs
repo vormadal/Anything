@@ -42,6 +42,11 @@ public class AddFoodPlanToShoppingListHandler(
             .Distinct()
             .ToList();
 
+        var recipeNameLookup = entries
+            .Where(e => e.RecipeId != null)
+            .GroupBy(e => e.RecipeId!.Value)
+            .ToDictionary(g => g.Key, g => g.First().Name);
+
         var ingredients = await ingredientRepository.Query()
             .Where(i => recipeIds.Contains(i.RecipeId) && i.DeletedOn == null)
             .ToListAsync(ct);
@@ -52,7 +57,7 @@ public class AddFoodPlanToShoppingListHandler(
 
         var grouped = ingredients
             .Where(i => !multiplierLookup.TryGetValue(i.RecipeId, out var m) || m > 0)
-            .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower()))
+            .GroupBy(i => (Name: i.Name.Trim().ToLower(), Unit: (i.Unit ?? "").Trim().ToLower(), RecipeId: i.RecipeId))
             .Select(g => (
                 Name: g.First().Name.Trim(),
                 Amount: g.Sum(i =>
@@ -60,7 +65,8 @@ public class AddFoodPlanToShoppingListHandler(
                     var mult = multiplierLookup.TryGetValue(i.RecipeId, out var m) ? m : 1.0;
                     return i.Amount * (decimal)mult;
                 }) is var s && s > 0 ? s : (decimal?)null,
-                Unit: string.IsNullOrWhiteSpace(g.First().Unit) ? null : g.First().Unit?.Trim()
+                Unit: string.IsNullOrWhiteSpace(g.First().Unit) ? null : g.First().Unit?.Trim(),
+                AddedByRecipe: recipeNameLookup.TryGetValue(g.Key.RecipeId, out var n) ? n : null
             ))
             .ToList();
 
@@ -74,13 +80,14 @@ public class AddFoodPlanToShoppingListHandler(
             .Select(r => r.Name.ToLower())
             .ToHashSetAsync(ct);
 
-        foreach (var (name, amount, unit) in grouped)
+        foreach (var (name, amount, unit, addedByRecipe) in grouped)
         {
             var nameKey = name.ToLower();
             var unitKey = (unit ?? "").ToLower();
             var existing = existingItems.FirstOrDefault(i =>
                 i.Name.Trim().ToLower() == nameKey &&
-                (i.Unit ?? "").Trim().ToLower() == unitKey);
+                (i.Unit ?? "").Trim().ToLower() == unitKey &&
+                i.AddedByRecipe == addedByRecipe);
 
             if (existing != null)
             {
@@ -96,6 +103,7 @@ public class AddFoodPlanToShoppingListHandler(
                     Name = name,
                     Amount = amount,
                     Unit = unit,
+                    AddedByRecipe = string.IsNullOrEmpty(addedByRecipe) ? null : addedByRecipe,
                     CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
             }

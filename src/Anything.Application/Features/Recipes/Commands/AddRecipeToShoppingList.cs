@@ -70,7 +70,8 @@ public class AddRecipeToShoppingListHandler(
             var unitKey = (unit ?? "").ToLower();
             var existing = existingItems.FirstOrDefault(i =>
                 i.Name.Trim().ToLower() == nameKey &&
-                (i.Unit ?? "").Trim().ToLower() == unitKey);
+                (i.Unit ?? "").Trim().ToLower() == unitKey &&
+                i.AddedByRecipe == recipe.Name);
 
             if (existing != null)
             {
@@ -86,6 +87,7 @@ public class AddRecipeToShoppingListHandler(
                     Name = name,
                     Amount = amount,
                     Unit = unit,
+                    AddedByRecipe = recipe.Name,
                     CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
             }

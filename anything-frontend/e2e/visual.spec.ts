@@ -49,9 +49,12 @@ const mockShoppingLists = [
 ];
 
 const mockShoppingListItems = [
-  { id: 1, listId: 1, name: "Milk", amount: null, unit: null, checked: false, sortOrder: 0 },
-  { id: 2, listId: 1, name: "Bread", amount: 2, unit: "loaves", checked: true, sortOrder: 1 },
-  { id: 3, listId: 1, name: "Eggs", amount: 12, unit: null, checked: false, sortOrder: 2 },
+  { id: 1, listId: 1, name: "Milk", amount: null, unit: null, isChecked: false, completedOn: null, addedByRecipe: null, shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 2, listId: 1, name: "Bread", amount: 2, unit: "loaves", isChecked: true, completedOn: null, addedByRecipe: null, shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 3, listId: 1, name: "Eggs", amount: 12, unit: null, isChecked: false, completedOn: null, addedByRecipe: "Pasta Carbonara", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 4, listId: 1, name: "Spaghetti", amount: 500, unit: "g", isChecked: false, completedOn: null, addedByRecipe: "Pasta Carbonara", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 5, listId: 1, name: "Chicken breast", amount: 600, unit: "g", isChecked: false, completedOn: null, addedByRecipe: "Chicken Stir Fry", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 6, listId: 1, name: "Eggs", amount: 6, unit: null, isChecked: false, completedOn: null, addedByRecipe: "Chicken Stir Fry", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
 ];
 
 const mockBills = [
@@ -367,6 +370,17 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "shopping-list-detail.png",
+      screenshotOptions
+    );
+  });
+
+  test("shopping list detail - grouped by recipe view", async ({ page }) => {
+    await page.goto("/shopping-lists/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Group by recipe" }).click();
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "shopping-list-detail-grouped.png",
       screenshotOptions
     );
   });

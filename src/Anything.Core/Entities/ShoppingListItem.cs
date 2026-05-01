@@ -8,6 +8,7 @@ public class ShoppingListItem
     public bool IsChecked { get; set; }
     public decimal? Amount { get; set; }
     public string? Unit { get; set; }
+    public string? AddedByRecipe { get; set; }
     public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? CompletedOn { get; set; }

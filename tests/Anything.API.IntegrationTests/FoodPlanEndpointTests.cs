@@ -335,7 +335,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AddFoodPlanToShoppingList_WhenSameIngredientInMultipleRecipes_MergesQuantities()
+    public async Task AddFoodPlanToShoppingList_WhenSameIngredientInMultipleRecipes_KeepsSeparatePerRecipe()
     {
         var client = await GetOrCreateAuthenticatedHttpClient();
         var recipe1 = await CreateRecipe("Pasta");
@@ -364,10 +364,12 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
-        Assert.Single(items);
-        Assert.Equal("Flour", items[0].Name);
-        Assert.Equal(500, items[0].Amount);
-        Assert.Equal("g", items[0].Unit);
+        // Each recipe contributes its own row so the frontend can show per-recipe amounts
+        Assert.Equal(2, items.Length);
+        Assert.All(items, i => Assert.Equal("Flour", i.Name));
+        Assert.All(items, i => Assert.Equal("g", i.Unit));
+        Assert.Contains(items, i => i.Amount == 200);
+        Assert.Contains(items, i => i.Amount == 300);
     }
 
     [Fact]

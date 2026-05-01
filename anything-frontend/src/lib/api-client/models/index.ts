@@ -2245,6 +2245,7 @@ export function deserializeIntoShoppingList(shoppingList: Partial<ShoppingList> 
 // @ts-ignore
 export function deserializeIntoShoppingListItem(shoppingListItem: Partial<ShoppingListItem> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "addedByRecipe": n => { shoppingListItem.addedByRecipe = n.getStringValue(); },
         "amount": n => { shoppingListItem.amount = n.getNumberValue(); },
         "completedOn": n => { shoppingListItem.completedOn = n.getDateValue(); },
         "createdOn": n => { shoppingListItem.createdOn = n.getDateValue(); },
@@ -4100,6 +4101,7 @@ export function serializeShoppingList(writer: SerializationWriter, shoppingList:
 // @ts-ignore
 export function serializeShoppingListItem(writer: SerializationWriter, shoppingListItem: Partial<ShoppingListItem> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!shoppingListItem || isSerializingDerivedType) { return; }
+    writer.writeStringValue("addedByRecipe", shoppingListItem.addedByRecipe);
     writer.writeNumberValue("amount", shoppingListItem.amount);
     writer.writeDateValue("completedOn", shoppingListItem.completedOn);
     writer.writeDateValue("createdOn", shoppingListItem.createdOn);
@@ -4470,6 +4472,10 @@ export interface ShoppingList extends Parsable {
     sortOrder?: number | null;
 }
 export interface ShoppingListItem extends Parsable {
+    /**
+     * The addedByRecipe property
+     */
+    addedByRecipe?: string | null;
     /**
      * The amount property
      */

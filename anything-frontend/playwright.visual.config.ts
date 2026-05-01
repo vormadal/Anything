@@ -47,6 +47,9 @@ export default defineConfig({
       use: {
         ...devices["Pixel 5"],
         storageState: "e2e/fixtures/visual-auth.json",
+        // Block service workers so the browser always fetches the latest
+        // built JS chunks from the server rather than a cached previous build.
+        serviceWorkers: "block",
       },
     },
   ],
