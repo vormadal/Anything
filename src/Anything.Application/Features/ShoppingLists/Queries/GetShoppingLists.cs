@@ -29,7 +29,7 @@ public class GetShoppingListsHandler(IRepository<ShoppingList> listRepository, I
                     l.ModifiedOn,
                     l.DeletedOn,
                     items.Count(),
-                    l.Type))
+                    (int)l.Type))
             .ToListAsync(ct);
     }
 }

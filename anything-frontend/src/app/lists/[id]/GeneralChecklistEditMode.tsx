@@ -42,7 +42,7 @@ export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }
       setListNameValue(list?.name ?? "");
       setEditNameDialogOpen(true);
     };
-  });
+  }, [list?.name, openEditNameDialogRef]);
 
   useEffect(() => {
     if (editNameDialogOpen) {

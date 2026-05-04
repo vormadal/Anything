@@ -60,7 +60,7 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
       setListNameValue(list?.name ?? "");
       setEditNameDialogOpen(true);
     };
-  });
+  }, [list?.name, openEditNameDialogRef]);
 
   useEffect(() => {
     if (editNameDialogOpen) {

@@ -131,3 +131,16 @@ export function useRemoveShoppingListItem(listId: number) {
     },
   });
 }
+
+export function useConvertShoppingListType() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, type }: { id: number; type: number }) =>
+      apiClient.api.shoppingLists.byId(id).type.put({ type }),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
+    },
+  });
+}

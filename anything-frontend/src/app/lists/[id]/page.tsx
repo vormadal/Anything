@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeleteShoppingList } from "@/hooks/useShoppingLists";
+import { useDeleteShoppingList, useConvertShoppingListType } from "@/hooks/useShoppingLists";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import type { ShoppingList } from "@/lib/api-client/models/index";
@@ -16,7 +16,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { Pencil, Trash2, MoreVertical, SquarePen } from "lucide-react";
+import { Pencil, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks } from "lucide-react";
 import { ShoppingListView } from "@/app/shopping-lists/[id]/ShoppingListView";
 import { ShoppingListEditMode } from "@/app/shopping-lists/[id]/ShoppingListEditMode";
 import { GeneralChecklistView } from "./GeneralChecklistView";
@@ -46,6 +46,7 @@ export default function ListDetailPage() {
   });
 
   const deleteList = useDeleteShoppingList();
+  const convertType = useConvertShoppingListType();
 
   const isGeneral = list?.type === 0;
 
@@ -59,7 +60,7 @@ export default function ListDetailPage() {
         toast.error("Failed to delete list. Please try again.");
       }
     };
-  });
+  }, [deleteList, listId, router]);
 
   useEffect(() => {
     setLeftAction({ type: "back", href: "/lists" });
@@ -89,6 +90,28 @@ export default function ListDetailPage() {
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
+              onSelect={async () => {
+                try {
+                  await convertType.mutateAsync({ id: listId, type: isGeneral ? 1 : 0 });
+                  toast.success(`Converted to ${isGeneral ? "Shopping List" : "Checklist"}`);
+                } catch {
+                  toast.error("Failed to convert list type. Please try again.");
+                }
+              }}
+            >
+              {isGeneral ? (
+                <>
+                  <ShoppingCart className="h-4 w-4" />
+                  Convert to Shopping List
+                </>
+              ) : (
+                <>
+                  <ListChecks className="h-4 w-4" />
+                  Convert to Checklist
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem
               className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
               onSelect={() => handleDeleteListRef.current()}
             >
@@ -103,7 +126,7 @@ export default function ListDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [isEditMode, router, setHeaderActions, setLeftAction]);
+  }, [isEditMode, isGeneral, convertType, listId, router, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">

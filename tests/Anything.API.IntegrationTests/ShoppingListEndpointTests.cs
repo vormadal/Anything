@@ -466,6 +466,55 @@ public class ShoppingListEndpointTests : IntegrationTestBase
 
     // --- Helpers ---
 
+    // --- PUT /api/checklists/{id}/type ---
+
+    [Fact]
+    public async Task ConvertShoppingListType_ShoppingToGeneral_ReturnsNoContent()
+    {
+        var list = await CreateShoppingListAsync("Shopping to Convert");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PutAsJsonAsync($"/api/checklists/{list.Id}/type", new { type = 0 }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var getResponse = await client.GetAsync($"/api/checklists/{list.Id}", TestContext.Current.CancellationToken);
+        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Equal(0, result?.Type);
+    }
+
+    [Fact]
+    public async Task ConvertShoppingListType_GeneralToShopping_ReturnsNoContent()
+    {
+        var list = await CreateGeneralChecklistAsync("Checklist to Convert");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PutAsJsonAsync($"/api/checklists/{list.Id}/type", new { type = 1 }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var getResponse = await client.GetAsync($"/api/checklists/{list.Id}", TestContext.Current.CancellationToken);
+        var result = await getResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Equal(1, result?.Type);
+    }
+
+    [Fact]
+    public async Task ConvertShoppingListType_WhenNotFound_Returns404()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PutAsJsonAsync("/api/checklists/99999/type", new { type = 0 }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ConvertShoppingListType_WithInvalidType_Returns400()
+    {
+        var list = await CreateShoppingListAsync("Any List");
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PutAsJsonAsync($"/api/checklists/{list.Id}/type", new { type = 99 }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    // --- Helpers ---
+
     private async Task<ShoppingListDto> CreateShoppingListAsync(string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();

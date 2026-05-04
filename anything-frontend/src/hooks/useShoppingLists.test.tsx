@@ -105,7 +105,7 @@ describe('useShoppingLists hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockPost).toHaveBeenCalledWith({ name: 'Groceries' })
+      expect(mockPost).toHaveBeenCalledWith({ name: 'Groceries', type: 1 })
     })
 
     it('should handle create error', async () => {
