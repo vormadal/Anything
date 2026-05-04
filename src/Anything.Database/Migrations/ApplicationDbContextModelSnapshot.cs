@@ -739,9 +739,9 @@ namespace Anything.Database.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<int>("Type")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(1);
+                        .HasDefaultValue(1)
+                        .HasSentinel(1);
 
                     b.HasKey("Id");
 

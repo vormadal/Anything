@@ -13,7 +13,8 @@ public class ShoppingListConfiguration : IEntityTypeConfiguration<ShoppingList>
         builder.Property(e => e.SortOrder).HasDefaultValue(0);
         builder.Property(l => l.Type)
             .HasConversion<int>()
-            .HasDefaultValue(ListType.Shopping);
+            .HasDefaultValue(ListType.Shopping)
+            .HasSentinel(ListType.Shopping);
         builder.HasOne<Household>()
             .WithMany()
             .HasForeignKey(e => e.HouseholdId)
