@@ -469,7 +469,7 @@ public class RecipeEndpointTests : IntegrationTestBase
             new { shoppingListId = listId }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items", TestContext.Current.CancellationToken);
+        var itemsResponse = await client.GetAsync($"/api/checklists/{listId}/items", TestContext.Current.CancellationToken);
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
@@ -480,7 +480,7 @@ public class RecipeEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
             new { shoppingListId = listId }, TestContext.Current.CancellationToken);
 
-        var mergedResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items", TestContext.Current.CancellationToken);
+        var mergedResponse = await client.GetAsync($"/api/checklists/{listId}/items", TestContext.Current.CancellationToken);
         var merged = await mergedResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(merged);
         Assert.Equal(2, merged.Length);
@@ -504,7 +504,7 @@ public class RecipeEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync($"/api/recipes/{recipe2.Id}/add-to-shopping-list",
             new { shoppingListId = listId }, TestContext.Current.CancellationToken);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{listId}/items", TestContext.Current.CancellationToken);
+        var itemsResponse = await client.GetAsync($"/api/checklists/{listId}/items", TestContext.Current.CancellationToken);
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
@@ -567,7 +567,7 @@ public class RecipeEndpointTests : IntegrationTestBase
     private async Task<int> CreateShoppingListAsync(string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/shopping-lists", new { name }, TestContext.Current.CancellationToken);
+        var response = await client.PostAsJsonAsync("/api/checklists", new { name }, TestContext.Current.CancellationToken);
         var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         return result!.Id;
     }

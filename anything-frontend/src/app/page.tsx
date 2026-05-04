@@ -7,7 +7,7 @@ import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useBillSummary } from "@/hooks/useBills";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ShoppingCart, Plus, ChevronRight, Receipt, Zap, Hand } from "lucide-react";
+import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 
@@ -180,19 +180,19 @@ export default function Home() {
         </section>
       )}
 
-      {/* Shopping Lists */}
+      {/* Lists */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-green-600" />
+            <LayoutList className="h-5 w-5 text-green-600" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Shopping Lists
+              Lists
             </h2>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push("/shopping-lists")}
+            onClick={() => router.push("/lists")}
             className="text-xs"
           >
             All lists
@@ -204,7 +204,7 @@ export default function Home() {
         ) : topLists.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No shopping lists yet.</p>
-            <Button size="sm" onClick={() => router.push("/shopping-lists")}>
+            <Button size="sm" onClick={() => router.push("/lists")}>
               <Plus className="h-4 w-4 mr-1" />
               Create list
             </Button>
@@ -216,7 +216,7 @@ export default function Home() {
                 key={list.id}
                 type="button"
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
-                onClick={() => router.push(`/shopping-lists/${list.id}`)}
+                onClick={() => router.push(`/lists/${list.id}`)}
               >
                 <span className="text-sm font-medium text-gray-900 dark:text-white">{list.name}</span>
                 <div className="flex items-center gap-2 shrink-0">
@@ -229,7 +229,7 @@ export default function Home() {
               <button
                 type="button"
                 className="w-full px-4 py-2.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                onClick={() => router.push("/shopping-lists")}
+                onClick={() => router.push("/lists")}
               >
                 View all {shoppingLists?.length} lists →
               </button>

@@ -28,7 +28,8 @@ public class GetShoppingListsHandler(IRepository<ShoppingList> listRepository, I
                     l.CreatedOn,
                     l.ModifiedOn,
                     l.DeletedOn,
-                    items.Count()))
+                    items.Count(),
+                    l.Type))
             .ToListAsync(ct);
     }
 }

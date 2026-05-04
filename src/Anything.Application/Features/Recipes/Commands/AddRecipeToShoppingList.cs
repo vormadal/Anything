@@ -36,6 +36,9 @@ public class AddRecipeToShoppingListHandler(
         if (shoppingList is null)
             return Results.NotFound(ShoppingListNotFound);
 
+        if (shoppingList.Type == ListType.General)
+            return Results.BadRequest("Cannot add recipe to a general checklist.");
+
         var ingredients = await ingredientRepository.Query()
             .Where(i => i.RecipeId == command.RecipeId && i.DeletedOn == null)
             .ToListAsync(ct);

@@ -11,7 +11,7 @@ import { ItemsRequestBuilderNavigationMetadata, ItemsRequestBuilderRequestsMetad
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
- * Builds and executes requests for operations under /api/shopping-lists/{id}
+ * Builds and executes requests for operations under /api/checklists/{id}
  */
 export interface ShoppingListsItemRequestBuilder extends BaseRequestBuilder<ShoppingListsItemRequestBuilder> {
     /**
@@ -57,7 +57,7 @@ export interface ShoppingListsItemRequestBuilder extends BaseRequestBuilder<Shop
 /**
  * Uri template for the request builder.
  */
-export const ShoppingListsItemRequestBuilderUriTemplate = "{+baseurl}/api/shopping-lists/{id}";
+export const ShoppingListsItemRequestBuilderUriTemplate = "{+baseurl}/api/checklists/{id}";
 /**
  * Metadata for all the navigation properties in the request builder.
  */

@@ -16,8 +16,8 @@ export function useCreateShoppingList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (list: { name: string }) =>
-      apiClient.api.shoppingLists.post({ name: list.name }),
+    mutationFn: (list: { name: string; type?: number }) =>
+      apiClient.api.shoppingLists.post({ name: list.name, type: list.type ?? 1 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
     },

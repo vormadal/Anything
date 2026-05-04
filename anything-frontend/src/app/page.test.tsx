@@ -237,7 +237,7 @@ describe('Home Page Integration Tests', () => {
     })
 
     await user.click(screen.getByText('My List'))
-    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/3')
+    expect(mockPush).toHaveBeenCalledWith('/lists/3')
   })
 
   it('should navigate to all shopping lists when "All lists" is clicked', async () => {
@@ -253,7 +253,7 @@ describe('Home Page Integration Tests', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'All lists' }))
-    expect(mockPush).toHaveBeenCalledWith('/shopping-lists')
+    expect(mockPush).toHaveBeenCalledWith('/lists')
   })
 
   it('should display unchecked item count badge on home page when count > 0', async () => {

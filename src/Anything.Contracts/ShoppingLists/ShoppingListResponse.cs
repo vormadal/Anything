@@ -1,3 +1,5 @@
+using Anything.Core.Entities;
+
 namespace Anything.Contracts.ShoppingLists;
 
 public record ShoppingListResponse(
@@ -6,4 +8,5 @@ public record ShoppingListResponse(
     DateTime CreatedOn,
     DateTime? ModifiedOn,
     DateTime? DeletedOn,
-    int UncheckedItemCount);
+    int UncheckedItemCount,
+    ListType Type);

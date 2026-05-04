@@ -29,33 +29,38 @@ public class AddShoppingListItemHandler(
         if (list is null)
             return Results.NotFound(ShoppingListNotFound);
 
+        var isGeneral = list.Type == ListType.General;
+
         var item = new ShoppingListItem
         {
             ShoppingListId = command.ShoppingListId,
             Name = command.Name,
-            Amount = command.Amount,
-            Unit = command.Unit,
+            Amount = isGeneral ? null : command.Amount,
+            Unit = isGeneral ? null : command.Unit,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         itemRepository.Add(item);
 
-        var nameNormalized = command.Name.Trim();
-        var exists = await recommendationRepository.Query()
-            .AnyAsync(r => r.Name.ToLower() == nameNormalized.ToLower(), ct);
-        if (!exists)
+        if (!isGeneral)
         {
-            recommendationRepository.Add(new ShoppingListRecommendation
+            var nameNormalized = command.Name.Trim();
+            var exists = await recommendationRepository.Query()
+                .AnyAsync(r => r.Name.ToLower() == nameNormalized.ToLower(), ct);
+            if (!exists)
             {
-                HouseholdId = householdContext.HouseholdId,
-                Name = nameNormalized,
-                IsApproved = true,
-                CreatedOn = timeProvider.GetUtcNow().UtcDateTime
-            });
+                recommendationRepository.Add(new ShoppingListRecommendation
+                {
+                    HouseholdId = householdContext.HouseholdId,
+                    Name = nameNormalized,
+                    IsApproved = true,
+                    CreatedOn = timeProvider.GetUtcNow().UtcDateTime
+                });
+            }
         }
 
         await unitOfWork.SaveChanges(ct);
         await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.ShoppingListId), ct);
-        return Results.Created($"/api/shopping-lists/{command.ShoppingListId}/items/{item.Id}", item);
+        return Results.Created($"/api/checklists/{command.ShoppingListId}/items/{item.Id}", item);
     }
 }
