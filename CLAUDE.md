@@ -92,6 +92,7 @@ npm run test:e2e:visual:update   # Regenerate baseline screenshots after an inte
 - **Client components:** Hook files are marked `"use client"`.
 - **Testing:** Use Jest and React Testing Library for integration tests. Test files use `.test.tsx` or `.test.ts` extension and are colocated with source files. Run `npm test` for tests, `npm run test:coverage` for coverage reports.
 - **Test utilities:** Use `renderWithClient` from `@/__tests__/utils/test-utils` to render components with React Query provider.
+- **Prevent test hangs:** Tests that use real timers or intervals must call `jest.useFakeTimers()` and restore with `jest.useRealTimers()` in `afterEach` — hanging tests cause the CI `test` job to exceed its `timeout-minutes` and fail the workflow.
 
 ## API Endpoints
 
