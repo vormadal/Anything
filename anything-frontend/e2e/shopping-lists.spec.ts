@@ -9,18 +9,18 @@ test("create shopping list, add items, and complete it", async ({ page }) => {
   const listName = `E2E List ${Date.now()}`;
 
   // Navigate to shopping lists
-  await page.goto("/shopping-lists");
+  await page.goto("/lists");
   await expect(
-    page.getByRole("heading", { name: "Shopping Lists", level: 1 })
+    page.getByRole("heading", { name: "Lists", level: 1 })
   ).toBeVisible();
 
   // Open the create form via the "+" button in the header
-  await page.getByRole("button", { name: "Create shopping list" }).click();
+  await page.getByRole("button", { name: "New list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
   await page.getByRole("button", { name: "Create list" }).click();
 
   // Should navigate to the new list's detail page
-  await expect(page).toHaveURL(/\/shopping-lists\/\d+/);
+  await expect(page).toHaveURL(/\/lists\/\d+/);
 
   // Enter edit mode to add items
   await page.getByRole("button", { name: "Edit list" }).click();
@@ -59,19 +59,19 @@ test("create shopping list, add items, and complete it", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Complete List" })).toBeVisible();
   await page.getByRole("button", { name: "Complete List" }).click();
 
-  // After completion the app navigates to the new carry-over list or back to shopping lists
-  await expect(page).toHaveURL(/\/shopping-lists/);
+  // After completion the app navigates to the new carry-over list or back to lists
+  await expect(page).toHaveURL(/\/lists/);
 });
 
 test("shopping list can be renamed and deleted", async ({ page }) => {
   const listName = `Delete Me ${Date.now()}`;
 
   // Create a list
-  await page.goto("/shopping-lists");
-  await page.getByRole("button", { name: "Create shopping list" }).click();
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
   await page.getByRole("button", { name: "Create list" }).click();
-  await expect(page).toHaveURL(/\/shopping-lists\/\d+/);
+  await expect(page).toHaveURL(/\/lists\/\d+/);
 
   // Enter edit mode, then open More options to rename the list
   await page.getByRole("button", { name: "Edit list" }).click();
@@ -87,7 +87,7 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
   await page.getByRole("button", { name: "More options" }).click();
   await page.getByText("Delete list").click();
 
-  // Should navigate back to shopping lists
-  await expect(page).toHaveURL("/shopping-lists");
+  // Should navigate back to lists
+  await expect(page).toHaveURL("/lists");
   await expect(page.getByText(newName)).not.toBeVisible();
 });

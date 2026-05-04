@@ -87,11 +87,11 @@ test("food plan ingredients can be sent to a shopping list", async ({
   const listName = `Ingredients List ${suffix}`;
 
   // 1. Create a shopping list to receive the ingredients
-  await page.goto("/shopping-lists");
-  await page.getByRole("button", { name: "Create shopping list" }).click();
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
   await page.getByRole("button", { name: "Create list" }).click();
-  await expect(page).toHaveURL(/\/shopping-lists\/\d+/);
+  await expect(page).toHaveURL(/\/lists\/\d+/);
 
   // 2. Navigate to the food plan
   await page.goto("/food-plans");
@@ -122,12 +122,12 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
   const listName = `Full Flow List ${suffix}`;
 
   // Step 1 — Create a shopping list
-  await page.goto("/shopping-lists");
-  await page.getByRole("button", { name: "Create shopping list" }).click();
+  await page.goto("/lists");
+  await page.getByRole("button", { name: "New list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
   await page.getByRole("button", { name: "Create list" }).click();
   const listUrl = page.url();
-  await expect(page).toHaveURL(/\/shopping-lists\/\d+/);
+  await expect(page).toHaveURL(/\/lists\/\d+/);
 
   // Step 2 — Create a recipe
   await page.goto("/recipes/new");
@@ -178,8 +178,8 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
 
   // Step 5 — Navigate to the shopping list and confirm we can interact with it
   await page.goto(listUrl);
-  // The AppLayout h1 header title is "Shopping List" for /shopping-lists/[id]
+  // The AppLayout h1 header title shows the list name for /lists/[id]
   await expect(
-    page.getByRole("heading", { name: "Shopping List", level: 1 })
+    page.getByRole("heading", { name: listName, level: 1 })
   ).toBeVisible();
 });
