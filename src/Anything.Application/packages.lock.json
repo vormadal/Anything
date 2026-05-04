@@ -212,7 +212,6 @@
       "anything.contracts": {
         "type": "Project",
         "dependencies": {
-          "Anything.Core": "[1.0.0, )",
           "System.ComponentModel.Annotations": "[5.0.0, )"
         }
       },
