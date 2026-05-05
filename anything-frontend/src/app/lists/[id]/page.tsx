@@ -102,9 +102,7 @@ export default function ListDetailPage() {
                 Edit list name
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem
-              onSelect={() => handleConvertTypeRef.current()}
-            >
+            <DropdownMenuItem onSelect={() => handleConvertTypeRef.current()}>
               {isGeneral ? (
                 <>
                   <ShoppingCart className="h-4 w-4" />
