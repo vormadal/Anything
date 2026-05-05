@@ -37,7 +37,7 @@ export default function ListDetailPage() {
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const handleDeleteListRef = useRef<() => void>(() => undefined);
-  const handleConvertTypeRef = useRef<() => void>(() => undefined);
+  const handleConvertTypeRef = useRef<() => Promise<void>>(async () => {});
   const openEditNameDialogRef = useRef<() => void>(() => undefined);
 
   const { data: list } = useQuery({
@@ -63,6 +63,7 @@ export default function ListDetailPage() {
     };
   }, [deleteList, listId, router]);
 
+  // No dependency array: keeps the closure fresh without adding unstable refs to the header effect deps
   useEffect(() => {
     handleConvertTypeRef.current = async () => {
       try {
@@ -72,7 +73,7 @@ export default function ListDetailPage() {
         toast.error("Failed to convert list type. Please try again.");
       }
     };
-  }, [convertType, listId, isGeneral]);
+  });
 
   useEffect(() => {
     setLeftAction({ type: "back", href: "/lists" });
@@ -129,7 +130,8 @@ export default function ListDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [isEditMode, isGeneral, listId, router, setHeaderActions, setLeftAction]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, isGeneral, listId, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
