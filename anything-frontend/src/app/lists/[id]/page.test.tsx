@@ -28,8 +28,11 @@ jest.mock('@/lib/apiClient', () => ({
 
 const mockPush = jest.fn()
 const mockBack = jest.fn()
+// Use a stable object reference so useRouter() returns the same object on every render,
+// preventing infinite re-render loops caused by the useEffect dependency on router.
+const mockRouter = { push: mockPush, back: mockBack }
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush, back: mockBack }),
+  useRouter: () => mockRouter,
   useParams: () => ({ id: '1' }),
   useSearchParams: () => ({ get: () => null }),
   usePathname: () => '/lists/1',

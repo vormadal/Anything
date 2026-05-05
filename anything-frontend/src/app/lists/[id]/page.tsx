@@ -37,6 +37,7 @@ export default function ListDetailPage() {
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const handleDeleteListRef = useRef<() => void>(() => undefined);
+  const handleConvertTypeRef = useRef<() => void>(() => undefined);
   const openEditNameDialogRef = useRef<() => void>(() => undefined);
 
   const { data: list } = useQuery({
@@ -61,6 +62,17 @@ export default function ListDetailPage() {
       }
     };
   }, [deleteList, listId, router]);
+
+  useEffect(() => {
+    handleConvertTypeRef.current = async () => {
+      try {
+        await convertType.mutateAsync({ id: listId, type: isGeneral ? 1 : 0 });
+        toast.success(`Converted to ${isGeneral ? "Shopping List" : "Checklist"}`);
+      } catch {
+        toast.error("Failed to convert list type. Please try again.");
+      }
+    };
+  }, [convertType, listId, isGeneral]);
 
   useEffect(() => {
     setLeftAction({ type: "back", href: "/lists" });
@@ -89,16 +101,7 @@ export default function ListDetailPage() {
                 Edit list name
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem
-              onSelect={async () => {
-                try {
-                  await convertType.mutateAsync({ id: listId, type: isGeneral ? 1 : 0 });
-                  toast.success(`Converted to ${isGeneral ? "Shopping List" : "Checklist"}`);
-                } catch {
-                  toast.error("Failed to convert list type. Please try again.");
-                }
-              }}
-            >
+            <DropdownMenuItem onSelect={() => handleConvertTypeRef.current()}>
               {isGeneral ? (
                 <>
                   <ShoppingCart className="h-4 w-4" />
@@ -126,7 +129,7 @@ export default function ListDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [isEditMode, isGeneral, convertType, listId, router, setHeaderActions, setLeftAction]);
+  }, [isEditMode, isGeneral, listId, router, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
