@@ -126,8 +126,8 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
   await page.getByRole("button", { name: "New list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
   await page.getByRole("button", { name: "Create list" }).click();
+  await page.waitForURL(/\/lists\/\d+/);
   const listUrl = page.url();
-  await expect(page).toHaveURL(/\/lists\/\d+/);
 
   // Step 2 — Create a recipe
   await page.goto("/recipes/new");
