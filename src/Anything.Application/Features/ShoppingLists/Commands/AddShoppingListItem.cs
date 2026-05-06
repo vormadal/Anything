@@ -46,7 +46,8 @@ public class AddShoppingListItemHandler(
         {
             var nameNormalized = command.Name.Trim();
             var exists = await recommendationRepository.Query()
-                .AnyAsync(r => r.Name.ToLower() == nameNormalized.ToLower(), ct);
+                .AnyAsync(r => r.HouseholdId == householdContext.HouseholdId
+                               && r.Name.ToLower() == nameNormalized.ToLower(), ct);
             if (!exists)
             {
                 recommendationRepository.Add(new ShoppingListRecommendation
