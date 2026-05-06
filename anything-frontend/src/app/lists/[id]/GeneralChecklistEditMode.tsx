@@ -1,23 +1,19 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
 import {
   useShoppingListItems,
   useAddShoppingListItem,
   useRemoveShoppingListItem,
-  useUpdateShoppingList,
 } from "@/hooks/useShoppingLists";
+import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
 import { toast } from "sonner";
+import { EditListNameDialog } from "@/components/EditListNameDialog";
+import { ListItemsStatus } from "@/components/ListItemsStatus";
 import type { ShoppingList } from "@/lib/api-client/models/index";
+import { useState } from "react";
 
 interface Props {
   listId: number;
@@ -26,44 +22,14 @@ interface Props {
 }
 
 export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }: Props) {
-  const [editNameDialogOpen, setEditNameDialogOpen] = useState(false);
-  const [listNameValue, setListNameValue] = useState("");
-  const listNameInputRef = useRef<HTMLInputElement>(null);
   const [newItemName, setNewItemName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: items, isLoading, error } = useShoppingListItems(listId);
   const addItem = useAddShoppingListItem(listId);
   const removeItem = useRemoveShoppingListItem(listId);
-  const updateList = useUpdateShoppingList();
 
-  useEffect(() => {
-    openEditNameDialogRef.current = () => {
-      setListNameValue(list?.name ?? "");
-      setEditNameDialogOpen(true);
-    };
-  }, [list?.name, openEditNameDialogRef]);
-
-  useEffect(() => {
-    if (editNameDialogOpen) {
-      setTimeout(() => listNameInputRef.current?.focus(), 0);
-    }
-  }, [editNameDialogOpen]);
-
-  const handleSaveListName = async () => {
-    const trimmed = listNameValue.trim();
-    if (!trimmed || trimmed === list?.name) {
-      setEditNameDialogOpen(false);
-      return;
-    }
-    try {
-      await updateList.mutateAsync({ id: listId, name: trimmed });
-      setEditNameDialogOpen(false);
-      toast.success("List name updated");
-    } catch {
-      toast.error("Failed to update list name. Please try again.");
-    }
-  };
+  const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,33 +59,15 @@ export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }
 
   return (
     <>
-      <Dialog open={editNameDialogOpen} onOpenChange={setEditNameDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit list name</DialogTitle>
-          </DialogHeader>
-          <input
-            ref={listNameInputRef}
-            type="text"
-            value={listNameValue}
-            onChange={(e) => setListNameValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSaveListName();
-              if (e.key === "Escape") setEditNameDialogOpen(false);
-            }}
-            className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            aria-label="Edit list name"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditNameDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveListName} disabled={updateList.isPending} aria-label="Save list name">
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditListNameDialog
+        open={editNameDialog.open}
+        onOpenChange={editNameDialog.setOpen}
+        value={editNameDialog.value}
+        onChange={editNameDialog.setValue}
+        onSave={editNameDialog.handleSave}
+        isPending={editNameDialog.isPending}
+        inputRef={editNameDialog.inputRef}
+      />
 
       <form onSubmit={handleAddItem} className="mb-4">
         <div className="flex gap-1 items-center">
@@ -139,19 +87,11 @@ export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }
         </div>
       </form>
 
-      {isLoading && (
-        <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading...</div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-          Failed to load items. Please try again later.
-        </div>
-      )}
-
-      {items && items.length === 0 && (
-        <div className="text-center py-8 text-gray-600 dark:text-gray-400">No items yet.</div>
-      )}
+      <ListItemsStatus
+        isLoading={isLoading}
+        error={error}
+        isEmpty={!!items && items.length === 0}
+      />
 
       {items && items.length > 0 && (
         <ul>

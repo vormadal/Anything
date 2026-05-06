@@ -2,13 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Check } from "lucide-react";
 import {
   useShoppingListItems,
@@ -16,6 +9,8 @@ import {
   useCompleteShoppingList,
 } from "@/hooks/useShoppingLists";
 import { toast } from "sonner";
+import { ListItemsStatus } from "@/components/ListItemsStatus";
+import { CompleteListDialog } from "@/components/CompleteListDialog";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 
 interface Props {
@@ -46,7 +41,6 @@ export function GeneralChecklistView({ listId }: Props) {
   };
 
   const handleCompleteList = async (markUnchecked: boolean) => {
-    setConfirmDialogOpen(false);
     try {
       await completeList.mutateAsync({ id: listId, markUnchecked });
       toast.success("List completed!");
@@ -65,53 +59,21 @@ export function GeneralChecklistView({ listId }: Props) {
 
   return (
     <>
-      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Complete list?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            There {uncheckedItems.length === 1 ? "is" : "are"}{" "}
-            {uncheckedItems.length} unchecked{" "}
-            {uncheckedItems.length === 1 ? "item" : "items"} remaining. Would
-            you like to mark{" "}
-            {uncheckedItems.length === 1 ? "it" : "them"} as complete too?
-          </p>
-          <DialogFooter className="flex gap-2 sm:flex-row flex-col">
-            <Button
-              variant="outline"
-              onClick={() => handleCompleteList(false)}
-              disabled={completeList.isPending}
-            >
-              No, keep them
-            </Button>
-            <Button
-              onClick={() => handleCompleteList(true)}
-              disabled={completeList.isPending}
-            >
-              Yes, mark all complete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CompleteListDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        title="Complete list?"
+        uncheckedCount={uncheckedItems.length}
+        isPending={completeList.isPending}
+        onKeep={() => { setConfirmDialogOpen(false); handleCompleteList(false); }}
+        onComplete={() => { setConfirmDialogOpen(false); handleCompleteList(true); }}
+      />
 
-      {isLoading && (
-        <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-          Loading...
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-          Failed to load items. Please try again later.
-        </div>
-      )}
-
-      {items && items.length === 0 && (
-        <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-          No items yet.
-        </div>
-      )}
+      <ListItemsStatus
+        isLoading={isLoading}
+        error={error}
+        isEmpty={!!items && items.length === 0}
+      />
 
       {items && items.length > 0 && (
         <>
