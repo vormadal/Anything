@@ -63,7 +63,7 @@ public class AddRecipeToShoppingListHandler(
 
         var ingredientNamesLower = grouped.Select(g => g.Name.ToLower()).ToHashSet();
         var existingRecommendations = await recommendationRepository.Query()
-            .Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId && ingredientNamesLower.Contains(r.Name.ToLower()))
+            .Where(r => r.HouseholdId == householdContext.HouseholdId && ingredientNamesLower.Contains(r.Name.ToLower()))
             .Select(r => r.Name.ToLower())
             .ToHashSetAsync(ct);
 
@@ -101,7 +101,6 @@ public class AddRecipeToShoppingListHandler(
                 {
                     HouseholdId = householdContext.HouseholdId,
                     Name = name,
-                    IsApproved = false,
                     CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
                 existingRecommendations.Add(nameKey);

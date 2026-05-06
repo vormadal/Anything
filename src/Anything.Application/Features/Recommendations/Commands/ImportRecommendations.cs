@@ -25,7 +25,7 @@ public class ImportRecommendationsHandler(
             .ToDictionaryAsync(c => c.Name, ct);
 
         var recommendations = await recommendationRepository.Query()
-            .Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .Where(r => r.HouseholdId == householdContext.HouseholdId)
             .ToDictionaryAsync(r => r.Name, ct);
 
         var maxCategorySortOrder = categories.Values.Select(c => (int?)c.SortOrder).Max() ?? -1;
@@ -69,7 +69,6 @@ public class ImportRecommendationsHandler(
                     HouseholdId = householdContext.HouseholdId,
                     Name = item.Name,
                     PreferredUnit = item.PreferredUnit,
-                    IsApproved = true,
                     Category = category,
                     CreatedOn = now,
                 });

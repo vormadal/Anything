@@ -103,7 +103,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AddShoppingListItem_CreatesAutoApprovedRecommendation()
+    public async Task AddShoppingListItem_CreatesRecommendation()
     {
         var listId = await CreateShoppingListAsync("Test List");
         await AddShoppingListItemAsync(listId, "Milk");
@@ -114,31 +114,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
         Assert.NotNull(result);
-        // Milk is auto-approved, should appear in approved list
-        Assert.Contains(result, r => r.Name == "Milk" && r.IsApproved);
-    }
-
-    // --- GET /api/shopping-list-recommendations/pending ---
-
-    [Fact]
-    public async Task GetPendingRecommendations_WhenEmpty_ReturnsEmptyList()
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.GetAsync("/api/shopping-list-recommendations/pending");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GetPendingRecommendations_RequiresAdminRole()
-    {
-        var userClient = await GetUserHttpClientAsync();
-        var response = await userClient.GetAsync("/api/shopping-list-recommendations/pending");
-
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Contains(result, r => r.Name == "Milk");
     }
 
     // --- GET /api/shopping-list-recommendations/all ---
@@ -154,7 +130,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
 
         Assert.NotNull(result);
-        Assert.Contains(result, r => r.Name == "Bread" && r.IsApproved);
+        Assert.Contains(result, r => r.Name == "Bread");
     }
 
     [Fact]
@@ -175,22 +151,21 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AddShoppingListItem_DoesNotCreateRecommendation_WhenDeletedOneExists()
+    public async Task AddShoppingListItem_CreatesNewRecommendation_AfterExistingOneDeleted()
     {
         // Create and delete a recommendation
         var rec = await CreateRecommendationAsync("Flour");
         var client = await GetAuthenticatedHttpClientAsync();
         await client.DeleteAsync($"/api/shopping-list-recommendations/{rec.Id}");
 
-        // Adding a shopping list item with same name should not create a new recommendation
+        // Adding a shopping list item with same name should create a new recommendation
         var listId = await CreateShoppingListAsync("Test List");
         await AddShoppingListItemAsync(listId, "Flour");
 
         var response = await client.GetAsync("/api/shopping-list-recommendations/all");
         var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
         Assert.NotNull(result);
-        // No active (non-deleted) recommendation should exist
-        Assert.Empty(result.Where(r => r.Name == "Flour"));
+        Assert.Contains(result, r => r.Name == "Flour");
     }
 
     // --- GET /api/shopping-list-recommendations/uncategorized ---
@@ -227,42 +202,6 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
         Assert.NotNull(result);
         Assert.DoesNotContain(result, r => r.Name == "Categorized Item");
-    }
-
-    // --- POST /api/shopping-list-recommendations/{id}/approve ---
-
-    [Fact]
-    public async Task ApproveRecommendation_OnAlreadyApproved_ReturnsNoContent()
-    {
-        // Since items are auto-approved, approve on an already-approved item is idempotent
-        var rec = await CreateRecommendationAsync("Butter");
-
-        var client = await GetAuthenticatedHttpClientAsync();
-        var approveResponse = await client.PostAsync($"/api/shopping-list-recommendations/{rec.Id}/approve", null);
-        Assert.Equal(HttpStatusCode.NoContent, approveResponse.StatusCode);
-
-        var approvedResponse = await client.GetAsync("/api/shopping-list-recommendations");
-        var approved = await approvedResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
-        Assert.NotNull(approved);
-        Assert.Contains(approved, r => r.Name == "Butter" && r.IsApproved);
-    }
-
-    [Fact]
-    public async Task ApproveRecommendation_RequiresAdminRole()
-    {
-        var rec = await CreateRecommendationAsync("Cheese");
-
-        var userClient = await GetUserHttpClientAsync();
-        var approveResponse = await userClient.PostAsync($"/api/shopping-list-recommendations/{rec.Id}/approve", null);
-        Assert.Equal(HttpStatusCode.Forbidden, approveResponse.StatusCode);
-    }
-
-    [Fact]
-    public async Task ApproveRecommendation_ReturnsNotFoundForNonExistentId()
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsync("/api/shopping-list-recommendations/99999/approve", null);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     // --- DELETE /api/shopping-list-recommendations/{id} ---
@@ -399,7 +338,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         var getResponse = await client.GetAsync("/api/shopping-list-recommendations");
         var result = await getResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
         Assert.NotNull(result);
-        Assert.Contains(result, r => r.Name == "Tomato" && r.IsApproved);
+        Assert.Contains(result, r => r.Name == "Tomato");
     }
 
     [Fact]
@@ -504,7 +443,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);
-    private record RecommendationDto(int Id, string? Name, bool IsApproved, int? CategoryId = null);
+    private record RecommendationDto(int Id, string? Name, int? CategoryId = null);
     private record CategoryDto(int Id, string Name, int SortOrder);
     private record ExportDto(List<ExportRecommendationItem> Recommendations);
     private record ExportRecommendationItem(string Name, string? PreferredUnit, string? Category);

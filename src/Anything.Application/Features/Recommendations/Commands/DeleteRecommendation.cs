@@ -9,18 +9,18 @@ namespace Anything.Application.Features.Recommendations.Commands;
 
 public record DeleteRecommendationCommand(int Id) : IRequest<IResult>;
 
-public class DeleteRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider)
+public class DeleteRecommendationHandler(IRepository<ShoppingListRecommendation> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork)
     : IRequestHandler<DeleteRecommendationCommand, IResult>
 {
     public async Task<IResult> Handle(DeleteRecommendationCommand command, CancellationToken ct = default)
     {
         var recommendation = await repository.Query()
-            .Where(r => r.Id == command.Id && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .Where(r => r.Id == command.Id && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (recommendation is null)
             return Results.NotFound(RecommendationErrors.NotFound);
 
-        recommendation.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
+        repository.Remove(recommendation);
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }

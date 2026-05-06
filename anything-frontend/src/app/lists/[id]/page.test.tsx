@@ -44,7 +44,7 @@ jest.mock('sonner', () => ({
 }))
 
 jest.mock('@/hooks/useRecommendations', () => ({
-  useApprovedRecommendations: () => ({ data: [] }),
+  useRecommendations: () => ({ data: [] }),
 }))
 
 describe('ListDetailPage', () => {

@@ -55,7 +55,7 @@ import {
   useReorderRecipeSteps,
   useReimportRecipe,
 } from "@/hooks/useRecipes";
-import { useApprovedRecommendations } from "@/hooks/useRecommendations";
+import { useRecommendations } from "@/hooks/useRecommendations";
 import { RecipeImageUpload } from "@/components/RecipeImageUpload";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -238,7 +238,7 @@ export default function RecipeEditPage() {
   const { data: steps } = useRecipeSteps(recipeId);
   const { data: images } = useRecipeImages(recipeId);
   const { data: tags } = useRecipeTags(recipeId);
-  const { data: recommendations } = useApprovedRecommendations();
+  const { data: recommendations } = useRecommendations();
 
   const effectiveEditName = editName ?? (recipe?.name ?? "");
   const effectiveEditLink = editLink ?? (recipe?.link ?? "");

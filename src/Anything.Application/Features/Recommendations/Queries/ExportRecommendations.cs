@@ -15,7 +15,7 @@ public class ExportRecommendationsHandler(IRepository<ShoppingListRecommendation
     public async Task<ExportRecommendationsResponse> Handle(ExportRecommendationsQuery query, CancellationToken ct = default)
     {
         var items = await repository.Query()
-            .Where(r => r.IsApproved && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .Where(r => r.HouseholdId == householdContext.HouseholdId)
             .OrderBy(r => r.Name)
             .Select(r => new RecommendationImportExportItem(
                 r.Name,

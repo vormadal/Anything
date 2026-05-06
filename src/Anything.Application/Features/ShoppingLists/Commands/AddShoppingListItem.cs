@@ -54,7 +54,6 @@ public class AddShoppingListItemHandler(
                 {
                     HouseholdId = householdContext.HouseholdId,
                     Name = nameNormalized,
-                    IsApproved = true,
                     CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
             }

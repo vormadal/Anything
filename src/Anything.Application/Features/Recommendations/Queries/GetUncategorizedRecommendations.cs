@@ -14,7 +14,7 @@ public class GetUncategorizedRecommendationsHandler(IRepository<ShoppingListReco
     public async Task<List<ShoppingListRecommendation>> Handle(GetUncategorizedRecommendationsQuery query, CancellationToken ct = default)
     {
         return await repository.Query()
-            .Where(r => r.DeletedOn == null && r.CategoryId == null && r.HouseholdId == householdContext.HouseholdId)
+            .Where(r => r.CategoryId == null && r.HouseholdId == householdContext.HouseholdId)
             .OrderBy(r => r.Name)
             .ToListAsync(ct);
     }
