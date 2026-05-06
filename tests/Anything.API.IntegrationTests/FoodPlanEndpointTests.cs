@@ -289,7 +289,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync("/api/food-plan/entries",
             new { name = "Spaghetti Dinner", recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
 
-        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/checklists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(shoppingList);
 
@@ -297,7 +297,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
             new { shoppingListId = shoppingList.Id, startDate = date, endDate = date }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
+        var itemsResponse = await client.GetAsync($"/api/checklists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
@@ -318,7 +318,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync("/api/food-plan/entries",
             new { name = "Pasta Dinner", recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
 
-        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/checklists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(shoppingList);
 
@@ -353,7 +353,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync("/api/food-plan/entries",
             new { name = "Tuesday", recipeId = recipe2.Id, date = tuesday }, TestContext.Current.CancellationToken);
 
-        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/checklists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(shoppingList);
 
@@ -361,7 +361,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
             new { shoppingListId = shoppingList.Id, startDate = monday, endDate = tuesday }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
+        var itemsResponse = await client.GetAsync($"/api/checklists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         // Each recipe contributes its own row so the frontend can show per-recipe amounts
@@ -391,7 +391,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync("/api/food-plan/entries",
             new { name = "Tuesday", recipeId = recipe2.Id, date = tuesday }, TestContext.Current.CancellationToken);
 
-        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/checklists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(shoppingList);
 
@@ -399,7 +399,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
             new { shoppingListId = shoppingList.Id, startDate = monday, endDate = tuesday }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
+        var itemsResponse = await client.GetAsync($"/api/checklists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         Assert.Equal(2, items.Length);
@@ -432,7 +432,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         await client.PostAsJsonAsync("/api/food-plan/entries",
             new { name = "Pasta Dinner", recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
 
-        var shoppingListResponse = await client.PostAsJsonAsync("/api/shopping-lists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/checklists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
         var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(shoppingList);
 
@@ -446,7 +446,7 @@ public class FoodPlanEndpointTests : IntegrationTestBase
             }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        var itemsResponse = await client.GetAsync($"/api/shopping-lists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
+        var itemsResponse = await client.GetAsync($"/api/checklists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
         var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(items);
         Assert.Single(items);

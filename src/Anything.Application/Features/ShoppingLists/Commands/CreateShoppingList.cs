@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.ShoppingLists.Commands;
 
-public record CreateShoppingListCommand(string Name) : IRequest<ShoppingList>;
+public record CreateShoppingListCommand(string Name, ListType Type = ListType.Shopping) : IRequest<ShoppingList>;
 
 public class CreateShoppingListHandler(IRepository<ShoppingList> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider, IRealtimeNotifier realtimeNotifier)
     : IRequestHandler<CreateShoppingListCommand, ShoppingList>
@@ -23,6 +23,7 @@ public class CreateShoppingListHandler(IRepository<ShoppingList> repository, IHo
         {
             HouseholdId = householdContext.HouseholdId,
             Name = command.Name,
+            Type = command.Type,
             SortOrder = lastList == null ? 0 : lastList.SortOrder + 1,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };

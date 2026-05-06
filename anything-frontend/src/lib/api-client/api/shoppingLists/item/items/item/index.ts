@@ -7,7 +7,7 @@ import { createHttpValidationProblemDetailsFromDiscriminatorValue, serializeUpda
 import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
- * Builds and executes requests for operations under /api/shopping-lists/{id}/items/{itemId}
+ * Builds and executes requests for operations under /api/checklists/{id}/items/{itemId}
  */
 export interface WithItemItemRequestBuilder extends BaseRequestBuilder<WithItemItemRequestBuilder> {
     /**
@@ -35,7 +35,7 @@ export interface WithItemItemRequestBuilder extends BaseRequestBuilder<WithItemI
 /**
  * Uri template for the request builder.
  */
-export const WithItemItemRequestBuilderUriTemplate = "{+baseurl}/api/shopping-lists/{id}/items/{itemId}";
+export const WithItemItemRequestBuilderUriTemplate = "{+baseurl}/api/checklists/{id}/items/{itemId}";
 /**
  * Metadata for all the requests in the request builder.
  */

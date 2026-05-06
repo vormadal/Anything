@@ -11,7 +11,7 @@ public static class ShoppingListEndpoints
 {
     public static void MapShoppingListEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/shopping-lists");
+        var group = app.MapGroup("/api/checklists");
 
         group.MapGet("/", async (IMediator mediator) =>
         {
@@ -31,8 +31,8 @@ public static class ShoppingListEndpoints
 
         group.MapPost("/", async (CreateShoppingListRequest request, IMediator mediator) =>
         {
-            var result = await mediator.Send(new CreateShoppingListCommand(request.Name));
-            return Results.Created($"/api/shopping-lists/{result.Id}", result);
+            var result = await mediator.Send(new CreateShoppingListCommand(request.Name, (ListType)request.Type));
+            return Results.Created($"/api/checklists/{result.Id}", result);
         })
         .WithName("CreateShoppingList")
         .Produces<ShoppingList>(StatusCodes.Status201Created)
@@ -45,6 +45,16 @@ public static class ShoppingListEndpoints
         })
         .WithName("ReorderShoppingLists")
         .Produces(204)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapPut("/{id}/type", async (int id, ConvertShoppingListTypeRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ConvertShoppingListTypeCommand(id, (ListType)request.Type));
+        })
+        .WithName("ConvertShoppingListType")
+        .Produces(204)
+        .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();
 

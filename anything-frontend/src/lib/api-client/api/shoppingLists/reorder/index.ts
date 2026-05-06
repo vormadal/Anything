@@ -7,7 +7,7 @@ import { createHttpValidationProblemDetailsFromDiscriminatorValue, serializeReor
 import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
- * Builds and executes requests for operations under /api/shopping-lists/reorder
+ * Builds and executes requests for operations under /api/checklists/reorder
  */
 export interface ReorderRequestBuilder extends BaseRequestBuilder<ReorderRequestBuilder> {
     /**
@@ -26,7 +26,7 @@ export interface ReorderRequestBuilder extends BaseRequestBuilder<ReorderRequest
 /**
  * Uri template for the request builder.
  */
-export const ReorderRequestBuilderUriTemplate = "{+baseurl}/api/shopping-lists/reorder";
+export const ReorderRequestBuilderUriTemplate = "{+baseurl}/api/checklists/reorder";
 /**
  * Metadata for all the requests in the request builder.
  */

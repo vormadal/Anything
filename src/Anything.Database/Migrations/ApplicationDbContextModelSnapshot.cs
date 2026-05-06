@@ -738,6 +738,11 @@ namespace Anything.Database.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasSentinel(1);
+
                     b.HasKey("Id");
 
                     b.HasIndex("HouseholdId");

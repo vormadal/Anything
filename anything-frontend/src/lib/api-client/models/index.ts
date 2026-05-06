@@ -1106,6 +1106,10 @@ export interface CreateShoppingListRequest extends Parsable {
      * The name property
      */
     name?: string | null;
+    /**
+     * The type property
+     */
+    type?: number | null;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1729,6 +1733,7 @@ export function deserializeIntoCreateShoppingListItemRequest(createShoppingListI
 export function deserializeIntoCreateShoppingListRequest(createShoppingListRequest: Partial<CreateShoppingListRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { createShoppingListRequest.name = n.getStringValue(); },
+        "type": n => { createShoppingListRequest.type = n.getNumberValue(); },
     }
 }
 /**
@@ -2235,6 +2240,7 @@ export function deserializeIntoShoppingList(shoppingList: Partial<ShoppingList> 
         "modifiedOn": n => { shoppingList.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingList.name = n.getStringValue(); },
         "sortOrder": n => { shoppingList.sortOrder = n.getNumberValue(); },
+        "type": n => { shoppingList.type = n.getNumberValue(); },
     }
 }
 /**
@@ -2290,6 +2296,7 @@ export function deserializeIntoShoppingListResponse(shoppingListResponse: Partia
         "modifiedOn": n => { shoppingListResponse.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingListResponse.name = n.getStringValue(); },
         "uncheckedItemCount": n => { shoppingListResponse.uncheckedItemCount = n.getNumberValue(); },
+        "type": n => { shoppingListResponse.type = n.getNumberValue(); },
     }
 }
 /**
@@ -3583,6 +3590,7 @@ export function serializeCreateShoppingListItemRequest(writer: SerializationWrit
 export function serializeCreateShoppingListRequest(writer: SerializationWriter, createShoppingListRequest: Partial<CreateShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createShoppingListRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", createShoppingListRequest.name);
+    writer.writeNumberValue("type", createShoppingListRequest.type);
 }
 /**
  * Serializes information the current object
@@ -4091,6 +4099,7 @@ export function serializeShoppingList(writer: SerializationWriter, shoppingList:
     writer.writeDateValue("modifiedOn", shoppingList.modifiedOn);
     writer.writeStringValue("name", shoppingList.name);
     writer.writeNumberValue("sortOrder", shoppingList.sortOrder);
+    writer.writeNumberValue("type", shoppingList.type);
 }
 /**
  * Serializes information the current object
@@ -4146,6 +4155,7 @@ export function serializeShoppingListResponse(writer: SerializationWriter, shopp
     writer.writeDateValue("modifiedOn", shoppingListResponse.modifiedOn);
     writer.writeStringValue("name", shoppingListResponse.name);
     writer.writeNumberValue("uncheckedItemCount", shoppingListResponse.uncheckedItemCount);
+    writer.writeNumberValue("type", shoppingListResponse.type);
 }
 /**
  * Serializes information the current object
@@ -4470,6 +4480,10 @@ export interface ShoppingList extends Parsable {
      * The sortOrder property
      */
     sortOrder?: number | null;
+    /**
+     * The type property
+     */
+    type?: number | null;
 }
 export interface ShoppingListItem extends Parsable {
     /**
@@ -4576,6 +4590,10 @@ export interface ShoppingListResponse extends Parsable {
      * The uncheckedItemCount property
      */
     uncheckedItemCount?: number | null;
+    /**
+     * The type property
+     */
+    type?: number | null;
 }
 export interface Something extends Parsable {
     /**

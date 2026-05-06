@@ -6,4 +6,5 @@ public record ShoppingListResponse(
     DateTime CreatedOn,
     DateTime? ModifiedOn,
     DateTime? DeletedOn,
-    int UncheckedItemCount);
+    int UncheckedItemCount,
+    int Type);

@@ -16,8 +16,8 @@ export function useCreateShoppingList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (list: { name: string }) =>
-      apiClient.api.shoppingLists.post({ name: list.name }),
+    mutationFn: (list: { name: string; type?: number }) =>
+      apiClient.api.shoppingLists.post({ name: list.name, type: list.type ?? 1 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
     },
@@ -128,6 +128,19 @@ export function useRemoveShoppingListItem(listId: number) {
       apiClient.api.shoppingLists.byId(listId).items.byItemId(itemId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
+    },
+  });
+}
+
+export function useConvertShoppingListType() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, type }: { id: number; type: number }) =>
+      apiClient.api.shoppingLists.byId(id).type.put({ type }),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
     },
   });
 }

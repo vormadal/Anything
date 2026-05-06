@@ -43,10 +43,12 @@ const FIXED_DATE = new Date("2025-01-15T10:00:00");
 // ---------------------------------------------------------------------------
 
 const mockShoppingLists = [
-  { id: 1, name: "Weekly Groceries", uncheckedItemCount: 5, deletedOn: null },
-  { id: 2, name: "Party Supplies", uncheckedItemCount: 2, deletedOn: null },
-  { id: 3, name: "Hardware Store", uncheckedItemCount: 0, deletedOn: null },
+  { id: 1, name: "Weekly Groceries", uncheckedItemCount: 5, deletedOn: null, type: 1 },
+  { id: 2, name: "Party Supplies", uncheckedItemCount: 2, deletedOn: null, type: 1 },
+  { id: 3, name: "Hardware Store", uncheckedItemCount: 0, deletedOn: null, type: 0 },
 ];
+
+const mockGeneralList = { id: 3, name: "Hardware Store", uncheckedItemCount: 0, deletedOn: null, type: 0 };
 
 const mockShoppingListItems = [
   { id: 1, listId: 1, name: "Milk", amount: null, unit: null, isChecked: false, completedOn: null, addedByRecipe: null, shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
@@ -55,6 +57,12 @@ const mockShoppingListItems = [
   { id: 4, listId: 1, name: "Spaghetti", amount: 500, unit: "g", isChecked: false, completedOn: null, addedByRecipe: "Pasta Carbonara", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
   { id: 5, listId: 1, name: "Chicken breast", amount: 600, unit: "g", isChecked: false, completedOn: null, addedByRecipe: "Chicken Stir Fry", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
   { id: 6, listId: 1, name: "Eggs", amount: 6, unit: null, isChecked: false, completedOn: null, addedByRecipe: "Chicken Stir Fry", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+];
+
+const mockGeneralChecklistItems = [
+  { id: 10, name: "Buy nails", amount: null, unit: null, isChecked: false, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 11, name: "Get a hammer", amount: null, unit: null, isChecked: true, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 12, name: "Measure twice", amount: null, unit: null, isChecked: false, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
 ];
 
 const mockBills = [
@@ -173,16 +181,22 @@ async function setupApiMocks(page: Page) {
   // The backend uses kebab-case URL paths (e.g. /api/shopping-lists) which is
   // what the Kiota-generated client sends; camelCase aliases do not exist.
 
-  // ---- Shopping lists ----
-  await page.route("**/api/shopping-lists**", (route) => {
+  // ---- Lists (checklists) ----
+  await page.route("**/api/checklists**", (route) => {
     if (route.request().method() === "GET") {
       route.fulfill({ json: mockShoppingLists });
     } else {
       route.continue();
     }
   });
-  await page.route(/\/api\/shopping-lists\/\d+\/items/, (route) =>
+  await page.route(/\/api\/checklists\/\d+\/items/, (route) =>
     route.fulfill({ json: mockShoppingListItems })
+  );
+  await page.route(/\/api\/checklists\/1$/, (route) =>
+    route.fulfill({ json: { id: 1, name: "Weekly Groceries", type: 1, deletedOn: null } })
+  );
+  await page.route(/\/api\/checklists\/3$/, (route) =>
+    route.fulfill({ json: mockGeneralList })
   );
 
   // ---- Bills ----
@@ -315,7 +329,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.route("**/api/food-plan/entries**", (route) =>
       route.fulfill({ json: [] })
     );
-    await page.route("**/api/shopping-lists**", (route) => {
+    await page.route("**/api/checklists**", (route) => {
       if (route.request().method() === "GET") {
         route.fulfill({ json: [] });
       } else {
@@ -338,49 +352,61 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-empty.png", screenshotOptions);
   });
 
-  // ---- Shopping Lists ----
+  // ---- Lists ----
 
-  test("shopping lists - with items", async ({ page }) => {
-    await page.goto("/shopping-lists");
+  test("lists - with items", async ({ page }) => {
+    await page.goto("/lists");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "shopping-lists-with-items.png",
+      "lists-with-items.png",
       screenshotOptions
     );
   });
 
-  test("shopping lists - empty state", async ({ page }) => {
-    await page.route("**/api/shopping-lists**", (route) => {
+  test("lists - empty state", async ({ page }) => {
+    await page.route("**/api/checklists**", (route) => {
       if (route.request().method() === "GET") {
         route.fulfill({ json: [] });
       } else {
         route.continue();
       }
     });
-    await page.goto("/shopping-lists");
+    await page.goto("/lists");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "shopping-lists-empty.png",
+      "lists-empty.png",
       screenshotOptions
     );
   });
 
   test("shopping list detail", async ({ page }) => {
-    await page.goto("/shopping-lists/1");
+    await page.goto("/lists/1");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "shopping-list-detail.png",
+      "list-detail.png",
       screenshotOptions
     );
   });
 
   test("shopping list detail - grouped by recipe view", async ({ page }) => {
-    await page.goto("/shopping-lists/1");
+    await page.goto("/lists/1");
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "Group by recipe" }).click();
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "shopping-list-detail-grouped.png",
+      "list-detail-grouped.png",
+      screenshotOptions
+    );
+  });
+
+  test("general checklist detail", async ({ page }) => {
+    await page.route(/\/api\/checklists\/3\/items/, (route) =>
+      route.fulfill({ json: mockGeneralChecklistItems })
+    );
+    await page.goto("/lists/3");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "list-detail-general.png",
       screenshotOptions
     );
   });

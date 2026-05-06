@@ -61,7 +61,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     private async Task<int> CreateShoppingListAsync(string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var response = await client.PostAsJsonAsync("/api/shopping-lists", new { name });
+        var response = await client.PostAsJsonAsync("/api/checklists", new { name });
         var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions);
         return result!.Id;
     }
@@ -69,7 +69,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     private async Task AddShoppingListItemAsync(int listId, string itemName)
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        await client.PostAsJsonAsync($"/api/shopping-lists/{listId}/items", new { name = itemName });
+        await client.PostAsJsonAsync($"/api/checklists/{listId}/items", new { name = itemName });
     }
 
     private async Task<RecommendationDto> CreateRecommendationAsync(string name, string? preferredUnit = null)

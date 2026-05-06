@@ -105,7 +105,24 @@ describe('useShoppingLists hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockPost).toHaveBeenCalledWith({ name: 'Groceries' })
+      expect(mockPost).toHaveBeenCalledWith({ name: 'Groceries', type: 1 })
+    })
+
+    it('should create a general checklist with type 0', async () => {
+      const mockResponse = { id: 2, name: 'My Checklist', createdOn: '2024-01-01T00:00:00Z' }
+      mockPost.mockResolvedValueOnce(mockResponse)
+
+      const { result } = renderHook(() => useCreateShoppingList(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ name: 'My Checklist', type: 0 })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockPost).toHaveBeenCalledWith({ name: 'My Checklist', type: 0 })
     })
 
     it('should handle create error', async () => {

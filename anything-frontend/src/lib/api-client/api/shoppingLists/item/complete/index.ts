@@ -7,7 +7,7 @@ import { createCompleteShoppingListRequestFromDiscriminatorValue, serializeCompl
 import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
- * Builds and executes requests for operations under /api/shopping-lists/{id}/complete
+ * Builds and executes requests for operations under /api/checklists/{id}/complete
  */
 export interface CompleteRequestBuilder extends BaseRequestBuilder<CompleteRequestBuilder> {
     /**
@@ -26,7 +26,7 @@ export interface CompleteRequestBuilder extends BaseRequestBuilder<CompleteReque
 /**
  * Uri template for the request builder.
  */
-export const CompleteRequestBuilderUriTemplate = "{+baseurl}/api/shopping-lists/{id}/complete";
+export const CompleteRequestBuilderUriTemplate = "{+baseurl}/api/checklists/{id}/complete";
 /**
  * Metadata for all the requests in the request builder.
  */

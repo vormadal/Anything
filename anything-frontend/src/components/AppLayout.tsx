@@ -17,7 +17,7 @@ import {
   Menu,
   ArrowLeft,
   Home,
-  ShoppingCart,
+  LayoutList,
   CookingPot,
   Shield,
   LogOut,
@@ -42,7 +42,7 @@ const PUBLIC_PATHS = ["/login", "/register"];
 
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home },
-  { label: "Shopping Lists", path: "/shopping-lists", icon: ShoppingCart },
+  { label: "Lists", path: "/lists", icon: LayoutList },
   { label: "Recipes", path: "/recipes", icon: CookingPot },
   { label: "Food Plan", path: "/food-plans", icon: CalendarDays },
   { label: "Bills", path: "/bills", icon: Receipt },
