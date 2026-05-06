@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import {
@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
 import type { ShoppingList } from "@/lib/api-client/models/index";
-import { useState } from "react";
 
 interface Props {
   listId: number;

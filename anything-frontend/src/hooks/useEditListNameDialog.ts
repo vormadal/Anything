@@ -32,7 +32,7 @@ export function useEditListNameDialog(
 
   const handleSave = async () => {
     const trimmed = value.trim();
-    if (!trimmed || trimmed === (listName ?? undefined)) {
+    if (!trimmed || trimmed === (listName ?? "")) {
       setOpen(false);
       return;
     }
