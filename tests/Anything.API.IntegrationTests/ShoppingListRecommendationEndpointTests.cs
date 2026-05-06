@@ -83,7 +83,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     // --- GET /api/shopping-list-recommendations ---
 
     [Fact]
-    public async Task GetApprovedRecommendations_WhenEmpty_ReturnsEmptyList()
+    public async Task GetRecommendations_WhenEmpty_ReturnsEmptyList()
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.GetAsync("/api/shopping-list-recommendations");
@@ -95,7 +95,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task GetApprovedRecommendations_RequiresAuthentication()
+    public async Task GetRecommendations_RequiresAuthentication()
     {
         var response = await HttpClient.GetAsync("/api/shopping-list-recommendations");
 
