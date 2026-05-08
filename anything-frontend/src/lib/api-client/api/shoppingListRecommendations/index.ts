@@ -8,8 +8,6 @@ import { AllRequestBuilderRequestsMetadata, type AllRequestBuilder } from './all
 // @ts-ignore
 import { ShoppingListRecommendationsItemRequestBuilderNavigationMetadata, ShoppingListRecommendationsItemRequestBuilderRequestsMetadata, type ShoppingListRecommendationsItemRequestBuilder } from './item/index';
 // @ts-ignore
-import { PendingRequestBuilderRequestsMetadata, type PendingRequestBuilder } from './pending/index';
-// @ts-ignore
 import { type UncategorizedRequestBuilder, UncategorizedRequestBuilderRequestsMetadata } from './uncategorized/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
@@ -22,10 +20,6 @@ export interface ShoppingListRecommendationsRequestBuilder extends BaseRequestBu
      * The all property
      */
     get all(): AllRequestBuilder;
-    /**
-     * The pending property
-     */
-    get pending(): PendingRequestBuilder;
     /**
      * The uncategorized property
      */
@@ -75,9 +69,6 @@ export const ShoppingListRecommendationsRequestBuilderNavigationMetadata: Record
     },
     all: {
         requestsMetadata: AllRequestBuilderRequestsMetadata,
-    },
-    pending: {
-        requestsMetadata: PendingRequestBuilderRequestsMetadata,
     },
     uncategorized: {
         requestsMetadata: UncategorizedRequestBuilderRequestsMetadata,

@@ -11,6 +11,12 @@ namespace Anything.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Hard-delete any soft-deleted recommendations before dropping the column and
+            // creating the new unique index; without this step they would become
+            // indistinguishable from active recommendations and could violate the index.
+            migrationBuilder.Sql(
+                "DELETE FROM \"ShoppingListRecommendations\" WHERE \"DeletedOn\" IS NOT NULL;");
+
             migrationBuilder.DropIndex(
                 name: "IX_ShoppingListRecommendations_HouseholdId_Name",
                 table: "ShoppingListRecommendations");

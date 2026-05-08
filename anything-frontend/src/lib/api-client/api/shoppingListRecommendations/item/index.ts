@@ -4,18 +4,12 @@
 // @ts-ignore
 import { createHttpValidationProblemDetailsFromDiscriminatorValue, serializeUpdateRecommendationRequest, type HttpValidationProblemDetails, type UpdateRecommendationRequest } from '../../../models/index';
 // @ts-ignore
-import { ApproveRequestBuilderRequestsMetadata, type ApproveRequestBuilder } from './approve/index';
-// @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /api/shopping-list-recommendations/{id}
  */
 export interface ShoppingListRecommendationsItemRequestBuilder extends BaseRequestBuilder<ShoppingListRecommendationsItemRequestBuilder> {
-    /**
-     * The approve property
-     */
-    get approve(): ApproveRequestBuilder;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      */
@@ -46,9 +40,6 @@ export const ShoppingListRecommendationsItemRequestBuilderUriTemplate = "{+baseu
  * Metadata for all the navigation properties in the request builder.
  */
 export const ShoppingListRecommendationsItemRequestBuilderNavigationMetadata: Record<Exclude<keyof ShoppingListRecommendationsItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-    approve: {
-        requestsMetadata: ApproveRequestBuilderRequestsMetadata,
-    },
 };
 /**
  * Metadata for all the requests in the request builder.
