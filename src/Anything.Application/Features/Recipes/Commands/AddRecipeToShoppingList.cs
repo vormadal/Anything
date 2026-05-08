@@ -1,3 +1,4 @@
+using Anything.Application.Features.ShoppingLists;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -62,50 +63,15 @@ public class AddRecipeToShoppingListHandler(
             .ToListAsync(ct);
 
         var ingredientNamesLower = grouped.Select(g => g.Name.ToLower()).ToHashSet();
-        var existingRecommendations = await recommendationRepository.Query()
-            .Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId && ingredientNamesLower.Contains(r.Name.ToLower()))
-            .Select(r => r.Name.ToLower())
-            .ToHashSetAsync(ct);
+        var existingRecommendations = await ShoppingListHelpers.GetExistingRecommendationNamesAsync(
+            recommendationRepository, householdContext.HouseholdId, ingredientNamesLower, ct);
 
         foreach (var (name, amount, unit) in grouped)
         {
-            var nameKey = name.ToLower();
-            var unitKey = (unit ?? "").ToLower();
-            var existing = existingItems.FirstOrDefault(i =>
-                i.Name.Trim().ToLower() == nameKey &&
-                (i.Unit ?? "").Trim().ToLower() == unitKey &&
-                i.AddedByRecipe == recipe.Name);
-
-            if (existing != null)
-            {
-                existing.Amount = amount == null ? existing.Amount : (existing.Amount ?? 0) + amount;
-                existing.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
-                shoppingListItemRepository.Update(existing);
-            }
-            else
-            {
-                shoppingListItemRepository.Add(new ShoppingListItem
-                {
-                    ShoppingListId = command.ShoppingListId,
-                    Name = name,
-                    Amount = amount,
-                    Unit = unit,
-                    AddedByRecipe = recipe.Name,
-                    CreatedOn = timeProvider.GetUtcNow().UtcDateTime
-                });
-            }
-
-            if (!existingRecommendations.Contains(nameKey))
-            {
-                recommendationRepository.Add(new ShoppingListRecommendation
-                {
-                    HouseholdId = householdContext.HouseholdId,
-                    Name = name,
-                    IsApproved = false,
-                    CreatedOn = timeProvider.GetUtcNow().UtcDateTime
-                });
-                existingRecommendations.Add(nameKey);
-            }
+            ShoppingListHelpers.MergeOrAddItem(shoppingListItemRepository, existingItems,
+                command.ShoppingListId, name, amount, unit, recipe.Name, timeProvider.GetUtcNow().UtcDateTime);
+            ShoppingListHelpers.AddRecommendationIfNotExists(recommendationRepository, existingRecommendations,
+                householdContext.HouseholdId, name, timeProvider.GetUtcNow().UtcDateTime);
         }
 
         try

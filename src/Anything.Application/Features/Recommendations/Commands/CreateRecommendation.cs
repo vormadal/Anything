@@ -18,7 +18,6 @@ public class CreateRecommendationHandler(IRepository<ShoppingListRecommendation>
             HouseholdId = householdContext.HouseholdId,
             Name = command.Name,
             PreferredUnit = command.PreferredUnit,
-            IsApproved = true,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime,
         };
         repository.Add(recommendation);

@@ -54,7 +54,7 @@ jest.mock('@/lib/apiClient', () => ({
 }))
 
 jest.mock('@/hooks/useRecommendations', () => ({
-  useApprovedRecommendations: () => ({ data: [] }),
+  useRecommendations: () => ({ data: [] }),
 }))
 
 // Mock next/navigation

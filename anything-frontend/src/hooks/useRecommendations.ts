@@ -7,9 +7,9 @@ import type { ShoppingListRecommendation } from "@/lib/api-client/models/index";
 type RecommendationExportItem = { name: string; preferredUnit?: string | null; category?: string | null };
 type RecommendationExportData = { recommendations: RecommendationExportItem[] };
 
-export function useApprovedRecommendations() {
+export function useRecommendations() {
   return useQuery({
-    queryKey: ["shoppingListRecommendations", "approved"],
+    queryKey: ["shoppingListRecommendations"],
     queryFn: () =>
       apiClient.api.shoppingListRecommendations.get() as Promise<ShoppingListRecommendation[]>,
   });
@@ -32,26 +32,6 @@ export function useUncategorizedRecommendations() {
     queryKey: ["shoppingListRecommendations", "uncategorized"],
     queryFn: () =>
       apiClient.api.shoppingListRecommendations.uncategorized.get() as Promise<ShoppingListRecommendation[]>,
-  });
-}
-
-export function usePendingRecommendations() {
-  return useQuery({
-    queryKey: ["shoppingListRecommendations", "pending"],
-    queryFn: () =>
-      apiClient.api.shoppingListRecommendations.pending.get() as Promise<ShoppingListRecommendation[]>,
-  });
-}
-
-export function useApproveRecommendation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) =>
-      apiClient.api.shoppingListRecommendations.byId(id).approve.post(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
-    },
   });
 }
 

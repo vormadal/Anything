@@ -10,7 +10,7 @@ import {
   useRemoveShoppingListItem,
 } from "@/hooks/useShoppingLists";
 import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
-import { useApprovedRecommendations } from "@/hooks/useRecommendations";
+import { useRecommendations } from "@/hooks/useRecommendations";
 import { toast } from "sonner";
 import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
@@ -43,7 +43,7 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
   const addItem = useAddShoppingListItem(listId);
   const updateItem = useUpdateShoppingListItem(listId);
   const removeItem = useRemoveShoppingListItem(listId);
-  const { data: recommendations } = useApprovedRecommendations();
+  const { data: recommendations } = useRecommendations();
 
   const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
 

@@ -15,7 +15,7 @@ public class UpdateRecommendationHandler(IRepository<ShoppingListRecommendation>
     public async Task<IResult> Handle(UpdateRecommendationCommand command, CancellationToken ct = default)
     {
         var recommendation = await repository.Query()
-            .Where(r => r.Id == command.Id && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
+            .Where(r => r.Id == command.Id && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (recommendation is null)
             return Results.NotFound(RecommendationErrors.NotFound);

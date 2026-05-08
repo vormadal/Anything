@@ -2,30 +2,24 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
 import {
-  useApprovedRecommendations,
+  useRecommendations,
   useAllRecommendations,
-  usePendingRecommendations,
-  useApproveRecommendation,
   useDeleteRecommendation,
   useUpdateRecommendation,
 } from '@/hooks/useRecommendations'
 
-const mockApprovedGet = jest.fn()
-const mockPendingGet = jest.fn()
+const mockGet = jest.fn()
 const mockAllGet = jest.fn()
-const mockApprovePost = jest.fn()
 const mockDeleteFn = jest.fn()
 const mockPutFn = jest.fn()
-const mockApprove = { post: mockApprovePost }
-const mockItemById = jest.fn(() => ({ approve: mockApprove, delete: mockDeleteFn, put: mockPutFn }))
+const mockItemById = jest.fn(() => ({ delete: mockDeleteFn, put: mockPutFn }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
       shoppingListRecommendations: {
-        get: (...args: unknown[]) => mockApprovedGet(...args),
+        get: (...args: unknown[]) => mockGet(...args),
         all: { get: (...args: unknown[]) => mockAllGet(...args) },
-        pending: { get: (...args: unknown[]) => mockPendingGet(...args) },
         byId: (...args: unknown[]) => mockItemById(...args),
       },
     },
@@ -51,27 +45,27 @@ describe('useRecommendations hooks', () => {
     jest.clearAllMocks()
   })
 
-  describe('useApprovedRecommendations', () => {
-    it('fetches approved recommendations', async () => {
+  describe('useRecommendations', () => {
+    it('fetches recommendations', async () => {
       const mockRecommendations = [
-        { id: 1, name: 'Milk', isApproved: true },
-        { id: 2, name: 'Bread', isApproved: true },
+        { id: 1, name: 'Milk' },
+        { id: 2, name: 'Bread' },
       ]
-      mockApprovedGet.mockResolvedValueOnce(mockRecommendations)
+      mockGet.mockResolvedValueOnce(mockRecommendations)
 
-      const { result } = renderHook(() => useApprovedRecommendations(), {
+      const { result } = renderHook(() => useRecommendations(), {
         wrapper: createWrapper(),
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
       expect(result.current.data).toEqual(mockRecommendations)
-      expect(mockApprovedGet).toHaveBeenCalledTimes(1)
+      expect(mockGet).toHaveBeenCalledTimes(1)
     })
 
     it('handles fetch error', async () => {
-      mockApprovedGet.mockRejectedValueOnce(new Error('Network error'))
+      mockGet.mockRejectedValueOnce(new Error('Network error'))
 
-      const { result } = renderHook(() => useApprovedRecommendations(), {
+      const { result } = renderHook(() => useRecommendations(), {
         wrapper: createWrapper(),
       })
 
@@ -82,9 +76,9 @@ describe('useRecommendations hooks', () => {
   describe('useAllRecommendations', () => {
     it('fetches all recommendations ordered alphabetically', async () => {
       const mockAll = [
-        { id: 2, name: 'Bread', isApproved: true },
-        { id: 3, name: 'Cheese', isApproved: false },
-        { id: 1, name: 'Milk', isApproved: true },
+        { id: 2, name: 'Bread' },
+        { id: 3, name: 'Cheese' },
+        { id: 1, name: 'Milk' },
       ]
       mockAllGet.mockResolvedValueOnce(mockAll)
 
@@ -105,54 +99,6 @@ describe('useRecommendations hooks', () => {
       })
 
       await waitFor(() => expect(result.current.isError).toBe(true))
-    })
-  })
-
-  describe('usePendingRecommendations', () => {
-    it('fetches pending recommendations', async () => {
-      const mockPending = [
-        { id: 3, name: 'Cheese', isApproved: false },
-      ]
-      mockPendingGet.mockResolvedValueOnce(mockPending)
-
-      const { result } = renderHook(() => usePendingRecommendations(), {
-        wrapper: createWrapper(),
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(result.current.data).toEqual(mockPending)
-      expect(mockPendingGet).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  describe('useApproveRecommendation', () => {
-    it('calls approve endpoint with correct id', async () => {
-      mockApprovePost.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useApproveRecommendation(), {
-        wrapper: createWrapper(),
-      })
-
-      await act(async () => {
-        await result.current.mutateAsync(1)
-      })
-
-      expect(mockItemById).toHaveBeenCalledWith(1)
-      expect(mockApprovePost).toHaveBeenCalledTimes(1)
-    })
-
-    it('handles approval error', async () => {
-      mockApprovePost.mockRejectedValueOnce(new Error('Forbidden'))
-
-      const { result } = renderHook(() => useApproveRecommendation(), {
-        wrapper: createWrapper(),
-      })
-
-      await expect(
-        act(async () => {
-          await result.current.mutateAsync(1)
-        })
-      ).rejects.toThrow('Forbidden')
     })
   })
 

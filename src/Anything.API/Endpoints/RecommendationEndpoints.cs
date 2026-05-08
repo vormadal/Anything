@@ -16,9 +16,9 @@ public static class RecommendationEndpoints
 
         group.MapGet("/", async (IMediator mediator) =>
         {
-            return await mediator.Send(new GetApprovedRecommendationsQuery());
+            return await mediator.Send(new GetAllRecommendationsQuery());
         })
-        .WithName("GetApprovedRecommendations")
+        .WithName("GetRecommendations")
         .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
         .RequireAuthorization();
 
@@ -47,14 +47,6 @@ public static class RecommendationEndpoints
         .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
         .RequireAuthorization(UserRoles.Admin);
 
-        group.MapGet("/pending", async (IMediator mediator) =>
-        {
-            return await mediator.Send(new GetPendingRecommendationsQuery());
-        })
-        .WithName("GetPendingRecommendations")
-        .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
-        .RequireAuthorization(UserRoles.Admin);
-
         group.MapPut("/{id}", async (int id, [FromBody] UpdateRecommendationRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new UpdateRecommendationCommand(id, request.Name, request.PreferredUnit, request.CategoryId));
@@ -63,15 +55,6 @@ public static class RecommendationEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
-
-        group.MapPost("/{id}/approve", async (int id, IMediator mediator) =>
-        {
-            return await mediator.Send(new ApproveRecommendationCommand(id));
-        })
-        .WithName("ApproveRecommendation")
-        .Produces(StatusCodes.Status204NoContent)
-        .Produces(StatusCodes.Status404NotFound)
         .RequireAuthorization(UserRoles.Admin);
 
         group.MapDelete("/{id}", async (int id, IMediator mediator) =>

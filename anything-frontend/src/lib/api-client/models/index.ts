@@ -2274,9 +2274,7 @@ export function deserializeIntoShoppingListRecommendation(shoppingListRecommenda
         "category": n => { shoppingListRecommendation.category = n.getObjectValue<SuggestionCategory>(createSuggestionCategoryFromDiscriminatorValue); },
         "categoryId": n => { shoppingListRecommendation.categoryId = n.getNumberValue(); },
         "createdOn": n => { shoppingListRecommendation.createdOn = n.getDateValue(); },
-        "deletedOn": n => { shoppingListRecommendation.deletedOn = n.getDateValue(); },
         "id": n => { shoppingListRecommendation.id = n.getNumberValue(); },
-        "isApproved": n => { shoppingListRecommendation.isApproved = n.getBooleanValue(); },
         "modifiedOn": n => { shoppingListRecommendation.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingListRecommendation.name = n.getStringValue(); },
         "preferredUnit": n => { shoppingListRecommendation.preferredUnit = n.getStringValue(); },
@@ -4133,9 +4131,7 @@ export function serializeShoppingListRecommendation(writer: SerializationWriter,
     writer.writeObjectValue<SuggestionCategory>("category", shoppingListRecommendation.category, serializeSuggestionCategory);
     writer.writeNumberValue("categoryId", shoppingListRecommendation.categoryId);
     writer.writeDateValue("createdOn", shoppingListRecommendation.createdOn);
-    writer.writeDateValue("deletedOn", shoppingListRecommendation.deletedOn);
     writer.writeNumberValue("id", shoppingListRecommendation.id);
-    writer.writeBooleanValue("isApproved", shoppingListRecommendation.isApproved);
     writer.writeDateValue("modifiedOn", shoppingListRecommendation.modifiedOn);
     writer.writeStringValue("name", shoppingListRecommendation.name);
     writer.writeStringValue("preferredUnit", shoppingListRecommendation.preferredUnit);
@@ -4541,17 +4537,9 @@ export interface ShoppingListRecommendation extends Parsable {
      */
     createdOn?: Date | null;
     /**
-     * The deletedOn property
-     */
-    deletedOn?: Date | null;
-    /**
      * The id property
      */
     id?: number | null;
-    /**
-     * The isApproved property
-     */
-    isApproved?: boolean | null;
     /**
      * The modifiedOn property
      */

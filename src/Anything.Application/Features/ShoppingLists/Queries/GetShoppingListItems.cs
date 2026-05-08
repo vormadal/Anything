@@ -29,7 +29,7 @@ public class GetShoppingListItemsHandler(
             from item in itemRepository.Query()
             where item.ShoppingListId == query.ShoppingListId && item.CompletedOn == null
             join rec in recommendationRepository.Query()
-                    .Where(r => r.DeletedOn == null && r.HouseholdId == householdId)
+                        .Where(r => r.HouseholdId == householdId)
                 on item.Name.ToLower() equals rec.Name.ToLower() into recs
             from rec in recs.DefaultIfEmpty()
             join cat in categoryRepository.Query().Where(c => c.DeletedOn == null)
