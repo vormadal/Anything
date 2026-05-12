@@ -49,7 +49,7 @@ This is a monorepo containing:
 
 - .NET 10 SDK
 - Node.js 18+ and npm
-- Aspire AppHost project dependencies restore automatically with `dotnet restore`
+- No separate Aspire CLI install is required; run the AppHost with `dotnet run --project src/Anything.AppHost/Anything.AppHost.csproj`
 
 ### Authentication Setup
 
