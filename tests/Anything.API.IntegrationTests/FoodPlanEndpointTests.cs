@@ -335,6 +335,38 @@ public class FoodPlanEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task AddFoodPlanToShoppingList_WhenCalledTwiceForSameDateRange_DoesNotDoubleQuantities()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var recipe = await CreateRecipe("Pasta");
+
+        await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/ingredients",
+            new { name = "Spaghetti", amount = 200, unit = "g" }, TestContext.Current.CancellationToken);
+
+        var date = new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
+        await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = "Pasta Dinner", recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
+
+        var shoppingListResponse = await client.PostAsJsonAsync("/api/checklists", new { name = "Weekly Shopping" }, TestContext.Current.CancellationToken);
+        var shoppingList = await shoppingListResponse.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(shoppingList);
+
+        await client.PostAsJsonAsync("/api/food-plan/add-to-shopping-list",
+            new { shoppingListId = shoppingList.Id, startDate = date, endDate = date }, TestContext.Current.CancellationToken);
+
+        // Second call for the same date range — entries are already marked as added, so nothing changes
+        var secondResponse = await client.PostAsJsonAsync("/api/food-plan/add-to-shopping-list",
+            new { shoppingListId = shoppingList.Id, startDate = date, endDate = date }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, secondResponse.StatusCode);
+
+        var itemsResponse = await client.GetAsync($"/api/checklists/{shoppingList.Id}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(items);
+        Assert.Single(items);
+        Assert.Equal(200, items[0].Amount);
+    }
+
+    [Fact]
     public async Task AddFoodPlanToShoppingList_WhenSameIngredientInMultipleRecipes_KeepsSeparatePerRecipe()
     {
         var client = await GetOrCreateAuthenticatedHttpClient();

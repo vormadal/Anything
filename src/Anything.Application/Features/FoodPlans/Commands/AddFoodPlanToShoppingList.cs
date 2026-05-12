@@ -38,8 +38,11 @@ public class AddFoodPlanToShoppingListHandler(
             return Results.BadRequest("Cannot add food plan to a general checklist.");
 
         var entries = await entryRepository.Query()
-            .Where(e => e.DeletedOn == null && e.HouseholdId == householdContext.HouseholdId && e.Date >= command.StartDate && e.Date <= command.EndDate && e.RecipeId != null)
+            .Where(e => e.DeletedOn == null && e.HouseholdId == householdContext.HouseholdId && e.Date >= command.StartDate && e.Date <= command.EndDate && e.RecipeId != null && e.AddedToShoppingListOn == null)
             .ToListAsync(ct);
+
+        if (entries.Count == 0)
+            return Results.NoContent();
 
         var recipeIds = entries
             .Select(e => e.RecipeId!.Value)
