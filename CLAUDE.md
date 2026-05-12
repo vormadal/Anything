@@ -4,7 +4,7 @@
 
 **Anything** is a monorepo for creating flexible list-based items ("Somethings") — checklists, grocery lists, inventories, expense trackers, etc. It has a .NET 10 backend API and a Next.js 15 frontend.
 
-**If `dotnet`, `ef`, `aspire` is not available**:
+**If `dotnet` or `ef` is not available**:
 - Do NOT attempt workarounds (manual IL, csc, msbuild invocations, etc.)
 - STOP and inform the user that the tool is missing and another approach is required
 
@@ -41,7 +41,7 @@ Anything/
 ## Common Commands
 
 ```bash
-aspire run              # Run with Aspire (starts PostgreSQL, Anything.API and anything-frontend)
+dotnet run --project src/Anything.AppHost/Anything.AppHost.csproj  # Run with Aspire AppHost (starts PostgreSQL, Anything.API and anything-frontend)
 ```
 ### Backend
 

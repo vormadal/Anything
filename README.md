@@ -49,7 +49,7 @@ This is a monorepo containing:
 
 - .NET 10 SDK
 - Node.js 18+ and npm
-- Aspire
+- Aspire AppHost project dependencies restore automatically with `dotnet restore`
 
 ### Authentication Setup
 
@@ -93,7 +93,7 @@ dotnet user-secrets set Parameters:anything-postgres-password {some-strong-passw
 ```
 
 ```bash
-aspire run
+dotnet run --project src/Anything.AppHost/Anything.AppHost.csproj
 ```
 
 ### Database Migrations

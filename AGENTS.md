@@ -3,16 +3,16 @@
 This repository is set up to use Aspire. Aspire is an orchestrator for the entire application and will take care of configuring dependencies, building, and running the application. The resources that make up the application are defined in `apphost.cs` including application code and external dependencies.
 
 ## General recommendations for working with Aspire
-1. Before making any changes always run the apphost using `aspire run` and inspect the state of resources to make sure you are building from a known state.
+1. Before making any changes always run the apphost using `dotnet run --project src/Anything.AppHost/Anything.AppHost.csproj` and inspect the state of resources to make sure you are building from a known state.
 1. Changes to the _apphost.cs_ file will require a restart of the application to take effect.
-2. Make changes incrementally and run the aspire application using the `aspire run` command to validate changes.
+2. Make changes incrementally and run the Aspire application using `dotnet run --project src/Anything.AppHost/Anything.AppHost.csproj` to validate changes.
 3. Use the Aspire MCP tools to check the status of resources and debug issues.
 
 ## Running the application
 To run the application run the following command:
 
 ```
-aspire run
+dotnet run --project src/Anything.AppHost/Anything.AppHost.csproj
 ```
 
 If there is already an instance of the application running it will prompt to stop the existing instance. You only need to restart the application if code in `apphost.cs` is changed, but if you experience problems it can be useful to reset everything to the starting state.
