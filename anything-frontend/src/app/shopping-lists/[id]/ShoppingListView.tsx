@@ -107,8 +107,12 @@ export function ShoppingListView({ listId }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>("default");
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
-  const aggregatedItems = useMemo(
-    () => (items ? buildAggregated(items) : []),
+  const aggregatedUnchecked = useMemo(
+    () => (items ? buildAggregated(items.filter((i) => !i.isChecked)) : []),
+    [items]
+  );
+  const aggregatedChecked = useMemo(
+    () => (items ? buildAggregated(items.filter((i) => !!i.isChecked)) : []),
     [items]
   );
   const recipeGroups = useMemo(
@@ -224,8 +228,7 @@ export function ShoppingListView({ listId }: Props) {
 
           {sortMode === "default" && (
             <ul>
-              {aggregatedItems
-                .filter((a) => !a.isChecked)
+              {aggregatedUnchecked
                 .map((agg) => (
                   <li
                     key={agg.id}
@@ -253,8 +256,7 @@ export function ShoppingListView({ listId }: Props) {
                     </span>
                   </li>
                 ))}
-              {aggregatedItems
-                .filter((a) => a.isChecked)
+              {aggregatedChecked
                 .map((agg) => (
                   <li
                     key={agg.id}

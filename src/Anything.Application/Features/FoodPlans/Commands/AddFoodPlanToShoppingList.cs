@@ -41,6 +41,9 @@ public class AddFoodPlanToShoppingListHandler(
             .Where(e => e.DeletedOn == null && e.HouseholdId == householdContext.HouseholdId && e.Date >= command.StartDate && e.Date <= command.EndDate && e.RecipeId != null)
             .ToListAsync(ct);
 
+        if (entries.Count == 0)
+            return Results.NoContent();
+
         var recipeIds = entries
             .Select(e => e.RecipeId!.Value)
             .Distinct()
@@ -84,6 +87,15 @@ public class AddFoodPlanToShoppingListHandler(
 
         foreach (var (name, amount, unit, addedByRecipe) in grouped)
         {
+            var hasExistingItemForRecipe = existingItems.Any(i =>
+                !i.IsChecked &&
+                i.Name.Trim().Equals(name.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                (i.Unit ?? "").Trim().Equals((unit ?? "").Trim(), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(i.AddedByRecipe, addedByRecipe, StringComparison.Ordinal));
+
+            if (hasExistingItemForRecipe)
+                continue;
+
             ShoppingListHelpers.MergeOrAddItem(shoppingListItemRepository, existingItems,
                 command.ShoppingListId, name, amount, unit,
                 string.IsNullOrEmpty(addedByRecipe) ? null : addedByRecipe,

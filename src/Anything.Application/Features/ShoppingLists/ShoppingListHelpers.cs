@@ -53,7 +53,8 @@ internal static class ShoppingListHelpers
         var existing = existingItems.FirstOrDefault(i =>
             i.Name.Trim().ToLower() == nameKey &&
             (i.Unit ?? "").Trim().ToLower() == unitKey &&
-            i.AddedByRecipe == addedByRecipe);
+            i.AddedByRecipe == addedByRecipe &&
+            !i.IsChecked);
 
         if (existing != null)
         {
