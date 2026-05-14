@@ -299,4 +299,36 @@ public class AddFoodPlanToShoppingListHandlerTests
         _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i => i.Name == "Pasta"));
         _itemRepo.DidNotReceive().Add(Arg.Is<ShoppingListItem>(i => i.Name == "Rice"));
     }
+
+    [Fact]
+    public async Task Handle_WhenEntryAlreadyMarkedAsAdded_StillAddsToDifferentShoppingList()
+    {
+        SetupValidList();
+
+        var entries = new List<FoodPlanEntry>
+        {
+            new()
+            {
+                Id = 1,
+                RecipeId = 100,
+                Name = "Pasta Dinner",
+                DayOfWeek = 0,
+                Date = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc),
+                AddedToShoppingListOn = new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc)
+            }
+        };
+        _entryRepo.Query().Returns(entries.AsAsyncQueryable());
+
+        var ingredients = new List<RecipeIngredient>
+        {
+            new() { Id = 1, RecipeId = 100, Name = "Pasta", Amount = 200, Unit = "g" }
+        };
+        _ingredientRepo.Query().Returns(ingredients.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        await handler.Handle(new AddFoodPlanToShoppingListCommand(10, _startDate, _endDate), TestContext.Current.CancellationToken);
+
+        _itemRepo.Received(1).Add(Arg.Is<ShoppingListItem>(i =>
+            i.Name == "Pasta" && i.Amount == 200 && i.Unit == "g"));
+    }
 }
