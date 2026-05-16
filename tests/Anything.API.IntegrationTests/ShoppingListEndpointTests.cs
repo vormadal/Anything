@@ -329,6 +329,44 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         Assert.Contains(items, i => i.Name == "Butter" && i.Amount == null);
     }
 
+    [Fact]
+    public async Task AddShoppingListItem_ToGeneralChecklist_AppendsItemAtEnd()
+    {
+        var list = await CreateGeneralChecklistAsync("My Checklist");
+        await AddItemAsync(list.Id, "First", null, null);
+        await AddItemAsync(list.Id, "Second", null, null);
+        await AddItemAsync(list.Id, "Third", null, null);
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync($"/api/checklists/{list.Id}/items", TestContext.Current.CancellationToken);
+        var items = await response.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(items);
+        Assert.Equal(["First", "Second", "Third"], items.Select(i => i.Name).ToArray());
+    }
+
+    [Fact]
+    public async Task ReorderShoppingListItems_ReordersGeneralChecklistItems()
+    {
+        var list = await CreateGeneralChecklistAsync("My Checklist");
+        var first = await AddItemAsync(list.Id, "First", null, null);
+        var second = await AddItemAsync(list.Id, "Second", null, null);
+        var third = await AddItemAsync(list.Id, "Third", null, null);
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var reorderResponse = await client.PutAsJsonAsync(
+            $"/api/checklists/{list.Id}/items/reorder",
+            new { ids = new[] { third.Id, first.Id, second.Id } },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, reorderResponse.StatusCode);
+
+        var itemsResponse = await client.GetAsync($"/api/checklists/{list.Id}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(items);
+        Assert.Equal(["Third", "First", "Second"], items.Select(i => i.Name).ToArray());
+    }
+
     // --- PUT /api/checklists/{id}/items/{itemId} ---
 
     [Fact]

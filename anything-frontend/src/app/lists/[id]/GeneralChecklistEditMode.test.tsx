@@ -8,13 +8,14 @@ import { useRef } from 'react'
 const mockItemsGet = jest.fn()
 const mockItemsPost = jest.fn()
 const mockItemsItemDelete = jest.fn()
+const mockItemsReorderPut = jest.fn()
 const mockItemsItemById = jest.fn(() => ({ delete: mockItemsItemDelete }))
 const mockListPut = jest.fn()
 const mockById = jest.fn(() => ({
   get: jest.fn(),
   put: mockListPut,
   delete: jest.fn(),
-  items: { get: mockItemsGet, post: mockItemsPost, byItemId: mockItemsItemById },
+  items: { get: mockItemsGet, post: mockItemsPost, byItemId: mockItemsItemById, reorder: { put: mockItemsReorderPut } },
   complete: { post: jest.fn() },
 }))
 
@@ -101,6 +102,8 @@ describe('GeneralChecklistEditMode', () => {
     })
     const removeButtons = screen.getAllByRole('button', { name: 'Remove item' })
     expect(removeButtons).toHaveLength(2)
+    const dragButtons = screen.getAllByRole('button', { name: 'Drag to reorder item' })
+    expect(dragButtons).toHaveLength(2)
   })
 
   it('removes an item', async () => {

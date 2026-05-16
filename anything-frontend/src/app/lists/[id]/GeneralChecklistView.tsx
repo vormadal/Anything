@@ -1,27 +1,26 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import {
   useShoppingListItems,
   useUpdateShoppingListItem,
-  useCompleteShoppingList,
+  useDeleteShoppingList,
 } from "@/hooks/useShoppingLists";
 import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
-import { CompleteListDialog } from "@/components/CompleteListDialog";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
+import { useRouter } from "next/navigation";
 
 interface Props {
   listId: number;
 }
 
 export function GeneralChecklistView({ listId }: Props) {
+  const router = useRouter();
   const { data: items, isLoading, error } = useShoppingListItems(listId);
   const updateItem = useUpdateShoppingListItem(listId);
-  const completeList = useCompleteShoppingList();
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const deleteList = useDeleteShoppingList();
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
   const checkedItems = items?.filter((i) => i.isChecked) ?? [];
@@ -40,35 +39,20 @@ export function GeneralChecklistView({ listId }: Props) {
     }
   };
 
-  const handleCompleteList = async (markUnchecked: boolean) => {
+  const handleCloseList = async () => {
     try {
-      await completeList.mutateAsync({ id: listId, markUnchecked });
-      toast.success("List completed!");
+      await deleteList.mutateAsync(listId);
+      toast.success("List closed");
+      router.push("/lists");
     } catch {
-      toast.error("Failed to complete list. Please try again.");
+      toast.error("Failed to close list. Please try again.");
     }
   };
 
-  const handleCompleteClick = () => {
-    if (uncheckedItems.length > 0) {
-      setConfirmDialogOpen(true);
-    } else {
-      handleCompleteList(false);
-    }
-  };
+  const canCloseList = !!items && items.length > 0 && uncheckedItems.length === 0;
 
   return (
     <>
-      <CompleteListDialog
-        open={confirmDialogOpen}
-        onOpenChange={setConfirmDialogOpen}
-        title="Complete list?"
-        uncheckedCount={uncheckedItems.length}
-        isPending={completeList.isPending}
-        onKeep={() => { setConfirmDialogOpen(false); handleCompleteList(false); }}
-        onComplete={() => { setConfirmDialogOpen(false); handleCompleteList(true); }}
-      />
-
       <ListItemsStatus
         isLoading={isLoading}
         error={error}
@@ -86,7 +70,7 @@ export function GeneralChecklistView({ listId }: Props) {
                 <button
                   type="button"
                   onClick={() => handleToggleCheck(item)}
-                  disabled={updateItem.isPending || completeList.isPending}
+                  disabled={updateItem.isPending || deleteList.isPending}
                   aria-label="Check item"
                   className="shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 dark:border-gray-600 hover:border-blue-400"
                 />
@@ -103,7 +87,7 @@ export function GeneralChecklistView({ listId }: Props) {
                 <button
                   type="button"
                   onClick={() => handleToggleCheck(item)}
-                  disabled={updateItem.isPending || completeList.isPending}
+                  disabled={updateItem.isPending || deleteList.isPending}
                   aria-label="Uncheck item"
                   className="shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-300 border-gray-300 dark:bg-gray-600 dark:border-gray-600"
                 >
@@ -116,16 +100,17 @@ export function GeneralChecklistView({ listId }: Props) {
             ))}
           </ul>
 
-          <div className="flex justify-end py-2">
-            <Button
-              onClick={handleCompleteClick}
-              disabled={completeList.isPending}
-              size="sm"
-            >
-              {completeList.isPending ? "Completing..." : "Complete List"}
-            </Button>
-          </div>
         </>
+      )}
+
+      {canCloseList && (
+        <Button
+          onClick={handleCloseList}
+          disabled={deleteList.isPending}
+          className="fixed bottom-6 right-6 z-30 shadow-lg"
+        >
+          {deleteList.isPending ? "Closing..." : "Close List"}
+        </Button>
       )}
     </>
   );

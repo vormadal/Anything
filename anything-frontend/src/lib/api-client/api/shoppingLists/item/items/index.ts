@@ -6,12 +6,18 @@ import { createHttpValidationProblemDetailsFromDiscriminatorValue, createShoppin
 // @ts-ignore
 import { type WithItemItemRequestBuilder, WithItemItemRequestBuilderRequestsMetadata } from './item/index';
 // @ts-ignore
+import { ReorderRequestBuilderRequestsMetadata, type ReorderRequestBuilder } from './reorder/index';
+// @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /api/checklists/{id}/items
  */
 export interface ItemsRequestBuilder extends BaseRequestBuilder<ItemsRequestBuilder> {
+    /**
+     * The reorder property
+     */
+    get reorder(): ReorderRequestBuilder;
     /**
      * Gets an item from the ApiSdk.api.shoppingLists.item.items.item collection
      * @param itemId Unique identifier of the item
@@ -53,6 +59,9 @@ export const ItemsRequestBuilderNavigationMetadata: Record<Exclude<keyof ItemsRe
     byItemId: {
         requestsMetadata: WithItemItemRequestBuilderRequestsMetadata,
         pathParametersMappings: ["itemId"],
+    },
+    reorder: {
+        requestsMetadata: ReorderRequestBuilderRequestsMetadata,
     },
 };
 /**

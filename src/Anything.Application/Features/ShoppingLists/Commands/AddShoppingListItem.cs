@@ -30,10 +30,15 @@ public class AddShoppingListItemHandler(
             return Results.NotFound(ShoppingListNotFound);
 
         var isGeneral = list.Type == ListType.General;
+        var maxSortOrder = await itemRepository.Query()
+            .Where(i => i.ShoppingListId == command.ShoppingListId && i.CompletedOn == null)
+            .Select(i => (int?)i.SortOrder)
+            .MaxAsync(ct) ?? -1;
 
         var item = new ShoppingListItem
         {
             ShoppingListId = command.ShoppingListId,
+            SortOrder = maxSortOrder + 1,
             Name = command.Name,
             Amount = isGeneral ? null : command.Amount,
             Unit = isGeneral ? null : command.Unit,

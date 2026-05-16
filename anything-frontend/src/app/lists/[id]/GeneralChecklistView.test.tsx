@@ -6,14 +6,15 @@ import { toast } from 'sonner'
 
 const mockItemsGet = jest.fn()
 const mockItemsItemPut = jest.fn()
-const mockItemsItemDelete = jest.fn()
+const mockItemsReorderPut = jest.fn()
 const mockCompletePost = jest.fn()
-const mockItemsItemById = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
+const mockDelete = jest.fn()
+const mockItemsItemById = jest.fn(() => ({ put: mockItemsItemPut, delete: jest.fn() }))
 const mockById = jest.fn(() => ({
   get: jest.fn(),
   put: jest.fn(),
-  delete: jest.fn(),
-  items: { get: mockItemsGet, post: jest.fn(), byItemId: mockItemsItemById },
+  delete: mockDelete,
+  items: { get: mockItemsGet, post: jest.fn(), byItemId: mockItemsItemById, reorder: { put: mockItemsReorderPut } },
   complete: { post: mockCompletePost },
 }))
 
@@ -86,11 +87,31 @@ describe('GeneralChecklistView', () => {
     })
   })
 
-  it('shows Complete List button', async () => {
+  it('does not show close list button when unchecked items remain', async () => {
     mockItemsGet.mockResolvedValue([{ id: 1, name: 'Task A', isChecked: false }])
     render(<GeneralChecklistView listId={1} />)
     await waitFor(() => expect(screen.getByText('Task A')).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /Complete List/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Close List/i })).not.toBeInTheDocument()
+  })
+
+  it('shows close list button when all items are checked', async () => {
+    mockItemsGet.mockResolvedValue([{ id: 1, name: 'Task A', isChecked: true }])
+    render(<GeneralChecklistView listId={1} />)
+    await waitFor(() => expect(screen.getByText('Task A')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /Close List/i })).toBeInTheDocument()
+  })
+
+  it('closes list when close list button is clicked', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([{ id: 1, name: 'Task A', isChecked: true }])
+    mockDelete.mockResolvedValue(undefined)
+    render(<GeneralChecklistView listId={1} />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /Close List/i })).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Close List/i }))
+    await waitFor(() => {
+      expect(mockDelete).toHaveBeenCalled()
+      expect(toast.success).toHaveBeenCalledWith('List closed')
+    })
   })
 
   it('shows error toast when toggle fails', async () => {

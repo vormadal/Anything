@@ -120,6 +120,30 @@ export function useUpdateShoppingListItem(listId: number) {
   });
 }
 
+export function useReorderShoppingListItems(listId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: number[]) =>
+      apiClient.api.shoppingLists.byId(listId).items.reorder.put({ ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: ["shoppingListItems", listId] });
+      const previousItems = queryClient.getQueryData<ShoppingListItem[]>(["shoppingListItems", listId]);
+      queryClient.setQueryData<ShoppingListItem[]>(["shoppingListItems", listId], (old) => {
+        if (!old) return old;
+        return ids.map((id) => old.find((i) => i.id === id)).filter(Boolean) as ShoppingListItem[];
+      });
+      return { previousItems };
+    },
+    onError: (_err, _ids, context) => {
+      queryClient.setQueryData(["shoppingListItems", listId], context?.previousItems);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
+    },
+  });
+}
+
 export function useRemoveShoppingListItem(listId: number) {
   const queryClient = useQueryClient();
 
