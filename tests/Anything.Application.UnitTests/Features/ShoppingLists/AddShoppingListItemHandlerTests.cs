@@ -57,6 +57,7 @@ public class AddShoppingListItemHandlerTests
     public async Task Handle_AddsItemAndCreatesRecommendation()
     {
         _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var handler = CreateHandler();
@@ -78,6 +79,7 @@ public class AddShoppingListItemHandlerTests
     public async Task Handle_DoesNotCreateDuplicateRecommendation_CaseInsensitive()
     {
         _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
         _recommendationRepo.Query().Returns(
             new List<ShoppingListRecommendation>
             {
@@ -94,6 +96,7 @@ public class AddShoppingListItemHandlerTests
     public async Task Handle_TrimsNameForRecommendation()
     {
         _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var handler = CreateHandler();
@@ -107,6 +110,7 @@ public class AddShoppingListItemHandlerTests
     public async Task Handle_CreatesNewRecommendation()
     {
         _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 1, Name = "My List", HouseholdId = 0 } }.AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
         _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
 
         var handler = CreateHandler();
