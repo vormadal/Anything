@@ -65,6 +65,12 @@ const mockGeneralChecklistItems = [
   { id: 12, name: "Measure twice", amount: null, unit: null, isChecked: false, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
 ];
 
+const mockGeneralChecklistItemsAllChecked = [
+  { id: 10, name: "Buy nails", amount: null, unit: null, isChecked: true, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 11, name: "Get a hammer", amount: null, unit: null, isChecked: true, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 12, name: "Measure twice", amount: null, unit: null, isChecked: true, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+];
+
 const mockBills = [
   {
     id: 1,
@@ -407,6 +413,32 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "list-detail-general.png",
+      screenshotOptions
+    );
+  });
+
+  test("general checklist detail - close list action", async ({ page }) => {
+    await page.route(/\/api\/checklists\/3\/items/, (route) =>
+      route.fulfill({ json: mockGeneralChecklistItemsAllChecked })
+    );
+    await page.goto("/lists/3");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "list-detail-general-closeable.png",
+      screenshotOptions
+    );
+  });
+
+  test("general checklist detail - ordering ui in edit mode", async ({ page }) => {
+    await page.route(/\/api\/checklists\/3\/items/, (route) =>
+      route.fulfill({ json: mockGeneralChecklistItems })
+    );
+    await page.goto("/lists/3");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Edit list" }).click();
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "list-detail-general-edit-ordering.png",
       screenshotOptions
     );
   });

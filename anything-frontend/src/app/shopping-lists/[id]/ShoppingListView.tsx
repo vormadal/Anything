@@ -348,11 +348,11 @@ export function ShoppingListView({ listId }: Props) {
             </ul>
           )}
 
-          <div className="flex justify-end py-2">
+          <div className="fixed bottom-6 right-6 z-30">
             <Button
               onClick={handleCompleteClick}
               disabled={completeList.isPending}
-              size="sm"
+              className="shadow-lg"
             >
               {completeList.isPending ? "Completing..." : "Complete List"}
             </Button>

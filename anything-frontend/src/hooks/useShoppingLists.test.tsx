@@ -9,6 +9,7 @@ import {
   useShoppingListItems,
   useAddShoppingListItem,
   useUpdateShoppingListItem,
+  useReorderShoppingListItems,
   useRemoveShoppingListItem,
   useUpdateShoppingList,
 } from '@/hooks/useShoppingLists'
@@ -22,9 +23,10 @@ const mockItemsGet = jest.fn()
 const mockItemsPost = jest.fn()
 const mockItemsItemPut = jest.fn()
 const mockItemsItemDelete = jest.fn()
+const mockItemsReorderPut = jest.fn()
 const mockItemsItemById = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
 const mockCompletePost = jest.fn()
-const mockItems = { get: mockItemsGet, post: mockItemsPost, byItemId: mockItemsItemById }
+const mockItems = { get: mockItemsGet, post: mockItemsPost, byItemId: mockItemsItemById, reorder: { put: mockItemsReorderPut } }
 const mockComplete = { post: mockCompletePost }
 const mockById = jest.fn(() => ({ delete: mockDelete, get: mockGet, put: mockPut, items: mockItems, complete: mockComplete }))
 
@@ -260,6 +262,24 @@ describe('useShoppingLists hooks', () => {
 
       expect(mockItemsItemById).toHaveBeenCalledWith(2)
       expect(mockItemsItemDelete).toHaveBeenCalled()
+    })
+  })
+
+  describe('useReorderShoppingListItems', () => {
+    it('should reorder items in a shopping list', async () => {
+      mockItemsReorderPut.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useReorderShoppingListItems(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate([3, 1, 2])
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockItemsReorderPut).toHaveBeenCalledWith({ ids: [3, 1, 2] })
     })
   })
 

@@ -1045,6 +1045,15 @@ export function createReorderRecipeStepsRequestFromDiscriminatorValue(parseNode:
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ReorderShoppingListItemsRequest}
+ */
+// @ts-ignore
+export function createReorderShoppingListItemsRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoReorderShoppingListItemsRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {ReorderShoppingListsRequest}
  */
 // @ts-ignore
@@ -2206,6 +2215,17 @@ export function deserializeIntoReorderRecipeStepsRequest(reorderRecipeStepsReque
 }
 /**
  * The deserialization information for the current model
+ * @param ReorderShoppingListItemsRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoReorderShoppingListItemsRequest(reorderShoppingListItemsRequest: Partial<ReorderShoppingListItemsRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "ids": n => { reorderShoppingListItemsRequest.ids = n.getCollectionOfPrimitiveValues<number>(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param ReorderShoppingListsRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -2260,6 +2280,7 @@ export function deserializeIntoShoppingListItem(shoppingListItem: Partial<Shoppi
         "modifiedOn": n => { shoppingListItem.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingListItem.name = n.getStringValue(); },
         "shoppingListId": n => { shoppingListItem.shoppingListId = n.getNumberValue(); },
+        "sortOrder": n => { shoppingListItem.sortOrder = n.getNumberValue(); },
         "unit": n => { shoppingListItem.unit = n.getStringValue(); },
     }
 }
@@ -3191,6 +3212,12 @@ export interface ReorderRecipeStepsRequest extends Parsable {
      */
     ids?: number[] | null;
 }
+export interface ReorderShoppingListItemsRequest extends Parsable {
+    /**
+     * The ids property
+     */
+    ids?: number[] | null;
+}
 export interface ReorderShoppingListsRequest extends Parsable {
     /**
      * The ids property
@@ -4063,6 +4090,17 @@ export function serializeReorderRecipeStepsRequest(writer: SerializationWriter, 
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ReorderShoppingListItemsRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeReorderShoppingListItemsRequest(writer: SerializationWriter, reorderShoppingListItemsRequest: Partial<ReorderShoppingListItemsRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!reorderShoppingListItemsRequest || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfPrimitiveValues<number>("ids", reorderShoppingListItemsRequest.ids);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param ReorderShoppingListsRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -4117,6 +4155,7 @@ export function serializeShoppingListItem(writer: SerializationWriter, shoppingL
     writer.writeDateValue("modifiedOn", shoppingListItem.modifiedOn);
     writer.writeStringValue("name", shoppingListItem.name);
     writer.writeNumberValue("shoppingListId", shoppingListItem.shoppingListId);
+    writer.writeNumberValue("sortOrder", shoppingListItem.sortOrder);
     writer.writeStringValue("unit", shoppingListItem.unit);
 }
 /**
@@ -4518,6 +4557,10 @@ export interface ShoppingListItem extends Parsable {
      * The shoppingListId property
      */
     shoppingListId?: number | null;
+    /**
+     * The sortOrder property
+     */
+    sortOrder?: number | null;
     /**
      * The unit property
      */

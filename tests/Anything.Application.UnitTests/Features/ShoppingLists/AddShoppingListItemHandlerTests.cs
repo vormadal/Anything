@@ -26,6 +26,7 @@ public class AddShoppingListItemHandlerTests
     public AddShoppingListItemHandlerTests()
     {
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        _itemRepo.Query().Returns(new List<ShoppingListItem>().AsAsyncQueryable());
     }
 
     [Fact]

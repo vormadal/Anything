@@ -4,6 +4,7 @@ public class ShoppingListItem
 {
     public int Id { get; set; }
     public int ShoppingListId { get; set; }
+    public int SortOrder { get; set; }
     public required string Name { get; set; }
     public bool IsChecked { get; set; }
     public decimal? Amount { get; set; }

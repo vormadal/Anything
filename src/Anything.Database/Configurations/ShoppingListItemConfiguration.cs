@@ -9,6 +9,7 @@ public class ShoppingListItemConfiguration : IEntityTypeConfiguration<ShoppingLi
     public void Configure(EntityTypeBuilder<ShoppingListItem> builder)
     {
         builder.HasKey(e => e.Id);
+        builder.Property(e => e.SortOrder).HasDefaultValue(0);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.Property(e => e.Unit).HasMaxLength(50);
         builder.Property(e => e.AddedByRecipe);
