@@ -429,6 +429,20 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  test("general checklist detail - ordering ui in edit mode", async ({ page }) => {
+    await page.route(/\/api\/checklists\/3\/items/, (route) =>
+      route.fulfill({ json: mockGeneralChecklistItems })
+    );
+    await page.goto("/lists/3");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Edit list" }).click();
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "list-detail-general-edit-ordering.png",
+      screenshotOptions
+    );
+  });
+
   // ---- Recipes ----
 
   test("recipes - with items", async ({ page }) => {
