@@ -10,9 +10,9 @@ internal static class TestResultExtensions
         if (result.IsSuccessful)
             return;
 
-        var failing = result.FailingTypes?
+        var failing = (result.FailingTypes ?? [])
             .Select(t => t.FullName ?? t.Name)
-            .OrderBy(n => n) ?? [];
+            .OrderBy(n => n);
 
         throw new XunitException(
             $"Architecture rule violated. Failing types:{Environment.NewLine}" +
