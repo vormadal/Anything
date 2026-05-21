@@ -131,7 +131,7 @@ describe("SuggestionsPage", () => {
       });
     });
 
-    it("shows Uncategorized badge for items without category", async () => {
+    it("shows Uncategorized marker for items without category", async () => {
       mockAllGet.mockResolvedValue([
         { id: 1, name: "Eggs", preferredUnit: null, categoryId: null },
       ]);
@@ -139,7 +139,7 @@ describe("SuggestionsPage", () => {
       renderWithClient(<SuggestionsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("Uncategorized")).toBeInTheDocument();
+        expect(screen.getByTitle("Uncategorized")).toBeInTheDocument();
       });
     });
 
@@ -179,15 +179,13 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Eggs")).toBeInTheDocument();
-        // "Uncategorized" appears in both the tab label and the row badge in the All tab.
-        expect(screen.queryAllByText("Uncategorized")).toHaveLength(2);
+        expect(screen.getByTitle("Uncategorized")).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole("button", { name: /Uncategorized/ }));
 
       await waitFor(() => {
-        // "Uncategorized" remains only as the tab label; the row chip is hidden in this tab.
-        expect(screen.queryAllByText("Uncategorized")).toHaveLength(1);
+        expect(screen.queryByTitle("Uncategorized")).not.toBeInTheDocument();
       });
     });
   });

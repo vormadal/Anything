@@ -120,9 +120,12 @@ function RecommendationRow({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {showUncategorizedBadge && !rec.categoryId && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                Uncategorized
-              </span>
+              <span
+                className="h-2.5 w-2.5 rounded-full bg-yellow-400 dark:bg-yellow-300"
+                title="Uncategorized"
+                aria-label="Uncategorized"
+                role="img"
+              />
             )}
             <Button
               size="sm"
