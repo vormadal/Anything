@@ -35,7 +35,7 @@ type Recommendation = {
 type RecommendationRowProps = {
   rec: Recommendation;
   categories: SuggestionCategory[];
-  showUncategorizedBadge: boolean;
+  showUncategorizedMarker: boolean;
   editingId: number | null;
   editName: string;
   editPreferredUnit: string;
@@ -54,7 +54,7 @@ type RecommendationRowProps = {
 function RecommendationRow({
   rec,
   categories,
-  showUncategorizedBadge,
+  showUncategorizedMarker,
   editingId,
   editName,
   editPreferredUnit,
@@ -119,7 +119,7 @@ function RecommendationRow({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {showUncategorizedBadge && !rec.categoryId && (
+            {showUncategorizedMarker && !rec.categoryId && (
               <span
                 className="h-2.5 w-2.5 rounded-full bg-yellow-400 dark:bg-yellow-300"
                 title="Uncategorized"
@@ -442,7 +442,7 @@ export default function SuggestionsPage() {
                 key={rec.id}
                 rec={rec}
                 categories={categories}
-                showUncategorizedBadge={activeTab !== "uncategorized"}
+                showUncategorizedMarker={activeTab !== "uncategorized"}
                 editingId={editingId}
                 editName={editName}
                 editPreferredUnit={editPreferredUnit}

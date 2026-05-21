@@ -139,7 +139,7 @@ describe("SuggestionsPage", () => {
       renderWithClient(<SuggestionsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTitle("Uncategorized")).toBeInTheDocument();
+        expect(screen.getByRole("img", { name: "Uncategorized" })).toBeInTheDocument();
       });
     });
 
@@ -179,13 +179,13 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Eggs")).toBeInTheDocument();
-        expect(screen.getByTitle("Uncategorized")).toBeInTheDocument();
+        expect(screen.getByRole("img", { name: "Uncategorized" })).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole("button", { name: /Uncategorized/ }));
 
       await waitFor(() => {
-        expect(screen.queryByTitle("Uncategorized")).not.toBeInTheDocument();
+        expect(screen.queryByRole("img", { name: "Uncategorized" })).not.toBeInTheDocument();
       });
     });
   });
