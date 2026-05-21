@@ -179,12 +179,14 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Eggs")).toBeInTheDocument();
+        // "Uncategorized" appears in both the tab label and the row badge in the All tab.
         expect(screen.queryAllByText("Uncategorized")).toHaveLength(2);
       });
 
       await user.click(screen.getByRole("button", { name: /Uncategorized/ }));
 
       await waitFor(() => {
+        // "Uncategorized" remains only as the tab label; the row chip is hidden in this tab.
         expect(screen.queryAllByText("Uncategorized")).toHaveLength(1);
       });
     });

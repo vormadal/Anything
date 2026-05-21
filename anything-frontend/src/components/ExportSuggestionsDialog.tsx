@@ -26,12 +26,12 @@ export function ExportSuggestionsDialog({
 }: ExportSuggestionsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby="export-suggestions-description">
         <DialogHeader>
           <DialogTitle>Export suggestions</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Choose what to export.
+        <p id="export-suggestions-description" className="text-sm text-gray-600 dark:text-gray-400">
+          Export all suggestions, or only suggestions that are still uncategorized.
         </p>
         <DialogFooter className="flex gap-2 sm:flex-row flex-col">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
