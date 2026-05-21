@@ -179,13 +179,13 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Eggs")).toBeInTheDocument();
-        expect(screen.getByText("Uncategorized")).toBeInTheDocument();
+        expect(screen.queryAllByText("Uncategorized")).toHaveLength(2);
       });
 
       await user.click(screen.getByRole("button", { name: /Uncategorized/ }));
 
       await waitFor(() => {
-        expect(screen.queryByText("Uncategorized")).not.toBeInTheDocument();
+        expect(screen.queryAllByText("Uncategorized")).toHaveLength(1);
       });
     });
   });

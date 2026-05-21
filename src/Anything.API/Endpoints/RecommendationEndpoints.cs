@@ -66,9 +66,9 @@ public static class RecommendationEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .RequireAuthorization(UserRoles.Admin);
 
-        group.MapGet("/export", async ([FromQuery] bool uncategorizedOnly, IMediator mediator) =>
+        group.MapGet("/export", async ([FromQuery] bool? uncategorizedOnly, IMediator mediator) =>
         {
-            return await mediator.Send(new ExportRecommendationsQuery(uncategorizedOnly));
+            return await mediator.Send(new ExportRecommendationsQuery(uncategorizedOnly ?? false));
         })
         .WithName("ExportRecommendations")
         .Produces<ExportRecommendationsResponse>(StatusCodes.Status200OK)
