@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/PageTitle";
+import { ExportSuggestionsDialog } from "@/components/ExportSuggestionsDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
 import {
   useAllRecommendations,
@@ -34,6 +35,7 @@ type Recommendation = {
 type RecommendationRowProps = {
   rec: Recommendation;
   categories: SuggestionCategory[];
+  showUncategorizedBadge: boolean;
   editingId: number | null;
   editName: string;
   editPreferredUnit: string;
@@ -52,6 +54,7 @@ type RecommendationRowProps = {
 function RecommendationRow({
   rec,
   categories,
+  showUncategorizedBadge,
   editingId,
   editName,
   editPreferredUnit,
@@ -116,7 +119,7 @@ function RecommendationRow({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {!rec.categoryId && (
+            {showUncategorizedBadge && !rec.categoryId && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                 Uncategorized
               </span>
@@ -157,6 +160,7 @@ export default function SuggestionsPage() {
   const [editPreferredUnit, setEditPreferredUnit] = useState("");
   const [editCategoryId, setEditCategoryId] = useState<number | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createPreferredUnit, setCreatePreferredUnit] = useState("");
 
@@ -250,9 +254,10 @@ export default function SuggestionsPage() {
     setShowCreateForm(false);
   };
 
-  const handleExport = async () => {
+  const handleExport = async (uncategorizedOnly: boolean) => {
     try {
-      await exportRecommendations.mutateAsync();
+      await exportRecommendations.mutateAsync({ uncategorizedOnly });
+      setShowExportDialog(false);
       toast.success("Suggestions exported.");
     } catch {
       toast.error("Failed to export suggestions.");
@@ -278,6 +283,7 @@ export default function SuggestionsPage() {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
+    setShowExportDialog(false);
     setSearchQuery("");
     setCurrentPage(1);
     setEditingId(null);
@@ -303,7 +309,7 @@ export default function SuggestionsPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={handleExport}
+              onClick={() => setShowExportDialog(true)}
               disabled={exportRecommendations.isPending}
               aria-label="Export suggestions"
             >
@@ -336,6 +342,13 @@ export default function SuggestionsPage() {
           accept=".json,application/json"
           className="hidden"
           onChange={handleImportFile}
+        />
+        <ExportSuggestionsDialog
+          open={showExportDialog}
+          onOpenChange={setShowExportDialog}
+          isPending={exportRecommendations.isPending}
+          onExportAll={() => handleExport(false)}
+          onExportUncategorized={() => handleExport(true)}
         />
 
         {showCreateForm && (
@@ -426,6 +439,7 @@ export default function SuggestionsPage() {
                 key={rec.id}
                 rec={rec}
                 categories={categories}
+                showUncategorizedBadge={activeTab !== "uncategorized"}
                 editingId={editingId}
                 editName={editName}
                 editPreferredUnit={editPreferredUnit}

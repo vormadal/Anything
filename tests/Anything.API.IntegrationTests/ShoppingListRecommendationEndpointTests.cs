@@ -318,6 +318,28 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ExportRecommendations_WhenUncategorizedOnly_ReturnsOnlyUncategorizedRecommendations()
+    {
+        var catResponse = await (await GetAuthenticatedHttpClientAsync())
+            .PostAsJsonAsync("/api/suggestion-categories", new { name = "Beverages" });
+        var category = await catResponse.Content.ReadFromJsonAsync<CategoryDto>(JsonOptions);
+
+        await CreateRecommendationAsync("Uncategorized Item");
+        var categorized = await CreateRecommendationAsync("Categorized Item");
+        var client = await GetAuthenticatedHttpClientAsync();
+        await client.PutAsJsonAsync($"/api/shopping-list-recommendations/{categorized.Id}",
+            new { name = "Categorized Item", preferredUnit = (string?)null, categoryId = category!.Id });
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/export?uncategorizedOnly=true");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ExportDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Contains(result.Recommendations, r => r.Name == "Uncategorized Item");
+        Assert.DoesNotContain(result.Recommendations, r => r.Name == "Categorized Item");
+    }
+
+    [Fact]
     public async Task ExportRecommendations_RequiresAdminRole()
     {
         var userClient = await GetUserHttpClientAsync();
