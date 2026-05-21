@@ -131,7 +131,7 @@ describe("SuggestionsPage", () => {
       });
     });
 
-    it("shows Uncategorized badge for items without category", async () => {
+    it("shows Uncategorized marker for items without category", async () => {
       mockAllGet.mockResolvedValue([
         { id: 1, name: "Eggs", preferredUnit: null, categoryId: null },
       ]);
@@ -139,7 +139,7 @@ describe("SuggestionsPage", () => {
       renderWithClient(<SuggestionsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("Uncategorized")).toBeInTheDocument();
+        expect(screen.getByRole("img", { name: "Uncategorized" })).toBeInTheDocument();
       });
     });
 
@@ -167,6 +167,25 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText("2")).toBeInTheDocument();
+      });
+    });
+
+    it("hides uncategorized chip on uncategorized tab", async () => {
+      const user = userEvent.setup();
+      mockAllGet.mockResolvedValue([{ id: 1, name: "Eggs", preferredUnit: null, categoryId: null }]);
+      mockUncategorizedGet.mockResolvedValue([{ id: 1, name: "Eggs", preferredUnit: null, categoryId: null }]);
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Eggs")).toBeInTheDocument();
+        expect(screen.getByRole("img", { name: "Uncategorized" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: /Uncategorized/ }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole("img", { name: "Uncategorized" })).not.toBeInTheDocument();
       });
     });
   });
@@ -438,9 +457,29 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
       await user.click(screen.getByRole("button", { name: "Export suggestions" }));
+      await user.click(screen.getByRole("button", { name: "Export all" }));
 
       await waitFor(() => {
         expect(mockApiFetch).toHaveBeenCalledWith("/api/shopping-list-recommendations/export");
+        expect(toast.success).toHaveBeenCalledWith("Suggestions exported.");
+      });
+    });
+
+    it("exports uncategorized suggestions successfully", async () => {
+      const user = userEvent.setup();
+      mockApiFetch.mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ recommendations: [{ name: "Milk", preferredUnit: "L" }] }),
+      });
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Export suggestions" }));
+      await user.click(screen.getByRole("button", { name: "Export uncategorized" }));
+
+      await waitFor(() => {
+        expect(mockApiFetch).toHaveBeenCalledWith("/api/shopping-list-recommendations/export?uncategorizedOnly=true");
         expect(toast.success).toHaveBeenCalledWith("Suggestions exported.");
       });
     });
@@ -453,6 +492,7 @@ describe("SuggestionsPage", () => {
 
       await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
       await user.click(screen.getByRole("button", { name: "Export suggestions" }));
+      await user.click(screen.getByRole("button", { name: "Export all" }));
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith("Failed to export suggestions.");

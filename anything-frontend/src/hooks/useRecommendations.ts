@@ -73,8 +73,9 @@ export function useDeleteRecommendation() {
 
 export function useExportRecommendations() {
   return useMutation({
-    mutationFn: async () => {
-      const response = await apiFetch("/api/shopping-list-recommendations/export");
+    mutationFn: async ({ uncategorizedOnly = false }: { uncategorizedOnly?: boolean } = {}) => {
+      const query = uncategorizedOnly ? "?uncategorizedOnly=true" : "";
+      const response = await apiFetch(`/api/shopping-list-recommendations/export${query}`);
       if (!response.ok) throw new Error("Export failed");
       const data = await response.json() as RecommendationExportData;
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
