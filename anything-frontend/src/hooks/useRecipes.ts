@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import { apiClient, apiFetch, createMultipartBody } from "@/lib/apiClient";
 import { getHouseholdHeader } from "@/lib/householdUtils";
 import type {
   Recipe,
@@ -23,6 +23,25 @@ export interface TopTag {
   name: string;
   count: number;
 }
+
+type RecipeTagExportItem = {
+  recipeName: string;
+  ingredients: string[];
+  tags: string[];
+};
+
+type RecipeTagsExportData = {
+  recipes: RecipeTagExportItem[];
+};
+
+type RecipeTagImportItem = {
+  recipeName: string;
+  tags: string[];
+};
+
+type RecipeTagsImportData = {
+  recipes: RecipeTagImportItem[];
+};
 
 export function useRecipes(search?: string, tag?: string) {
   return useQuery({
@@ -440,6 +459,42 @@ export function useDeleteRecipeTag(recipeId: number) {
       apiClient.api.recipes.byId(recipeId).tags.byTagId(tagId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeTags", recipeId] });
+    },
+  });
+}
+
+export function useExportRecipeTags() {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiFetch("/api/recipes/tags/export");
+      if (!response.ok) throw new Error("Export failed");
+      const data = await response.json() as RecipeTagsExportData;
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "recipe-tags.json";
+      anchor.click();
+      URL.revokeObjectURL(url);
+    },
+  });
+}
+
+export function useImportRecipeTags() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: RecipeTagsImportData) => {
+      const response = await apiFetch("/api/recipes/tags/import", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Import failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["topRecipeTags"] });
+      queryClient.invalidateQueries({ queryKey: ["recipeTags"] });
     },
   });
 }

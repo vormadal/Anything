@@ -26,6 +26,7 @@ import {
   CalendarDays,
   Receipt,
   Tag,
+  Tags,
   Users,
 } from "lucide-react";
 import {
@@ -47,6 +48,13 @@ const NAV_ITEMS = [
   { label: "Food Plan", path: "/food-plans", icon: CalendarDays },
   { label: "Bills", path: "/bills", icon: Receipt },
   { label: "Households", path: "/households", icon: Users },
+];
+
+const ADMIN_NAV_ITEMS = [
+  { label: "Invite Users", path: "/admin/invite", icon: UserPlus },
+  { label: "Suggestions", path: "/admin/suggestions", icon: ListChecks },
+  { label: "Suggestion Categories", path: "/admin/suggestions/categories", icon: Tag },
+  { label: "Recipe Tags", path: "/admin/recipes/tags", icon: Tags },
 ];
 
 
@@ -168,39 +176,23 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                   <Shield className="h-3.5 w-3.5" />
                   Admin
                 </p>
-                <button
-                  onClick={() => navigate("/admin/invite")}
-                  className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive("/admin/invite")
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  <UserPlus className="h-4 w-4 shrink-0" />
-                  Invite Users
-                </button>
-                <button
-                  onClick={() => navigate("/admin/suggestions")}
-                  className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive("/admin/suggestions")
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  <ListChecks className="h-4 w-4 shrink-0" />
-                  Suggestions
-                </button>
-                <button
-                  onClick={() => navigate("/admin/suggestions/categories")}
-                  className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive("/admin/suggestions/categories")
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  <Tag className="h-4 w-4 shrink-0" />
-                  Categories
-                </button>
+                {ADMIN_NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive(item.path)
+                          ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </nav>
