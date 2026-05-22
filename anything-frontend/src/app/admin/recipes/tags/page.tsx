@@ -61,7 +61,7 @@ export default function RecipeTagsAdminPage() {
       <PageTitle>Recipe Tags</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Export includes recipe name, ingredients, and tags. Import uses recipe name as key and fully replaces each recipe&apos;s tag list.
+          Export includes recipe name, ingredients, and tags. Import uses recipe name as key and fully replaces each recipe’s tag list.
         </p>
         <div className="flex items-center gap-2">
           <Button

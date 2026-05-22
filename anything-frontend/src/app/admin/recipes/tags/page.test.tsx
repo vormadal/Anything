@@ -6,13 +6,10 @@ import { toast } from "sonner";
 
 const mockApiFetch = jest.fn();
 
-jest.mock("@/lib/apiClient", () => {
-  const actual = jest.requireActual("@/lib/apiClient");
-  return {
-    ...actual,
-    apiFetch: (...args: unknown[]) => mockApiFetch(...args),
-  };
-});
+jest.mock("@/lib/apiClient", () => ({
+  apiClient: { api: {} },
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
+}));
 
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
