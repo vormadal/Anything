@@ -20,6 +20,8 @@ public class ImportRecommendationsHandler(
 {
     public async Task<IResult> Handle(ImportRecommendationsCommand command, CancellationToken ct = default)
     {
+        var importItems = command.Recommendations;
+
         var categories = await categoryRepository.Query()
             .Where(c => c.DeletedOn == null && c.HouseholdId == householdContext.HouseholdId)
             .ToDictionaryAsync(c => c.Name, ct);
@@ -33,8 +35,8 @@ public class ImportRecommendationsHandler(
         var newCategoryIndex = 0;
 
         // Ensure all referenced categories exist before processing recommendations
-        foreach (var categoryName in command.Recommendations
-            .Where(r => r.Category is not null)
+        foreach (var categoryName in importItems
+            .Where(r => !r.Delete && r.Category is not null)
             .Select(r => r.Category!)
             .Distinct())
         {
@@ -52,8 +54,19 @@ public class ImportRecommendationsHandler(
             categories[categoryName] = newCategory;
         }
 
-        foreach (var item in command.Recommendations)
+        foreach (var item in importItems)
         {
+            if (item.Delete)
+            {
+                if (recommendations.TryGetValue(item.Name, out var toDelete))
+                {
+                    recommendationRepository.Remove(toDelete);
+                    recommendations.Remove(item.Name);
+                }
+
+                continue;
+            }
+
             var category = item.Category is not null ? categories[item.Category] : null;
 
             if (recommendations.TryGetValue(item.Name, out var existing))
@@ -64,14 +77,16 @@ public class ImportRecommendationsHandler(
             }
             else
             {
-                recommendationRepository.Add(new ShoppingListRecommendation
+                var newRecommendation = new ShoppingListRecommendation
                 {
                     HouseholdId = householdContext.HouseholdId,
                     Name = item.Name,
                     PreferredUnit = item.PreferredUnit,
                     Category = category,
                     CreatedOn = now,
-                });
+                };
+                recommendationRepository.Add(newRecommendation);
+                recommendations[item.Name] = newRecommendation;
             }
         }
 

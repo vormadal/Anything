@@ -445,6 +445,47 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ImportRecommendations_WithDeleteTrue_RemovesExistingRecommendation()
+    {
+        await CreateRecommendationAsync("Butter");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var importResponse = await client.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new { recommendations = new[] { new { name = "Butter", delete = true } } });
+        Assert.Equal(HttpStatusCode.NoContent, importResponse.StatusCode);
+
+        var getResponse = await client.GetAsync("/api/shopping-list-recommendations");
+        var result = await getResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.DoesNotContain(result, r => r.Name == "Butter");
+    }
+
+    [Fact]
+    public async Task ImportRecommendations_WithDeleteTrue_DoesNotCreateNewRecommendation()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var importResponse = await client.PostAsJsonAsync("/api/shopping-list-recommendations/import",
+            new
+            {
+                recommendations = new[]
+                {
+                    new { name = "NeverCreated", category = "Temporary", delete = true }
+                }
+            });
+        Assert.Equal(HttpStatusCode.NoContent, importResponse.StatusCode);
+
+        var recommendationResponse = await client.GetAsync("/api/shopping-list-recommendations");
+        var recommendations = await recommendationResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(recommendations);
+        Assert.DoesNotContain(recommendations, r => r.Name == "NeverCreated");
+
+        var categoryResponse = await client.GetAsync("/api/suggestion-categories");
+        var categories = await categoryResponse.Content.ReadFromJsonAsync<CategoryDto[]>(JsonOptions);
+        Assert.NotNull(categories);
+        Assert.DoesNotContain(categories, c => c.Name == "Temporary");
+    }
+
+    [Fact]
     public async Task ImportRecommendations_RequiresAdminRole()
     {
         var userClient = await GetUserHttpClientAsync();
