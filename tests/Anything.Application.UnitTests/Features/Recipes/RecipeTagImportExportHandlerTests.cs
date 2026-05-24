@@ -37,8 +37,8 @@ public class ExportRecipeTagsHandlerTests
         }.AsAsyncQueryable());
         _tagRepo.Query().Returns(new[]
         {
-            new RecipeTag { Id = 1, RecipeId = 1, Name = "Warm" },
-            new RecipeTag { Id = 2, RecipeId = 1, Name = "warm" }
+            new RecipeTag { Id = 1, RecipeId = 1, Name = "warm" },
+            new RecipeTag { Id = 2, RecipeId = 1, Name = "Warm" }
         }.AsAsyncQueryable());
 
         var result = await new ExportRecipeTagsHandler(_recipeRepo, _ingredientRepo, _tagRepo, _householdContext)
@@ -99,5 +99,24 @@ public class ImportRecipeTagsHandlerTests
             ]), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTagExceedsMaxLength_ReturnsBadRequest()
+    {
+        var existingRecipe = new Recipe { Id = 1, HouseholdId = 1, Name = "Soup" };
+
+        _recipeRepo.Query().Returns(new[] { existingRecipe }.AsAsyncQueryable());
+        _tagRepo.Query().Returns(Array.Empty<RecipeTag>().AsAsyncQueryable());
+
+        var result = await new ImportRecipeTagsHandler(_recipeRepo, _tagRepo, _householdContext, _unitOfWork, _timeProvider)
+            .Handle(new ImportRecipeTagsCommand([
+                new RecipeTagImportExportItem("Soup", [new string('x', 51)])
+            ]), TestContext.Current.CancellationToken);
+
+        var badRequest = Assert.IsType<BadRequest<string>>(result);
+        Assert.Contains("maximum length of 50", badRequest.Value);
+        _tagRepo.DidNotReceive().Add(Arg.Any<RecipeTag>());
+        await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
     }
 }

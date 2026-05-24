@@ -18,6 +18,8 @@ public class ImportRecipeTagsHandler(
     TimeProvider timeProvider)
     : IRequestHandler<ImportRecipeTagsCommand, IResult>
 {
+    private const int MaxTagNameLength = 50;
+
     public async Task<IResult> Handle(ImportRecipeTagsCommand command, CancellationToken ct = default)
     {
         var importByRecipeName = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
@@ -27,8 +29,12 @@ public class ImportRecipeTagsHandler(
             if (string.IsNullOrWhiteSpace(item.RecipeName))
                 return Results.BadRequest("Recipe name is required.");
             var recipeName = item.RecipeName.Trim();
+            var (normalizedTags, validationError) = NormalizeTags(item.Tags);
 
-            if (!importByRecipeName.TryAdd(recipeName, NormalizeTags(item.Tags)))
+            if (validationError is not null)
+                return Results.BadRequest(validationError);
+
+            if (!importByRecipeName.TryAdd(recipeName, normalizedTags))
                 return Results.BadRequest($"Duplicate recipe name in import: {recipeName}");
         }
 
@@ -96,12 +102,17 @@ public class ImportRecipeTagsHandler(
         return Results.NoContent();
     }
 
-    private static List<string> NormalizeTags(List<string>? tags)
+    private static (List<string> Tags, string? ValidationError) NormalizeTags(List<string>? tags)
     {
-        return (tags ?? [])
+        var normalizedTags = (tags ?? [])
             .Where(t => !string.IsNullOrWhiteSpace(t))
             .Select(t => t.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        var tooLongTag = normalizedTags.FirstOrDefault(t => t.Length > MaxTagNameLength);
+        return tooLongTag is null
+            ? (normalizedTags, null)
+            : ([], $"Tag '{tooLongTag}' exceeds maximum length of {MaxTagNameLength} characters.");
     }
 }

@@ -47,12 +47,19 @@ public class ExportRecipeTagsHandler(
         var items = recipes.Select(r => new RecipeTagExportItem(
                 r.Name,
                 ingredientLookup[r.Id].ToList(),
-                tagLookup[r.Id]
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
-                    .ToList()))
+                NormalizeTags(tagLookup[r.Id])))
             .ToList();
 
         return new ExportRecipeTagsResponse(items);
+    }
+
+    private static List<string> NormalizeTags(IEnumerable<string> tags)
+    {
+        return tags
+            .GroupBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.OrderBy(t => t, StringComparer.Ordinal).First())
+            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(t => t, StringComparer.Ordinal)
+            .ToList();
     }
 }

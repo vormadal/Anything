@@ -814,6 +814,30 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task ImportRecipeTags_WhenTagExceedsMaxLength_ReturnsBadRequest()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        _ = await CreateRecipeAsync("Import Recipe", null, null);
+
+        var response = await client.PostAsJsonAsync(
+            "/api/recipes/tags/import",
+            new
+            {
+                recipes = new[]
+                {
+                    new
+                    {
+                        recipeName = "Import Recipe",
+                        tags = new[] { new string('x', 51) }
+                    }
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private async Task<TagDto> AddTagAsync(int recipeId, string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();

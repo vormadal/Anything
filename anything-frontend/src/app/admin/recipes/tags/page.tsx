@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ export default function RecipeTagsAdminPage() {
 
   const handleImportClick = () => fileInputRef.current?.click();
 
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
