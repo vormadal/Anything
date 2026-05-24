@@ -4,7 +4,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, apiFetch } from "@/lib/apiClient";
 import type { ShoppingListRecommendation } from "@/lib/api-client/models/index";
 
-type RecommendationExportItem = { name: string; preferredUnit?: string | null; category?: string | null };
+type RecommendationExportItem = {
+  name: string;
+  preferredUnit?: string | null;
+  category?: string | null;
+  delete?: boolean;
+};
 type RecommendationExportData = { recommendations: RecommendationExportItem[] };
 
 export function useRecommendations() {

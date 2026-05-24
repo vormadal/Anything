@@ -12,4 +12,6 @@ public record RecommendationImportExportItem(
     string? PreferredUnit = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [StringLength(200)]
-    string? Category = null);
+    string? Category = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    bool Delete = false);

@@ -529,6 +529,32 @@ describe("SuggestionsPage", () => {
       });
     });
 
+    it("passes delete flags through import payload", async () => {
+      const user = userEvent.setup();
+      mockApiFetch.mockResolvedValueOnce({ ok: true });
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Import suggestions" })).toBeInTheDocument());
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const fileContent = JSON.stringify({
+        recommendations: [{ name: "Milk", delete: true }],
+      });
+      const file = new File([fileContent], "recommendations.json", { type: "application/json" });
+      await user.upload(fileInput, file);
+
+      await waitFor(() => {
+        expect(mockApiFetch).toHaveBeenCalledWith(
+          "/api/shopping-list-recommendations/import",
+          expect.objectContaining({ method: "POST" })
+        );
+      });
+
+      const payload = JSON.parse((mockApiFetch.mock.calls[0]?.[1] as { body?: string })?.body ?? "{}");
+      expect(payload).toEqual({ recommendations: [{ name: "Milk", delete: true }] });
+    });
+
     it("shows error toast when import API call fails", async () => {
       const user = userEvent.setup();
       mockApiFetch.mockResolvedValueOnce({ ok: false });

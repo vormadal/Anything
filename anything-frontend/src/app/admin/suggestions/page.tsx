@@ -274,7 +274,14 @@ export default function SuggestionsPage() {
     if (!file) return;
     try {
       const text = await file.text();
-      const data = JSON.parse(text) as { recommendations: Array<{ name: string; preferredUnit?: string | null; category?: string | null }> };
+      const data = JSON.parse(text) as {
+        recommendations: Array<{
+          name: string;
+          preferredUnit?: string | null;
+          category?: string | null;
+          delete?: boolean;
+        }>;
+      };
       await importRecommendations.mutateAsync(data);
       toast.success("Suggestions imported.");
     } catch {
