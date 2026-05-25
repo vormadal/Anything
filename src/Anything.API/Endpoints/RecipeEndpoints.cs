@@ -1,9 +1,11 @@
 using Anything.Application.Features.Recipes.Commands;
 using Anything.Application.Features.Recipes.Queries;
+using Anything.Core.Constants;
 using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
+using Microsoft.AspNetCore.Mvc;
 
 
 namespace Anything.API.Endpoints;
@@ -38,6 +40,24 @@ public static class RecipeEndpoints
         .WithName("GetTopRecipeTags")
         .Produces<List<Anything.Contracts.Recipes.TopTagResponse>>()
         .RequireAuthorization();
+
+        group.MapGet("/tags/export", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new ExportRecipeTagsQuery());
+        })
+        .WithName("ExportRecipeTags")
+        .Produces<ExportRecipeTagsResponse>(StatusCodes.Status200OK)
+        .RequireAuthorization(UserRoles.Admin);
+
+        group.MapPost("/tags/import", async ([FromBody] ImportRecipeTagsRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ImportRecipeTagsCommand(request.Recipes));
+        })
+        .WithName("ImportRecipeTags")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithParameterValidation()
+        .RequireAuthorization(UserRoles.Admin);
 
         group.MapGet("/{id}", async (int id, IMediator mediator) =>
         {

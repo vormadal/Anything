@@ -733,6 +733,111 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Fact]
+    public async Task ExportRecipeTags_ReturnsRecipeNameIngredientsAndTags()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var recipe = await CreateRecipeAsync("Export Recipe", null, null);
+        await AddIngredientAsync(recipe.Id, "Flour", 2, "cup", null);
+        await AddIngredientAsync(recipe.Id, "Salt", 1, "tsp", null);
+        await AddTagAsync(recipe.Id, "baked");
+        await AddTagAsync(recipe.Id, "weekend");
+
+        var response = await client.GetAsync("/api/recipes/tags/export", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<RecipeTagExportDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        var exportedRecipe = result.Recipes.Single(r => r.RecipeName == "Export Recipe");
+        Assert.Contains("Flour", exportedRecipe.Ingredients);
+        Assert.Contains("Salt", exportedRecipe.Ingredients);
+        Assert.Contains("baked", exportedRecipe.Tags);
+        Assert.Contains("weekend", exportedRecipe.Tags);
+    }
+
+    [Fact]
+    public async Task ImportRecipeTags_ReplacesExistingTagsForRecipe()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var recipe = await CreateRecipeAsync("Import Recipe", null, null);
+        await AddTagAsync(recipe.Id, "old");
+        await AddTagAsync(recipe.Id, "keep");
+
+        var importResponse = await client.PostAsJsonAsync(
+            "/api/recipes/tags/import",
+            new
+            {
+                recipes = new[]
+                {
+                    new
+                    {
+                        recipeName = "Import Recipe",
+                        tags = new[] { "keep", "new" }
+                    }
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, importResponse.StatusCode);
+
+        var tagsResponse = await client.GetAsync($"/api/recipes/{recipe.Id}/tags", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, tagsResponse.StatusCode);
+        var tags = await tagsResponse.Content.ReadFromJsonAsync<TagDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(tags);
+
+        Assert.DoesNotContain(tags, t => t.Name == "old");
+        Assert.Contains(tags, t => t.Name == "keep");
+        Assert.Contains(tags, t => t.Name == "new");
+        Assert.Equal(2, tags.Length);
+    }
+
+    [Fact]
+    public async Task ImportRecipeTags_WhenRecipeMissing_ReturnsBadRequest()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/recipes/tags/import",
+            new
+            {
+                recipes = new[]
+                {
+                    new
+                    {
+                        recipeName = "Missing Recipe",
+                        tags = new[] { "tag1" }
+                    }
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRecipeTags_WhenTagExceedsMaxLength_ReturnsBadRequest()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        _ = await CreateRecipeAsync("Import Recipe", null, null);
+
+        var response = await client.PostAsJsonAsync(
+            "/api/recipes/tags/import",
+            new
+            {
+                recipes = new[]
+                {
+                    new
+                    {
+                        recipeName = "Import Recipe",
+                        tags = new[] { new string('x', 51) }
+                    }
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private async Task<TagDto> AddTagAsync(int recipeId, string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
@@ -749,6 +854,8 @@ public class RecipeEndpointTests : IntegrationTestBase
     private record RecipeImageDto(int Id, int RecipeId, string ThumbnailUrl, string MediumUrl, string OriginalUrl, DateTime CreatedOn);
     private record TagDto(int Id, int RecipeId, string Name, DateTime CreatedOn);
     private record TopTagDto(string Name, int Count);
+    private record RecipeTagExportDto(List<RecipeTagExportItemDto> Recipes);
+    private record RecipeTagExportItemDto(string RecipeName, List<string> Ingredients, List<string> Tags);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
 }
