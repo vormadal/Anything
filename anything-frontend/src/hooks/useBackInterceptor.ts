@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { toast } from "sonner";
 import type { LeftAction } from "@/context/PageActionsContext";
 
@@ -20,6 +20,18 @@ export function useBackInterceptor({
 }: UseBackInterceptorProps) {
   const backPressedOnceRef = useRef(false);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastIdRef = useRef<string | number | undefined>(undefined);
+
+  // Keep refs up-to-date after every render so the popstate handler always
+  // reads current state without relying on stale closures from useEffect.
+  // useLayoutEffect runs synchronously after the DOM commit, before paint, so
+  // any event that fires after a repaint will see the latest values.
+  const handlersRef = useRef(handlers);
+  const leftActionTypeRef = useRef(leftAction.type);
+  useLayoutEffect(() => {
+    handlersRef.current = handlers;
+    leftActionTypeRef.current = leftAction.type;
+  });
 
   useEffect(() => {
     window.history.pushState({ appSentinel: true }, "");
@@ -27,26 +39,27 @@ export function useBackInterceptor({
 
   useEffect(() => {
     const handlePopState = () => {
-      const activeHandler = handlers.find((h) => h.isActive);
+      const activeHandler = handlersRef.current.find((h) => h.isActive);
       if (activeHandler) {
         activeHandler.onBack();
         window.history.pushState({ appSentinel: true }, "");
         return;
       }
 
-      if (leftAction.type === "back") {
+      if (leftActionTypeRef.current === "back") {
         return;
       }
 
       if (backPressedOnceRef.current) {
         if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
         backPressedOnceRef.current = false;
+        toast.dismiss(toastIdRef.current);
         return;
       }
 
       backPressedOnceRef.current = true;
       window.history.pushState({ appSentinel: true }, "");
-      toast("Press back again to exit", { duration: 2000 });
+      toastIdRef.current = toast("Press back again to exit", { duration: 2000 });
 
       exitTimerRef.current = setTimeout(() => {
         backPressedOnceRef.current = false;
@@ -55,5 +68,5 @@ export function useBackInterceptor({
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [handlers, leftAction.type]);
+  }, []); // Stable listener — reads current state from refs
 }
