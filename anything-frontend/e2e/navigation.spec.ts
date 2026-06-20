@@ -30,6 +30,43 @@ for (const { path, title } of PAGES) {
   });
 }
 
+test("back button closes hamburger menu instead of navigating away", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: /open menu/i }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  await page.evaluate(() => window.history.back());
+  await page.waitForTimeout(300);
+
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page).toHaveURL("/");
+});
+
+test("back button shows exit prompt on root page", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+
+  await page.evaluate(() => window.history.back());
+
+  await expect(page.getByText(/press back again to exit/i)).toBeVisible();
+  await expect(page).toHaveURL("/");
+});
+
+test("pressing back twice within 2s on root page allows exit", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+
+  await page.evaluate(() => window.history.back());
+  await expect(page.getByText(/press back again to exit/i)).toBeVisible();
+
+  await page.evaluate(() => window.history.back());
+  await page.waitForTimeout(300);
+
+  await expect(page.getByText(/press back again to exit/i)).not.toBeVisible({ timeout: 500 });
+});
+
 test("unauthenticated access redirects to login", async ({ browser }) => {
   // Explicitly pass an empty storageState to override the project-level storageState
   // (which contains auth tokens). Without this, browser.newContext() would inherit
