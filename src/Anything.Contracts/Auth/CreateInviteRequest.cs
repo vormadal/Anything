@@ -5,4 +5,5 @@ namespace Anything.Contracts.Auth;
 public record CreateInviteRequest(
     [Required(ErrorMessage = "Email is required.")]
     [EmailAddress(ErrorMessage = "Invalid email format.")]
-    string Email);
+    string Email,
+    int? HouseholdId = null);

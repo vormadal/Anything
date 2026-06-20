@@ -9,4 +9,5 @@ public class UserInvite
     public int CreatedByUserId { get; set; }
     public DateTime CreatedOn { get; set; }
     public bool IsUsed { get; set; }
+    public int? HouseholdId { get; set; }
 }

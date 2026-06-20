@@ -8,6 +8,7 @@ import { toast } from "sonner";
 const mockInvitesPost = jest.fn();
 const mockInvitesGet = jest.fn();
 const mockInviteDelete = jest.fn();
+const mockHouseholdsGet = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
   apiClient: {
@@ -21,6 +22,10 @@ jest.mock("@/lib/apiClient", () => ({
       },
     },
   },
+}));
+
+jest.mock("@/hooks/useHouseholds", () => ({
+  useHouseholds: () => ({ data: mockHouseholdsGet(), isLoading: false }),
 }));
 
 // Mock next/navigation
@@ -57,6 +62,7 @@ describe("AdminInvitePage", () => {
     localStorage.clear();
     writeTextMock.mockClear();
     mockInvitesGet.mockResolvedValue([]);
+    mockHouseholdsGet.mockReturnValue([]);
   });
 
   describe("Access Control", () => {
@@ -140,7 +146,7 @@ describe("AdminInvitePage", () => {
       await user.click(screen.getByRole("button", { name: "Create Link" }));
 
       await waitFor(() => {
-        expect(mockInvitesPost).toHaveBeenCalledWith({ email: "newuser@test.com" });
+        expect(mockInvitesPost).toHaveBeenCalledWith({ email: "newuser@test.com", householdId: null });
       });
 
       expect(toast.success).toHaveBeenCalledWith("Invite created!");

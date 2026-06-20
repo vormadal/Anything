@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/PageTitle";
 import { useCreateInvite, useCurrentUser, useDeleteInvite, useInvites } from "@/hooks/useAuth";
+import { useHouseholds } from "@/hooks/useHouseholds";
 import { isAdmin } from "@/lib/roles";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,11 +13,13 @@ import type { InviteResponse } from "@/lib/api-client/models/index";
 
 export default function AdminInvitePage() {
   const [email, setEmail] = useState("");
+  const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>("");
   const [inviteData, setInviteData] = useState<{ email: string; url: string } | null>(null);
   const createInvite = useCreateInvite();
   const deleteInvite = useDeleteInvite();
   const { data: invites, isLoading: invitesLoading } = useInvites();
   const { data: user } = useCurrentUser();
+  const { data: households } = useHouseholds();
   const router = useRouter();
 
   if (user && !isAdmin(user.role)) {
@@ -44,7 +47,8 @@ export default function AdminInvitePage() {
     }
 
     try {
-      const result = await createInvite.mutateAsync({ email });
+      const householdId = selectedHouseholdId ? Number(selectedHouseholdId) : undefined;
+      const result = await createInvite.mutateAsync({ email, householdId });
       if (!result?.inviteUrl) {
         toast.error("Failed to get invite URL from server");
         return;
@@ -53,6 +57,7 @@ export default function AdminInvitePage() {
       setInviteData({ email, url: fullUrl });
       toast.success("Invite created!");
       setEmail("");
+      setSelectedHouseholdId("");
     } catch {
       toast.error("Failed to create invite");
     }
@@ -87,7 +92,7 @@ export default function AdminInvitePage() {
           Generate a one-time registration link for a specific email address.
         </p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-2">
             <label htmlFor="email" className="sr-only">Email Address</label>
             <input
@@ -103,6 +108,26 @@ export default function AdminInvitePage() {
               {createInvite.isPending ? "Creating..." : "Create Link"}
             </Button>
           </div>
+          {households && households.length > 0 && (
+            <div>
+              <label htmlFor="household" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                Add to household (optional)
+              </label>
+              <select
+                id="household"
+                value={selectedHouseholdId}
+                onChange={(e) => setSelectedHouseholdId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">None</option>
+                {households.map((h) => (
+                  <option key={h.id} value={String(h.id)}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </form>
 
         {inviteData && (

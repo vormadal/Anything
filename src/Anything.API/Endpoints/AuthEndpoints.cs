@@ -54,7 +54,7 @@ public static class AuthEndpoints
             if (!int.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
                 return Results.Unauthorized();
             var userRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
-            return await mediator.Send(new CreateInviteCommand(request.Email, userId, userRole));
+            return await mediator.Send(new CreateInviteCommand(request.Email, userId, userRole, request.HouseholdId));
         })
         .WithName("CreateInvite")
         .Produces<CreateInviteResponse>()

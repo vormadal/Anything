@@ -20,14 +20,17 @@ const mockHouseholdDetail = {
 
 const mockHouseholdGet = jest.fn()
 const mockUpdateMutateAsync = jest.fn()
-const mockAddMutateAsync = jest.fn()
+const mockCreateInviteMutateAsync = jest.fn()
 const mockRemoveMutateAsync = jest.fn()
 
 jest.mock('@/hooks/useHouseholds', () => ({
   useHousehold: (...args: unknown[]) => mockHouseholdGet(...args),
   useUpdateHousehold: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
-  useAddHouseholdMember: () => ({ mutateAsync: mockAddMutateAsync, isPending: false }),
   useRemoveHouseholdMember: () => ({ mutateAsync: mockRemoveMutateAsync, isPending: false }),
+}))
+
+jest.mock('@/hooks/useAuth', () => ({
+  useCreateInvite: () => ({ mutateAsync: mockCreateInviteMutateAsync, isPending: false }),
 }))
 
 jest.mock('@/context/HouseholdContext', () => ({
@@ -53,6 +56,13 @@ jest.mock('sonner', () => ({
   Toaster: () => null,
 }))
 
+// Mock clipboard API
+Object.defineProperty(navigator, 'clipboard', {
+  value: { writeText: jest.fn(() => Promise.resolve()) },
+  writable: true,
+  configurable: true,
+})
+
 // --------------------------------------------------------------------------
 // Tests
 // --------------------------------------------------------------------------
@@ -63,7 +73,7 @@ describe('HouseholdDetailPage', () => {
     mockUseParams.mockReturnValue({ id: '1' })
     mockHouseholdGet.mockReturnValue({ data: mockHouseholdDetail, isLoading: false })
     mockUpdateMutateAsync.mockResolvedValue(undefined)
-    mockAddMutateAsync.mockResolvedValue(undefined)
+    mockCreateInviteMutateAsync.mockResolvedValue({ inviteUrl: '/register?token=abc', token: 'abc' })
     mockRemoveMutateAsync.mockResolvedValue(undefined)
   })
 
@@ -139,46 +149,29 @@ describe('HouseholdDetailPage', () => {
     })
   })
 
-  it('opens add member dialog', async () => {
+  it('opens invite member dialog', async () => {
     render(<HouseholdDetailPage />)
-    await waitFor(() => screen.getByRole('button', { name: /add member/i }))
-    fireEvent.click(screen.getByRole('button', { name: /add member/i }))
+    await waitFor(() => screen.getByRole('button', { name: /invite member/i }))
+    fireEvent.click(screen.getByRole('button', { name: /invite member/i }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Enter user ID')).toBeInTheDocument()
+    expect(screen.getByText('Invite Member')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('user@example.com')).toBeInTheDocument()
   })
 
-  it('calls addMember when add member form is submitted', async () => {
+  it('creates invite link when form is submitted', async () => {
     render(<HouseholdDetailPage />)
-    await waitFor(() => screen.getByRole('button', { name: /add member/i }))
-    fireEvent.click(screen.getByRole('button', { name: /add member/i }))
+    await waitFor(() => screen.getByRole('button', { name: /invite member/i }))
+    fireEvent.click(screen.getByRole('button', { name: /invite member/i }))
 
-    fireEvent.change(screen.getByPlaceholderText('Enter user ID'), { target: { value: '42' } })
-    fireEvent.click(screen.getByRole('button', { name: /^add member$/i }))
+    fireEvent.change(screen.getByPlaceholderText('user@example.com'), { target: { value: 'new@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /create link/i }))
 
     await waitFor(() => {
-      expect(mockAddMutateAsync).toHaveBeenCalledWith({ householdId: 1, userId: 42, role: 'Member' })
-      expect(toast.success).toHaveBeenCalledWith('Member added')
+      expect(mockCreateInviteMutateAsync).toHaveBeenCalledWith({ email: 'new@example.com', householdId: 1 })
+      expect(toast.success).toHaveBeenCalledWith('Invite link created!')
     })
-  })
 
-  it('shows validation error for invalid user ID', async () => {
-    render(<HouseholdDetailPage />)
-    await waitFor(() => screen.getByRole('button', { name: /add member/i }))
-    fireEvent.click(screen.getByRole('button', { name: /add member/i }))
-
-    // In jsdom HTML5 form validation is not enforced, so we can directly test
-    // the component's JS validation by entering a zero (invalid) user ID.
-    const input = screen.getByPlaceholderText('Enter user ID')
-    fireEvent.change(input, { target: { value: '0', valueAsNumber: 0 } })
-    // Remove min/required so jsdom doesn't short-circuit the form submission
-    input.removeAttribute('min')
-    input.removeAttribute('required')
-    fireEvent.click(screen.getByRole('button', { name: /^add member$/i }))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Please enter a valid user ID')
-    })
-    expect(mockAddMutateAsync).not.toHaveBeenCalled()
+    expect(screen.getByDisplayValue(/register\?token=abc/)).toBeInTheDocument()
   })
 
   it('opens remove confirmation dialog when trash icon is clicked', async () => {
@@ -211,4 +204,3 @@ describe('HouseholdDetailPage', () => {
     expect(mockRemoveMutateAsync).not.toHaveBeenCalled()
   })
 })
-
