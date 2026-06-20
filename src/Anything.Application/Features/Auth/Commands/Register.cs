@@ -13,6 +13,8 @@ public record RegisterCommand(string Email, string Password, string Name, string
 public class RegisterHandler(
     IRepository<User> userRepository,
     IRepository<UserInvite> inviteRepository,
+    IRepository<HouseholdMember> memberRepository,
+    IRepository<Household> householdRepository,
     IUnitOfWork unitOfWork,
     IPasswordService passwordService,
     TimeProvider timeProvider) : IRequestHandler<RegisterCommand, IResult>
@@ -33,6 +35,16 @@ public class RegisterHandler(
         if (existingUser)
             return Results.BadRequest("User already exists.");
 
+        if (invite.HouseholdId.HasValue)
+        {
+            var householdActive = await householdRepository.Query()
+                .Where(h => h.Id == invite.HouseholdId && h.DeletedOn == null)
+                .AnyAsync(ct);
+
+            if (!householdActive)
+                return Results.BadRequest("The invited household no longer exists.");
+        }
+
         var user = new User
         {
             Email = command.Email,
@@ -45,6 +57,19 @@ public class RegisterHandler(
         invite.IsUsed = true;
         userRepository.Add(user);
         await unitOfWork.SaveChanges(ct);
+
+        if (invite.HouseholdId.HasValue)
+        {
+            var member = new HouseholdMember
+            {
+                HouseholdId = invite.HouseholdId.Value,
+                UserId = user.Id,
+                Role = HouseholdRoles.Member,
+                JoinedOn = timeProvider.GetUtcNow().UtcDateTime
+            };
+            memberRepository.Add(member);
+            await unitOfWork.SaveChanges(ct);
+        }
 
         return Results.Created($"/api/users/{user.Id}", new { user.Id, user.Email, user.Name });
     }

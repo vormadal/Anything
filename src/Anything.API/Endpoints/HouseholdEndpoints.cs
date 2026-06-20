@@ -87,6 +87,7 @@ public static class HouseholdEndpoints
         .Produces(403)
         .Produces(404)
         .RequireAuthorization();
+
     }
 
     private static bool TryGetUserId(ClaimsPrincipal user, out int userId)

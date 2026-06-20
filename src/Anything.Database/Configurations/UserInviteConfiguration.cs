@@ -17,5 +17,11 @@ public class UserInviteConfiguration : IEntityTypeConfiguration<UserInvite>
             .WithMany()
             .HasForeignKey(e => e.CreatedByUserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Household>()
+            .WithMany()
+            .HasForeignKey(e => e.HouseholdId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

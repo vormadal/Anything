@@ -784,6 +784,10 @@ export interface CreateInviteRequest extends Parsable {
      * The email property
      */
     email?: string | null;
+    /**
+     * The householdId property
+     */
+    householdId?: number | null;
 }
 export interface CreateInviteResponse extends Parsable {
     /**
@@ -1630,6 +1634,7 @@ export function deserializeIntoCreateInventoryStorageUnitRequest(createInventory
 export function deserializeIntoCreateInviteRequest(createInviteRequest: Partial<CreateInviteRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "email": n => { createInviteRequest.email = n.getStringValue(); },
+        "householdId": n => { createInviteRequest.householdId = n.getNumberValue(); },
     }
 }
 /**
@@ -3503,6 +3508,7 @@ export function serializeCreateInventoryStorageUnitRequest(writer: Serialization
 export function serializeCreateInviteRequest(writer: SerializationWriter, createInviteRequest: Partial<CreateInviteRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createInviteRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("email", createInviteRequest.email);
+    writer.writeNumberValue("householdId", createInviteRequest.householdId);
 }
 /**
  * Serializes information the current object

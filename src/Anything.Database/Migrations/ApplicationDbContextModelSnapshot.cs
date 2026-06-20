@@ -974,6 +974,9 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("HouseholdId")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsUsed")
                         .HasColumnType("boolean");
 
@@ -985,6 +988,8 @@ namespace Anything.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("Token")
                         .IsUnique();
@@ -1280,6 +1285,11 @@ namespace Anything.Database.Migrations
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.Vendor", b =>

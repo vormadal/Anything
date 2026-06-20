@@ -154,8 +154,8 @@ export function useCreateInvite() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { email: string }) =>
-      apiClient.api.auth.invites.post({ email: data.email }),
+    mutationFn: (data: { email: string; householdId?: number | null }) =>
+      apiClient.api.auth.invites.post({ email: data.email, householdId: data.householdId ?? null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "invites"] });
     },
