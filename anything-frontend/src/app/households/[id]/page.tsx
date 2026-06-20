@@ -14,10 +14,10 @@ import {
 import {
   useHousehold,
   useUpdateHousehold,
-  useCreateHouseholdInvite,
   useRemoveHouseholdMember,
   type HouseholdMember,
 } from "@/hooks/useHouseholds";
+import { useCreateInvite } from "@/hooks/useAuth";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import { Copy, Link, Pencil, Trash2, UserPlus, Crown, User, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -32,7 +32,7 @@ export default function HouseholdDetailPage() {
   const { data: household, isLoading } = useHousehold(isValidId ? householdId : null);
   const { selectedHouseholdId } = useHouseholdContext();
   const updateHousehold = useUpdateHousehold();
-  const createInvite = useCreateHouseholdInvite();
+  const createInvite = useCreateInvite();
   const removeMember = useRemoveHouseholdMember();
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
@@ -83,7 +83,11 @@ export default function HouseholdDetailPage() {
     e.preventDefault();
     if (!isValidId || !inviteEmail.trim()) return;
     try {
-      const result = await createInvite.mutateAsync({ householdId, email: inviteEmail.trim() });
+      const result = await createInvite.mutateAsync({ email: inviteEmail.trim(), householdId });
+      if (!result?.inviteUrl) {
+        toast.error("Failed to get invite URL from server");
+        return;
+      }
       const fullUrl = `${window.location.origin}${result.inviteUrl}`;
       setInviteData({ email: inviteEmail.trim(), url: fullUrl });
       setInviteEmail("");

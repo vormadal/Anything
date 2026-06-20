@@ -118,4 +118,40 @@ public class CreateInviteHandlerTests
         Assert.IsType<Ok<CreateInviteResponse>>(result);
         _inviteRepo.Received(1).Add(Arg.Is<UserInvite>(i => i.HouseholdId == 99));
     }
+
+    [Fact]
+    public async Task Handle_WithHouseholdId_WhenNonAdminIsOwner_CreatesInvite()
+    {
+        _householdRepo.Query().Returns(new List<Household>
+        {
+            new() { Id = 99, Name = "Test" }
+        }.AsAsyncQueryable());
+        _memberRepo.Query().Returns(new List<HouseholdMember>
+        {
+            new() { HouseholdId = 99, UserId = 1, Role = HouseholdRoles.Owner }
+        }.AsAsyncQueryable());
+        _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.User, HouseholdId: 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Ok<CreateInviteResponse>>(result);
+        _inviteRepo.Received(1).Add(Arg.Is<UserInvite>(i => i.HouseholdId == 99));
+    }
+
+    [Fact]
+    public async Task Handle_WithHouseholdId_WhenNonAdminIsNotOwner_ReturnsForbid()
+    {
+        _householdRepo.Query().Returns(new List<Household>
+        {
+            new() { Id = 99, Name = "Test" }
+        }.AsAsyncQueryable());
+        _memberRepo.Query().Returns(new List<HouseholdMember>
+        {
+            new() { HouseholdId = 99, UserId = 1, Role = HouseholdRoles.Member }
+        }.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.User, HouseholdId: 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
 }

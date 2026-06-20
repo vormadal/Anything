@@ -26,8 +26,11 @@ const mockRemoveMutateAsync = jest.fn()
 jest.mock('@/hooks/useHouseholds', () => ({
   useHousehold: (...args: unknown[]) => mockHouseholdGet(...args),
   useUpdateHousehold: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
-  useCreateHouseholdInvite: () => ({ mutateAsync: mockCreateInviteMutateAsync, isPending: false }),
   useRemoveHouseholdMember: () => ({ mutateAsync: mockRemoveMutateAsync, isPending: false }),
+}))
+
+jest.mock('@/hooks/useAuth', () => ({
+  useCreateInvite: () => ({ mutateAsync: mockCreateInviteMutateAsync, isPending: false }),
 }))
 
 jest.mock('@/context/HouseholdContext', () => ({
@@ -164,7 +167,7 @@ describe('HouseholdDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /create link/i }))
 
     await waitFor(() => {
-      expect(mockCreateInviteMutateAsync).toHaveBeenCalledWith({ householdId: 1, email: 'new@example.com' })
+      expect(mockCreateInviteMutateAsync).toHaveBeenCalledWith({ email: 'new@example.com', householdId: 1 })
       expect(toast.success).toHaveBeenCalledWith('Invite link created!')
     })
 

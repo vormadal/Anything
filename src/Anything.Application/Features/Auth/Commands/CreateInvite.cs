@@ -20,9 +20,6 @@ public class CreateInviteHandler(
 {
     public async Task<IResult> Handle(CreateInviteCommand command, CancellationToken ct = default)
     {
-        if (command.UserRole != UserRoles.Admin)
-            return Results.Forbid();
-
         if (command.HouseholdId.HasValue)
         {
             var householdExists = await householdRepository.Query()
@@ -32,12 +29,20 @@ public class CreateInviteHandler(
             if (!householdExists)
                 return Results.NotFound();
 
-            var isMember = await memberRepository.Query()
+            var requestingMember = await memberRepository.Query()
                 .Where(m => m.HouseholdId == command.HouseholdId && m.UserId == command.UserId)
-                .AnyAsync(ct);
+                .FirstOrDefaultAsync(ct);
 
-            if (!isMember)
+            var isAuthorized = command.UserRole == UserRoles.Admin
+                ? requestingMember is not null
+                : requestingMember?.Role == HouseholdRoles.Owner;
+
+            if (!isAuthorized)
                 return Results.Forbid();
+        }
+        else if (command.UserRole != UserRoles.Admin)
+        {
+            return Results.Forbid();
         }
 
         var existingUser = await userRepository.Query()
@@ -47,14 +52,15 @@ public class CreateInviteHandler(
         if (existingUser)
             return Results.BadRequest("User with this email already exists.");
 
+        var now = timeProvider.GetUtcNow();
         var token = Guid.NewGuid().ToString();
         var invite = new UserInvite
         {
             Email = command.Email,
             Token = token,
-            ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime,
+            ExpiresAt = now.AddDays(7).UtcDateTime,
             CreatedByUserId = command.UserId,
-            CreatedOn = timeProvider.GetUtcNow().UtcDateTime,
+            CreatedOn = now.UtcDateTime,
             HouseholdId = command.HouseholdId
         };
 
