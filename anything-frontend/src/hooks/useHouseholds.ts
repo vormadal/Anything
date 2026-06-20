@@ -146,6 +146,29 @@ export function useAddHouseholdMember() {
   });
 }
 
+export function useCreateHouseholdInvite() {
+  return useMutation({
+    mutationFn: async (data: {
+      householdId: number;
+      email: string;
+    }): Promise<{ inviteUrl: string; token: string }> => {
+      const response = await fetch(
+        `${API_BASE_URL}/api/households/${data.householdId}/invites`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ email: data.email }),
+        }
+      );
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Failed to create invite: ${response.status}`);
+      }
+      return response.json() as Promise<{ inviteUrl: string; token: string }>;
+    },
+  });
+}
+
 export function useRemoveHouseholdMember() {
   const queryClient = useQueryClient();
 

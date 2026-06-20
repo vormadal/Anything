@@ -1,9 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Anything.Contracts.Auth;
+namespace Anything.Contracts.Households;
 
-public record CreateInviteRequest(
+public record CreateHouseholdInviteRequest(
     [Required(ErrorMessage = "Email is required.")]
     [EmailAddress(ErrorMessage = "Invalid email format.")]
-    string Email,
-    int? HouseholdId = null);
+    string Email);

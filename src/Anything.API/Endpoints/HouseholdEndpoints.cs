@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Anything.Application.Features.Households.Commands;
 using Anything.Application.Features.Households.Queries;
+using Anything.Contracts.Auth;
 using Anything.Contracts.Households;
 using Anything.Core.Entities;
 using Anything.Mediator;
@@ -86,6 +87,20 @@ public static class HouseholdEndpoints
         .Produces(400)
         .Produces(403)
         .Produces(404)
+        .RequireAuthorization();
+
+        group.MapPost("/{id}/invites", async (int id, CreateHouseholdInviteRequest request, ClaimsPrincipal user, IMediator mediator) =>
+        {
+            if (!TryGetUserId(user, out var userId))
+                return Results.Unauthorized();
+            return await mediator.Send(new CreateHouseholdInviteCommand(id, request.Email, userId));
+        })
+        .WithName("CreateHouseholdInvite")
+        .Produces<CreateInviteResponse>()
+        .Produces(400)
+        .Produces(403)
+        .Produces(404)
+        .WithParameterValidation()
         .RequireAuthorization();
     }
 

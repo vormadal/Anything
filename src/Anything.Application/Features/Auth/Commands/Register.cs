@@ -13,6 +13,7 @@ public record RegisterCommand(string Email, string Password, string Name, string
 public class RegisterHandler(
     IRepository<User> userRepository,
     IRepository<UserInvite> inviteRepository,
+    IRepository<HouseholdMember> memberRepository,
     IUnitOfWork unitOfWork,
     IPasswordService passwordService,
     TimeProvider timeProvider) : IRequestHandler<RegisterCommand, IResult>
@@ -45,6 +46,19 @@ public class RegisterHandler(
         invite.IsUsed = true;
         userRepository.Add(user);
         await unitOfWork.SaveChanges(ct);
+
+        if (invite.HouseholdId.HasValue)
+        {
+            var member = new HouseholdMember
+            {
+                HouseholdId = invite.HouseholdId.Value,
+                UserId = user.Id,
+                Role = HouseholdRoles.Member,
+                JoinedOn = timeProvider.GetUtcNow().UtcDateTime
+            };
+            memberRepository.Add(member);
+            await unitOfWork.SaveChanges(ct);
+        }
 
         return Results.Created($"/api/users/{user.Id}", new { user.Id, user.Email, user.Name });
     }
