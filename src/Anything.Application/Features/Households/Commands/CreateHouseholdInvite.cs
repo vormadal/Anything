@@ -20,11 +20,11 @@ public class CreateHouseholdInviteHandler(
 {
     public async Task<IResult> Handle(CreateHouseholdInviteCommand command, CancellationToken ct = default)
     {
-        var household = await householdRepository.Query()
+        var householdExists = await householdRepository.Query()
             .Where(h => h.Id == command.HouseholdId && h.DeletedOn == null)
             .AnyAsync(ct);
 
-        if (!household)
+        if (!householdExists)
             return Results.NotFound();
 
         var requestingMember = await memberRepository.Query()
@@ -41,14 +41,15 @@ public class CreateHouseholdInviteHandler(
         if (existingUser)
             return Results.BadRequest("User with this email already exists.");
 
+        var now = timeProvider.GetUtcNow();
         var token = Guid.NewGuid().ToString();
         var invite = new UserInvite
         {
             Email = command.Email,
             Token = token,
-            ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime,
+            ExpiresAt = now.AddDays(7).UtcDateTime,
             CreatedByUserId = command.RequestingUserId,
-            CreatedOn = timeProvider.GetUtcNow().UtcDateTime,
+            CreatedOn = now.UtcDateTime,
             HouseholdId = command.HouseholdId
         };
 

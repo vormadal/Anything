@@ -14,6 +14,7 @@ public class RegisterHandler(
     IRepository<User> userRepository,
     IRepository<UserInvite> inviteRepository,
     IRepository<HouseholdMember> memberRepository,
+    IRepository<Household> householdRepository,
     IUnitOfWork unitOfWork,
     IPasswordService passwordService,
     TimeProvider timeProvider) : IRequestHandler<RegisterCommand, IResult>
@@ -33,6 +34,16 @@ public class RegisterHandler(
 
         if (existingUser)
             return Results.BadRequest("User already exists.");
+
+        if (invite.HouseholdId.HasValue)
+        {
+            var householdActive = await householdRepository.Query()
+                .Where(h => h.Id == invite.HouseholdId && h.DeletedOn == null)
+                .AnyAsync(ct);
+
+            if (!householdActive)
+                return Results.BadRequest("The invited household no longer exists.");
+        }
 
         var user = new User
         {

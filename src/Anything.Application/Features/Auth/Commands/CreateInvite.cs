@@ -14,6 +14,7 @@ public class CreateInviteHandler(
     IRepository<User> userRepository,
     IRepository<UserInvite> inviteRepository,
     IRepository<HouseholdMember> memberRepository,
+    IRepository<Household> householdRepository,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<CreateInviteCommand, IResult>
 {
@@ -24,6 +25,13 @@ public class CreateInviteHandler(
 
         if (command.HouseholdId.HasValue)
         {
+            var householdExists = await householdRepository.Query()
+                .Where(h => h.Id == command.HouseholdId && h.DeletedOn == null)
+                .AnyAsync(ct);
+
+            if (!householdExists)
+                return Results.NotFound();
+
             var isMember = await memberRepository.Query()
                 .Where(m => m.HouseholdId == command.HouseholdId && m.UserId == command.UserId)
                 .AnyAsync(ct);

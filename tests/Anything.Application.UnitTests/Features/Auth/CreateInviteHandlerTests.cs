@@ -14,11 +14,13 @@ public class CreateInviteHandlerTests
 {
     private readonly IRepository<User> _userRepo = Substitute.For<IRepository<User>>();
     private readonly IRepository<UserInvite> _inviteRepo = Substitute.For<IRepository<UserInvite>>();
+    private readonly IRepository<HouseholdMember> _memberRepo = Substitute.For<IRepository<HouseholdMember>>();
+    private readonly IRepository<Household> _householdRepo = Substitute.For<IRepository<Household>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
 
     private CreateInviteHandler CreateHandler() =>
-        new(_userRepo, _inviteRepo, _unitOfWork, _timeProvider);
+        new(_userRepo, _inviteRepo, _memberRepo, _householdRepo, _unitOfWork, _timeProvider);
 
     public CreateInviteHandlerTests()
     {
@@ -72,5 +74,48 @@ public class CreateInviteHandlerTests
 
         _inviteRepo.Received(1).Add(Arg.Is<UserInvite>(i =>
             i.ExpiresAt == now.AddDays(7).UtcDateTime));
+    }
+
+    [Fact]
+    public async Task Handle_WithHouseholdId_WhenHouseholdDeleted_ReturnsNotFound()
+    {
+        _householdRepo.Query().Returns(new List<Household>().AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.Admin, HouseholdId: 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WithHouseholdId_WhenAdminNotMember_ReturnsForbid()
+    {
+        _householdRepo.Query().Returns(new List<Household>
+        {
+            new() { Id = 99, Name = "Test" }
+        }.AsAsyncQueryable());
+        _memberRepo.Query().Returns(new List<HouseholdMember>().AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.Admin, HouseholdId: 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WithHouseholdId_WhenAdminIsMember_CreatesInviteWithHouseholdId()
+    {
+        _householdRepo.Query().Returns(new List<Household>
+        {
+            new() { Id = 99, Name = "Test" }
+        }.AsAsyncQueryable());
+        _memberRepo.Query().Returns(new List<HouseholdMember>
+        {
+            new() { HouseholdId = 99, UserId = 1, Role = HouseholdRoles.Member }
+        }.AsAsyncQueryable());
+        _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.Admin, HouseholdId: 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Ok<CreateInviteResponse>>(result);
+        _inviteRepo.Received(1).Add(Arg.Is<UserInvite>(i => i.HouseholdId == 99));
     }
 }

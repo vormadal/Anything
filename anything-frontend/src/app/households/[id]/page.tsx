@@ -94,10 +94,14 @@ export default function HouseholdDetailPage() {
     }
   };
 
-  const copyInviteLink = () => {
+  const copyInviteLink = async () => {
     if (!inviteData) return;
-    navigator.clipboard.writeText(inviteData.url);
-    toast.success("Copied to clipboard!");
+    try {
+      await navigator.clipboard.writeText(inviteData.url);
+      toast.success("Copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   const handleCloseInvite = () => {
