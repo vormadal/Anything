@@ -649,6 +649,30 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  // ---- Navigation / Back Button ----
+
+  test("navigation - hamburger menu open", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /open menu/i }).click();
+    await page.waitForSelector('[role="dialog"]');
+    await expect(page).toHaveScreenshot(
+      "navigation-drawer-open.png",
+      screenshotOptions
+    );
+  });
+
+  test("navigation - exit prompt visible", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => window.history.back());
+    await page.waitForSelector("text=Press back again to exit");
+    await expect(page).toHaveScreenshot(
+      "navigation-exit-prompt.png",
+      screenshotOptions
+    );
+  });
+
   test("household detail page - loading state", async ({ page }) => {
     // Override household detail to never resolve so we get loading state
     await page.route(/\/api\/households\/\d+$/, () => {
