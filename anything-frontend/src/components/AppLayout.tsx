@@ -86,7 +86,10 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
   const { navigateBack } = useSmartBack();
 
-  useBackInterceptor({ drawerOpen, setDrawerOpen, leftAction });
+  useBackInterceptor({
+    handlers: [{ isActive: drawerOpen, onBack: () => setDrawerOpen(false) }],
+    leftAction,
+  });
 
   useEffect(() => {
     if (!isAuthenticated) {

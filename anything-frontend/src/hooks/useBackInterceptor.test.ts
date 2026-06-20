@@ -50,22 +50,17 @@ describe("useBackInterceptor", () => {
 
   it("pushes sentinel on mount", () => {
     renderHook(() =>
-      useBackInterceptor({
-        drawerOpen: false,
-        setDrawerOpen: jest.fn(),
-        leftAction: { type: "menu" },
-      })
+      useBackInterceptor({ leftAction: { type: "menu" } })
     );
 
     expect(pushStateSpy).toHaveBeenCalledWith({ appSentinel: true }, "");
   });
 
-  it("closes drawer and re-pushes sentinel when popstate fires with drawer open", () => {
-    const setDrawerOpen = jest.fn();
+  it("calls the first active handler and re-pushes sentinel", () => {
+    const onBack = jest.fn();
     renderHook(() =>
       useBackInterceptor({
-        drawerOpen: true,
-        setDrawerOpen,
+        handlers: [{ isActive: true, onBack }],
         leftAction: { type: "menu" },
       })
     );
@@ -73,17 +68,35 @@ describe("useBackInterceptor", () => {
     pushStateSpy.mockClear();
     firePopState();
 
-    expect(setDrawerOpen).toHaveBeenCalledWith(false);
+    expect(onBack).toHaveBeenCalled();
     expect(pushStateSpy).toHaveBeenCalledWith({ appSentinel: true }, "");
     expect(mockToast).not.toHaveBeenCalled();
   });
 
-  it("does nothing when leftAction is back (lets Next.js handle navigation)", () => {
-    const setDrawerOpen = jest.fn();
+  it("skips inactive handlers and fires the first active one", () => {
+    const onBack1 = jest.fn();
+    const onBack2 = jest.fn();
     renderHook(() =>
       useBackInterceptor({
-        drawerOpen: false,
-        setDrawerOpen,
+        handlers: [
+          { isActive: false, onBack: onBack1 },
+          { isActive: true, onBack: onBack2 },
+        ],
+        leftAction: { type: "menu" },
+      })
+    );
+
+    firePopState();
+
+    expect(onBack1).not.toHaveBeenCalled();
+    expect(onBack2).toHaveBeenCalled();
+  });
+
+  it("does nothing when leftAction is back (lets Next.js handle navigation)", () => {
+    const onBack = jest.fn();
+    renderHook(() =>
+      useBackInterceptor({
+        handlers: [{ isActive: false, onBack }],
         leftAction: { type: "back", href: "/recipes" },
       })
     );
@@ -91,18 +104,14 @@ describe("useBackInterceptor", () => {
     pushStateSpy.mockClear();
     firePopState();
 
-    expect(setDrawerOpen).not.toHaveBeenCalled();
+    expect(onBack).not.toHaveBeenCalled();
     expect(pushStateSpy).not.toHaveBeenCalled();
     expect(mockToast).not.toHaveBeenCalled();
   });
 
   it("shows exit toast and re-pushes sentinel on first back press at root", () => {
     renderHook(() =>
-      useBackInterceptor({
-        drawerOpen: false,
-        setDrawerOpen: jest.fn(),
-        leftAction: { type: "menu" },
-      })
+      useBackInterceptor({ leftAction: { type: "menu" } })
     );
 
     pushStateSpy.mockClear();
@@ -114,14 +123,9 @@ describe("useBackInterceptor", () => {
 
   it("allows exit on second back press within 2s (does not re-push sentinel)", () => {
     renderHook(() =>
-      useBackInterceptor({
-        drawerOpen: false,
-        setDrawerOpen: jest.fn(),
-        leftAction: { type: "menu" },
-      })
+      useBackInterceptor({ leftAction: { type: "menu" } })
     );
 
-    pushStateSpy.mockClear();
     firePopState(); // first press
     pushStateSpy.mockClear();
     mockToast.mockClear();
@@ -134,11 +138,7 @@ describe("useBackInterceptor", () => {
 
   it("treats back as first press again after 2s timeout expires", () => {
     renderHook(() =>
-      useBackInterceptor({
-        drawerOpen: false,
-        setDrawerOpen: jest.fn(),
-        leftAction: { type: "menu" },
-      })
+      useBackInterceptor({ leftAction: { type: "menu" } })
     );
 
     firePopState(); // first press
@@ -149,7 +149,7 @@ describe("useBackInterceptor", () => {
       jest.advanceTimersByTime(2001);
     });
 
-    firePopState(); // back after timeout — should be treated as first press again
+    firePopState(); // back after timeout — treated as first press again
 
     expect(mockToast).toHaveBeenCalledWith("Press back again to exit", { duration: 2000 });
     expect(pushStateSpy).toHaveBeenCalledWith({ appSentinel: true }, "");
@@ -159,11 +159,7 @@ describe("useBackInterceptor", () => {
     const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
 
     const { unmount } = renderHook(() =>
-      useBackInterceptor({
-        drawerOpen: false,
-        setDrawerOpen: jest.fn(),
-        leftAction: { type: "menu" },
-      })
+      useBackInterceptor({ leftAction: { type: "menu" } })
     );
 
     unmount();

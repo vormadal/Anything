@@ -4,15 +4,18 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type { LeftAction } from "@/context/PageActionsContext";
 
+export interface BackPressHandler {
+  isActive: boolean;
+  onBack: () => void;
+}
+
 interface UseBackInterceptorProps {
-  drawerOpen: boolean;
-  setDrawerOpen: (open: boolean) => void;
+  handlers?: BackPressHandler[];
   leftAction: LeftAction;
 }
 
 export function useBackInterceptor({
-  drawerOpen,
-  setDrawerOpen,
+  handlers = [],
   leftAction,
 }: UseBackInterceptorProps) {
   const backPressedOnceRef = useRef(false);
@@ -24,8 +27,9 @@ export function useBackInterceptor({
 
   useEffect(() => {
     const handlePopState = () => {
-      if (drawerOpen) {
-        setDrawerOpen(false);
+      const activeHandler = handlers.find((h) => h.isActive);
+      if (activeHandler) {
+        activeHandler.onBack();
         window.history.pushState({ appSentinel: true }, "");
         return;
       }
@@ -51,5 +55,5 @@ export function useBackInterceptor({
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [drawerOpen, setDrawerOpen, leftAction.type]);
+  }, [handlers, leftAction.type]);
 }
