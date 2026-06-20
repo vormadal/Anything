@@ -8,6 +8,23 @@
 - Do NOT attempt workarounds (manual IL, csc, msbuild invocations, etc.)
 - STOP and inform the user that the tool is missing and another approach is required
 
+## Directory Documentation
+
+Each major directory has an `agent.md` with structure notes and key patterns:
+
+- [`src/Anything.API/agent.md`](src/Anything.API/agent.md)
+- [`src/Anything.Application/agent.md`](src/Anything.Application/agent.md)
+- [`src/Anything.Core/agent.md`](src/Anything.Core/agent.md)
+- [`src/Anything.Database/agent.md`](src/Anything.Database/agent.md)
+- [`src/Anything.Contracts/agent.md`](src/Anything.Contracts/agent.md)
+- [`tests/Anything.API.IntegrationTests/agent.md`](tests/Anything.API.IntegrationTests/agent.md)
+- [`tests/Anything.Application.UnitTests/agent.md`](tests/Anything.Application.UnitTests/agent.md)
+- [`tests/Anything.ArchitectureTests/agent.md`](tests/Anything.ArchitectureTests/agent.md)
+- [`anything-frontend/src/app/agent.md`](anything-frontend/src/app/agent.md)
+- [`anything-frontend/src/components/agent.md`](anything-frontend/src/components/agent.md)
+- [`anything-frontend/src/hooks/agent.md`](anything-frontend/src/hooks/agent.md)
+- [`anything-frontend/src/lib/agent.md`](anything-frontend/src/lib/agent.md)
+
 ## Repository Structure
 
 ```
