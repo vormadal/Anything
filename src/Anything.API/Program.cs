@@ -136,6 +136,7 @@ app.MapInventoryBoxEndpoints();
 app.MapInventoryItemEndpoints();
 app.MapShoppingListEndpoints();
 app.MapRecipeEndpoints();
+app.MapSharedRecipeEndpoints();
 app.MapFoodPlanEndpoints();
 app.MapRecommendationEndpoints();
 app.MapSuggestionCategoryEndpoints();

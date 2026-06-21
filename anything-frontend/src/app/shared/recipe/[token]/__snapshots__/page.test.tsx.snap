@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`SharedRecipePage matches snapshot: expired link 1`] = `
+<div
+  data-testid="header-actions"
+/>
+`;
+
+exports[`SharedRecipePage matches snapshot: loading state 1`] = `
+<div
+  data-testid="header-actions"
+/>
+`;
+
+exports[`SharedRecipePage matches snapshot: targeted share with logged-in target user and clone section 1`] = `
+<div
+  data-testid="header-actions"
+/>
+`;
+
+exports[`SharedRecipePage matches snapshot: valid anonymous recipe view 1`] = `
+<div
+  data-testid="header-actions"
+/>
+`;

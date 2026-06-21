@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Anything.Application.Features.Recipes.Commands;
 using Anything.Application.Features.Recipes.Queries;
 using Anything.Core.Constants;
@@ -315,6 +316,38 @@ public static class RecipeEndpoints
             return await mediator.Send(new DeleteRecipeTagCommand(id, tagId));
         })
         .WithName("DeleteRecipeTag")
+        .Produces(204)
+        .Produces(404)
+        .RequireAuthorization();
+
+        // Shares
+        group.MapGet("/{id}/shares", async (int id, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetRecipeSharesQuery(id));
+        })
+        .WithName("GetRecipeShares")
+        .Produces<List<RecipeShareResponse>>()
+        .Produces(404)
+        .RequireAuthorization();
+
+        group.MapPost("/{id}/shares", async (int id, CreateRecipeShareRequest request, ClaimsPrincipal user, IMediator mediator) =>
+        {
+            if (!int.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+                return Results.Unauthorized();
+
+            return await mediator.Send(new CreateRecipeShareTokenCommand(id, request.Expiry, request.TargetEmail, userId));
+        })
+        .WithName("CreateRecipeShare")
+        .Produces<RecipeShareResponse>(StatusCodes.Status201Created)
+        .Produces(404)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapDelete("/{id}/shares/{tokenId}", async (int id, int tokenId, IMediator mediator) =>
+        {
+            return await mediator.Send(new RevokeRecipeShareCommand(id, tokenId));
+        })
+        .WithName("RevokeRecipeShare")
         .Produces(204)
         .Produces(404)
         .RequireAuthorization();
