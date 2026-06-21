@@ -764,7 +764,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.getByRole("button", { name: /more/i }).click();
     await page.getByRole("menuitem", { name: /share recipe/i }).click();
     await page.waitForSelector('[role="dialog"]');
-    await page.getByRole("tab", { name: /share with user/i }).click();
+    await page.getByRole("button", { name: /share with user/i }).click();
     await expect(page).toHaveScreenshot("share-dialog-user-tab.png", screenshotOptions);
   });
 });
