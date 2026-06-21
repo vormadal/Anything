@@ -161,6 +161,38 @@ const mockHouseholds = [
   { id: 2, name: "Work Team", createdOn: "2024-02-01T00:00:00Z", role: "Member" },
 ];
 
+const mockRecipeDetail = {
+  id: 1, name: "Pasta Carbonara", notes: "Classic Italian.",
+  cookTimeMinutes: 30, servings: 4, servingsType: "People",
+  createdOn: "2024-01-01T00:00:00Z", modifiedOn: null,
+};
+
+const mockRecipeShares = [
+  { id: 1, token: "tok1", shareUrl: "/shared/recipe/tok1",
+    targetEmail: null, expiresAt: "2025-02-15T00:00:00Z",
+    createdOn: "2025-01-15T00:00:00Z", isExpired: false, isClaimed: false },
+  { id: 2, token: "tok2", shareUrl: "/shared/recipe/tok2",
+    targetEmail: "friend@example.com", expiresAt: null,
+    createdOn: "2025-01-15T00:00:00Z", isExpired: false, isClaimed: false },
+];
+
+const mockSharedRecipe = {
+  recipeId: 1, recipeName: "Pasta Carbonara",
+  notes: "Classic Italian.", cookTimeMinutes: 30, servings: 4,
+  servingsType: "People",
+  ingredients: [
+    { name: "Spaghetti", amount: 200, unit: "g", group: null, sortOrder: 0 },
+    { name: "Eggs", amount: 3, unit: null, group: null, sortOrder: 1 },
+  ],
+  steps: [
+    { description: "Boil pasta until al dente.", sortOrder: 0 },
+    { description: "Mix eggs with cheese and toss with hot pasta.", sortOrder: 1 },
+  ],
+  tags: ["italian", "pasta"],
+  imageUrls: [],
+  isExpired: false, isTargeted: false, targetEmail: null,
+};
+
 const mockHouseholdDetail = {
   id: 1,
   name: "Smith Family",
@@ -236,6 +268,22 @@ async function setupApiMocks(page: Page) {
   );
   await page.route(/\/api\/recipes\/\d+\//, (route) =>
     route.fulfill({ json: [] })
+  );
+  // More-specific: single recipe detail (LIFO: higher priority than catch-all above)
+  await page.route(/\/api\/recipes\/\d+$/, (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockRecipeDetail });
+    } else {
+      route.continue();
+    }
+  });
+  // Recipe shares sub-route (LIFO: overrides the generic /\d+\/ → [] above)
+  await page.route(/\/api\/recipes\/\d+\/shares/, (route) =>
+    route.fulfill({ json: [] })
+  );
+  // ---- Shared recipe (public endpoint) ----
+  await page.route("**/api/shared/recipes/**", (route) =>
+    route.fulfill({ json: mockSharedRecipe })
   );
 
   // ---- Food plan (/api/food-plan/*) ----
@@ -685,5 +733,114 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
       "household-detail-loading.png",
       screenshotOptions
     );
+  });
+
+  // ---- Share Recipe Dialog ----
+
+  test("recipe share dialog - initial (empty shares)", async ({ page }) => {
+    await page.goto("/recipes/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /more/i }).click();
+    await page.getByRole("menuitem", { name: /share recipe/i }).click();
+    await page.waitForSelector('[role="dialog"]');
+    await expect(page).toHaveScreenshot("share-dialog-initial.png", screenshotOptions);
+  });
+
+  test("recipe share dialog - existing shares listed", async ({ page }) => {
+    await page.route(/\/api\/recipes\/\d+\/shares/, (route) =>
+      route.fulfill({ json: mockRecipeShares })
+    );
+    await page.goto("/recipes/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /more/i }).click();
+    await page.getByRole("menuitem", { name: /share recipe/i }).click();
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("share-dialog-with-shares.png", screenshotOptions);
+  });
+
+  test("recipe share dialog - share with user tab", async ({ page }) => {
+    await page.goto("/recipes/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /more/i }).click();
+    await page.getByRole("menuitem", { name: /share recipe/i }).click();
+    await page.waitForSelector('[role="dialog"]');
+    await page.getByRole("tab", { name: /share with user/i }).click();
+    await expect(page).toHaveScreenshot("share-dialog-user-tab.png", screenshotOptions);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Shared Recipe Page (unauthenticated)
+// ---------------------------------------------------------------------------
+
+test.describe("Visual Snapshots - Shared Recipe Page", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(FIXED_DATE);
+    await page.route("**/api/shared/recipes/**", (route) =>
+      route.fulfill({ json: mockSharedRecipe })
+    );
+  });
+
+  test("shared recipe - anonymous view", async ({ page }) => {
+    await page.goto("/shared/recipe/abc123");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("shared-recipe-anonymous.png", screenshotOptions);
+  });
+
+  test("shared recipe - expired link", async ({ page }) => {
+    await page.route("**/api/shared/recipes/**", (route) =>
+      route.fulfill({ json: { ...mockSharedRecipe, isExpired: true } })
+    );
+    await page.goto("/shared/recipe/abc123");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("shared-recipe-expired.png", screenshotOptions);
+  });
+
+  test("shared recipe - not found", async ({ page }) => {
+    await page.route("**/api/shared/recipes/**", (route) =>
+      route.fulfill({ status: 404, json: {} })
+    );
+    await page.goto("/shared/recipe/notfound");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("shared-recipe-not-found.png", screenshotOptions);
+  });
+
+  test("shared recipe - targeted, not logged in (login prompt)", async ({ page }) => {
+    await page.route("**/api/shared/recipes/**", (route) =>
+      route.fulfill({
+        json: { ...mockSharedRecipe, isTargeted: true, targetEmail: "friend@example.com" },
+      })
+    );
+    await page.goto("/shared/recipe/abc123");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("shared-recipe-targeted-login-prompt.png", screenshotOptions);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Shared Recipe Page (authenticated — targeted share matching auth user)
+// ---------------------------------------------------------------------------
+
+test.describe("Visual Snapshots - Shared Recipe Page (Authenticated)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(FIXED_DATE);
+    await setupApiMocks(page);
+    await page.route("**/api/shared/recipes/**", (route) =>
+      route.fulfill({
+        json: {
+          ...mockSharedRecipe,
+          isTargeted: true,
+          targetEmail: "admin@anything.local",
+        },
+      })
+    );
+  });
+
+  test("shared recipe - targeted, logged in as target (clone section)", async ({ page }) => {
+    await page.goto("/shared/recipe/abc123");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("shared-recipe-targeted-clone.png", screenshotOptions);
   });
 });

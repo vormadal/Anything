@@ -79,54 +79,6 @@ describe('SharedRecipePage', () => {
     jest.restoreAllMocks()
   })
 
-  it('matches snapshot: loading state', () => {
-    mockFetch.mockReturnValue(new Promise(() => {}))
-
-    const { container } = render(<SharedRecipePage />)
-    expect(container.firstChild).toMatchSnapshot()
-  })
-
-  it('matches snapshot: expired link', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ ...mockRecipe, isExpired: true }),
-    })
-
-    const { container } = render(<SharedRecipePage />)
-    await waitFor(() => expect(screen.getByText('Link expired')).toBeInTheDocument())
-    expect(container.firstChild).toMatchSnapshot()
-  })
-
-  it('matches snapshot: valid anonymous recipe view', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockRecipe,
-    })
-
-    const { container } = render(<SharedRecipePage />)
-    await waitFor(() => expect(screen.getByText('Chocolate Cake')).toBeInTheDocument())
-    expect(container.firstChild).toMatchSnapshot()
-  })
-
-  it('matches snapshot: targeted share with logged-in target user and clone section', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ...mockRecipe,
-        isTargeted: true,
-        targetEmail: 'alice@example.com',
-      }),
-    })
-    mockIsAuthenticated = () => true
-    mockGetUser = () => ({ email: 'alice@example.com', name: 'Alice', role: 'User' })
-    mockHouseholds = [{ id: 5, name: 'Alice Home', createdOn: '2025-01-01', role: 'Owner' }]
-
-    const { container } = render(<SharedRecipePage />)
-    await waitFor(() => expect(screen.getByText('Chocolate Cake')).toBeInTheDocument())
-    await waitFor(() => expect(screen.getByText('Clone recipe')).toBeInTheDocument())
-    expect(container.firstChild).toMatchSnapshot()
-  })
-
   it('shows login prompt for targeted share when not authenticated', async () => {
     mockFetch.mockResolvedValue({
       ok: true,

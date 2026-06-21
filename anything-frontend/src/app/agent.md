@@ -19,4 +19,5 @@ Next.js 15 App Router pages. Each subfolder maps 1:1 to a URL segment.
 - Heavy page-specific UI (e.g., `ShoppingListView.tsx`, `ShoppingListEditMode.tsx`) lives alongside the route's `page.tsx`, not in `components/`.
 - Use `AuthGuard` (from `components/`) to wrap protected pages.
 - After any UI change run `npm run test:e2e:visual:update` to regenerate Playwright baseline screenshots, then commit the updated PNGs.
+- New pages or distinct page states must be covered in `e2e/visual.spec.ts` using `toHaveScreenshot()`. Do NOT use Jest `.toMatchSnapshot()` for visual assertions.
 - Use `page.goto()` for test setup navigation; reserve UI-click navigation only when testing the nav element itself.
