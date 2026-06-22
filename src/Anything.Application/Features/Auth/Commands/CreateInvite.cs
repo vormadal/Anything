@@ -49,7 +49,7 @@ public class CreateInviteHandler(
             .Where(u => u.Email == command.Email)
             .AnyAsync(ct);
 
-        if (existingUser)
+        if (existingUser && !command.HouseholdId.HasValue)
             return Results.BadRequest("User with this email already exists.");
 
         var now = timeProvider.GetUtcNow();

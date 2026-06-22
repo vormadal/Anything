@@ -203,6 +203,18 @@ const mockHouseholdDetail = {
   ],
 };
 
+const mockPendingInvites = [
+  {
+    id: 1,
+    token: "test-invite-token",
+    email: "admin@anything.local",
+    householdId: 2,
+    householdName: "Work Team",
+    expiresAt: "2025-01-22T10:00:00Z",
+    inviteUrl: "/register?token=test-invite-token",
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -315,6 +327,10 @@ async function setupApiMocks(page: Page) {
     route.fulfill({ json: [] })
   );
   await page.route("**/api/auth/invites**", (route) =>
+    route.fulfill({ json: [] })
+  );
+  // More-specific override for /me (LIFO: registered after → higher priority)
+  await page.route("**/api/auth/invites/me", (route) =>
     route.fulfill({ json: [] })
   );
 
@@ -693,6 +709,38 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "household-detail-with-members.png",
+      screenshotOptions
+    );
+  });
+
+  test("households page - with pending invitations", async ({ page }) => {
+    await page.route("**/api/auth/invites/me", (route) =>
+      route.fulfill({ json: mockPendingInvites })
+    );
+    await page.goto("/households");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "households-with-pending-invitations.png",
+      screenshotOptions
+    );
+  });
+
+  test("household detail page - invite dialog open", async ({ page }) => {
+    await page.goto("/households/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /invite member/i }).click();
+    await page.waitForSelector('[role="dialog"]');
+    await expect(page).toHaveScreenshot(
+      "household-detail-invite-dialog.png",
+      screenshotOptions
+    );
+  });
+
+  test("register page - accept invitation (logged in user)", async ({ page }) => {
+    await page.goto("/register?token=test-invite-token");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "register-accept-invitation.png",
       screenshotOptions
     );
   });
