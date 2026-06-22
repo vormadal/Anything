@@ -148,6 +148,7 @@ type SortableStepItemProps = Readonly<{
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onDelete: () => void;
   isDeletePending: boolean;
+  showSaved?: boolean;
 }>;
 
 function SortableStepItem({
@@ -159,6 +160,7 @@ function SortableStepItem({
   onKeyDown,
   onDelete,
   isDeletePending,
+  showSaved,
 }: SortableStepItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id ?? 0 });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -177,14 +179,22 @@ function SortableStepItem({
       <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-1.5">
         {index + 1}.
       </span>
-      <input
-        type="text"
-        value={editText ?? step.text ?? ""}
-        onChange={(e) => onTextChange(e.target.value)}
-        onBlur={onBlur}
-        onKeyDown={onKeyDown}
-        className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-      />
+      <div className="relative flex-1 min-w-0">
+        <input
+          type="text"
+          value={editText ?? step.text ?? ""}
+          onChange={(e) => onTextChange(e.target.value)}
+          onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          className="w-full px-2 py-1 pr-7 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+        />
+        <span
+          className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 ${showSaved ? "opacity-100" : "opacity-0"}`}
+          aria-hidden="true"
+        >
+          <Check className="h-3.5 w-3.5 text-green-500" />
+        </span>
+      </div>
       <Button
         variant="ghost"
         size="icon"
@@ -222,6 +232,8 @@ export default function RecipeEditPage() {
 
   const [newStepText, setNewStepText] = useState("");
   const [editingSteps, setEditingSteps] = useState<Record<number, string>>({});
+  const [savedStepIds, setSavedStepIds] = useState<Record<number, boolean>>({});
+  const [stepAddedSuccess, setStepAddedSuccess] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [reimportDialogOpen, setReimportDialogOpen] = useState(false);
@@ -416,7 +428,8 @@ export default function RecipeEditPage() {
     try {
       await addStep.mutateAsync({ text: newStepText, order: nextOrder });
       setNewStepText("");
-      toast.success("Step added");
+      setStepAddedSuccess(true);
+      setTimeout(() => setStepAddedSuccess(false), 2000);
     } catch {
       toast.error("Failed to add step. Please try again.");
     }
@@ -442,7 +455,14 @@ export default function RecipeEditPage() {
         delete next[stepId];
         return next;
       });
-      toast.success("Step updated");
+      setSavedStepIds((prev) => ({ ...prev, [stepId]: true }));
+      setTimeout(() => {
+        setSavedStepIds((prev) => {
+          const next = { ...prev };
+          delete next[stepId];
+          return next;
+        });
+      }, 2000);
     } catch {
       toast.error("Failed to update step. Please try again.");
     }
@@ -857,6 +877,7 @@ export default function RecipeEditPage() {
                       step={step}
                       index={index}
                       editText={editingSteps[step.id ?? 0]}
+                      showSaved={!!savedStepIds[step.id ?? 0]}
                       onTextChange={(text) =>
                         setEditingSteps((prev) => ({ ...prev, [step.id ?? 0]: text }))
                       }
@@ -889,13 +910,21 @@ export default function RecipeEditPage() {
           )}
           <form onSubmit={handleAddStep} className="mt-4">
             <div className="flex gap-1 items-center">
-              <input
-                type="text"
-                value={newStepText}
-                onChange={(e) => setNewStepText(e.target.value)}
-                placeholder="Step description..."
-                className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-              />
+              <div className="relative flex-1 min-w-0">
+                <input
+                  type="text"
+                  value={newStepText}
+                  onChange={(e) => setNewStepText(e.target.value)}
+                  placeholder="Step description..."
+                  className="w-full px-2 py-1.5 pr-7 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                />
+                <span
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 ${stepAddedSuccess ? "opacity-100" : "opacity-0"}`}
+                  aria-hidden="true"
+                >
+                  <Check className="h-3.5 w-3.5 text-green-500" />
+                </span>
+              </div>
               <Button type="submit" size="icon" disabled={addStep.isPending} aria-label="Add step">
                 <Plus className="h-4 w-4" />
               </Button>
