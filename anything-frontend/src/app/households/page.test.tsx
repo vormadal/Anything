@@ -33,6 +33,16 @@ jest.mock('@/hooks/useHouseholds', () => ({
   }),
 }))
 
+const mockAcceptInviteMutateAsync = jest.fn()
+jest.mock('@/hooks/useAuth', () => ({
+  useMyPendingInvites: () => ({ data: [] }),
+  useAcceptHouseholdInvite: () => ({
+    mutateAsync: mockAcceptInviteMutateAsync,
+    isPending: false,
+  }),
+  useIsAuthenticated: () => false,
+}))
+
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   usePathname: () => '/households',

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, ApiError } from "@/lib/apiClient";
+import { apiClient, ApiError, apiFetch } from "@/lib/apiClient";
 
 // Storage keys
 const ACCESS_TOKEN_KEY = "accessToken";
@@ -178,6 +178,48 @@ export function useDeleteInvite() {
     mutationFn: (id: number) => apiClient.api.auth.invites.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "invites"] });
+    },
+  });
+}
+
+export interface PendingInvite {
+  id: number;
+  token: string;
+  email: string;
+  householdId: number | null;
+  householdName: string | null;
+  expiresAt: string;
+  inviteUrl: string;
+}
+
+// Get pending household invites for the current user
+export function useMyPendingInvites() {
+  const isAuthenticated = useIsAuthenticated();
+  return useQuery({
+    queryKey: ["auth", "invites", "me"],
+    queryFn: async (): Promise<PendingInvite[]> => {
+      const response = await apiFetch("/api/auth/invites/me");
+      if (!response.ok) throw new Error("Failed to fetch pending invites");
+      return response.json() as Promise<PendingInvite[]>;
+    },
+    enabled: isAuthenticated,
+  });
+}
+
+// Accept a household invite by token (for existing users)
+export function useAcceptHouseholdInvite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (token: string): Promise<void> => {
+      const response = await apiFetch(`/api/auth/invites/${token}/accept`, { method: "POST" });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to accept invite");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+      queryClient.invalidateQueries({ queryKey: ["auth", "invites", "me"] });
     },
   });
 }

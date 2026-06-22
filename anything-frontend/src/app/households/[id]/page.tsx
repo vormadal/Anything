@@ -227,25 +227,23 @@ export default function HouseholdDetailPage() {
             <DialogTitle>Invite Member</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Generate a one-time registration link. When the user registers, they will automatically be added to this household.
+            Generate a one-time invite link. New users will register with it; existing users will see a notification to accept.
           </p>
-          <form onSubmit={handleInvite} className="mt-2 space-y-4">
-            <div className="flex gap-2">
-              <label htmlFor="invite-email" className="sr-only">Email address</label>
-              <input
-                id="invite-email"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="user@example.com"
-                required
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                autoFocus
-              />
-              <Button type="submit" size="sm" disabled={createInvite.isPending}>
-                {createInvite.isPending ? "Creating..." : "Create Link"}
-              </Button>
-            </div>
+          <form onSubmit={handleInvite} className="mt-2 space-y-2">
+            <label htmlFor="invite-email" className="sr-only">Email address</label>
+            <input
+              id="invite-email"
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="user@example.com"
+              required
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              autoFocus
+            />
+            <Button type="submit" className="w-full" disabled={createInvite.isPending}>
+              {createInvite.isPending ? "Creating..." : "Create Invite Link"}
+            </Button>
           </form>
 
           {inviteData && (
@@ -257,7 +255,7 @@ export default function HouseholdDetailPage() {
                 </p>
               </div>
               <p className="text-xs text-green-600 dark:text-green-400 mb-3">
-                Expires in 7 days. The user must register with this exact email address.
+                Expires in 7 days. Share this link or ask the user to check their household invitations.
               </p>
               <div className="flex gap-2">
                 <input
