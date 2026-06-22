@@ -161,6 +161,14 @@ export default function RecipeDetailPage() {
         >
           <CalendarPlus className="h-5 w-5" />
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShareDialogOpen(true)}
+          aria-label="Share recipe"
+        >
+          <Share2 className="h-5 w-5" />
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="More options">
@@ -175,10 +183,6 @@ export default function RecipeDetailPage() {
             <DropdownMenuItem onSelect={() => setShoppingListDialogOpen(true)}>
               <ShoppingCart className="h-4 w-4" />
               Add to Shopping List
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setShareDialogOpen(true)}>
-              <Share2 className="h-4 w-4" />
-              Share recipe
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"

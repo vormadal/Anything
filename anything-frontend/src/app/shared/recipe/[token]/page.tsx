@@ -34,10 +34,10 @@ export default function SharedRecipePage() {
     if (!effectiveHouseholdId) return;
     try {
       const result = await cloneRecipe.mutateAsync(effectiveHouseholdId);
-      toast.success("Recipe cloned to your household!");
+      toast.success("Recipe copied to your recipes!");
       router.push(`/recipes/${result.id}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to clone recipe";
+      const message = err instanceof Error ? err.message : "Failed to copy recipe";
       toast.error(message);
     }
   };
@@ -84,7 +84,7 @@ export default function SharedRecipePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className={`max-w-3xl mx-auto px-4 py-8 space-y-6${isTargetUser ? " pb-24" : ""}`}>
         {/* Header */}
         <div className="space-y-1">
           <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
@@ -141,39 +141,14 @@ export default function SharedRecipePage() {
           <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{recipe.notes}</p>
         )}
 
-        {/* Clone banner */}
+        {/* Login prompt banner for targeted shares */}
         {recipe.isTargeted && !isAuthenticated && (
           <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 text-sm text-blue-800 dark:text-blue-300">
-            This recipe was shared with you. <strong>Log in</strong> to clone it to your household.
-          </div>
-        )}
-
-        {isTargetUser && (
-          <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 space-y-3">
-            <p className="text-sm font-medium text-green-800 dark:text-green-300">
-              Clone this recipe to your household
-            </p>
-            {households.length > 1 && (
-              <select
-                value={effectiveHouseholdId ?? ""}
-                onChange={(e) => setSelectedHouseholdId(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-green-200 dark:border-green-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                aria-label="Select household"
-              >
-                {households.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <Button
-              onClick={handleClone}
-              disabled={cloneRecipe.isPending || !effectiveHouseholdId}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-            >
-              {cloneRecipe.isPending ? "Cloning…" : "Clone recipe"}
-            </Button>
+            This recipe was shared with you.{" "}
+            <a href={`/login?redirect=/shared/recipe/${token}`} className="font-semibold underline">
+              Log in
+            </a>{" "}
+            to copy it to your recipes.
           </div>
         )}
 
@@ -216,6 +191,35 @@ export default function SharedRecipePage() {
           </section>
         )}
       </div>
+
+      {/* Sticky bottom bar for targeted-user copy action */}
+      {isTargetUser && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            {households.length > 1 && (
+              <select
+                value={effectiveHouseholdId ?? ""}
+                onChange={(e) => setSelectedHouseholdId(Number(e.target.value))}
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Select household"
+              >
+                {households.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <Button
+              onClick={handleClone}
+              disabled={cloneRecipe.isPending || !effectiveHouseholdId}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {cloneRecipe.isPending ? "Copying…" : "Copy to my recipes"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

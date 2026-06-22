@@ -740,8 +740,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("recipe share dialog - initial (empty shares)", async ({ page }) => {
     await page.goto("/recipes/1");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /more/i }).click();
-    await page.getByRole("menuitem", { name: /share recipe/i }).click();
+    await page.getByRole("button", { name: /share recipe/i }).click();
     await page.waitForSelector('[role="dialog"]');
     await expect(page).toHaveScreenshot("share-dialog-initial.png", screenshotOptions);
   });
@@ -752,8 +751,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
     await page.goto("/recipes/1");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /more/i }).click();
-    await page.getByRole("menuitem", { name: /share recipe/i }).click();
+    await page.getByRole("button", { name: /share recipe/i }).click();
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("share-dialog-with-shares.png", screenshotOptions);
   });
@@ -761,8 +759,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("recipe share dialog - share with user tab", async ({ page }) => {
     await page.goto("/recipes/1");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /more/i }).click();
-    await page.getByRole("menuitem", { name: /share recipe/i }).click();
+    await page.getByRole("button", { name: /share recipe/i }).click();
     await page.waitForSelector('[role="dialog"]');
     await page.getByRole("button", { name: /share with user/i }).click();
     await expect(page).toHaveScreenshot("share-dialog-user-tab.png", screenshotOptions);
@@ -778,6 +775,9 @@ test.describe("Visual Snapshots - Shared Recipe Page", () => {
 
   test.beforeEach(async ({ page }) => {
     await page.clock.setFixedTime(FIXED_DATE);
+    await page.route("**/api/households**", (route) =>
+      route.fulfill({ json: [] })
+    );
     await page.route("**/api/shared/recipes/**", (route) =>
       route.fulfill({ json: mockSharedRecipe })
     );

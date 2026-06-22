@@ -91,7 +91,7 @@ describe('SharedRecipePage', () => {
 
     render(<SharedRecipePage />)
     await waitFor(() => expect(screen.getByText(/Log in/)).toBeInTheDocument())
-    expect(screen.queryByText('Clone recipe')).not.toBeInTheDocument()
+    expect(screen.queryByText('Copy to my recipes')).not.toBeInTheDocument()
   })
 
   it('shows not found when fetch fails', async () => {
@@ -116,9 +116,9 @@ describe('SharedRecipePage', () => {
     mockApiFetch.mockResolvedValue({ ok: true, json: async () => ({ id: 99 }) })
 
     render(<SharedRecipePage />)
-    await waitFor(() => expect(screen.getByText('Clone recipe')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Copy to my recipes')).toBeInTheDocument())
 
-    await userEvent.click(screen.getByText('Clone recipe'))
+    await userEvent.click(screen.getByText('Copy to my recipes'))
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/recipes/99'))
   })
 })
