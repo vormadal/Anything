@@ -1,13 +1,16 @@
 import { renderHook, act } from "@testing-library/react";
 import { useBackInterceptor } from "./useBackInterceptor";
 
-jest.mock("sonner", () => ({
-  toast: jest.fn(),
-}));
+jest.mock("sonner", () => {
+  const toastFn = jest.fn().mockReturnValue("mock-toast-id");
+  toastFn.dismiss = jest.fn();
+  return { toast: toastFn };
+});
 
 import { toast } from "sonner";
 
 const mockToast = toast as jest.Mock;
+const mockDismiss = (toast as unknown as { dismiss: jest.Mock }).dismiss;
 
 describe("useBackInterceptor", () => {
   let pushStateSpy: jest.SpyInstance;
@@ -35,6 +38,7 @@ describe("useBackInterceptor", () => {
     });
 
     mockToast.mockClear();
+    mockDismiss.mockClear();
   });
 
   afterEach(() => {
@@ -121,7 +125,7 @@ describe("useBackInterceptor", () => {
     expect(pushStateSpy).toHaveBeenCalledWith({ appSentinel: true }, "");
   });
 
-  it("allows exit on second back press within 2s (does not re-push sentinel)", () => {
+  it("allows exit on second back press within 2s (does not re-push sentinel, dismisses toast)", () => {
     renderHook(() =>
       useBackInterceptor({ leftAction: { type: "menu" } })
     );
@@ -134,6 +138,7 @@ describe("useBackInterceptor", () => {
 
     expect(pushStateSpy).not.toHaveBeenCalled();
     expect(mockToast).not.toHaveBeenCalled();
+    expect(mockDismiss).toHaveBeenCalledWith("mock-toast-id");
   });
 
   it("treats back as first press again after 2s timeout expires", () => {
