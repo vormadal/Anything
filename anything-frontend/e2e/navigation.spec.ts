@@ -32,7 +32,7 @@ for (const { path, title } of PAGES) {
 
 test("back button closes hamburger menu instead of navigating away", async ({ page }) => {
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("heading", { name: "Anything", level: 1 })).toBeVisible();
 
   await page.getByRole("button", { name: /open menu/i }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -46,7 +46,7 @@ test("back button closes hamburger menu instead of navigating away", async ({ pa
 
 test("back button shows exit prompt on root page", async ({ page }) => {
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("heading", { name: "Anything", level: 1 })).toBeVisible();
 
   await page.evaluate(() => window.history.back());
 
@@ -56,7 +56,7 @@ test("back button shows exit prompt on root page", async ({ page }) => {
 
 test("pressing back twice within 2s on root page allows exit", async ({ page }) => {
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("heading", { name: "Anything", level: 1 })).toBeVisible();
 
   await page.evaluate(() => window.history.back());
   await expect(page.getByText(/press back again to exit/i)).toBeVisible();

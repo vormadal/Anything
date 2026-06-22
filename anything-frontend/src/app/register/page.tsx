@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useRegister } from "@/hooks/useAuth";
+import { useRegister, useAcceptHouseholdInvite, getAccessToken } from "@/hooks/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { toast } from "sonner";
@@ -9,12 +9,14 @@ import { toast } from "sonner";
 function RegisterForm() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("token") || "";
-  
+  const isLoggedIn = !!getAccessToken();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const router = useRouter();
   const register = useRegister();
+  const acceptInvite = useAcceptHouseholdInvite();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +59,48 @@ function RegisterForm() {
           <Button onClick={() => router.push("/login")}>
             Go to Login
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoggedIn) {
+    const handleAccept = async () => {
+      try {
+        await acceptInvite.mutateAsync(inviteToken);
+        toast.success("You have joined the household!");
+        router.push("/households");
+      } catch (err) {
+        const error = err as Error;
+        toast.error(error.message || "Failed to accept invite");
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Household Invitation
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-8">
+            You&apos;ve been invited to join a household. Click Accept to add it to your account.
+          </p>
+          <div className="space-y-3">
+            <Button
+              className="w-full"
+              onClick={handleAccept}
+              disabled={acceptInvite.isPending}
+            >
+              {acceptInvite.isPending ? "Joining..." : "Accept Invitation"}
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => router.push("/households")}
+            >
+              Go to Households
+            </Button>
+          </div>
         </div>
       </div>
     );

@@ -3,6 +3,7 @@ using Anything.Application.Features.Auth.Commands;
 using Anything.Contracts.Auth;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
+using Microsoft.AspNetCore.Http;
 
 namespace Anything.API.Endpoints;
 
@@ -39,6 +40,29 @@ public static class AuthEndpoints
         .Produces(400)
         .WithParameterValidation()
         .AllowAnonymous();
+
+        group.MapGet("/invites/me", async (ClaimsPrincipal user, IMediator mediator) =>
+        {
+            if (!int.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+                return Results.Unauthorized();
+            return await mediator.Send(new GetMyPendingInvitesQuery(userId));
+        })
+        .WithName("GetMyPendingInvites")
+        .Produces<List<PendingInviteResponse>>()
+        .RequireAuthorization();
+
+        group.MapPost("/invites/{token}/accept", async (string token, ClaimsPrincipal user, IMediator mediator) =>
+        {
+            if (!int.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+                return Results.Unauthorized();
+            return await mediator.Send(new AcceptHouseholdInviteCommand(token, userId));
+        })
+        .WithName("AcceptHouseholdInvite")
+        .Produces(200)
+        .Produces(400)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization();
 
         group.MapGet("/invites", async (ClaimsPrincipal user, IMediator mediator) =>
         {
