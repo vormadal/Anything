@@ -43,9 +43,31 @@ public class CreateInviteHandlerTests
             new() { Id = 1, Email = "existing@example.com", Name = "E", Role = "User", PasswordHash = "h" }
         }.AsAsyncQueryable());
 
-        var result = await CreateHandler().Handle(new CreateInviteCommand("existing@example.com", 1, UserRoles.Admin), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new CreateInviteCommand("existing@example.com", 1, UserRoles.Admin, HouseholdId: null), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WithHouseholdId_WhenEmailAlreadyExists_CreatesInvite()
+    {
+        _householdRepo.Query().Returns(new List<Household>
+        {
+            new() { Id = 99, Name = "Test" }
+        }.AsAsyncQueryable());
+        _memberRepo.Query().Returns(new List<HouseholdMember>
+        {
+            new() { HouseholdId = 99, UserId = 1, Role = HouseholdRoles.Owner }
+        }.AsAsyncQueryable());
+        _userRepo.Query().Returns(new List<User>
+        {
+            new() { Id = 2, Email = "existing@example.com", Name = "E", Role = "User", PasswordHash = "h" }
+        }.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new CreateInviteCommand("existing@example.com", 1, UserRoles.User, HouseholdId: 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Ok<CreateInviteResponse>>(result);
+        _inviteRepo.Received(1).Add(Arg.Is<UserInvite>(i => i.Email == "existing@example.com" && i.HouseholdId == 99));
     }
 
     [Fact]

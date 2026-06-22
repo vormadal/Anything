@@ -164,7 +164,7 @@ describe('HouseholdDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /invite member/i }))
 
     fireEvent.change(screen.getByPlaceholderText('user@example.com'), { target: { value: 'new@example.com' } })
-    fireEvent.click(screen.getByRole('button', { name: /create link/i }))
+    fireEvent.click(screen.getByRole('button', { name: /create invite link/i }))
 
     await waitFor(() => {
       expect(mockCreateInviteMutateAsync).toHaveBeenCalledWith({ email: 'new@example.com', householdId: 1 })
