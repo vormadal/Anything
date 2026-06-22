@@ -264,7 +264,9 @@ describe('RecipeEditPage', () => {
       expect(mockStepsPost).toHaveBeenCalledWith({ text: 'Mix ingredients', order: 1 })
     })
 
-    expect(toast.success).toHaveBeenCalledWith('Step added')
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Step description...')).toHaveValue('')
+    })
   })
 
   it('should show error when add step fails', async () => {
