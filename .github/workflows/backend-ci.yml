@@ -36,10 +36,10 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
-    
+
     - name: Restore dependencies
       run: dotnet restore Anything.slnx
 
@@ -76,7 +76,8 @@ jobs:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
     needs: build-and-test
-    
+    if: github.actor != 'dependabot[bot]'
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
