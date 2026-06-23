@@ -49,6 +49,9 @@ updates:
           - "jest"
           - "jest-*"
           - "@types/jest"
+    ignore:
+      - dependency-name: "eslint"
+        versions: ["10.x", "11.x"]
 
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
