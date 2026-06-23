@@ -377,6 +377,11 @@ describe('RecipeEditPage', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Delete Recipe')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 
   it('should delete recipe and navigate to /recipes on confirm', async () => {
@@ -402,6 +407,10 @@ describe('RecipeEditPage', () => {
 
     expect(toast.success).toHaveBeenCalledWith('Recipe deleted')
     expect(mockPush).toHaveBeenCalledWith('/recipes')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 
   it('should navigate to view page when Done is clicked with no changes', async () => {

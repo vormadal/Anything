@@ -41,6 +41,9 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0"
   },
+  "overrides": {
+    "@radix-ui/react-focus-scope": "1.1.10"
+  },
   "devDependencies": {
     "@playwright/test": "^1.61.0",
     "@tailwindcss/postcss": "^4",
