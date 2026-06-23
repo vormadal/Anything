@@ -39,7 +39,7 @@ import { useSmartBack } from "@/hooks/useSmartBack";
 import { useIsAuthenticated } from "@/hooks/useAuth";
 import { useBackInterceptor } from "@/hooks/useBackInterceptor";
 
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 
 
 const NAV_ITEMS = [

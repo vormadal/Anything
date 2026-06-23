@@ -15,6 +15,7 @@ public class HouseholdMiddleware(RequestDelegate next)
         "/api/auth",
         "/api/households",
         "/api/events",
+        "/api/shared",
         "/swagger"
     ];
 

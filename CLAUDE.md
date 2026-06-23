@@ -107,7 +107,7 @@ npm run test:e2e:visual:update   # Regenerate baseline screenshots after an inte
 - **React Query hooks:** Each entity gets a dedicated hook file in `src/hooks/` exporting `useQuery`/`useMutation` hooks (e.g., `useSomethings`, `useCreateSomething`). Mutations invalidate related query keys on success.
 - **Components:** Use Shadcn UI components in `src/components/ui/`. Add new ones manually from the Shadcn docs.
 - **Client components:** Hook files are marked `"use client"`.
-- **Testing:** Use Jest and React Testing Library for integration tests. Test files use `.test.tsx` or `.test.ts` extension and are colocated with source files. Run `npm test` for tests, `npm run test:coverage` for coverage reports.
+- **Testing:** Use Jest and React Testing Library for behavioural/unit tests. Test files use `.test.tsx` or `.test.ts` extension and are colocated with source files. Run `npm test` for tests, `npm run test:coverage` for coverage reports. Do NOT use `.toMatchSnapshot()` — use Playwright visual tests in `e2e/visual.spec.ts` instead (see the file for patterns).
 - **Test utilities:** Use `renderWithClient` from `@/__tests__/utils/test-utils` to render components with React Query provider.
 - **Prevent test hangs:** Tests that use real timers or intervals must call `jest.useFakeTimers()` and restore with `jest.useRealTimers()` in `afterEach` — hanging tests cause the CI `test` job to exceed its `timeout-minutes` and fail the workflow.
 

@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, ShoppingCart, MoreVertical, CalendarPlus, Trash2, Clock, Users, Package, Layers, ImageIcon, ChefHat } from "lucide-react";
+import { Pencil, ShoppingCart, MoreVertical, CalendarPlus, Trash2, Clock, Users, Package, Layers, ImageIcon, ChefHat, Share2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,7 @@ import {
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
+import { ShareRecipeDialog } from "@/components/ShareRecipeDialog";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -86,6 +87,7 @@ export default function RecipeDetailPage() {
 
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -158,6 +160,14 @@ export default function RecipeDetailPage() {
           aria-label="Add to food plan"
         >
           <CalendarPlus className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShareDialogOpen(true)}
+          aria-label="Share recipe"
+        >
+          <Share2 className="h-5 w-5" />
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -428,6 +438,13 @@ export default function RecipeDetailPage() {
           onClose={() => setFoodPlanDialogOpen(false)}
         />
       )}
+
+      {/* ── Share recipe dialog ── */}
+      <ShareRecipeDialog
+        recipeId={recipeId}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
 
       {/* ── Delete recipe confirmation dialog ── */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

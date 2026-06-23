@@ -21,7 +21,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isHydrated) return;
 
-    const publicPaths = ["/login", "/register"];
+    const publicPaths = ["/login", "/register", "/shared"];
     const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
     if (!isAuthenticated && !isPublicPath) {
@@ -35,7 +35,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleUnauthorized = () => {
       if (isRedirecting.current) return;
-      const publicPaths = ["/login", "/register"];
+      const publicPaths = ["/login", "/register", "/shared"];
       const isPublicPath = publicPaths.some((path) =>
         pathname.startsWith(path)
       );
@@ -51,7 +51,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
-  const isPublicPath = pathname === "/login" || pathname.startsWith("/register");
+  const isPublicPath = pathname === "/login" || pathname.startsWith("/register") || pathname.startsWith("/shared");
 
   // Show loading while hydrating or while redirecting unauthenticated users
   if (!isHydrated || (!isAuthenticated && !isPublicPath)) {

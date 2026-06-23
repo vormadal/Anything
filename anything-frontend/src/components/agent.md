@@ -21,3 +21,4 @@ Reusable UI components shared across multiple pages.
 - Dialogs manage their own open/close state via a companion hook in `src/hooks/` (e.g., `useEditListNameDialog`).
 - Page-specific components (used by only one route) live next to the route's `page.tsx`, not here.
 - `button.test.tsx` is an example of a unit test for a UI primitive — follow that pattern when adding new ui/ components.
+- For visual regression: new components with distinct visual states (dialogs, multi-step flows) must be covered in `e2e/visual.spec.ts` using Playwright `toHaveScreenshot()`. Do NOT use Jest `.toMatchSnapshot()` for visual assertions.

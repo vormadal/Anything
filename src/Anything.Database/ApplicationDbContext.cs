@@ -28,6 +28,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RecipeStep> RecipeSteps => Set<RecipeStep>();
     public DbSet<RecipeImage> RecipeImages => Set<RecipeImage>();
     public DbSet<RecipeTag> RecipeTags => Set<RecipeTag>();
+    public DbSet<RecipeShareToken> RecipeShareTokens => Set<RecipeShareToken>();
     public DbSet<FoodPlanEntry> FoodPlanEntries => Set<FoodPlanEntry>();
     public DbSet<FoodPlanNote> FoodPlanNotes => Set<FoodPlanNote>();
     public DbSet<FoodPlanSettings> FoodPlanSettings => Set<FoodPlanSettings>();
