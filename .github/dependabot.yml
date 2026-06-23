@@ -12,6 +12,18 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
+    groups:
+      efcore:
+        patterns:
+          - "Microsoft.EntityFrameworkCore*"
+      aspire:
+        patterns:
+          - "Aspire.Hosting*"
+          - "CommunityToolkit.Aspire*"
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+          - "Microsoft.AspNetCore.*"
 
   # Frontend dependencies
   - package-ecosystem: "npm"
@@ -25,6 +37,18 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      jest:
+        patterns:
+          - "jest"
+          - "jest-*"
+          - "@types/jest"
 
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
