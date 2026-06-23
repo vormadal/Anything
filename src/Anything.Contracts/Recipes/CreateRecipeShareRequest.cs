@@ -1,7 +1,8 @@
-using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Anything.Contracts.Recipes;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ShareExpiry
 {
     OneWeek,
@@ -11,6 +12,5 @@ public enum ShareExpiry
 
 public record CreateRecipeShareRequest(
     ShareExpiry Expiry,
-    [EmailAddress(ErrorMessage = "Target email must be a valid email address.")]
     string? TargetEmail = null
 );
