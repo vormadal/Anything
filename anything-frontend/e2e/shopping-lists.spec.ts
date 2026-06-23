@@ -80,11 +80,12 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
   const newName = `${listName} Renamed`;
   await page.getByRole("textbox", { name: "Edit list name" }).fill(newName);
   await page.getByRole("button", { name: "Save" }).click();
-  // react-remove-scroll (used by Radix Dialog) sets pointer-events:none on <html>
-  // and removes it in an async useEffect cleanup — even after the dialog element is
-  // detached from DOM. Wait for pointer events to be restored before next click.
+  // react-remove-scroll (used by Radix Dialog) adds a block-interactivity-* class to
+  // document.body giving it pointer-events:none. Events fall through to <html>, which
+  // Playwright reports as "intercepts pointer events". The class is removed in an async
+  // useEffect cleanup — wait for body.pointerEvents to be restored before next click.
   await page.waitForFunction(() =>
-    window.getComputedStyle(document.documentElement).pointerEvents !== "none"
+    window.getComputedStyle(document.body).pointerEvents !== "none"
   );
 
   await expect(page.getByRole("heading", { name: newName, level: 1 })).toBeVisible();
