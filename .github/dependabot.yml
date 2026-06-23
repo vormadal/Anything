@@ -52,8 +52,10 @@ updates:
     ignore:
       - dependency-name: "eslint"
         versions: ["10.x", "11.x"]
+      - dependency-name: "@microsoft/kiota-abstractions"
+        versions: [">1.0.0-preview.100"]
       - dependency-name: "@microsoft/kiota-http-fetchlibrary"
-        versions: [">1.0.0-preview.102"]
+        versions: [">1.0.0-preview.100"]
       - dependency-name: "@microsoft/kiota-bundle"
         versions: [">1.0.0-preview.100"]
 
