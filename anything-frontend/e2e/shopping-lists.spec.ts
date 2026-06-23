@@ -80,10 +80,12 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
   const newName = `${listName} Renamed`;
   await page.getByRole("textbox", { name: "Edit list name" }).fill(newName);
   await page.getByRole("button", { name: "Save" }).click();
-  // Wait for the rename dialog to be fully removed from the DOM.
-  // react-remove-scroll (used by Radix Dialog) holds pointer-events:none on <html>
-  // until the component unmounts; that happens after the exit animation completes.
-  await page.getByRole("dialog").waitFor({ state: "detached" });
+  // react-remove-scroll (used by Radix Dialog) sets pointer-events:none on <html>
+  // and removes it in an async useEffect cleanup — even after the dialog element is
+  // detached from DOM. Wait for pointer events to be restored before next click.
+  await page.waitForFunction(() =>
+    window.getComputedStyle(document.documentElement).pointerEvents !== "none"
+  );
 
   await expect(page.getByRole("heading", { name: newName, level: 1 })).toBeVisible();
 
