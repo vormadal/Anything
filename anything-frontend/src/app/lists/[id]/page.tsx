@@ -16,7 +16,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { Pencil, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks } from "lucide-react";
+import { LayoutList, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks } from "lucide-react";
 import { ShoppingListView } from "@/app/shopping-lists/[id]/ShoppingListView";
 import { ShoppingListEditMode } from "@/app/shopping-lists/[id]/ShoppingListEditMode";
 import { GeneralChecklistView } from "./GeneralChecklistView";
@@ -86,7 +86,7 @@ export default function ListDetailPage() {
             onClick={() => { setIsEditMode(true); router.push("?edit=true"); }}
             aria-label="Edit list"
           >
-            <Pencil className="h-5 w-5" />
+            <LayoutList className="h-5 w-5" />
           </Button>
         )}
         <DropdownMenu>
