@@ -133,6 +133,7 @@ export default function RecipeDetailPage() {
   const handleDeleteRecipe = async () => {
     try {
       await deleteRecipe.mutateAsync(recipeId);
+      setDeleteConfirmOpen(false);
       toast.success("Recipe deleted");
       router.push("/recipes");
     } catch {

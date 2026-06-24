@@ -925,6 +925,11 @@ describe('ShoppingListDetailPage', () => {
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to update list name. Please try again.')
     })
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 
   it('should delete list and navigate to shopping lists when Delete list is selected from context menu', async () => {

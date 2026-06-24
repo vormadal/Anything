@@ -80,8 +80,9 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
   const newName = `${listName} Renamed`;
   await page.getByRole("textbox", { name: "Edit list name" }).fill(newName);
   await page.getByRole("button", { name: "Save" }).click();
-
   await expect(page.getByRole("heading", { name: newName, level: 1 })).toBeVisible();
+  // Reload to clear Radix Dialog / react-remove-scroll pointer-event locks before next click
+  await page.goto(page.url().split("?")[0]);
 
   // Delete the list via the dropdown menu
   await page.getByRole("button", { name: "More options" }).click();
