@@ -5,8 +5,13 @@ on:
     branches-ignore: [main]
     paths:
       - 'anything-frontend/e2e/visual.spec.ts'
+      - 'anything-frontend/e2e/fixtures/**'
+      - 'anything-frontend/e2e/pages/**'
       - 'anything-frontend/src/**'
       - 'anything-frontend/public/**'
+      - 'anything-frontend/playwright.visual.config.ts'
+      - 'anything-frontend/next.config.*'
+      - 'anything-frontend/tailwind.config.*'
       - '.github/workflows/update-visual-snapshots.yml'
 
 jobs:
