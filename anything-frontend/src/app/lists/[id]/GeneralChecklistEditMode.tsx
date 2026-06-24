@@ -6,6 +6,7 @@ import { GripVertical, Plus, Trash2 } from "lucide-react";
 import {
   useShoppingListItems,
   useAddShoppingListItem,
+  useUpdateShoppingListItem,
   useReorderShoppingListItems,
   useRemoveShoppingListItem,
 } from "@/hooks/useShoppingLists";
@@ -42,11 +43,24 @@ function DraggableChecklistItem({
   item,
   onRemove,
   disabled,
+  editingItem,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  onEditNameChange,
 }: {
   item: ShoppingListItem;
   onRemove: (itemId: number) => void;
   disabled: boolean;
+  editingItem: { id: number; name: string } | null;
+  onStartEdit: (item: ShoppingListItem) => void;
+  onSaveEdit: (item: ShoppingListItem) => void;
+  onCancelEdit: () => void;
+  onEditNameChange: (name: string) => void;
 }) {
+  const isEditing = editingItem?.id === item.id;
+  const cancelEditRef = useRef(false);
+
   const {
     attributes,
     listeners,
@@ -78,29 +92,72 @@ function DraggableChecklistItem({
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <span className="flex-1 text-sm text-gray-900 dark:text-white">
-        {item.name}
-      </span>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onRemove(item.id!)}
-        disabled={disabled}
-        aria-label="Remove item"
-        className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      {isEditing ? (
+        <div
+          className="flex items-center gap-1 flex-1 min-w-0"
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              const cancelled = cancelEditRef.current;
+              cancelEditRef.current = false;
+              if (!cancelled) onSaveEdit(item);
+            }
+          }}
+        >
+          <input
+            type="text"
+            value={editingItem!.name}
+            onChange={(e) => onEditNameChange(e.target.value)}
+            className="flex-1 min-w-0 px-2 py-1 text-sm rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-white"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSaveEdit(item);
+              if (e.key === "Escape") {
+                cancelEditRef.current = true;
+                onCancelEdit();
+              }
+            }}
+          />
+        </div>
+      ) : (
+        <span
+          role="button"
+          tabIndex={0}
+          className="flex-1 text-sm cursor-pointer hover:text-blue-600 text-gray-900 dark:text-white"
+          onClick={() => onStartEdit(item)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onStartEdit(item);
+            }
+          }}
+        >
+          {item.name}
+        </span>
+      )}
+      {!isEditing && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onRemove(item.id!)}
+          disabled={disabled}
+          aria-label="Remove item"
+          className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
     </li>
   );
 }
 
 export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }: Props) {
   const [newItemName, setNewItemName] = useState("");
+  const [editingItem, setEditingItem] = useState<{ id: number; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: items, isLoading, error } = useShoppingListItems(listId);
   const addItem = useAddShoppingListItem(listId);
+  const updateItem = useUpdateShoppingListItem(listId);
   const reorderItems = useReorderShoppingListItems(listId);
   const removeItem = useRemoveShoppingListItem(listId);
   const sensors = useSensors(
@@ -138,6 +195,30 @@ export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }
     }
   };
 
+  const handleStartEdit = (item: ShoppingListItem) => {
+    setEditingItem({ id: item.id!, name: item.name! });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItem(null);
+  };
+
+  const handleSaveEdit = async (item: ShoppingListItem) => {
+    if (!editingItem) return;
+    try {
+      await updateItem.mutateAsync({
+        itemId: item.id!,
+        name: editingItem.name,
+        isChecked: item.isChecked ?? false,
+        amount: item.amount ?? null,
+        unit: item.unit ?? null,
+      });
+      setEditingItem(null);
+    } catch {
+      toast.error("Failed to update item. Please try again.");
+    }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id || !items) return;
@@ -157,7 +238,7 @@ export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }
     );
   };
 
-  const isBusy = addItem.isPending || removeItem.isPending || reorderItems.isPending;
+  const isBusy = addItem.isPending || updateItem.isPending || removeItem.isPending || reorderItems.isPending;
 
   return (
     <>
@@ -211,7 +292,14 @@ export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }
                   key={item.id}
                   item={item}
                   onRemove={handleRemoveItem}
-                  disabled={isBusy}
+                  disabled={isBusy || editingItem !== null}
+                  editingItem={editingItem}
+                  onStartEdit={handleStartEdit}
+                  onSaveEdit={handleSaveEdit}
+                  onCancelEdit={handleCancelEdit}
+                  onEditNameChange={(name) =>
+                    setEditingItem(editingItem ? { ...editingItem, name } : null)
+                  }
                 />
               ))}
             </ul>
