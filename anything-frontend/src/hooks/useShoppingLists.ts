@@ -103,6 +103,7 @@ export function useAddShoppingListItem(listId: number) {
     mutationFn: ({ name, amount, unit }: { name: string; amount?: number | null; unit?: string | null }) =>
       apiClient.api.shoppingLists.byId(listId).items.post({ name, amount, unit }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
     },
   });
@@ -115,6 +116,7 @@ export function useUpdateShoppingListItem(listId: number) {
     mutationFn: ({ itemId, name, isChecked, amount, unit }: { itemId: number; name: string; isChecked: boolean; amount?: number | null; unit?: string | null }) =>
       apiClient.api.shoppingLists.byId(listId).items.byItemId(itemId).put({ name, isChecked, amount, unit }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
     },
   });
@@ -151,6 +153,7 @@ export function useRemoveShoppingListItem(listId: number) {
     mutationFn: (itemId: number) =>
       apiClient.api.shoppingLists.byId(listId).items.byItemId(itemId).delete(),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
     },
   });
