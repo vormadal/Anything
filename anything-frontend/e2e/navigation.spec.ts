@@ -37,6 +37,8 @@ const HOUSEHOLD_CONFIG_PAGES = [
 
 for (const { subPath, title } of HOUSEHOLD_CONFIG_PAGES) {
   test(`${title} page loads without errors`, async ({ page }) => {
+    // Navigate to root first to establish the origin so localStorage is readable.
+    await page.goto("/");
     const householdId = await page.evaluate(() => localStorage.getItem("householdId"));
     await page.goto(`/households/${householdId}${subPath}`);
     await expect(page).not.toHaveURL(/\/error/);
