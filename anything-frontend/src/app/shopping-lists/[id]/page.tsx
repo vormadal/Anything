@@ -9,6 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDeleteShoppingList } from "@/hooks/useShoppingLists";
+import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
+import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import type { ShoppingList } from "@/lib/api-client/models/index";
@@ -44,6 +46,7 @@ export default function ShoppingListDetailPage() {
   });
 
   const deleteList = useDeleteShoppingList();
+  const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
 
   // No dependency array: keeps the closure fresh without adding unstable refs to the header effect deps
   useEffect(() => {
@@ -79,12 +82,10 @@ export default function ShoppingListDetailPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {isEditMode && (
-              <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
-                <SquarePen className="h-4 w-4" />
-                Edit list name
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
+              <SquarePen className="h-4 w-4" />
+              Rename
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
               onSelect={() => handleDeleteListRef.current()}
@@ -104,13 +105,18 @@ export default function ShoppingListDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
+      <EditListNameDialog
+        open={editNameDialog.open}
+        onOpenChange={editNameDialog.setOpen}
+        value={editNameDialog.value}
+        onChange={editNameDialog.setValue}
+        onSave={editNameDialog.handleSave}
+        isPending={editNameDialog.isPending}
+        inputRef={editNameDialog.inputRef}
+      />
       <PageTitle>{list?.name ?? "Shopping List"}</PageTitle>
       {isEditMode ? (
-        <ShoppingListEditMode
-          listId={listId}
-          list={list}
-          openEditNameDialogRef={openEditNameDialogRef}
-        />
+        <ShoppingListEditMode listId={listId} />
       ) : (
         <ShoppingListView listId={listId} />
       )}

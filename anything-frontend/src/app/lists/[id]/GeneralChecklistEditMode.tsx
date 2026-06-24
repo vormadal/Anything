@@ -10,11 +10,9 @@ import {
   useReorderShoppingListItems,
   useRemoveShoppingListItem,
 } from "@/hooks/useShoppingLists";
-import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
 import { toast } from "sonner";
-import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
-import type { ShoppingList, ShoppingListItem } from "@/lib/api-client/models/index";
+import type { ShoppingListItem } from "@/lib/api-client/models/index";
 import {
   DndContext,
   closestCenter,
@@ -35,8 +33,6 @@ import { CSS } from "@dnd-kit/utilities";
 
 interface Props {
   listId: number;
-  list: ShoppingList | undefined;
-  openEditNameDialogRef: React.MutableRefObject<() => void>;
 }
 
 function DraggableChecklistItem({
@@ -150,7 +146,7 @@ function DraggableChecklistItem({
   );
 }
 
-export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }: Props) {
+export function GeneralChecklistEditMode({ listId }: Props) {
   const [newItemName, setNewItemName] = useState("");
   const [editingItem, setEditingItem] = useState<{ id: number; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -166,8 +162,6 @@ export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,16 +236,6 @@ export function GeneralChecklistEditMode({ listId, list, openEditNameDialogRef }
 
   return (
     <>
-      <EditListNameDialog
-        open={editNameDialog.open}
-        onOpenChange={editNameDialog.setOpen}
-        value={editNameDialog.value}
-        onChange={editNameDialog.setValue}
-        onSave={editNameDialog.handleSave}
-        isPending={editNameDialog.isPending}
-        inputRef={editNameDialog.inputRef}
-      />
-
       <form onSubmit={handleAddItem} className="mb-4">
         <div className="flex gap-1 items-center">
           <input

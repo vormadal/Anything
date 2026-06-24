@@ -848,37 +848,35 @@ describe('ShoppingListDetailPage', () => {
     expect(screen.queryByText('Edit name')).not.toBeInTheDocument()
   })
 
-  it('should show Edit list name option in context menu when in edit mode', async () => {
+  it('should show Rename option in context menu', async () => {
     const user = userEvent.setup()
     mockItemsGet.mockResolvedValue([])
 
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
     await user.click(screen.getByRole('button', { name: 'More options' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('menuitem', { name: 'Edit list name' })).toBeInTheDocument()
+      expect(screen.getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument()
     })
   })
 
-  it('should open edit name dialog and save new name', async () => {
+  it('should open rename dialog and save new name', async () => {
     const user = userEvent.setup()
     mockItemsGet.mockResolvedValue([])
 
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
     await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Edit list name' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Rename' }))
 
     await waitFor(() => {
       expect(screen.getByRole('textbox', { name: 'Edit list name' })).toBeInTheDocument()
@@ -897,7 +895,7 @@ describe('ShoppingListDetailPage', () => {
     expect(toast.success).toHaveBeenCalledWith('List name updated')
   })
 
-  it('should show error toast when edit name fails', async () => {
+  it('should show error toast when rename fails', async () => {
     const user = userEvent.setup()
     mockItemsGet.mockResolvedValue([])
     mockListPut.mockRejectedValueOnce(new Error('Server error'))
@@ -905,12 +903,11 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
     await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Edit list name' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Rename' }))
 
     await waitFor(() => {
       expect(screen.getByRole('textbox', { name: 'Edit list name' })).toBeInTheDocument()
