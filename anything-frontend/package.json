@@ -56,7 +56,7 @@
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
     "eslint": "^9.39.2",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "16.2.9",
     "jest": "^30.4.0",
     "jest-environment-jsdom": "^30.4.0",
     "sharp": "^0.34.5",
