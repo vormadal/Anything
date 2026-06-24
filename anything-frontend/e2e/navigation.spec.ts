@@ -13,7 +13,6 @@ const PAGES = [
   { path: "/bills", title: "Bills" },
   { path: "/profile", title: "Profile" },
   { path: "/admin/invite", title: "Invite Users" },
-  { path: "/admin/suggestions", title: "Suggestions" },
 ];
 
 for (const { path, title } of PAGES) {
@@ -24,6 +23,23 @@ for (const { path, title } of PAGES) {
     await expect(page).not.toHaveURL(/\/error/);
 
     // The app header must show the correct page title
+    await expect(
+      page.getByRole("heading", { name: title, level: 1 })
+    ).toBeVisible();
+  });
+}
+
+const HOUSEHOLD_CONFIG_PAGES = [
+  { subPath: "/lists/suggestions", title: "Suggestions" },
+  { subPath: "/lists/suggestions/categories", title: "Suggestion Categories" },
+  { subPath: "/recipes/tags", title: "Recipe Tags" },
+];
+
+for (const { subPath, title } of HOUSEHOLD_CONFIG_PAGES) {
+  test(`${title} page loads without errors`, async ({ page }) => {
+    const householdId = await page.evaluate(() => localStorage.getItem("householdId"));
+    await page.goto(`/households/${householdId}${subPath}`);
+    await expect(page).not.toHaveURL(/\/error/);
     await expect(
       page.getByRole("heading", { name: title, level: 1 })
     ).toBeVisible();
