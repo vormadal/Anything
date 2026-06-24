@@ -73,10 +73,9 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
   await page.getByRole("button", { name: "Create list" }).click();
   await expect(page).toHaveURL(/\/lists\/\d+/);
 
-  // Enter edit mode, then open More options to rename the list
-  await page.getByRole("button", { name: "Edit list" }).click();
+  // Open More options to rename the list (Rename is now always visible, no need to enter edit mode first)
   await page.getByRole("button", { name: "More options" }).click();
-  await page.getByRole("menuitem", { name: "Edit list name" }).click();
+  await page.getByRole("menuitem", { name: "Rename" }).click();
   const newName = `${listName} Renamed`;
   await page.getByRole("textbox", { name: "Edit list name" }).fill(newName);
   await page.getByRole("button", { name: "Save" }).click();
