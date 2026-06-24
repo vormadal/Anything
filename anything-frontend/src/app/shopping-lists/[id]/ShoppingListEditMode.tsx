@@ -9,20 +9,16 @@ import {
   useUpdateShoppingListItem,
   useRemoveShoppingListItem,
 } from "@/hooks/useShoppingLists";
-import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { toast } from "sonner";
-import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
-import type { ShoppingList, ShoppingListItem } from "@/lib/api-client/models/index";
+import type { ShoppingListItem } from "@/lib/api-client/models/index";
 
 interface Props {
   listId: number;
-  list: ShoppingList | undefined;
-  openEditNameDialogRef: React.MutableRefObject<() => void>;
 }
 
-export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Props) {
+export function ShoppingListEditMode({ listId }: Props) {
   const SUGGESTION_CLOSE_DELAY_MS = 150;
 
   const [newItemName, setNewItemName] = useState("");
@@ -44,8 +40,6 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
   const updateItem = useUpdateShoppingListItem(listId);
   const removeItem = useRemoveShoppingListItem(listId);
   const { data: recommendations } = useRecommendations();
-
-  const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
 
   const filteredSuggestions =
     recommendations?.filter(
@@ -129,16 +123,6 @@ export function ShoppingListEditMode({ listId, list, openEditNameDialogRef }: Pr
 
   return (
     <>
-      <EditListNameDialog
-        open={editNameDialog.open}
-        onOpenChange={editNameDialog.setOpen}
-        value={editNameDialog.value}
-        onChange={editNameDialog.setValue}
-        onSave={editNameDialog.handleSave}
-        isPending={editNameDialog.isPending}
-        inputRef={editNameDialog.inputRef}
-      />
-
       <form onSubmit={handleAddItem} className="mb-4">
         <div className="flex gap-1 items-center">
           <div className="relative flex-1">

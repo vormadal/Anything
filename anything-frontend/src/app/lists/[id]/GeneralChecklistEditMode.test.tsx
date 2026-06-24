@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import { GeneralChecklistEditMode } from './GeneralChecklistEditMode'
 import { toast } from 'sonner'
-import { useRef } from 'react'
 
 const mockItemsGet = jest.fn()
 const mockItemsPost = jest.fn()
@@ -41,15 +40,8 @@ jest.mock('sonner', () => ({
   Toaster: () => null,
 }))
 
-function Wrapper({ list }: { list?: { id?: number; name?: string } }) {
-  const ref = useRef<() => void>(() => {})
-  return (
-    <GeneralChecklistEditMode
-      listId={1}
-      list={list}
-      openEditNameDialogRef={ref}
-    />
-  )
+function Wrapper() {
+  return <GeneralChecklistEditMode listId={1} />
 }
 
 describe('GeneralChecklistEditMode', () => {

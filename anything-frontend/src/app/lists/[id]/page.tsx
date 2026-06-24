@@ -9,6 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDeleteShoppingList, useConvertShoppingListType } from "@/hooks/useShoppingLists";
+import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
+import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import type { ShoppingList } from "@/lib/api-client/models/index";
@@ -48,6 +50,7 @@ export default function ListDetailPage() {
 
   const deleteList = useDeleteShoppingList();
   const convertType = useConvertShoppingListType();
+  const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
 
   const isGeneral = list?.type === 0;
 
@@ -96,12 +99,10 @@ export default function ListDetailPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {isEditMode && (
-              <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
-                <SquarePen className="h-4 w-4" />
-                Edit list name
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
+              <SquarePen className="h-4 w-4" />
+              Rename
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => handleConvertTypeRef.current()}>
               {isGeneral ? (
                 <>
@@ -135,12 +136,21 @@ export default function ListDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
+      <EditListNameDialog
+        open={editNameDialog.open}
+        onOpenChange={editNameDialog.setOpen}
+        value={editNameDialog.value}
+        onChange={editNameDialog.setValue}
+        onSave={editNameDialog.handleSave}
+        isPending={editNameDialog.isPending}
+        inputRef={editNameDialog.inputRef}
+      />
       <PageTitle>{list?.name ?? "List"}</PageTitle>
       {isEditMode ? (
         isGeneral ? (
-          <GeneralChecklistEditMode listId={listId} list={list} openEditNameDialogRef={openEditNameDialogRef} />
+          <GeneralChecklistEditMode listId={listId} />
         ) : (
-          <ShoppingListEditMode listId={listId} list={list} openEditNameDialogRef={openEditNameDialogRef} />
+          <ShoppingListEditMode listId={listId} />
         )
       ) : (
         isGeneral ? (
