@@ -36,7 +36,8 @@ jest.mock("@/lib/apiClient", () => ({
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
-  usePathname: () => "/admin/suggestions",
+  useParams: () => ({ id: "1" }),
+  usePathname: () => "/households/1/lists/suggestions",
 }));
 
 jest.mock("sonner", () => ({
@@ -47,7 +48,7 @@ jest.mock("sonner", () => ({
 const adminUser = JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" });
 const regularUser = JSON.stringify({ email: "user@test.com", name: "User", role: "User" });
 
-describe("SuggestionsPage", () => {
+describe("SuggestionsPage (household config)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();

@@ -613,30 +613,30 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("profile.png", screenshotOptions);
   });
 
-  // ---- Admin ----
+  // ---- Household Config: Lists ----
 
-  test("admin suggestions page - with recommendations", async ({ page }) => {
-    await page.goto("/admin/suggestions");
+  test("household suggestions page - with recommendations", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "admin-suggestions-with-data.png",
+      "household-suggestions-with-data.png",
       screenshotOptions
     );
   });
 
-  test("admin suggestions page - empty state", async ({ page }) => {
+  test("household suggestions page - empty state", async ({ page }) => {
     await page.route("**/api/shopping-list-recommendations**", (route) =>
       route.fulfill({ json: [] })
     );
-    await page.goto("/admin/suggestions");
+    await page.goto("/households/1/lists/suggestions");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "admin-suggestions-empty.png",
+      "household-suggestions-empty.png",
       screenshotOptions
     );
   });
 
-  test("admin categories page - with categories", async ({ page }) => {
+  test("household categories page - with categories", async ({ page }) => {
     await page.route("**/api/suggestion-categories**", (route) =>
       route.fulfill({ json: [
         { id: 1, name: "Dairy", sortOrder: 0 },
@@ -644,19 +644,30 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
         { id: 3, name: "Bakery", sortOrder: 2 },
       ] })
     );
-    await page.goto("/admin/suggestions/categories");
+    await page.goto("/households/1/lists/suggestions/categories");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "admin-categories-with-data.png",
+      "household-categories-with-data.png",
       screenshotOptions
     );
   });
 
-  test("admin categories page - empty state", async ({ page }) => {
-    await page.goto("/admin/suggestions/categories");
+  test("household categories page - empty state", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions/categories");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "admin-categories-empty.png",
+      "household-categories-empty.png",
+      screenshotOptions
+    );
+  });
+
+  // ---- Household Config: Recipes ----
+
+  test("household recipe tags page", async ({ page }) => {
+    await page.goto("/households/1/recipes/tags");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "household-recipe-tags.png",
       screenshotOptions
     );
   });

@@ -32,7 +32,8 @@ jest.mock("@/lib/apiClient", () => ({
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
-  usePathname: () => "/admin/suggestions/categories",
+  useParams: () => ({ id: "1" }),
+  usePathname: () => "/households/1/lists/suggestions/categories",
 }));
 
 jest.mock("sonner", () => ({
@@ -43,7 +44,7 @@ jest.mock("sonner", () => ({
 const adminUser = JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" });
 const regularUser = JSON.stringify({ email: "user@test.com", name: "User", role: "User" });
 
-describe("CategoriesPage", () => {
+describe("CategoriesPage (household config)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
@@ -283,7 +284,6 @@ describe("CategoriesPage", () => {
       localStorage.setItem("accessToken", "test-token");
       mockCategoriesGet.mockResolvedValue([]);
 
-      // Mock browser APIs used during export
       global.URL.createObjectURL = jest.fn(() => "blob:mock-url");
       global.URL.revokeObjectURL = jest.fn();
       const originalCreateElement = document.createElement.bind(document);

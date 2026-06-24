@@ -29,8 +29,10 @@ jest.mock('@/hooks/useHouseholds', () => ({
   useRemoveHouseholdMember: () => ({ mutateAsync: mockRemoveMutateAsync, isPending: false }),
 }))
 
+const mockCurrentUser = jest.fn()
 jest.mock('@/hooks/useAuth', () => ({
   useCreateInvite: () => ({ mutateAsync: mockCreateInviteMutateAsync, isPending: false }),
+  useCurrentUser: (...args: unknown[]) => mockCurrentUser(...args),
 }))
 
 jest.mock('@/context/HouseholdContext', () => ({
@@ -43,9 +45,10 @@ jest.mock('@/context/HouseholdContext', () => ({
   HouseholdProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
+const mockPush = jest.fn()
 const mockUseParams = jest.fn(() => ({ id: '1' }))
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: jest.fn() }),
   useParams: (...args: unknown[]) => mockUseParams(...args),
   usePathname: () => '/households/1',
   useSearchParams: () => ({ get: jest.fn() }),
@@ -72,6 +75,7 @@ describe('HouseholdDetailPage', () => {
     jest.clearAllMocks()
     mockUseParams.mockReturnValue({ id: '1' })
     mockHouseholdGet.mockReturnValue({ data: mockHouseholdDetail, isLoading: false })
+    mockCurrentUser.mockReturnValue({ data: { name: 'Admin', email: 'admin@test.com', role: 'Admin' } })
     mockUpdateMutateAsync.mockResolvedValue(undefined)
     mockCreateInviteMutateAsync.mockResolvedValue({ inviteUrl: '/register?token=abc', token: 'abc' })
     mockRemoveMutateAsync.mockResolvedValue(undefined)
@@ -202,5 +206,60 @@ describe('HouseholdDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /remove alice/i }))
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
     expect(mockRemoveMutateAsync).not.toHaveBeenCalled()
+  })
+
+  describe('Configuration section', () => {
+    it('shows Configuration section for admin users', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => {
+        expect(screen.getByText('Configuration')).toBeInTheDocument()
+      })
+    })
+
+    it('shows Lists group with Suggestions and Suggestion Categories', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => {
+        expect(screen.getByText('Lists')).toBeInTheDocument()
+        expect(screen.getByText('Suggestions')).toBeInTheDocument()
+        expect(screen.getByText('Suggestion Categories')).toBeInTheDocument()
+      })
+    })
+
+    it('shows Recipes group with Recipe Tags', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => {
+        expect(screen.getByText('Recipes')).toBeInTheDocument()
+        expect(screen.getByText('Recipe Tags')).toBeInTheDocument()
+      })
+    })
+
+    it('navigates to suggestions page when Suggestions card is clicked', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByText('Suggestions'))
+      fireEvent.click(screen.getByText('Suggestions'))
+      expect(mockPush).toHaveBeenCalledWith('/households/1/lists/suggestions')
+    })
+
+    it('navigates to categories page when Suggestion Categories card is clicked', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByText('Suggestion Categories'))
+      fireEvent.click(screen.getByText('Suggestion Categories'))
+      expect(mockPush).toHaveBeenCalledWith('/households/1/lists/suggestions/categories')
+    })
+
+    it('navigates to recipe tags page when Recipe Tags card is clicked', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByText('Recipe Tags'))
+      fireEvent.click(screen.getByText('Recipe Tags'))
+      expect(mockPush).toHaveBeenCalledWith('/households/1/recipes/tags')
+    })
+
+    it('hides Configuration section for non-admin users', async () => {
+      mockCurrentUser.mockReturnValue({ data: { name: 'Bob', email: 'bob@test.com', role: 'User' } })
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getAllByText('Smith Family'))
+      expect(screen.queryByText('Configuration')).not.toBeInTheDocument()
+      expect(screen.queryByText('Suggestions')).not.toBeInTheDocument()
+    })
   })
 })

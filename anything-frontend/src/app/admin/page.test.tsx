@@ -1,4 +1,4 @@
-// The admin page is a server component that redirects to /admin/suggestions.
+// The admin page is a server component that redirects to /households.
 // next/navigation's redirect() throws a special NEXT_REDIRECT error in the test environment.
 // We verify the page attempts to redirect correctly.
 
@@ -13,9 +13,9 @@ import { redirect } from "next/navigation";
 import AdminPage from "./page";
 
 describe("AdminPage (server redirect)", () => {
-  it("should redirect to /admin/suggestions", () => {
-    expect(() => AdminPage()).toThrow("NEXT_REDIRECT:/admin/suggestions");
-    expect(redirect).toHaveBeenCalledWith("/admin/suggestions");
+  it("should redirect to /households", () => {
+    expect(() => AdminPage()).toThrow("NEXT_REDIRECT:/households");
+    expect(redirect).toHaveBeenCalledWith("/households");
   });
 });
 
