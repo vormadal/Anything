@@ -903,3 +903,4 @@ test.describe("Visual Snapshots - Shared Recipe Page (Authenticated)", () => {
     await expect(page).toHaveScreenshot("shared-recipe-targeted-clone.png", screenshotOptions);
   });
 });
+
