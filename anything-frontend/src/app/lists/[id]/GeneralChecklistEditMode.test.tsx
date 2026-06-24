@@ -8,8 +8,9 @@ import { useRef } from 'react'
 const mockItemsGet = jest.fn()
 const mockItemsPost = jest.fn()
 const mockItemsItemDelete = jest.fn()
+const mockItemsItemPut = jest.fn()
 const mockItemsReorderPut = jest.fn()
-const mockItemsItemById = jest.fn(() => ({ delete: mockItemsItemDelete }))
+const mockItemsItemById = jest.fn(() => ({ delete: mockItemsItemDelete, put: mockItemsItemPut }))
 const mockListPut = jest.fn()
 const mockById = jest.fn(() => ({
   get: jest.fn(),
@@ -116,6 +117,52 @@ describe('GeneralChecklistEditMode', () => {
     await waitFor(() => {
       expect(mockItemsItemDelete).toHaveBeenCalled()
       expect(toast.success).toHaveBeenCalledWith('Item removed')
+    })
+  })
+
+  it('clicking an item name enters edit mode', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([{ id: 1, name: 'Task 1' }])
+    render(<Wrapper />)
+    await waitFor(() => expect(screen.getByText('Task 1')).toBeInTheDocument())
+    await user.click(screen.getByText('Task 1'))
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Task 1')).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: 'Remove item' })).not.toBeInTheDocument()
+  })
+
+  it('saves renamed item on Enter', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([{ id: 1, name: 'Task 1', isChecked: false }])
+    mockItemsItemPut.mockResolvedValue({ id: 1, name: 'Renamed Task' })
+    render(<Wrapper />)
+    await waitFor(() => expect(screen.getByText('Task 1')).toBeInTheDocument())
+    await user.click(screen.getByText('Task 1'))
+    const input = await screen.findByDisplayValue('Task 1')
+    await user.clear(input)
+    await user.type(input, 'Renamed Task')
+    await user.keyboard('{Enter}')
+    await waitFor(() => {
+      expect(mockItemsItemPut).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Renamed Task', isChecked: false })
+      )
+    })
+  })
+
+  it('cancels edit on Escape without saving', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([{ id: 1, name: 'Task 1', isChecked: false }])
+    render(<Wrapper />)
+    await waitFor(() => expect(screen.getByText('Task 1')).toBeInTheDocument())
+    await user.click(screen.getByText('Task 1'))
+    const input = await screen.findByDisplayValue('Task 1')
+    await user.clear(input)
+    await user.type(input, 'Changed')
+    await user.keyboard('{Escape}')
+    await waitFor(() => {
+      expect(screen.getByText('Task 1')).toBeInTheDocument()
+      expect(mockItemsItemPut).not.toHaveBeenCalled()
     })
   })
 })
