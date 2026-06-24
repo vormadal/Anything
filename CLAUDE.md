@@ -79,7 +79,7 @@ npm run lint         # Run ESLint - always run after finishing work
 npm run test         # Run tests - always run after finishing work
 npm run test:coverage # Run tests with coverage report
 npm run generate:api # Generate API client from Swagger (API must be running)
-npm run test:e2e:visual          # Run visual regression tests (requires Next.js running on port 3001)
+npm run test:e2e:visual          # Run visual regression tests
 npm run test:e2e:visual:update   # Regenerate baseline screenshots after an intentional UI change
 ```
 
@@ -154,7 +154,7 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 - The solution file is `.slnx` format (new XML-based solution format).
 - Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
 - always run linter, build and tests before committing changes.
-- **Visual regression tests:** After any UI change (components, pages, layouts, styles) run `npm run test:e2e:visual:update` (from `anything-frontend/`) to regenerate the Playwright baseline screenshots, then commit the updated PNGs in `e2e/visual.spec.ts-snapshots/` together with the code change.
+- **Visual regression tests:** The `update-visual-snapshots` GitHub Actions workflow automatically regenerates and commits snapshots whenever `src/**`, `public/**`, or `e2e/visual.spec.ts` is pushed to a non-main branch. **Do not manually run `test:e2e:visual:update` in a web session** — push the code and let the workflow handle it. The visual runner requires a production build (`npm run build`) and uses `node .next/standalone/server.js` (not `npx next start`, which is incompatible with `output: standalone`).
 
 ## E2E Testing Rules (CI vs Deploy)
 
