@@ -56,6 +56,7 @@ import {
   useReimportRecipe,
 } from "@/hooks/useRecipes";
 import { useRecommendations } from "@/hooks/useRecommendations";
+import { useUnits } from "@/hooks/useUnits";
 import { RecipeImageUpload } from "@/components/RecipeImageUpload";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -123,6 +124,7 @@ function SortableIngredientItem({
         onBlur={() => onBlur(id)}
         placeholder="Unit"
         aria-label="Ingredient unit"
+        list="unit-options"
         className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
       />
       <Button
@@ -251,6 +253,7 @@ export default function RecipeEditPage() {
   const { data: images } = useRecipeImages(recipeId);
   const { data: tags } = useRecipeTags(recipeId);
   const { data: recommendations } = useRecommendations();
+  const { data: units } = useUnits();
 
   const effectiveEditName = editName ?? (recipe?.name ?? "");
   const effectiveEditLink = editLink ?? (recipe?.link ?? "");
@@ -844,6 +847,7 @@ export default function RecipeEditPage() {
                 value={newIngredientUnit}
                 onChange={(e) => setNewIngredientUnit(e.target.value)}
                 placeholder="Unit"
+                list="unit-options"
                 className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
               />
               <Button type="submit" size="icon" disabled={addIngredient.isPending} aria-label="Add ingredient">
@@ -851,6 +855,11 @@ export default function RecipeEditPage() {
               </Button>
             </div>
           </form>
+          <datalist id="unit-options">
+            {units?.map((u) => (
+              <option key={u.id} value={u.name ?? ""} />
+            ))}
+          </datalist>
         </div>
 
         {/* ── Steps ── */}

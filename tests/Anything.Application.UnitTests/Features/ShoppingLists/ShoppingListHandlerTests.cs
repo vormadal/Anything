@@ -250,9 +250,10 @@ public class UpdateShoppingListItemHandlerTests
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+    private readonly IUnitCatalog _unitCatalog = Substitute.For<IUnitCatalog>();
 
     private UpdateShoppingListItemHandler CreateHandler() =>
-        new(_listRepo, _itemRepo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_listRepo, _itemRepo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier, _unitCatalog);
 
     public UpdateShoppingListItemHandlerTests()
     {

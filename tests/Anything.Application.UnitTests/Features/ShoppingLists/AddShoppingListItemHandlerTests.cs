@@ -19,9 +19,10 @@ public class AddShoppingListItemHandlerTests
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+    private readonly IUnitCatalog _unitCatalog = Substitute.For<IUnitCatalog>();
 
     private AddShoppingListItemHandler CreateHandler() =>
-        new(_listRepo, _itemRepo, _recommendationRepo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_listRepo, _itemRepo, _recommendationRepo, _householdContext, _unitOfWork, _timeProvider, _realtimeNotifier, _unitCatalog);
 
     public AddShoppingListItemHandlerTests()
     {
@@ -71,6 +72,8 @@ public class AddShoppingListItemHandlerTests
 
         _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
             r.Name == "Milk"));
+
+        await _unitCatalog.Received(1).EnsureUnit("liters", Arg.Any<CancellationToken>());
 
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }

@@ -10,7 +10,7 @@ namespace Anything.Application.Features.ShoppingLists.Commands;
 
 public record UpdateShoppingListItemCommand(int ShoppingListId, int ItemId, string Name, bool IsChecked, decimal? Amount, string? Unit) : IRequest<IResult>;
 
-public class UpdateShoppingListItemHandler(IRepository<ShoppingList> listRepository, IRepository<ShoppingListItem> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider, IRealtimeNotifier realtimeNotifier)
+public class UpdateShoppingListItemHandler(IRepository<ShoppingList> listRepository, IRepository<ShoppingListItem> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider, IRealtimeNotifier realtimeNotifier, IUnitCatalog unitCatalog)
     : IRequestHandler<UpdateShoppingListItemCommand, IResult>
 {
     public async Task<IResult> Handle(UpdateShoppingListItemCommand command, CancellationToken ct = default)
@@ -32,6 +32,8 @@ public class UpdateShoppingListItemHandler(IRepository<ShoppingList> listReposit
         item.Amount = command.Amount;
         item.Unit = command.Unit;
         item.ModifiedOn = now;
+
+        await unitCatalog.EnsureUnit(command.Unit, ct);
 
         await unitOfWork.SaveChanges(ct);
         await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.ShoppingListId), ct);
