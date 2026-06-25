@@ -353,6 +353,10 @@ async function setupApiMocks(page: Page) {
   await page.route(/\/api\/households\/\d+\/members/, (route) =>
     route.fulfill({ status: 204, body: "" })
   );
+
+  // Block SSE / EventSource connections — no backend is running in visual tests,
+  // and an open or retrying EventSource would prevent networkidle from resolving.
+  await page.route("**/api/events**", (route) => route.abort());
 }
 
 /** Common options for toHaveScreenshot. */

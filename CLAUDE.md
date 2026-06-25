@@ -154,7 +154,7 @@ This project uses SonarCloud for static analysis. Both backend (`vormadal_Anythi
 - The solution file is `.slnx` format (new XML-based solution format).
 - Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
 - always run linter, build and tests before committing changes.
-- **Visual regression tests:** The `update-visual-snapshots` GitHub Actions workflow automatically regenerates and commits snapshots whenever `src/**`, `public/**`, or `e2e/visual.spec.ts` is pushed to a non-main branch. **Do not manually run `test:e2e:visual:update` in a web session** — push the code and let the workflow handle it. The visual runner requires a production build (`npm run build`) and uses `node .next/standalone/server.js` (not `npx next start`, which is incompatible with `output: standalone`).
+- **Visual regression tests:** The `update-visual-snapshots` GitHub Actions workflow automatically regenerates and commits snapshots whenever `src/**`, `public/**`, or `e2e/visual.spec.ts` is pushed to a non-main branch. **Do not manually run `test:e2e:visual:update` in a web session** — push the code and let the workflow handle it. The visual runner requires a production build (`npm run build`) and uses `npx next start` to serve it.
 
 ## E2E Testing Rules (CI vs Deploy)
 

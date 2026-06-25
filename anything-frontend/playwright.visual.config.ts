@@ -21,13 +21,11 @@ export default defineConfig({
   workers: 1,
   reporter: "html",
   webServer: {
-    command: "node .next/standalone/server.js",
+    command: "npx next start -p 3000",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     env: {
       NEXT_PUBLIC_API_URL: "http://localhost:5238",
-      PORT: "3000",
-      HOSTNAME: "0.0.0.0",
     },
   },
   use: {
