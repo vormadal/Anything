@@ -22,11 +22,8 @@ import {
   Shield,
   LogOut,
   UserPlus,
-  ListChecks,
   CalendarDays,
   Receipt,
-  Tag,
-  Tags,
   Users,
 } from "lucide-react";
 import {
@@ -53,9 +50,6 @@ const NAV_ITEMS = [
 
 const ADMIN_NAV_ITEMS = [
   { label: "Invite Users", path: "/admin/invite", icon: UserPlus },
-  { label: "Suggestions", path: "/admin/suggestions", icon: ListChecks },
-  { label: "Suggestion Categories", path: "/admin/suggestions/categories", icon: Tag },
-  { label: "Recipe Tags", path: "/admin/recipes/tags", icon: Tags },
 ];
 
 

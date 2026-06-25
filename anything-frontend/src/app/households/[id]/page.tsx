@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,24 @@ import {
   useRemoveHouseholdMember,
   type HouseholdMember,
 } from "@/hooks/useHouseholds";
-import { useCreateInvite } from "@/hooks/useAuth";
+import { useCreateInvite, useCurrentUser } from "@/hooks/useAuth";
 import { useHouseholdContext } from "@/context/HouseholdContext";
-import { Copy, Link, Pencil, Trash2, UserPlus, Crown, User, Users } from "lucide-react";
+import { isAdmin } from "@/lib/roles";
+import {
+  Copy,
+  Link,
+  Pencil,
+  Trash2,
+  UserPlus,
+  Crown,
+  User,
+  Users,
+  Settings,
+  ListChecks,
+  Tag,
+  Tags,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export default function HouseholdDetailPage() {
@@ -31,9 +46,11 @@ export default function HouseholdDetailPage() {
 
   const { data: household, isLoading } = useHousehold(isValidId ? householdId : null);
   const { selectedHouseholdId } = useHouseholdContext();
+  const { data: currentUser } = useCurrentUser();
   const updateHousehold = useUpdateHousehold();
   const createInvite = useCreateInvite();
   const removeMember = useRemoveHouseholdMember();
+  const router = useRouter();
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const [showRename, setShowRename] = useState(false);
@@ -220,6 +237,53 @@ export default function HouseholdDetailPage() {
         </div>
       </div>
 
+      {/* Configuration section — admin only */}
+      {currentUser && isAdmin(currentUser.role) && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mb-2">
+            <Settings className="h-4 w-4" />
+            Configuration
+          </h2>
+
+          <div className="mb-3">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1 mb-1">
+              Lists
+            </p>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+              <ConfigCard
+                href={`/households/${householdId}/lists/suggestions`}
+                icon={ListChecks}
+                title="Suggestions"
+                description="Shopping list autocomplete options"
+                onClick={(href) => router.push(href)}
+              />
+              <ConfigCard
+                href={`/households/${householdId}/lists/suggestions/categories`}
+                icon={Tag}
+                title="Suggestion Categories"
+                description="Organise suggestions into categories"
+                onClick={(href) => router.push(href)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1 mb-1">
+              Recipes
+            </p>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+              <ConfigCard
+                href={`/households/${householdId}/recipes/tags`}
+                icon={Tags}
+                title="Recipe Tags"
+                description="Manage tags for filtering recipes"
+                onClick={(href) => router.push(href)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Invite member dialog */}
       <Dialog open={showInvite} onOpenChange={handleCloseInvite}>
         <DialogContent>
@@ -350,6 +414,37 @@ export default function HouseholdDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function ConfigCard({
+  href,
+  icon: Icon,
+  title,
+  description,
+  onClick,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  onClick: (href: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(href)}
+      className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+    >
+      <div className="w-8 h-8 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+        <Icon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 dark:text-white">{title}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+    </button>
   );
 }
 

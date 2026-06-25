@@ -21,15 +21,15 @@ export default defineConfig({
   workers: 1,
   reporter: "html",
   webServer: {
-    command: "npx next start -p 3001",
-    url: "http://localhost:3001",
+    command: "npx next start -p 3000",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     env: {
       NEXT_PUBLIC_API_URL: "http://localhost:5238",
     },
   },
   use: {
-    baseURL: "http://localhost:3001",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
   expect: {

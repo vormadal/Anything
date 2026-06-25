@@ -2,7 +2,7 @@
   "cookies": [],
   "origins": [
     {
-      "origin": "http://localhost:3001",
+      "origin": "http://localhost:3000",
       "localStorage": [
         { "name": "accessToken", "value": "visual-test-token" },
         { "name": "refreshToken", "value": "visual-test-refresh-token" },

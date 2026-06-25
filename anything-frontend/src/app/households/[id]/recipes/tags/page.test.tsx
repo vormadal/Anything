@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithClient } from "@/__tests__/utils/test-utils";
-import RecipeTagsAdminPage from "./page";
+import RecipeTagsPage from "./page";
 import { toast } from "sonner";
 
 const mockApiFetch = jest.fn();
@@ -14,7 +14,8 @@ jest.mock("@/lib/apiClient", () => ({
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
-  usePathname: () => "/admin/recipes/tags",
+  useParams: () => ({ id: "1" }),
+  usePathname: () => "/households/1/recipes/tags",
 }));
 
 jest.mock("sonner", () => ({
@@ -25,7 +26,7 @@ jest.mock("sonner", () => ({
 const adminUser = JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" });
 const regularUser = JSON.stringify({ email: "user@test.com", name: "User", role: "User" });
 
-describe("RecipeTagsAdminPage", () => {
+describe("RecipeTagsPage (household config)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
@@ -39,7 +40,7 @@ describe("RecipeTagsAdminPage", () => {
     localStorage.setItem("user", regularUser);
     localStorage.setItem("accessToken", "test-token");
 
-    renderWithClient(<RecipeTagsAdminPage />);
+    renderWithClient(<RecipeTagsPage />);
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/");
@@ -66,7 +67,7 @@ describe("RecipeTagsAdminPage", () => {
       json: jest.fn().mockResolvedValue({ recipes: [] }),
     });
 
-    renderWithClient(<RecipeTagsAdminPage />);
+    renderWithClient(<RecipeTagsPage />);
 
     await user.click(screen.getByRole("button", { name: "Export recipe tags" }));
 
@@ -82,7 +83,7 @@ describe("RecipeTagsAdminPage", () => {
     localStorage.setItem("accessToken", "test-token");
     mockApiFetch.mockResolvedValueOnce({ ok: true });
 
-    renderWithClient(<RecipeTagsAdminPage />);
+    renderWithClient(<RecipeTagsPage />);
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(
@@ -106,7 +107,7 @@ describe("RecipeTagsAdminPage", () => {
     localStorage.setItem("user", adminUser);
     localStorage.setItem("accessToken", "test-token");
 
-    renderWithClient(<RecipeTagsAdminPage />);
+    renderWithClient(<RecipeTagsPage />);
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["bad-json"], "recipe-tags.json", { type: "application/json" });
