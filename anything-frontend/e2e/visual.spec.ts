@@ -460,7 +460,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("shopping list detail - grouped by recipe view", async ({ page }) => {
     await page.goto("/lists/1");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector('[aria-label="Group by recipe"]');
     await page.getByRole("button", { name: "Group by recipe" }).click();
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
@@ -498,7 +498,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
       route.fulfill({ json: mockGeneralChecklistItems })
     );
     await page.goto("/lists/3");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector('[aria-label="Edit list"]');
     await page.getByRole("button", { name: "Edit list" }).click();
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
@@ -583,7 +583,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   // label), giving aria-label "mandag".
   test("food plans - day dialog with entries and note", async ({ page }) => {
     await page.goto("/food-plans");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector('[aria-label="mandag"]');
     await page.getByRole("button", { name: "mandag" }).first().click();
     await page.waitForSelector('[aria-label="Close dialog"]');
     await expect(page).toHaveScreenshot(
@@ -596,7 +596,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   // aria-label becomes "torsdag, i morgen" (tomorrow). Has no entries in mock data.
   test("food plans - day dialog empty day", async ({ page }) => {
     await page.goto("/food-plans");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector('button[aria-label*="torsdag"]');
     await page.getByRole("button", { name: /torsdag/i }).first().click();
     await page.waitForSelector('[aria-label="Close dialog"]');
     await expect(page).toHaveScreenshot(
@@ -738,7 +738,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("household detail page - invite dialog open", async ({ page }) => {
     await page.goto("/households/1");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector('button:has-text("Invite member")');
     await page.getByRole("button", { name: /invite member/i }).click();
     await page.waitForSelector('[role="dialog"]');
     await expect(page).toHaveScreenshot(
@@ -760,7 +760,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("navigation - hamburger menu open", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForFunction(() => window.history.length > 1);
     await page.getByRole("button", { name: /open menu/i }).click();
     await page.waitForSelector('[role="dialog"]');
     await expect(page).toHaveScreenshot(
@@ -771,7 +771,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("navigation - exit prompt visible", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForFunction(() => window.history.length > 1);
     await page.evaluate(() => window.history.back());
     await page.waitForSelector("text=Press back again to exit");
     await expect(page).toHaveScreenshot(
@@ -798,7 +798,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("recipe share dialog - initial (empty shares)", async ({ page }) => {
     await page.goto("/recipes/1");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector('[aria-label="Share recipe"]');
     await page.getByRole("button", { name: /share recipe/i }).click();
     await page.waitForSelector('[role="dialog"]');
     await expect(page).toHaveScreenshot("share-dialog-initial.png", screenshotOptions);
@@ -809,7 +809,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
       route.fulfill({ json: mockRecipeShares })
     );
     await page.goto("/recipes/1");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector('[aria-label="Share recipe"]');
     await page.getByRole("button", { name: /share recipe/i }).click();
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("share-dialog-with-shares.png", screenshotOptions);
@@ -817,7 +817,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("recipe share dialog - share with user tab", async ({ page }) => {
     await page.goto("/recipes/1");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector('[aria-label="Share recipe"]');
     await page.getByRole("button", { name: /share recipe/i }).click();
     await page.waitForSelector('[role="dialog"]');
     await page.getByRole("button", { name: /share with user/i }).click();
