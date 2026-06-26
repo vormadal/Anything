@@ -56,6 +56,9 @@ function UnitRow({
             onChange={(e) => onEditNameChange(e.target.value)}
             placeholder="Unit"
             aria-label="Unit name"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             autoFocus
           />
@@ -262,6 +265,9 @@ export default function UnitsPage() {
               onChange={(e) => setCreateName(e.target.value)}
               placeholder="Unit"
               aria-label="New unit name"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               autoFocus
             />

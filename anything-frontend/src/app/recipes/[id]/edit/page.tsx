@@ -125,6 +125,9 @@ function SortableIngredientItem({
         placeholder="Unit"
         aria-label="Ingredient unit"
         list="unit-options"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
         className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
       />
       <Button
@@ -848,6 +851,9 @@ export default function RecipeEditPage() {
                 onChange={(e) => setNewIngredientUnit(e.target.value)}
                 placeholder="Unit"
                 list="unit-options"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
               />
               <Button type="submit" size="icon" disabled={addIngredient.isPending} aria-label="Add ingredient">
