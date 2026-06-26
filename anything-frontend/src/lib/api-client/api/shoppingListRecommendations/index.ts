@@ -6,7 +6,11 @@ import { createHttpValidationProblemDetailsFromDiscriminatorValue, createShoppin
 // @ts-ignore
 import { AllRequestBuilderRequestsMetadata, type AllRequestBuilder } from './all/index';
 // @ts-ignore
-import { ShoppingListRecommendationsItemRequestBuilderNavigationMetadata, ShoppingListRecommendationsItemRequestBuilderRequestsMetadata, type ShoppingListRecommendationsItemRequestBuilder } from './item/index';
+import { ExportRequestBuilderRequestsMetadata, type ExportRequestBuilder } from './exportEscaped/index';
+// @ts-ignore
+import { ImportRequestBuilderRequestsMetadata, type ImportRequestBuilder } from './importEscaped/index';
+// @ts-ignore
+import { ShoppingListRecommendationsItemRequestBuilderRequestsMetadata, type ShoppingListRecommendationsItemRequestBuilder } from './item/index';
 // @ts-ignore
 import { type UncategorizedRequestBuilder, UncategorizedRequestBuilderRequestsMetadata } from './uncategorized/index';
 // @ts-ignore
@@ -20,6 +24,14 @@ export interface ShoppingListRecommendationsRequestBuilder extends BaseRequestBu
      * The all property
      */
     get all(): AllRequestBuilder;
+    /**
+     * The export property
+     */
+    get exportEscaped(): ExportRequestBuilder;
+    /**
+     * The import property
+     */
+    get importEscaped(): ImportRequestBuilder;
     /**
      * The uncategorized property
      */
@@ -64,11 +76,16 @@ export const ShoppingListRecommendationsRequestBuilderUriTemplate = "{+baseurl}/
 export const ShoppingListRecommendationsRequestBuilderNavigationMetadata: Record<Exclude<keyof ShoppingListRecommendationsRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
     byId: {
         requestsMetadata: ShoppingListRecommendationsItemRequestBuilderRequestsMetadata,
-        navigationMetadata: ShoppingListRecommendationsItemRequestBuilderNavigationMetadata,
         pathParametersMappings: ["id"],
     },
     all: {
         requestsMetadata: AllRequestBuilderRequestsMetadata,
+    },
+    exportEscaped: {
+        requestsMetadata: ExportRequestBuilderRequestsMetadata,
+    },
+    importEscaped: {
+        requestsMetadata: ImportRequestBuilderRequestsMetadata,
     },
     uncategorized: {
         requestsMetadata: UncategorizedRequestBuilderRequestsMetadata,

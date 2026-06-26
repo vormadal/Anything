@@ -4,7 +4,9 @@
 // @ts-ignore
 import { createCreateInviteResponseFromDiscriminatorValue, createHttpValidationProblemDetailsFromDiscriminatorValue, createInviteResponseFromDiscriminatorValue, serializeCreateInviteRequest, serializeCreateInviteResponse, type CreateInviteRequest, type CreateInviteResponse, type HttpValidationProblemDetails, type InviteResponse } from '../../../models/index';
 // @ts-ignore
-import { InvitesItemRequestBuilderRequestsMetadata, type InvitesItemRequestBuilder } from './item/index';
+import { ItemRequestBuilderNavigationMetadata, ItemRequestBuilderRequestsMetadata, type ItemRequestBuilder } from './item/index';
+// @ts-ignore
+import { MeRequestBuilderRequestsMetadata, type MeRequestBuilder } from './me/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
@@ -13,11 +15,15 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  */
 export interface InvitesRequestBuilder extends BaseRequestBuilder<InvitesRequestBuilder> {
     /**
+     * The me property
+     */
+    get me(): MeRequestBuilder;
+    /**
      * Gets an item from the ApiSdk.api.auth.invites.item collection
      * @param id Unique identifier of the item
-     * @returns {InvitesItemRequestBuilder}
+     * @returns {ItemRequestBuilder}
      */
-     byId(id: number) : InvitesItemRequestBuilder;
+     byId(id: number) : ItemRequestBuilder;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {Promise<InviteResponse[]>}
@@ -51,8 +57,12 @@ export const InvitesRequestBuilderUriTemplate = "{+baseurl}/api/auth/invites";
  */
 export const InvitesRequestBuilderNavigationMetadata: Record<Exclude<keyof InvitesRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
     byId: {
-        requestsMetadata: InvitesItemRequestBuilderRequestsMetadata,
-        pathParametersMappings: ["id"],
+        requestsMetadata: ItemRequestBuilderRequestsMetadata,
+        navigationMetadata: ItemRequestBuilderNavigationMetadata,
+        pathParametersMappings: ["%2Did"],
+    },
+    me: {
+        requestsMetadata: MeRequestBuilderRequestsMetadata,
     },
 };
 /**
