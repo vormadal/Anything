@@ -6,6 +6,7 @@ name: Update EF Migrations
 # EF intercepts at host build (Program.cs) before SeedAdminUser/MigrateAsync run.
 
 on:
+  workflow_dispatch:
   push:
     branches-ignore: [main]
     paths:
