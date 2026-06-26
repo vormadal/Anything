@@ -156,6 +156,13 @@ const mockRecommendations = [
   { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null },
 ];
 
+const mockUnits = [
+  { id: 1, name: "g", householdId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 2, name: "kg", householdId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 3, name: "ml", householdId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 4, name: "tbsp", householdId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+];
+
 const mockHouseholds = [
   { id: 1, name: "Smith Family", createdOn: "2024-01-01T00:00:00Z", role: "Owner" },
   { id: 2, name: "Work Team", createdOn: "2024-02-01T00:00:00Z", role: "Member" },
@@ -325,6 +332,12 @@ async function setupApiMocks(page: Page) {
   );
   await page.route("**/api/suggestion-categories**", (route) =>
     route.fulfill({ json: [] })
+  );
+  await page.route("**/api/units**", (route) =>
+    route.fulfill({ json: mockUnits })
+  );
+  await page.route("**/api/units/export**", (route) =>
+    route.fulfill({ json: { units: [] } })
   );
   await page.route("**/api/auth/invites**", (route) =>
     route.fulfill({ json: [] })
@@ -661,6 +674,29 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "household-categories-empty.png",
+      screenshotOptions
+    );
+  });
+
+  // ---- Household Config: Units ----
+
+  test("household units page - with units", async ({ page }) => {
+    await page.goto("/households/1/units");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "household-units-with-data.png",
+      screenshotOptions
+    );
+  });
+
+  test("household units page - empty state", async ({ page }) => {
+    await page.route("**/api/units**", (route) =>
+      route.fulfill({ json: [] })
+    );
+    await page.goto("/households/1/units");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "household-units-empty.png",
       screenshotOptions
     );
   });
