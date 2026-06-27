@@ -21,7 +21,7 @@ const mockById = jest.fn(() => ({
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
-      shoppingLists: {
+      checklists: {
         byId: (...args: unknown[]) => mockById(...args),
       },
     },

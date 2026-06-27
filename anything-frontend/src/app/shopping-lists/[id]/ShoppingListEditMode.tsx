@@ -10,6 +10,7 @@ import {
   useRemoveShoppingListItem,
 } from "@/hooks/useShoppingLists";
 import { useRecommendations } from "@/hooks/useRecommendations";
+import { useUnits } from "@/hooks/useUnits";
 import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
@@ -40,6 +41,7 @@ export function ShoppingListEditMode({ listId }: Props) {
   const updateItem = useUpdateShoppingListItem(listId);
   const removeItem = useRemoveShoppingListItem(listId);
   const { data: recommendations } = useRecommendations();
+  const { data: units } = useUnits();
 
   const filteredSuggestions =
     recommendations?.filter(
@@ -176,6 +178,10 @@ export function ShoppingListEditMode({ listId }: Props) {
             value={newItemUnit}
             onChange={(e) => setNewItemUnit(e.target.value)}
             placeholder="Unit"
+            list="unit-options"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             className="w-16 px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
           />
           <Button type="submit" size="icon" disabled={addItem.isPending} aria-label="Add item">
@@ -183,6 +189,12 @@ export function ShoppingListEditMode({ listId }: Props) {
           </Button>
         </div>
       </form>
+
+      <datalist id="unit-options">
+        {units?.map((u) => (
+          <option key={u.id} value={u.name ?? ""} />
+        ))}
+      </datalist>
 
       <ListItemsStatus
         isLoading={isLoading}
@@ -245,6 +257,10 @@ export function ShoppingListEditMode({ listId }: Props) {
                       setEditingItem(editingItem ? { ...editingItem, unit: e.target.value } : null)
                     }
                     placeholder="Unit"
+                    list="unit-options"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     className="w-14 px-1 py-1 text-sm rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-white"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSaveEdit(item);

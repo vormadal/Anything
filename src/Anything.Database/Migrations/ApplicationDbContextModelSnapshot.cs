@@ -17,7 +17,7 @@ namespace Anything.Database.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -477,6 +477,36 @@ namespace Anything.Database.Migrations
                     b.HasIndex("HouseholdId");
 
                     b.ToTable("Locations");
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.MeasurementUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("MeasurementUnits");
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.Recipe", b =>
@@ -1208,6 +1238,15 @@ namespace Anything.Database.Migrations
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.Location", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.MeasurementUnit", b =>
                 {
                     b.HasOne("Anything.Core.Entities.Household", null)
                         .WithMany()

@@ -23,6 +23,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
     public DbSet<ShoppingListRecommendation> ShoppingListRecommendations => Set<ShoppingListRecommendation>();
     public DbSet<SuggestionCategory> SuggestionCategories => Set<SuggestionCategory>();
+    public DbSet<MeasurementUnit> MeasurementUnits => Set<MeasurementUnit>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeStep> RecipeSteps => Set<RecipeStep>();

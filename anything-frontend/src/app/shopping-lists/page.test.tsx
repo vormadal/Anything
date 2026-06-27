@@ -11,7 +11,7 @@ const mockShoppingListsPost = jest.fn()
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
-      shoppingLists: {
+      checklists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
         post: (...args: unknown[]) => mockShoppingListsPost(...args),
       },

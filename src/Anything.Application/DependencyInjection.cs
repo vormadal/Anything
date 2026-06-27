@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IHouseholdContext>(sp => sp.GetRequiredService<HouseholdContext>());
 
         // Services
+        services.AddScoped<IUnitCatalog, UnitCatalog>();
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IImageStorageService, MinioStorageService>();

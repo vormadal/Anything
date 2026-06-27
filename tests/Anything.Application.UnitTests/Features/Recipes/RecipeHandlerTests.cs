@@ -160,9 +160,10 @@ public class ImportRecipeHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+    private readonly IUnitCatalog _unitCatalog = Substitute.For<IUnitCatalog>();
 
     private ImportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recipeImageService, _unitOfWork, _timeProvider, _householdContext);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recipeImageService, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
 
     [Fact]
     public async Task Handle_CreatesRecipeWithIngredientsAndSteps()
@@ -297,6 +298,7 @@ public class AddRecipeIngredientHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+    private readonly IUnitCatalog _unitCatalog = Substitute.For<IUnitCatalog>();
 
     public AddRecipeIngredientHandlerTests()
     {
@@ -307,7 +309,7 @@ public class AddRecipeIngredientHandlerTests
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.Query().Returns(new List<Recipe>().AsAsyncQueryable());
-        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext);
+        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
 
         var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 1.5m, "cup", null), TestContext.Current.CancellationToken);
 
@@ -319,7 +321,7 @@ public class AddRecipeIngredientHandlerTests
     {
         _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "Pasta" } }.AsAsyncQueryable());
         _ingredientRepo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
-        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext);
+        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
 
         var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 2m, "cups", "dry"), TestContext.Current.CancellationToken);
 
@@ -337,6 +339,7 @@ public class UpdateRecipeIngredientHandlerTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+    private readonly IUnitCatalog _unitCatalog = Substitute.For<IUnitCatalog>();
 
     public UpdateRecipeIngredientHandlerTests()
     {
@@ -348,7 +351,7 @@ public class UpdateRecipeIngredientHandlerTests
     {
         _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "X" } }.AsAsyncQueryable());
         _repo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
-        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider, _unitCatalog)
             .Handle(new UpdateRecipeIngredientCommand(1, 1, "X", null, null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -358,7 +361,7 @@ public class UpdateRecipeIngredientHandlerTests
     {
         _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "X" } }.AsAsyncQueryable());
         _repo.Query().Returns(new List<RecipeIngredient> { new RecipeIngredient { Id = 1, RecipeId = 99, Name = "X" } }.AsAsyncQueryable());
-        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider, _unitCatalog)
             .Handle(new UpdateRecipeIngredientCommand(1, 1, "Y", null, null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound<string>>(result);
     }
@@ -372,7 +375,7 @@ public class UpdateRecipeIngredientHandlerTests
         _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "X" } }.AsAsyncQueryable());
         _repo.Query().Returns(new List<RecipeIngredient> { entity }.AsAsyncQueryable());
 
-        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider)
+        var result = await new UpdateRecipeIngredientHandler(_recipeRepo, _repo, _householdContext, _unitOfWork, _timeProvider, _unitCatalog)
             .Handle(new UpdateRecipeIngredientCommand(1, 1, "New", 2m, "tbsp", "wet"), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);

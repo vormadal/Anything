@@ -17,7 +17,8 @@ public class AddShoppingListItemHandler(
     IHouseholdContext householdContext,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
-    IRealtimeNotifier realtimeNotifier) : IRequestHandler<AddShoppingListItemCommand, IResult>
+    IRealtimeNotifier realtimeNotifier,
+    IUnitCatalog unitCatalog) : IRequestHandler<AddShoppingListItemCommand, IResult>
 {
     private const string ShoppingListNotFound = "Shopping list not found.";
 
@@ -62,6 +63,8 @@ public class AddShoppingListItemHandler(
                     CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });
             }
+
+            await unitCatalog.EnsureUnit(command.Unit, ct);
         }
 
         await unitOfWork.SaveChanges(ct);
