@@ -10,6 +10,8 @@ import { RecipesItemRequestBuilderNavigationMetadata, RecipesItemRequestBuilderR
 // @ts-ignore
 import { ParseUrlRequestBuilderRequestsMetadata, type ParseUrlRequestBuilder } from './parseUrl/index';
 // @ts-ignore
+import { TagsRequestBuilderNavigationMetadata, TagsRequestBuilderRequestsMetadata, type TagsRequestBuilder } from './tags/index';
+// @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
@@ -25,6 +27,10 @@ export interface RecipesRequestBuilder extends BaseRequestBuilder<RecipesRequest
      */
     get parseUrl(): ParseUrlRequestBuilder;
     /**
+     * The tags property
+     */
+    get tags(): TagsRequestBuilder;
+    /**
      * Gets an item from the ApiSdk.api.recipes.item collection
      * @param id Unique identifier of the item
      * @returns {RecipesItemRequestBuilder}
@@ -34,7 +40,7 @@ export interface RecipesRequestBuilder extends BaseRequestBuilder<RecipesRequest
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {Promise<Recipe[]>}
      */
-     get(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<Recipe[] | undefined>;
+     get(requestConfiguration?: RequestConfiguration<RecipesRequestBuilderGetQueryParameters> | undefined) : Promise<Recipe[] | undefined>;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
@@ -46,7 +52,7 @@ export interface RecipesRequestBuilder extends BaseRequestBuilder<RecipesRequest
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
      */
-     toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined) : RequestInformation;
+     toGetRequestInformation(requestConfiguration?: RequestConfiguration<RecipesRequestBuilderGetQueryParameters> | undefined) : RequestInformation;
     /**
      * @param body The request body
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
@@ -54,10 +60,21 @@ export interface RecipesRequestBuilder extends BaseRequestBuilder<RecipesRequest
      */
      toPostRequestInformation(body: CreateRecipeRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : RequestInformation;
 }
+export interface RecipesRequestBuilderGetQueryParameters {
+    search?: string;
+    tag?: string;
+}
 /**
  * Uri template for the request builder.
  */
-export const RecipesRequestBuilderUriTemplate = "{+baseurl}/api/recipes";
+export const RecipesRequestBuilderUriTemplate = "{+baseurl}/api/recipes{?Search*,Tag*}";
+/**
+ * Mapper for query parameters from symbol name to serialization name represented as a constant.
+ */
+const RecipesRequestBuilderGetQueryParametersMapper: Record<string, string> = {
+    "search": "Search",
+    "tag": "Tag",
+};
 /**
  * Metadata for all the navigation properties in the request builder.
  */
@@ -73,6 +90,10 @@ export const RecipesRequestBuilderNavigationMetadata: Record<Exclude<keyof Recip
     parseUrl: {
         requestsMetadata: ParseUrlRequestBuilderRequestsMetadata,
     },
+    tags: {
+        requestsMetadata: TagsRequestBuilderRequestsMetadata,
+        navigationMetadata: TagsRequestBuilderNavigationMetadata,
+    },
 };
 /**
  * Metadata for all the requests in the request builder.
@@ -83,6 +104,7 @@ export const RecipesRequestBuilderRequestsMetadata: RequestsMetadata = {
         responseBodyContentType: "application/json",
         adapterMethodName: "sendCollection",
         responseBodyFactory:  createRecipeFromDiscriminatorValue,
+        queryParametersMapper: RecipesRequestBuilderGetQueryParametersMapper,
     },
     post: {
         uriTemplate: RecipesRequestBuilderUriTemplate,

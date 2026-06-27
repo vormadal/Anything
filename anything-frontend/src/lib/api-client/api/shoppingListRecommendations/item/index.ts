@@ -4,7 +4,7 @@
 // @ts-ignore
 import { createHttpValidationProblemDetailsFromDiscriminatorValue, serializeUpdateRecommendationRequest, type HttpValidationProblemDetails, type UpdateRecommendationRequest } from '../../../models/index';
 // @ts-ignore
-import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
+import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /api/shopping-list-recommendations/{id}
@@ -36,11 +36,6 @@ export interface ShoppingListRecommendationsItemRequestBuilder extends BaseReque
  * Uri template for the request builder.
  */
 export const ShoppingListRecommendationsItemRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/{id}";
-/**
- * Metadata for all the navigation properties in the request builder.
- */
-export const ShoppingListRecommendationsItemRequestBuilderNavigationMetadata: Record<Exclude<keyof ShoppingListRecommendationsItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-};
 /**
  * Metadata for all the requests in the request builder.
  */

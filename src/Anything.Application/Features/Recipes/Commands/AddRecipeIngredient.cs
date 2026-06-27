@@ -14,7 +14,8 @@ public class AddRecipeIngredientHandler(
     IRepository<RecipeIngredient> ingredientRepository,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
-    IHouseholdContext householdContext) : IRequestHandler<AddRecipeIngredientCommand, IResult>
+    IHouseholdContext householdContext,
+    IUnitCatalog unitCatalog) : IRequestHandler<AddRecipeIngredientCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
 
@@ -43,6 +44,7 @@ public class AddRecipeIngredientHandler(
         };
 
         ingredientRepository.Add(ingredient);
+        await unitCatalog.EnsureUnit(command.Unit, ct);
         await unitOfWork.SaveChanges(ct);
         return Results.Created($"/api/recipes/{command.RecipeId}/ingredients/{ingredient.Id}", ingredient);
     }

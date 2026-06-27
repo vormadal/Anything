@@ -14,7 +14,7 @@ const mockFoodPlanEntriesPost = jest.fn()
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
-      shoppingLists: {
+      checklists: {
         get: jest.fn().mockResolvedValue([]),
         post: jest.fn(),
         byId: jest.fn(() => ({

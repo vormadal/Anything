@@ -1,0 +1,75 @@
+name: Update EF Migrations
+
+# Auto-generates an EF Core migration whenever the model (entities / configurations)
+# changes on a non-main branch, then commits it back — mirrors update-visual-snapshots.
+# Design-time migration generation only needs a connection string, not a live database:
+# EF intercepts at host build (Program.cs) before SeedAdminUser/MigrateAsync run.
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'src/Anything.Core/**'
+      - 'src/Anything.Database/**'
+      - '.github/workflows/update-ef-migrations.yml'
+
+jobs:
+  update-migrations:
+    name: Regenerate EF Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+
+    env:
+      # Dummy connection string so UseNpgsql() is configured; design-time never connects.
+      ConnectionStrings__anything: "Host=localhost;Database=anything;Username=postgres;Password=postgres"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dotnet tools
+      run: dotnet tool restore
+
+    - name: Restore dependencies
+      run: dotnet restore Anything.slnx
+
+    - name: Build solution
+      run: dotnet build Anything.slnx --no-restore --configuration Release
+
+    - name: Generate migration if the model changed
+      run: |
+        set -e
+        if dotnet ef migrations has-pending-model-changes \
+            --project src/Anything.Database \
+            --startup-project src/Anything.API \
+            --no-build --configuration Release; then
+          echo "No pending model changes — nothing to generate."
+        else
+          echo "Pending model changes detected — adding migration."
+          dotnet ef migrations add "Auto_$(date +%Y%m%d%H%M%S)" \
+            --project src/Anything.Database \
+            --startup-project src/Anything.API \
+            --no-build --configuration Release
+        fi
+
+    - name: Commit generated migration
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add src/Anything.Database/Migrations/
+        if git diff --staged --quiet; then
+          echo "No migration changes to commit"
+        else
+          git commit -m "chore: generate EF migration [skip ci]"
+          git pull --rebase --autostash origin ${{ github.ref_name }}
+          git push origin HEAD:${{ github.ref_name }}
+        fi

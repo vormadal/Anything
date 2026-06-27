@@ -10,12 +10,13 @@ import {
   useAddFoodPlanToShoppingList,
   useUpsertFoodPlanNote,
   useDeleteFoodPlanNote,
+  type FoodPlanNote,
 } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import type { FoodPlanEntry, FoodPlanNote, Recipe } from "@/lib/api-client/models/index";
+import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { useRouter } from "next/navigation";
@@ -595,10 +596,9 @@ export default function FoodPlanPage() {
     const ds = toDateInputValue(date);
     return notes.find((n) => {
       if (!n.date) return false;
-      // n.date is a Date object (from Kiota parsing a DateOnly JSON string).
-      // The DateOnly value is parsed as UTC midnight, so use UTC date getters
-      // to avoid local-timezone shifts turning "2026-04-08" into "2026-04-07".
-      const nd = n.date instanceof Date ? n.date : new Date(n.date);
+      // n.date is the API's "YYYY-MM-DD" string, parsed as UTC midnight; compare on the
+      // UTC date portion to avoid local-timezone shifts turning "2026-04-08" into "...-07".
+      const nd = new Date(n.date);
       return nd.toISOString().substring(0, 10) === ds;
     }) ?? null;
   };

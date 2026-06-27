@@ -82,12 +82,7 @@ const mockEntriesItemDelete = jest.fn()
 const mockEntriesItemById = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
 const mockAddToShoppingListPost = jest.fn()
 const mockShoppingListsGet = jest.fn()
-const mockNotesGet = jest.fn()
-const mockNotesByDatePut = jest.fn()
-const mockNotesByDateDelete = jest.fn()
-const mockNotesByDate = jest.fn(() => ({ put: mockNotesByDatePut, delete: mockNotesByDateDelete }))
-const mockNotesByNoteIdDelete = jest.fn()
-const mockNotesByNoteId = jest.fn(() => ({ delete: mockNotesByNoteIdDelete }))
+const mockApiFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -102,16 +97,11 @@ jest.mock('@/lib/apiClient', () => ({
           post: (...args: unknown[]) => mockEntriesPost(...args),
           byEntryId: (...args: unknown[]) => mockEntriesItemById(...args),
         },
-        notes: {
-          get: (...args: unknown[]) => mockNotesGet(...args),
-          byDate: (...args: unknown[]) => mockNotesByDate(...args),
-          byNoteId: (...args: unknown[]) => mockNotesByNoteId(...args),
-        },
         addToShoppingList: {
           post: (...args: unknown[]) => mockAddToShoppingListPost(...args),
         },
       },
-      shoppingLists: {
+      checklists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
         post: jest.fn(),
         byId: jest.fn(() => ({
@@ -124,6 +114,7 @@ jest.mock('@/lib/apiClient', () => ({
       },
     },
   },
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }))
 
 // ---- Mock PageActionsContext ----
@@ -162,12 +153,32 @@ jest.mock('@/hooks/useAuth', () => ({
   useLogout: () => ({ mutateAsync: jest.fn(), isPending: false }),
 }))
 
+// Food-plan notes go through apiFetch: route the GET to the provided notes and treat
+// PUT/DELETE as successful.
+function mockNotesApi(notes: unknown[]) {
+  mockApiFetch.mockImplementation((path: string, init?: { method?: string }) => {
+    if (typeof path === 'string' && path.startsWith('/api/food-plan/notes') && !init) {
+      return Promise.resolve({ ok: true, json: async () => notes })
+    }
+    return Promise.resolve({ ok: true })
+  })
+}
+
+function findNotesCall(method?: string) {
+  return mockApiFetch.mock.calls.find(
+    (c) =>
+      typeof c[0] === 'string' &&
+      (c[0] as string).includes('/api/food-plan/notes') &&
+      ((c[1] as { method?: string } | undefined)?.method ?? undefined) === method
+  )
+}
+
 describe('FoodPlanPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockSettingsGet.mockResolvedValue({ activeDays: 127 })
     mockEntriesGet.mockResolvedValue([])
-    mockNotesGet.mockResolvedValue([])
+    mockApiFetch.mockResolvedValue({ ok: true, json: async () => [] })
     mockRecipesFetch([])
     mockShoppingListsGet.mockResolvedValue([])
   })
@@ -591,7 +602,7 @@ describe('FoodPlanPage', () => {
 
   // ------- 7. Note in dialog -------
   it('should show a note preview on the day row when a note exists', async () => {
-    mockNotesGet.mockResolvedValue([
+    mockNotesApi([
       { id: 1, date: toDateInputValue(today), note: 'Eating at friends' }
     ])
 
@@ -606,7 +617,7 @@ describe('FoodPlanPage', () => {
   })
 
   it('should pre-fill the note textarea with existing note text', async () => {
-    mockNotesGet.mockResolvedValue([
+    mockNotesApi([
       { id: 1, date: toDateInputValue(today), note: 'Eating at friends' }
     ])
 
@@ -628,8 +639,7 @@ describe('FoodPlanPage', () => {
 
   it('should save note when Save button is clicked', async () => {
     const user = userEvent.setup()
-    mockNotesGet.mockResolvedValue([])
-    mockNotesByDatePut.mockResolvedValue({ id: 1, date: toDateInputValue(today), note: 'New note' })
+    mockNotesApi([])
 
     render(<FoodPlanPage />)
 
@@ -645,17 +655,18 @@ describe('FoodPlanPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
-      expect(mockNotesByDatePut).toHaveBeenCalledWith(
+      const putCall = findNotesCall('PUT')
+      expect(putCall).toBeTruthy()
+      expect(JSON.parse(((putCall?.[1] as { body?: string })?.body) ?? '{}')).toEqual(
         expect.objectContaining({ note: 'New note' })
       )
     })
   })
 
   it('should delete note when textarea is cleared and Save is clicked', async () => {
-    mockNotesGet.mockResolvedValue([
+    mockNotesApi([
       { id: 42, date: toDateInputValue(today), note: 'Old note' }
     ])
-    mockNotesByNoteIdDelete.mockResolvedValue(undefined)
 
     const user = userEvent.setup()
 
@@ -680,14 +691,16 @@ describe('FoodPlanPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
-      expect(mockNotesByNoteId).toHaveBeenCalledWith(42)
-      expect(mockNotesByNoteIdDelete).toHaveBeenCalled()
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        '/api/food-plan/notes/42',
+        expect.objectContaining({ method: 'DELETE' })
+      )
     })
   })
 
   it('should show Clear note button only when textarea has text', async () => {
     const user = userEvent.setup()
-    mockNotesGet.mockResolvedValue([])
+    mockNotesApi([])
 
     render(<FoodPlanPage />)
 
@@ -709,19 +722,25 @@ describe('FoodPlanPage', () => {
     // Regression test: the notes GET endpoint expects DateOnly query params
     // (yyyy-MM-dd), not datetime strings (yyyy-MM-ddTHH:mm:ssZ).
     // Passing datetime strings would cause a 400 and notes would never load.
-    mockNotesGet.mockResolvedValue([])
+    mockNotesApi([])
 
     render(<FoodPlanPage />)
 
     await waitFor(() => {
-      expect(mockNotesGet).toHaveBeenCalled()
+      expect(
+        mockApiFetch.mock.calls.some(
+          (c) => typeof c[0] === 'string' && (c[0] as string).startsWith('/api/food-plan/notes?')
+        )
+      ).toBe(true)
     })
 
-    const callArgs = mockNotesGet.mock.calls[0][0]
-    const { startDate, endDate } = callArgs.queryParameters
+    const notesCall = mockApiFetch.mock.calls.find(
+      (c) => typeof c[0] === 'string' && (c[0] as string).startsWith('/api/food-plan/notes?')
+    )
+    const params = new URL(`http://x${notesCall![0] as string}`).searchParams
+    const startDate = params.get('startDate')!
+    const endDate = params.get('endDate')!
     // Must be date-only strings: "yyyy-MM-dd" (10 chars, no 'T')
-    expect(typeof startDate).toBe('string')
-    expect(typeof endDate).toBe('string')
     expect(startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
@@ -730,11 +749,14 @@ describe('FoodPlanPage', () => {
     // Regression test: after saving a note, the notes query is invalidated
     // and the note preview must appear on the day row.
     const savedNote = { id: 1, date: toDateInputValue(today), note: 'Dinner with family' }
-    mockNotesGet
-      .mockResolvedValueOnce([])         // initial load — no notes yet
-      .mockResolvedValue([savedNote])    // after save invalidation — note exists
-
-    mockNotesByDatePut.mockResolvedValue(savedNote)
+    let noteGetCount = 0
+    mockApiFetch.mockImplementation((path: string, init?: { method?: string }) => {
+      if (typeof path === 'string' && path.startsWith('/api/food-plan/notes') && !init) {
+        const notes = noteGetCount++ === 0 ? [] : [savedNote]
+        return Promise.resolve({ ok: true, json: async () => notes })
+      }
+      return Promise.resolve({ ok: true })
+    })
 
     const user = userEvent.setup()
     render(<FoodPlanPage />)
@@ -751,7 +773,9 @@ describe('FoodPlanPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
-      expect(mockNotesByDatePut).toHaveBeenCalledWith(
+      const putCall = findNotesCall('PUT')
+      expect(putCall).toBeTruthy()
+      expect(JSON.parse(((putCall?.[1] as { body?: string })?.body) ?? '{}')).toEqual(
         expect.objectContaining({ note: 'Dinner with family' })
       )
     })

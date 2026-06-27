@@ -10,6 +10,7 @@ public record CreateHouseholdCommand(string Name, int UserId) : IRequest<Househo
 public class CreateHouseholdHandler(
     IRepository<Household> householdRepository,
     IRepository<HouseholdMember> memberRepository,
+    IRepository<MeasurementUnit> unitRepository,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<CreateHouseholdCommand, Household>
 {
@@ -32,6 +33,17 @@ public class CreateHouseholdHandler(
             JoinedOn = now
         };
         memberRepository.Add(member);
+        await unitOfWork.SaveChanges(ct);
+
+        foreach (var name in DefaultUnits.All)
+        {
+            unitRepository.Add(new MeasurementUnit
+            {
+                HouseholdId = household.Id,
+                Name = name,
+                CreatedOn = now
+            });
+        }
         await unitOfWork.SaveChanges(ct);
 
         return household;

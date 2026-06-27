@@ -1,8 +1,18 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
-import type { FoodPlanEntry, FoodPlanNote, FoodPlanSettings } from "@/lib/api-client/models/index";
+import { apiClient, apiFetch } from "@/lib/apiClient";
+import type { FoodPlanEntry, FoodPlanSettings } from "@/lib/api-client/models/index";
+
+// Food-plan notes are accessed via apiFetch rather than the generated client: the
+// backend's `PUT /notes/{date}` (DateOnly) and `DELETE /notes/{noteId}` (int) share one
+// path, so Kiota collapses them into a single DateOnly builder that can't express
+// delete-by-id. `date` is the JSON "YYYY-MM-DD" string the API returns.
+export type FoodPlanNote = {
+  id?: number | null;
+  date?: string | null;
+  note?: string | null;
+};
 
 export function useFoodPlanSettings() {
   return useQuery({
@@ -122,10 +132,13 @@ export function useAddFoodPlanToShoppingList() {
 export function useFoodPlanNotes(startDate: string, endDate: string) {
   return useQuery({
     queryKey: ["foodPlanNotes", startDate, endDate],
-    queryFn: () =>
-      apiClient.api.foodPlan.notes.get({
-        queryParameters: { startDate, endDate },
-      }) as Promise<FoodPlanNote[]>,
+    queryFn: async () => {
+      const response = await apiFetch(
+        `/api/food-plan/notes?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+      );
+      if (!response.ok) throw new Error("Failed to load food plan notes");
+      return (await response.json()) as FoodPlanNote[];
+    },
     enabled: !!startDate && !!endDate,
   });
 }
@@ -134,8 +147,13 @@ export function useUpsertFoodPlanNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ date, note }: { date: string; note: string }) =>
-      apiClient.api.foodPlan.notes.byDate(date).put({ note }),
+    mutationFn: async ({ date, note }: { date: string; note: string }) => {
+      const response = await apiFetch(`/api/food-plan/notes/${encodeURIComponent(date)}`, {
+        method: "PUT",
+        body: JSON.stringify({ note }),
+      });
+      if (!response.ok) throw new Error("Failed to save food plan note");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanNotes"] });
     },
@@ -146,8 +164,10 @@ export function useDeleteFoodPlanNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (noteId: number) =>
-      apiClient.api.foodPlan.notes.byNoteId(noteId).delete(),
+    mutationFn: async (noteId: number) => {
+      const response = await apiFetch(`/api/food-plan/notes/${noteId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete food plan note");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanNotes"] });
     },

@@ -40,7 +40,7 @@ jest.mock('@/lib/apiClient', () => ({
         post: jest.fn(),
         byId: (...args: unknown[]) => mockById(...args),
       },
-      shoppingLists: {
+      checklists: {
         get: jest.fn().mockResolvedValue([]),
         byId: jest.fn(() => ({ get: jest.fn() })),
       },

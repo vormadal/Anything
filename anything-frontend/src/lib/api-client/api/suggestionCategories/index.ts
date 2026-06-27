@@ -4,6 +4,10 @@
 // @ts-ignore
 import { createHttpValidationProblemDetailsFromDiscriminatorValue, createSuggestionCategoryFromDiscriminatorValue, serializeCreateSuggestionCategoryRequest, serializeSuggestionCategory, type CreateSuggestionCategoryRequest, type HttpValidationProblemDetails, type SuggestionCategory } from '../../models/index';
 // @ts-ignore
+import { ExportRequestBuilderRequestsMetadata, type ExportRequestBuilder } from './exportEscaped/index';
+// @ts-ignore
+import { ImportRequestBuilderRequestsMetadata, type ImportRequestBuilder } from './importEscaped/index';
+// @ts-ignore
 import { SuggestionCategoriesItemRequestBuilderRequestsMetadata, type SuggestionCategoriesItemRequestBuilder } from './item/index';
 // @ts-ignore
 import { ReorderRequestBuilderRequestsMetadata, type ReorderRequestBuilder } from './reorder/index';
@@ -14,6 +18,14 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  * Builds and executes requests for operations under /api/suggestion-categories
  */
 export interface SuggestionCategoriesRequestBuilder extends BaseRequestBuilder<SuggestionCategoriesRequestBuilder> {
+    /**
+     * The export property
+     */
+    get exportEscaped(): ExportRequestBuilder;
+    /**
+     * The import property
+     */
+    get importEscaped(): ImportRequestBuilder;
     /**
      * The reorder property
      */
@@ -59,6 +71,12 @@ export const SuggestionCategoriesRequestBuilderNavigationMetadata: Record<Exclud
     byId: {
         requestsMetadata: SuggestionCategoriesItemRequestBuilderRequestsMetadata,
         pathParametersMappings: ["id"],
+    },
+    exportEscaped: {
+        requestsMetadata: ExportRequestBuilderRequestsMetadata,
+    },
+    importEscaped: {
+        requestsMetadata: ImportRequestBuilderRequestsMetadata,
     },
     reorder: {
         requestsMetadata: ReorderRequestBuilderRequestsMetadata,
