@@ -140,8 +140,50 @@ describe('useRecipes hooks', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1)
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/recipes'),
-        expect.objectContaining({ headers: expect.objectContaining({ Authorization: expect.any(String) }) })
+        expect.objectContaining({
+          cache: 'no-store',
+          headers: expect.objectContaining({ Authorization: expect.any(String) }),
+        })
       )
+    })
+
+    it('refetches on every mount so a freshly created recipe shows on return (issue #571)', async () => {
+      // First mount: empty list (e.g. before a recipe is created elsewhere)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve([]),
+      } as Response)
+      // Second mount (returning to the list): backend now has the new recipe
+      const created = [{ id: 1, name: 'Fresh Recipe', createdOn: '2024-01-03T00:00:00Z' }]
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(created),
+      } as Response)
+
+      // A shared client so the cached query survives the unmount/remount, mirroring
+      // navigating away from and back to the recipe list page.
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false, staleTime: 60 * 1000 },
+          mutations: { retry: false },
+        },
+      })
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      )
+
+      const first = renderHook(() => useRecipes(), { wrapper })
+      await waitFor(() => expect(first.result.current.isSuccess).toBe(true))
+      expect(first.result.current.data).toEqual([])
+      first.unmount()
+
+      // Remount: refetchOnMount: "always" must trigger a fresh fetch even though
+      // the cached data is still within staleTime.
+      const second = renderHook(() => useRecipes(), { wrapper })
+      await waitFor(() => expect(second.result.current.data).toEqual(created))
+      expect(mockFetch).toHaveBeenCalledTimes(2)
     })
 
     it('should handle fetch error', async () => {

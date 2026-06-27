@@ -46,6 +46,10 @@ type RecipeTagsImportData = {
 export function useRecipes(search?: string, tag?: string) {
   return useQuery({
     queryKey: ["recipes", search ?? "", tag ?? ""],
+    // Always refetch when the list page is re-entered (e.g. navigating back
+    // after creating a recipe) so newly created recipes show without a manual
+    // refresh — see issue #571.
+    refetchOnMount: "always",
     queryFn: async (): Promise<Recipe[]> => {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
@@ -57,7 +61,10 @@ export function useRecipes(search?: string, tag?: string) {
           : "";
       const response = await fetch(
         `${API_BASE_URL}/api/recipes${qs ? `?${qs}` : ""}`,
-        { headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() } }
+        {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() },
+        }
       );
       if (!response.ok) throw new Error(`Failed to fetch recipes: ${response.status}`);
       return response.json() as Promise<Recipe[]>;
@@ -68,6 +75,9 @@ export function useRecipes(search?: string, tag?: string) {
 export function useTopRecipeTags(count = 10) {
   return useQuery({
     queryKey: ["topRecipeTags", count],
+    // Keep the tag chips on the recipe list page current on every return — see
+    // issue #571.
+    refetchOnMount: "always",
     queryFn: async (): Promise<TopTag[]> => {
       const token =
         typeof globalThis.window !== "undefined"
@@ -75,7 +85,10 @@ export function useTopRecipeTags(count = 10) {
           : "";
       const response = await fetch(
         `${API_BASE_URL}/api/recipes/tags?count=${count}`,
-        { headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() } }
+        {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() },
+        }
       );
       if (!response.ok) throw new Error(`Failed to fetch top tags: ${response.status}`);
       return response.json() as Promise<TopTag[]>;
