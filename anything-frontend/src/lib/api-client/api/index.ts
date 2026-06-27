@@ -6,7 +6,13 @@ import { AuthRequestBuilderNavigationMetadata, type AuthRequestBuilder } from '.
 // @ts-ignore
 import { BillsRequestBuilderNavigationMetadata, BillsRequestBuilderRequestsMetadata, type BillsRequestBuilder } from './bills/index';
 // @ts-ignore
+import { ChecklistsRequestBuilderNavigationMetadata, ChecklistsRequestBuilderRequestsMetadata, type ChecklistsRequestBuilder } from './checklists/index';
+// @ts-ignore
+import { EventsRequestBuilderRequestsMetadata, type EventsRequestBuilder } from './events/index';
+// @ts-ignore
 import { FoodPlanRequestBuilderNavigationMetadata, type FoodPlanRequestBuilder } from './foodPlan/index';
+// @ts-ignore
+import { HouseholdsRequestBuilderNavigationMetadata, HouseholdsRequestBuilderRequestsMetadata, type HouseholdsRequestBuilder } from './households/index';
 // @ts-ignore
 import { InventoryBoxesRequestBuilderNavigationMetadata, InventoryBoxesRequestBuilderRequestsMetadata, type InventoryBoxesRequestBuilder } from './inventoryBoxes/index';
 // @ts-ignore
@@ -18,13 +24,15 @@ import { LocationsRequestBuilderNavigationMetadata, LocationsRequestBuilderReque
 // @ts-ignore
 import { RecipesRequestBuilderNavigationMetadata, RecipesRequestBuilderRequestsMetadata, type RecipesRequestBuilder } from './recipes/index';
 // @ts-ignore
-import { ShoppingListRecommendationsRequestBuilderNavigationMetadata, ShoppingListRecommendationsRequestBuilderRequestsMetadata, type ShoppingListRecommendationsRequestBuilder } from './shoppingListRecommendations/index';
+import { SharedRequestBuilderNavigationMetadata, type SharedRequestBuilder } from './shared/index';
 // @ts-ignore
-import { ShoppingListsRequestBuilderNavigationMetadata, ShoppingListsRequestBuilderRequestsMetadata, type ShoppingListsRequestBuilder } from './shoppingLists/index';
+import { ShoppingListRecommendationsRequestBuilderNavigationMetadata, ShoppingListRecommendationsRequestBuilderRequestsMetadata, type ShoppingListRecommendationsRequestBuilder } from './shoppingListRecommendations/index';
 // @ts-ignore
 import { SomethingsRequestBuilderNavigationMetadata, SomethingsRequestBuilderRequestsMetadata, type SomethingsRequestBuilder } from './somethings/index';
 // @ts-ignore
 import { SuggestionCategoriesRequestBuilderNavigationMetadata, SuggestionCategoriesRequestBuilderRequestsMetadata, type SuggestionCategoriesRequestBuilder } from './suggestionCategories/index';
+// @ts-ignore
+import { type UnitsRequestBuilder, UnitsRequestBuilderNavigationMetadata, UnitsRequestBuilderRequestsMetadata } from './units/index';
 // @ts-ignore
 import { type VendorsRequestBuilder, VendorsRequestBuilderNavigationMetadata, VendorsRequestBuilderRequestsMetadata } from './vendors/index';
 // @ts-ignore
@@ -43,9 +51,21 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      */
     get bills(): BillsRequestBuilder;
     /**
+     * The checklists property
+     */
+    get checklists(): ChecklistsRequestBuilder;
+    /**
+     * The events property
+     */
+    get events(): EventsRequestBuilder;
+    /**
      * The foodPlan property
      */
     get foodPlan(): FoodPlanRequestBuilder;
+    /**
+     * The households property
+     */
+    get households(): HouseholdsRequestBuilder;
     /**
      * The inventoryBoxes property
      */
@@ -67,13 +87,13 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      */
     get recipes(): RecipesRequestBuilder;
     /**
+     * The shared property
+     */
+    get shared(): SharedRequestBuilder;
+    /**
      * The shoppingListRecommendations property
      */
     get shoppingListRecommendations(): ShoppingListRecommendationsRequestBuilder;
-    /**
-     * The shoppingLists property
-     */
-    get shoppingLists(): ShoppingListsRequestBuilder;
     /**
      * The somethings property
      */
@@ -82,6 +102,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The suggestionCategories property
      */
     get suggestionCategories(): SuggestionCategoriesRequestBuilder;
+    /**
+     * The units property
+     */
+    get units(): UnitsRequestBuilder;
     /**
      * The vendors property
      */
@@ -102,8 +126,19 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
         requestsMetadata: BillsRequestBuilderRequestsMetadata,
         navigationMetadata: BillsRequestBuilderNavigationMetadata,
     },
+    checklists: {
+        requestsMetadata: ChecklistsRequestBuilderRequestsMetadata,
+        navigationMetadata: ChecklistsRequestBuilderNavigationMetadata,
+    },
+    events: {
+        requestsMetadata: EventsRequestBuilderRequestsMetadata,
+    },
     foodPlan: {
         navigationMetadata: FoodPlanRequestBuilderNavigationMetadata,
+    },
+    households: {
+        requestsMetadata: HouseholdsRequestBuilderRequestsMetadata,
+        navigationMetadata: HouseholdsRequestBuilderNavigationMetadata,
     },
     inventoryBoxes: {
         requestsMetadata: InventoryBoxesRequestBuilderRequestsMetadata,
@@ -125,13 +160,12 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
         requestsMetadata: RecipesRequestBuilderRequestsMetadata,
         navigationMetadata: RecipesRequestBuilderNavigationMetadata,
     },
+    shared: {
+        navigationMetadata: SharedRequestBuilderNavigationMetadata,
+    },
     shoppingListRecommendations: {
         requestsMetadata: ShoppingListRecommendationsRequestBuilderRequestsMetadata,
         navigationMetadata: ShoppingListRecommendationsRequestBuilderNavigationMetadata,
-    },
-    shoppingLists: {
-        requestsMetadata: ShoppingListsRequestBuilderRequestsMetadata,
-        navigationMetadata: ShoppingListsRequestBuilderNavigationMetadata,
     },
     somethings: {
         requestsMetadata: SomethingsRequestBuilderRequestsMetadata,
@@ -140,6 +174,10 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     suggestionCategories: {
         requestsMetadata: SuggestionCategoriesRequestBuilderRequestsMetadata,
         navigationMetadata: SuggestionCategoriesRequestBuilderNavigationMetadata,
+    },
+    units: {
+        requestsMetadata: UnitsRequestBuilderRequestsMetadata,
+        navigationMetadata: UnitsRequestBuilderNavigationMetadata,
     },
     vendors: {
         requestsMetadata: VendorsRequestBuilderRequestsMetadata,

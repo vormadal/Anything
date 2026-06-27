@@ -1,0 +1,143 @@
+name: Update API Client
+
+# Boots the API and regenerates the Kiota TypeScript client whenever the backend API
+# surface changes on a non-main branch, then commits the result back — mirrors
+# update-visual-snapshots. The API is run in the Development environment because Swagger
+# is only mapped under IsDevelopment() (see Program.cs).
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'src/Anything.API/**'
+      - 'src/Anything.Contracts/**'
+      - 'src/Anything.Application/**'
+      - 'src/Anything.Core/**'
+      - '.github/workflows/update-api-client.yml'
+
+jobs:
+  update-api-client:
+    name: Regenerate API Client
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: anything
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./anything-frontend
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: anything-frontend/package-lock.json
+
+    - name: Restore .NET dependencies
+      run: dotnet restore Anything.slnx
+      working-directory: ${{ github.workspace }}
+
+    - name: Build .NET solution
+      run: dotnet build Anything.slnx --no-restore --configuration Release
+      working-directory: ${{ github.workspace }}
+
+    - name: Install frontend dependencies
+      run: npm ci --ignore-scripts
+
+    - name: Install Kiota CLI
+      run: |
+        dotnet tool install --global Microsoft.OpenApi.Kiota --version 1.30.0
+        echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      working-directory: ${{ github.workspace }}
+
+    - name: Start Minio
+      run: |
+        docker run -d \
+          --name minio \
+          -p 9000:9000 \
+          -e MINIO_ROOT_USER=minioadmin \
+          -e MINIO_ROOT_PASSWORD=minioadmin \
+          minio/minio:latest server /data
+      working-directory: ${{ github.workspace }}
+
+    - name: Wait for Minio to be ready
+      run: timeout 60 bash -c 'until curl -sf http://localhost:9000/minio/health/live; do sleep 2; done'
+      working-directory: ${{ github.workspace }}
+
+    - name: Create Minio bucket
+      run: |
+        AWS_ACCESS_KEY_ID=minioadmin \
+        AWS_SECRET_ACCESS_KEY=minioadmin \
+        AWS_DEFAULT_REGION=us-east-1 \
+          aws s3 mb s3://recipe-images --endpoint-url http://localhost:9000
+      working-directory: ${{ github.workspace }}
+
+    - name: Start .NET API
+      run: dotnet run --project src/Anything.API/Anything.API.csproj --no-build --configuration Release --no-launch-profile &
+      working-directory: ${{ github.workspace }}
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+        ASPNETCORE_URLS: http://localhost:5238
+        ConnectionStrings__anything: Host=localhost;Port=5432;Database=anything;Username=postgres;Password=postgres
+        ASPIRE_ALLOW_UNSECURED_TRANSPORT: "true"
+        ASPIRE__DISABLE_DASHBOARD: "true"
+        Admin__Email: admin@anything.local
+        Admin__Password: Admin123!
+        Jwt__SecretKey: ci-secret-key-for-api-client-generation-minimum-32-chars
+        Jwt__Issuer: Anything.API
+        Jwt__Audience: Anything.Frontend
+
+    - name: Wait for Swagger to be ready
+      run: timeout 120 bash -c 'until curl -sf http://localhost:5238/swagger/v1/swagger.json; do sleep 2; done'
+      working-directory: ${{ github.workspace }}
+
+    - name: Regenerate API client
+      run: npm run generate:api
+
+    - name: Stop background services
+      if: always()
+      run: |
+        pkill -f "Anything.API" || true
+        docker stop minio || echo 'Minio container was not running'
+        docker rm minio || echo 'Minio container could not be removed'
+      working-directory: ${{ github.workspace }}
+
+    - name: Commit regenerated API client
+      working-directory: ${{ github.workspace }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add anything-frontend/src/lib/api-client/
+        if git diff --staged --quiet; then
+          echo "No API client changes to commit"
+        else
+          git commit -m "chore: regenerate API client [skip ci]"
+          git pull --rebase --autostash origin ${{ github.ref_name }}
+          git push origin HEAD:${{ github.ref_name }}
+        fi

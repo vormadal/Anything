@@ -10,6 +10,10 @@ import { ImagesRequestBuilderNavigationMetadata, ImagesRequestBuilderRequestsMet
 // @ts-ignore
 import { IngredientsRequestBuilderNavigationMetadata, IngredientsRequestBuilderRequestsMetadata, type IngredientsRequestBuilder } from './ingredients/index';
 // @ts-ignore
+import { ReimportRequestBuilderRequestsMetadata, type ReimportRequestBuilder } from './reimport/index';
+// @ts-ignore
+import { SharesRequestBuilderNavigationMetadata, SharesRequestBuilderRequestsMetadata, type SharesRequestBuilder } from './shares/index';
+// @ts-ignore
 import { StepsRequestBuilderNavigationMetadata, StepsRequestBuilderRequestsMetadata, type StepsRequestBuilder } from './steps/index';
 // @ts-ignore
 import { TagsRequestBuilderNavigationMetadata, TagsRequestBuilderRequestsMetadata, type TagsRequestBuilder } from './tags/index';
@@ -32,6 +36,14 @@ export interface RecipesItemRequestBuilder extends BaseRequestBuilder<RecipesIte
      * The ingredients property
      */
     get ingredients(): IngredientsRequestBuilder;
+    /**
+     * The reimport property
+     */
+    get reimport(): ReimportRequestBuilder;
+    /**
+     * The shares property
+     */
+    get shares(): SharesRequestBuilder;
     /**
      * The steps property
      */
@@ -90,6 +102,13 @@ export const RecipesItemRequestBuilderNavigationMetadata: Record<Exclude<keyof R
     ingredients: {
         requestsMetadata: IngredientsRequestBuilderRequestsMetadata,
         navigationMetadata: IngredientsRequestBuilderNavigationMetadata,
+    },
+    reimport: {
+        requestsMetadata: ReimportRequestBuilderRequestsMetadata,
+    },
+    shares: {
+        requestsMetadata: SharesRequestBuilderRequestsMetadata,
+        navigationMetadata: SharesRequestBuilderNavigationMetadata,
     },
     steps: {
         requestsMetadata: StepsRequestBuilderRequestsMetadata,

@@ -23,11 +23,7 @@ const mockEntriesItemPut = jest.fn()
 const mockEntriesItemDelete = jest.fn()
 const mockEntriesItemById = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
 const mockAddToShoppingListPost = jest.fn()
-const mockNotesGet = jest.fn()
-const mockNotesByDatePut = jest.fn()
-const mockNotesByDate = jest.fn(() => ({ put: mockNotesByDatePut }))
-const mockNotesByNoteIdDelete = jest.fn()
-const mockNotesByNoteId = jest.fn(() => ({ delete: mockNotesByNoteIdDelete }))
+const mockApiFetch = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -42,17 +38,13 @@ jest.mock('@/lib/apiClient', () => ({
           post: (...args: unknown[]) => mockEntriesPost(...args),
           byEntryId: (...args: unknown[]) => mockEntriesItemById(...args),
         },
-        notes: {
-          get: (...args: unknown[]) => mockNotesGet(...args),
-          byDate: (...args: unknown[]) => mockNotesByDate(...args),
-          byNoteId: (...args: unknown[]) => mockNotesByNoteId(...args),
-        },
         addToShoppingList: {
           post: (...args: unknown[]) => mockAddToShoppingListPost(...args),
         },
       },
     },
   },
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }))
 
 function createWrapper() {
@@ -293,9 +285,9 @@ describe('useFoodPlans hooks', () => {
   })
 
   describe('useFoodPlanNotes', () => {
-    it('should fetch notes by date range with date-only strings', async () => {
+    it('should fetch notes by date range via apiFetch', async () => {
       const mockNotes = [{ id: 1, date: '2026-03-10', note: 'Eating at friends' }]
-      mockNotesGet.mockResolvedValueOnce(mockNotes)
+      mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => mockNotes })
 
       const { result } = renderHook(
         () => useFoodPlanNotes('2026-03-10', '2026-03-16'),
@@ -305,12 +297,9 @@ describe('useFoodPlans hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockNotes)
-      expect(mockNotesGet).toHaveBeenCalledWith({
-        queryParameters: {
-          startDate: '2026-03-10',
-          endDate: '2026-03-16',
-        },
-      })
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        '/api/food-plan/notes?startDate=2026-03-10&endDate=2026-03-16'
+      )
     })
 
     it('should not fetch when dates are empty', () => {
@@ -320,13 +309,13 @@ describe('useFoodPlans hooks', () => {
       )
 
       expect(result.current.fetchStatus).toBe('idle')
-      expect(mockNotesGet).not.toHaveBeenCalled()
+      expect(mockApiFetch).not.toHaveBeenCalled()
     })
   })
 
   describe('useUpsertFoodPlanNote', () => {
-    it('should upsert a note for a specific date', async () => {
-      mockNotesByDatePut.mockResolvedValueOnce({ id: 1, date: '2026-03-10', note: 'Leftovers' })
+    it('should upsert a note for a specific date via apiFetch', async () => {
+      mockApiFetch.mockResolvedValueOnce({ ok: true })
 
       const { result } = renderHook(() => useUpsertFoodPlanNote(), {
         wrapper: createWrapper(),
@@ -338,14 +327,18 @@ describe('useFoodPlans hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockNotesByDate).toHaveBeenCalledWith('2026-03-10')
-      expect(mockNotesByDatePut).toHaveBeenCalledWith({ note: 'Leftovers' })
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        '/api/food-plan/notes/2026-03-10',
+        expect.objectContaining({ method: 'PUT' })
+      )
+      const body = JSON.parse((mockApiFetch.mock.calls[0]?.[1] as { body?: string })?.body ?? '{}')
+      expect(body).toEqual({ note: 'Leftovers' })
     })
   })
 
   describe('useDeleteFoodPlanNote', () => {
-    it('should delete a note by id', async () => {
-      mockNotesByNoteIdDelete.mockResolvedValueOnce(undefined)
+    it('should delete a note by id via apiFetch', async () => {
+      mockApiFetch.mockResolvedValueOnce({ ok: true })
 
       const { result } = renderHook(() => useDeleteFoodPlanNote(), {
         wrapper: createWrapper(),
@@ -357,8 +350,10 @@ describe('useFoodPlans hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockNotesByNoteId).toHaveBeenCalledWith(42)
-      expect(mockNotesByNoteIdDelete).toHaveBeenCalled()
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        '/api/food-plan/notes/42',
+        expect.objectContaining({ method: 'DELETE' })
+      )
     })
   })
 })

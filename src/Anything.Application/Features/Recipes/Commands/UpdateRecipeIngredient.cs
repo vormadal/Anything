@@ -9,7 +9,7 @@ namespace Anything.Application.Features.Recipes.Commands;
 
 public record UpdateRecipeIngredientCommand(int RecipeId, int IngredientId, string Name, decimal? Amount, string? Unit, string? Group) : IRequest<IResult>;
 
-public class UpdateRecipeIngredientHandler(IRepository<Recipe> recipeRepository, IRepository<RecipeIngredient> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider)
+public class UpdateRecipeIngredientHandler(IRepository<Recipe> recipeRepository, IRepository<RecipeIngredient> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider, IUnitCatalog unitCatalog)
     : IRequestHandler<UpdateRecipeIngredientCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
@@ -32,6 +32,8 @@ public class UpdateRecipeIngredientHandler(IRepository<Recipe> recipeRepository,
         ingredient.Unit = command.Unit;
         ingredient.Group = command.Group;
         ingredient.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
+
+        await unitCatalog.EnsureUnit(command.Unit, ct);
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();

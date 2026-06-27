@@ -29,7 +29,8 @@ public class ImportRecipeHandler(
     IRecipeImageService recipeImageService,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
-    IHouseholdContext householdContext) : IRequestHandler<ImportRecipeCommand, Recipe>
+    IHouseholdContext householdContext,
+    IUnitCatalog unitCatalog) : IRequestHandler<ImportRecipeCommand, Recipe>
 {
     public async Task<Recipe> Handle(ImportRecipeCommand command, CancellationToken ct = default)
     {
@@ -65,6 +66,9 @@ public class ImportRecipeHandler(
 
         ingredientRepository.AddRange(ingredients);
         stepRepository.AddRange(steps);
+
+        foreach (var ingredient in ingredients)
+            await unitCatalog.EnsureUnit(ingredient.Unit, ct);
 
         if (command.ImageUrl is not null)
         {

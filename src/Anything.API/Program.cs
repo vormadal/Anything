@@ -140,6 +140,7 @@ app.MapSharedRecipeEndpoints();
 app.MapFoodPlanEndpoints();
 app.MapRecommendationEndpoints();
 app.MapSuggestionCategoryEndpoints();
+app.MapUnitEndpoints();
 app.MapLocationEndpoints();
 app.MapVendorEndpoints();
 app.MapBillEndpoints();
