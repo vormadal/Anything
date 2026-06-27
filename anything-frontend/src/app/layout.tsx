@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { HouseholdProvider } from "@/context/HouseholdContext";
 import { AppLayout } from "@/components/AppLayout";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { PointerEventsReset } from "@/components/PointerEventsReset";
 
 export const metadata: Metadata = {
   title: "Anything App",
@@ -41,6 +42,7 @@ export default function RootLayout({
           </AuthGuard>
         </QueryProvider>
         <Toaster />
+        <PointerEventsReset />
         <ServiceWorkerRegistration />
       </body>
     </html>
