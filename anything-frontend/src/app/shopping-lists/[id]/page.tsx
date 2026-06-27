@@ -41,7 +41,7 @@ export default function ShoppingListDetailPage() {
 
   const { data: list } = useQuery({
     queryKey: ["shoppingList", listId],
-    queryFn: () => apiClient.api.shoppingLists.byId(listId).get() as Promise<ShoppingList>,
+    queryFn: () => apiClient.api.checklists.byId(listId).get() as Promise<ShoppingList>,
     enabled: listId > 0,
   });
 

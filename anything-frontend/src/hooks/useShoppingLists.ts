@@ -8,7 +8,7 @@ export function useShoppingLists() {
   return useQuery({
     queryKey: ["shoppingLists"],
     queryFn: () =>
-      apiClient.api.shoppingLists.get() as unknown as Promise<ShoppingListResponse[]>,
+      apiClient.api.checklists.get() as unknown as Promise<ShoppingListResponse[]>,
   });
 }
 
@@ -17,7 +17,7 @@ export function useCreateShoppingList() {
 
   return useMutation({
     mutationFn: (list: { name: string; type?: number }) =>
-      apiClient.api.shoppingLists.post({ name: list.name, type: list.type ?? 1 }),
+      apiClient.api.checklists.post({ name: list.name, type: list.type ?? 1 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
     },
@@ -29,7 +29,7 @@ export function useUpdateShoppingList() {
 
   return useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) =>
-      apiClient.api.shoppingLists.byId(id).put({ name }),
+      apiClient.api.checklists.byId(id).put({ name }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
@@ -42,7 +42,7 @@ export function useDeleteShoppingList() {
 
   return useMutation({
     mutationFn: (id: number) =>
-      apiClient.api.shoppingLists.byId(id).delete(),
+      apiClient.api.checklists.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
     },
@@ -54,7 +54,7 @@ export function useCompleteShoppingList() {
 
   return useMutation({
     mutationFn: ({ id, markUnchecked }: { id: number; markUnchecked: boolean }) =>
-      apiClient.api.shoppingLists.byId(id).complete.post({ markUnchecked }),
+      apiClient.api.checklists.byId(id).complete.post({ markUnchecked }),
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
@@ -68,7 +68,7 @@ export function useReorderShoppingLists() {
 
   return useMutation({
     mutationFn: (ids: number[]) =>
-      apiClient.api.shoppingLists.reorder.put({ ids }),
+      apiClient.api.checklists.reorder.put({ ids }),
     onMutate: async (ids) => {
       await queryClient.cancelQueries({ queryKey: ["shoppingLists"] });
       const previousLists = queryClient.getQueryData<ShoppingListResponse[]>(["shoppingLists"]);
@@ -91,7 +91,7 @@ export function useShoppingListItems(listId: number) {
   return useQuery({
     queryKey: ["shoppingListItems", listId],
     queryFn: () =>
-      apiClient.api.shoppingLists.byId(listId).items.get() as Promise<ShoppingListItem[]>,
+      apiClient.api.checklists.byId(listId).items.get() as Promise<ShoppingListItem[]>,
     enabled: listId > 0,
   });
 }
@@ -101,7 +101,7 @@ export function useAddShoppingListItem(listId: number) {
 
   return useMutation({
     mutationFn: ({ name, amount, unit }: { name: string; amount?: number | null; unit?: string | null }) =>
-      apiClient.api.shoppingLists.byId(listId).items.post({ name, amount, unit }),
+      apiClient.api.checklists.byId(listId).items.post({ name, amount, unit }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
@@ -114,7 +114,7 @@ export function useUpdateShoppingListItem(listId: number) {
 
   return useMutation({
     mutationFn: ({ itemId, name, isChecked, amount, unit }: { itemId: number; name: string; isChecked: boolean; amount?: number | null; unit?: string | null }) =>
-      apiClient.api.shoppingLists.byId(listId).items.byItemId(itemId).put({ name, isChecked, amount, unit }),
+      apiClient.api.checklists.byId(listId).items.byItemId(itemId).put({ name, isChecked, amount, unit }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
@@ -127,7 +127,7 @@ export function useReorderShoppingListItems(listId: number) {
 
   return useMutation({
     mutationFn: (ids: number[]) =>
-      apiClient.api.shoppingLists.byId(listId).items.reorder.put({ ids }),
+      apiClient.api.checklists.byId(listId).items.reorder.put({ ids }),
     onMutate: async (ids) => {
       await queryClient.cancelQueries({ queryKey: ["shoppingListItems", listId] });
       const previousItems = queryClient.getQueryData<ShoppingListItem[]>(["shoppingListItems", listId]);
@@ -151,7 +151,7 @@ export function useRemoveShoppingListItem(listId: number) {
 
   return useMutation({
     mutationFn: (itemId: number) =>
-      apiClient.api.shoppingLists.byId(listId).items.byItemId(itemId).delete(),
+      apiClient.api.checklists.byId(listId).items.byItemId(itemId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
@@ -164,7 +164,7 @@ export function useConvertShoppingListType() {
 
   return useMutation({
     mutationFn: ({ id, type }: { id: number; type: number }) =>
-      apiClient.api.shoppingLists.byId(id).type.put({ type }),
+      apiClient.api.checklists.byId(id).type.put({ type }),
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });

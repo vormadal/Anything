@@ -33,7 +33,7 @@ const mockById = jest.fn(() => ({ delete: mockDelete, get: mockGet, put: mockPut
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
-      shoppingLists: {
+      checklists: {
         get: (...args: unknown[]) => mockGet(...args),
         post: (...args: unknown[]) => mockPost(...args),
         byId: (...args: unknown[]) => mockById(...args),
