@@ -5,4 +5,6 @@ namespace Anything.Application.Services;
 public class HouseholdContext : IHouseholdContext
 {
     public int HouseholdId { get; set; }
+
+    public string? Role { get; set; }
 }

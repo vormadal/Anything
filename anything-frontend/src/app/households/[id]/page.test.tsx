@@ -22,11 +22,13 @@ const mockHouseholdGet = jest.fn()
 const mockUpdateMutateAsync = jest.fn()
 const mockCreateInviteMutateAsync = jest.fn()
 const mockRemoveMutateAsync = jest.fn()
+const mockUpdateRoleMutateAsync = jest.fn()
 
 jest.mock('@/hooks/useHouseholds', () => ({
   useHousehold: (...args: unknown[]) => mockHouseholdGet(...args),
   useUpdateHousehold: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
   useRemoveHouseholdMember: () => ({ mutateAsync: mockRemoveMutateAsync, isPending: false }),
+  useUpdateHouseholdMemberRole: () => ({ mutateAsync: mockUpdateRoleMutateAsync, isPending: false }),
 }))
 
 const mockCurrentUser = jest.fn()
@@ -35,12 +37,15 @@ jest.mock('@/hooks/useAuth', () => ({
   useCurrentUser: (...args: unknown[]) => mockCurrentUser(...args),
 }))
 
+const mockGetHouseholdRole = jest.fn()
 jest.mock('@/context/HouseholdContext', () => ({
   useHouseholdContext: () => ({
     selectedHouseholdId: 1,
     setSelectedHouseholdId: jest.fn(),
     households: [],
     isLoading: false,
+    currentHouseholdRole: mockGetHouseholdRole(1),
+    getHouseholdRole: mockGetHouseholdRole,
   }),
   HouseholdProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
@@ -79,6 +84,9 @@ describe('HouseholdDetailPage', () => {
     mockUpdateMutateAsync.mockResolvedValue(undefined)
     mockCreateInviteMutateAsync.mockResolvedValue({ inviteUrl: '/register?token=abc', token: 'abc' })
     mockRemoveMutateAsync.mockResolvedValue(undefined)
+    mockUpdateRoleMutateAsync.mockResolvedValue(undefined)
+    // Default: current user is the household Owner (a manager).
+    mockGetHouseholdRole.mockReturnValue('Owner')
   })
 
   it('renders back button', () => {
@@ -180,36 +188,52 @@ describe('HouseholdDetailPage', () => {
 
   it('opens remove confirmation dialog when trash icon is clicked', async () => {
     render(<HouseholdDetailPage />)
-    await waitFor(() => screen.getByRole('button', { name: /remove alice/i }))
-    fireEvent.click(screen.getByRole('button', { name: /remove alice/i }))
+    await waitFor(() => screen.getByRole('button', { name: /remove bob/i }))
+    fireEvent.click(screen.getByRole('button', { name: /remove bob/i }))
     expect(screen.getByText('Remove Member')).toBeInTheDocument()
-    expect(screen.getAllByText('Alice').length).toBeGreaterThan(1)
+    expect(screen.getAllByText('Bob').length).toBeGreaterThan(1)
   })
 
   it('calls removeMember when confirmed in dialog', async () => {
     render(<HouseholdDetailPage />)
-    await waitFor(() => screen.getByRole('button', { name: /remove alice/i }))
-    fireEvent.click(screen.getByRole('button', { name: /remove alice/i }))
+    await waitFor(() => screen.getByRole('button', { name: /remove bob/i }))
+    fireEvent.click(screen.getByRole('button', { name: /remove bob/i }))
 
     const confirmBtn = screen.getByRole('button', { name: /^remove$/i })
     fireEvent.click(confirmBtn)
 
     await waitFor(() => {
-      expect(mockRemoveMutateAsync).toHaveBeenCalledWith({ householdId: 1, userId: 10 })
-      expect(toast.success).toHaveBeenCalledWith('Alice removed')
+      expect(mockRemoveMutateAsync).toHaveBeenCalledWith({ householdId: 1, userId: 11 })
+      expect(toast.success).toHaveBeenCalledWith('Bob removed')
     })
   })
 
   it('cancels removal when Cancel is clicked in dialog', async () => {
     render(<HouseholdDetailPage />)
-    await waitFor(() => screen.getByRole('button', { name: /remove alice/i }))
-    fireEvent.click(screen.getByRole('button', { name: /remove alice/i }))
+    await waitFor(() => screen.getByRole('button', { name: /remove bob/i }))
+    fireEvent.click(screen.getByRole('button', { name: /remove bob/i }))
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
     expect(mockRemoveMutateAsync).not.toHaveBeenCalled()
   })
 
+  it('does not show a remove button for the Owner', async () => {
+    render(<HouseholdDetailPage />)
+    await waitFor(() => screen.getByText('Alice'))
+    expect(screen.queryByRole('button', { name: /remove alice/i })).not.toBeInTheDocument()
+  })
+
+  it('promotes a member to Admin via the role selector', async () => {
+    render(<HouseholdDetailPage />)
+    await waitFor(() => screen.getByLabelText(/change role for bob/i))
+    fireEvent.change(screen.getByLabelText(/change role for bob/i), { target: { value: 'Admin' } })
+
+    await waitFor(() => {
+      expect(mockUpdateRoleMutateAsync).toHaveBeenCalledWith({ householdId: 1, userId: 11, role: 'Admin' })
+    })
+  })
+
   describe('Configuration section', () => {
-    it('shows Configuration section for admin users', async () => {
+    it('shows Configuration section for household managers', async () => {
       render(<HouseholdDetailPage />)
       await waitFor(() => {
         expect(screen.getByText('Configuration')).toBeInTheDocument()
@@ -254,8 +278,8 @@ describe('HouseholdDetailPage', () => {
       expect(mockPush).toHaveBeenCalledWith('/households/1/recipes/tags')
     })
 
-    it('hides Configuration section for non-admin users', async () => {
-      mockCurrentUser.mockReturnValue({ data: { name: 'Bob', email: 'bob@test.com', role: 'User' } })
+    it('hides Configuration section for non-manager members', async () => {
+      mockGetHouseholdRole.mockReturnValue('Member')
       render(<HouseholdDetailPage />)
       await waitFor(() => screen.getAllByText('Smith Family'))
       expect(screen.queryByText('Configuration')).not.toBeInTheDocument()

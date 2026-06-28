@@ -19,6 +19,7 @@ public class AddHouseholdMemberHandler(
     private static readonly HashSet<string> AllowedRoles =
     [
         HouseholdRoles.Owner,
+        HouseholdRoles.Admin,
         HouseholdRoles.Member
     ];
 
@@ -38,7 +39,11 @@ public class AddHouseholdMemberHandler(
             .Where(m => m.HouseholdId == command.HouseholdId && m.UserId == command.RequestingUserId)
             .FirstOrDefaultAsync(ct);
 
-        if (requestingMember is null || requestingMember.Role != HouseholdRoles.Owner)
+        if (!HouseholdRoles.IsManager(requestingMember?.Role))
+            return Results.Forbid();
+
+        // Only an Owner may grant a privileged (Owner/Admin) role; Admins may only add Members.
+        if (command.Role != HouseholdRoles.Member && requestingMember!.Role != HouseholdRoles.Owner)
             return Results.Forbid();
 
         var targetUser = await userRepository.Query()

@@ -33,11 +33,7 @@ public class CreateInviteHandler(
                 .Where(m => m.HouseholdId == command.HouseholdId && m.UserId == command.UserId)
                 .FirstOrDefaultAsync(ct);
 
-            var isAuthorized = command.UserRole == UserRoles.Admin
-                ? requestingMember is not null
-                : requestingMember?.Role == HouseholdRoles.Owner;
-
-            if (!isAuthorized)
+            if (!HouseholdRoles.IsManager(requestingMember?.Role))
                 return Results.Forbid();
         }
         else if (command.UserRole != UserRoles.Admin)

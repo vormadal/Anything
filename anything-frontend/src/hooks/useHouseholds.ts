@@ -146,6 +146,35 @@ export function useAddHouseholdMember() {
   });
 }
 
+export function useUpdateHouseholdMemberRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      householdId: number;
+      userId: number;
+      role: string;
+    }) => {
+      const response = await fetch(
+        `${API_BASE_URL}/api/households/${data.householdId}/members/${data.userId}/role`,
+        {
+          method: "PUT",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ role: data.role }),
+        }
+      );
+      if (!response.ok)
+        throw new Error(`Failed to update member role: ${response.status}`);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["households", variables.householdId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+    },
+  });
+}
+
 export function useRemoveHouseholdMember() {
   const queryClient = useQueryClient();
 

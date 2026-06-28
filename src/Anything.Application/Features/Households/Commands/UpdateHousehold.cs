@@ -28,7 +28,7 @@ public class UpdateHouseholdHandler(
             .Where(m => m.HouseholdId == command.Id && m.UserId == command.UserId)
             .FirstOrDefaultAsync(ct);
 
-        if (membership is null || membership.Role != HouseholdRoles.Owner)
+        if (!HouseholdRoles.IsManager(membership?.Role))
             return Results.Forbid();
 
         household.Name = command.Name;

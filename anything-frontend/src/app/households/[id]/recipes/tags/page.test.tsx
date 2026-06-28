@@ -23,6 +23,18 @@ jest.mock("sonner", () => ({
   Toaster: () => null,
 }));
 
+const mockGetHouseholdRole = jest.fn();
+jest.mock("@/context/HouseholdContext", () => ({
+  useHouseholdContext: () => ({
+    getHouseholdRole: mockGetHouseholdRole,
+    isLoading: false,
+    households: [],
+    selectedHouseholdId: 1,
+    setSelectedHouseholdId: jest.fn(),
+    currentHouseholdRole: undefined,
+  }),
+}));
+
 const adminUser = JSON.stringify({ email: "admin@test.com", name: "Admin", role: "Admin" });
 const regularUser = JSON.stringify({ email: "user@test.com", name: "User", role: "User" });
 
@@ -30,15 +42,18 @@ describe("RecipeTagsPage (household config)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    // Default: current user is a household manager (Owner).
+    mockGetHouseholdRole.mockReturnValue("Owner");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it("redirects non-admin users", async () => {
+  it("redirects non-manager users", async () => {
     localStorage.setItem("user", regularUser);
     localStorage.setItem("accessToken", "test-token");
+    mockGetHouseholdRole.mockReturnValue("Member");
 
     renderWithClient(<RecipeTagsPage />);
 

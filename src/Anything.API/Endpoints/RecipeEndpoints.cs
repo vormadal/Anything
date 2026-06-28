@@ -1,7 +1,7 @@
 using System.Security.Claims;
+using Anything.API.Authorization;
 using Anything.Application.Features.Recipes.Commands;
 using Anything.Application.Features.Recipes.Queries;
-using Anything.Core.Constants;
 using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Mediator;
@@ -48,7 +48,8 @@ public static class RecipeEndpoints
         })
         .WithName("ExportRecipeTags")
         .Produces<ExportRecipeTagsResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapPost("/tags/import", async ([FromBody] ImportRecipeTagsRequest request, IMediator mediator) =>
         {
@@ -58,7 +59,8 @@ public static class RecipeEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapGet("/{id}", async (int id, IMediator mediator) =>
         {
