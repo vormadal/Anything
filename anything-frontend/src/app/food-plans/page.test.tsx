@@ -79,7 +79,7 @@ const mockEntriesGet = jest.fn()
 const mockEntriesPost = jest.fn()
 const mockEntriesItemPut = jest.fn()
 const mockEntriesItemDelete = jest.fn()
-const mockEntriesItemById = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
+const mockEntriesItemById: jest.Mock = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
 const mockAddToShoppingListPost = jest.fn()
 const mockShoppingListsGet = jest.fn()
 const mockApiFetch = jest.fn()
@@ -402,7 +402,7 @@ describe('FoodPlanPage', () => {
     await user.click(todayRow)
 
     // Entry appears in the dialog list as well
-    const dialog = screen.getByPlaceholderText('Meal name...').closest('div[class*="rounded-xl"]')!
+    const dialog = screen.getByPlaceholderText('Meal name...').closest<HTMLElement>('div[class*="rounded-xl"]')!
     expect(within(dialog).getByText('Pancakes')).toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: 'Remove entry' })).toBeInTheDocument()
   })
