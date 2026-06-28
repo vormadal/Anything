@@ -75,6 +75,20 @@ public static class HouseholdEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPut("/{id}/members/{userId}/role", async (int id, int userId, UpdateHouseholdMemberRoleRequest request, ClaimsPrincipal user, IMediator mediator) =>
+        {
+            if (!TryGetUserId(user, out var requestingUserId))
+                return Results.Unauthorized();
+            return await mediator.Send(new UpdateHouseholdMemberRoleCommand(id, userId, request.Role, requestingUserId));
+        })
+        .WithName("UpdateHouseholdMemberRole")
+        .Produces(204)
+        .Produces(400)
+        .Produces(403)
+        .Produces(404)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapDelete("/{id}/members/{userId}", async (int id, int userId, ClaimsPrincipal user, IMediator mediator) =>
         {
             if (!TryGetUserId(user, out var requestingUserId))

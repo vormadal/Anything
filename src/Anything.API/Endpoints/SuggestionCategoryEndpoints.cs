@@ -1,7 +1,7 @@
+using Anything.API.Authorization;
 using Anything.Application.Features.SuggestionCategories.Commands;
 using Anything.Application.Features.SuggestionCategories.Queries;
 using Anything.Contracts.SuggestionCategories;
-using Anything.Core.Constants;
 using Anything.Core.Entities;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +20,7 @@ public static class SuggestionCategoryEndpoints
         })
         .WithName("GetSuggestionCategories")
         .Produces<List<SuggestionCategory>>(StatusCodes.Status200OK)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization();
 
         group.MapPost("/", async ([FromBody] CreateSuggestionCategoryRequest request, IMediator mediator) =>
         {
@@ -29,7 +29,8 @@ public static class SuggestionCategoryEndpoints
         .WithName("CreateSuggestionCategory")
         .Produces<SuggestionCategory>(StatusCodes.Status201Created)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapPut("/reorder", async ([FromBody] ReorderSuggestionCategoriesRequest request, IMediator mediator) =>
         {
@@ -38,7 +39,8 @@ public static class SuggestionCategoryEndpoints
         .WithName("ReorderSuggestionCategories")
         .Produces(StatusCodes.Status204NoContent)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapPut("/{id}", async (int id, [FromBody] UpdateSuggestionCategoryRequest request, IMediator mediator) =>
         {
@@ -48,7 +50,8 @@ public static class SuggestionCategoryEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapDelete("/{id}", async (int id, IMediator mediator) =>
         {
@@ -57,7 +60,8 @@ public static class SuggestionCategoryEndpoints
         .WithName("DeleteSuggestionCategory")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapGet("/export", async (IMediator mediator) =>
         {
@@ -65,7 +69,8 @@ public static class SuggestionCategoryEndpoints
         })
         .WithName("ExportSuggestionCategories")
         .Produces<ExportSuggestionCategoriesResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapPost("/import", async ([FromBody] ImportSuggestionCategoriesRequest request, IMediator mediator) =>
         {
@@ -74,6 +79,7 @@ public static class SuggestionCategoryEndpoints
         .WithName("ImportSuggestionCategories")
         .Produces(StatusCodes.Status204NoContent)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
     }
 }

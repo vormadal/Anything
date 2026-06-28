@@ -29,7 +29,7 @@ const mockPriceHistoryPost = jest.fn()
 const mockPriceHistoryByIdPut = jest.fn()
 const mockPriceHistoryByIdDelete = jest.fn()
 
-const mockPriceHistoryById = jest.fn(() => ({
+const mockPriceHistoryById: jest.Mock = jest.fn(() => ({
   put: mockPriceHistoryByIdPut,
   delete: mockPriceHistoryByIdDelete,
 }))
@@ -45,7 +45,7 @@ const mockAttachmentsPost = jest.fn()
 const mockAttachmentItemPut = jest.fn()
 const mockAttachmentItemDelete = jest.fn()
 const mockAttachmentDownloadGet = jest.fn()
-const mockAttachmentItemById = jest.fn(() => ({
+const mockAttachmentItemById: jest.Mock = jest.fn(() => ({
   put: mockAttachmentItemPut,
   delete: mockAttachmentItemDelete,
   download: { get: mockAttachmentDownloadGet },
@@ -57,7 +57,7 @@ const mockAttachments = {
   byAttachmentId: (...args: unknown[]) => mockAttachmentItemById(...args),
 }
 
-const mockBillById = jest.fn(() => ({
+const mockBillById: jest.Mock = jest.fn(() => ({
   get: mockBillByIdGet,
   put: mockBillByIdPut,
   delete: mockBillByIdDelete,

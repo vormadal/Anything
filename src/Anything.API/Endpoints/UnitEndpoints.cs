@@ -1,7 +1,7 @@
+using Anything.API.Authorization;
 using Anything.Application.Features.Units.Commands;
 using Anything.Application.Features.Units.Queries;
 using Anything.Contracts.Units;
-using Anything.Core.Constants;
 using Anything.Core.Entities;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +30,8 @@ public static class UnitEndpoints
         .Produces<MeasurementUnit>(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status409Conflict)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapPut("/{id}", async (int id, [FromBody] UpdateUnitRequest request, IMediator mediator) =>
         {
@@ -41,7 +42,8 @@ public static class UnitEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status409Conflict)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapDelete("/{id}", async (int id, IMediator mediator) =>
         {
@@ -50,7 +52,8 @@ public static class UnitEndpoints
         .WithName("DeleteUnit")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapGet("/export", async (IMediator mediator) =>
         {
@@ -58,7 +61,8 @@ public static class UnitEndpoints
         })
         .WithName("ExportUnits")
         .Produces<ExportUnitsResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapPost("/import", async ([FromBody] ImportUnitsRequest request, IMediator mediator) =>
         {
@@ -67,7 +71,8 @@ public static class UnitEndpoints
         .WithName("ImportUnits")
         .Produces(StatusCodes.Status204NoContent)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapPost("/seed-defaults", async (IMediator mediator) =>
         {
@@ -75,6 +80,7 @@ public static class UnitEndpoints
         })
         .WithName("SeedDefaultUnits")
         .Produces(StatusCodes.Status204NoContent)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
     }
 }

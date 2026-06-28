@@ -10,8 +10,8 @@ const mockListPut = jest.fn()
 const mockItemsGet = jest.fn()
 const mockCompletePost = jest.fn()
 const mockItemsReorderPut = jest.fn()
-const mockItemsItemById = jest.fn(() => ({ put: jest.fn(), delete: jest.fn() }))
-const mockById = jest.fn(() => ({
+const mockItemsItemById: jest.Mock = jest.fn(() => ({ put: jest.fn(), delete: jest.fn() }))
+const mockById: jest.Mock = jest.fn(() => ({
   get: mockGet,
   delete: mockDelete,
   put: mockListPut,

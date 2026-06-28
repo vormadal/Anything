@@ -33,19 +33,19 @@ const mockIngredientsGet = jest.fn()
 const mockIngredientsPost = jest.fn()
 const mockIngredientsItemPut = jest.fn()
 const mockIngredientsItemDelete = jest.fn()
-const mockIngredientsItemById = jest.fn(() => ({ put: mockIngredientsItemPut, delete: mockIngredientsItemDelete }))
+const mockIngredientsItemById: jest.Mock = jest.fn(() => ({ put: mockIngredientsItemPut, delete: mockIngredientsItemDelete }))
 const mockIngredientsReorderPut = jest.fn()
 const mockIngredientsReorder = { put: mockIngredientsReorderPut }
 const mockIngredients = { get: mockIngredientsGet, post: mockIngredientsPost, byIngredientId: mockIngredientsItemById, reorder: mockIngredientsReorder }
 const mockStepsGet = jest.fn()
 const mockStepsPost = jest.fn()
-const mockStepsItemById = jest.fn(() => ({ put: jest.fn(), delete: jest.fn() }))
+const mockStepsItemById: jest.Mock = jest.fn(() => ({ put: jest.fn(), delete: jest.fn() }))
 const mockStepsReorderPut = jest.fn()
 const mockStepsReorder = { put: mockStepsReorderPut }
 const mockSteps = { get: mockStepsGet, post: mockStepsPost, byStepId: mockStepsItemById, reorder: mockStepsReorder }
 const mockImagesGet = jest.fn()
 const mockImagesPost = jest.fn()
-const mockImagesItemById = jest.fn(() => ({ delete: jest.fn() }))
+const mockImagesItemById: jest.Mock = jest.fn(() => ({ delete: jest.fn() }))
 const mockImagesUploadPost = jest.fn()
 const mockImagesUpload = { post: mockImagesUploadPost }
 const mockImages = { get: mockImagesGet, post: mockImagesPost, byImageId: mockImagesItemById, upload: mockImagesUpload }
@@ -54,9 +54,9 @@ const mockAddToShoppingList = { post: mockAddToShoppingListPost }
 const mockTagsGet = jest.fn()
 const mockTagsPost = jest.fn()
 const mockTagsItemDelete = jest.fn()
-const mockTagsItemById = jest.fn(() => ({ delete: mockTagsItemDelete }))
+const mockTagsItemById: jest.Mock = jest.fn(() => ({ delete: mockTagsItemDelete }))
 const mockTags = { get: mockTagsGet, post: mockTagsPost, byTagId: mockTagsItemById }
-const mockById = jest.fn(() => ({
+const mockById: jest.Mock = jest.fn(() => ({
   get: mockGet,
   put: mockPut,
   delete: mockDelete,

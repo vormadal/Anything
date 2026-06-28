@@ -19,7 +19,7 @@ public class RemoveHouseholdMemberHandler(
             .Where(m => m.HouseholdId == command.HouseholdId && m.UserId == command.RequestingUserId)
             .FirstOrDefaultAsync(ct);
 
-        if (requestingMember is null || requestingMember.Role != HouseholdRoles.Owner)
+        if (!HouseholdRoles.IsManager(requestingMember?.Role))
             return Results.Forbid();
 
         var targetMember = await memberRepository.Query()
@@ -31,6 +31,10 @@ public class RemoveHouseholdMemberHandler(
 
         if (targetMember.Role == HouseholdRoles.Owner && targetMember.UserId == command.RequestingUserId)
             return Results.BadRequest("Cannot remove yourself as the owner.");
+
+        // Only an Owner may remove another Owner; Admins cannot remove Owners.
+        if (targetMember.Role == HouseholdRoles.Owner && requestingMember!.Role != HouseholdRoles.Owner)
+            return Results.Forbid();
 
         memberRepository.Remove(targetMember);
         await unitOfWork.SaveChanges(ct);

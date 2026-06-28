@@ -1,7 +1,7 @@
+using Anything.API.Authorization;
 using Anything.Application.Features.Recommendations.Commands;
 using Anything.Application.Features.Recommendations.Queries;
 using Anything.Contracts.Recommendations;
-using Anything.Core.Constants;
 using Anything.Core.Entities;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +29,8 @@ public static class RecommendationEndpoints
         .WithName("CreateRecommendation")
         .Produces<ShoppingListRecommendation>(StatusCodes.Status201Created)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapGet("/all", async ([FromQuery] int? categoryId, IMediator mediator) =>
         {
@@ -37,7 +38,7 @@ public static class RecommendationEndpoints
         })
         .WithName("GetAllRecommendations")
         .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization();
 
         group.MapGet("/uncategorized", async (IMediator mediator) =>
         {
@@ -45,7 +46,7 @@ public static class RecommendationEndpoints
         })
         .WithName("GetUncategorizedRecommendations")
         .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization();
 
         group.MapPut("/{id}", async (int id, [FromBody] UpdateRecommendationRequest request, IMediator mediator) =>
         {
@@ -55,7 +56,8 @@ public static class RecommendationEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapDelete("/{id}", async (int id, IMediator mediator) =>
         {
@@ -64,7 +66,8 @@ public static class RecommendationEndpoints
         .WithName("DeleteRecommendation")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapGet("/export", async ([FromQuery] bool? uncategorizedOnly, IMediator mediator) =>
         {
@@ -72,7 +75,8 @@ public static class RecommendationEndpoints
         })
         .WithName("ExportRecommendations")
         .Produces<ExportRecommendationsResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         group.MapPost("/import", async ([FromBody] ImportRecommendationsRequest request, IMediator mediator) =>
         {
@@ -81,6 +85,7 @@ public static class RecommendationEndpoints
         .WithName("ImportRecommendations")
         .Produces(StatusCodes.Status204NoContent)
         .WithParameterValidation()
-        .RequireAuthorization(UserRoles.Admin);
+        .RequireAuthorization()
+        .RequireHouseholdManager();
     }
 }

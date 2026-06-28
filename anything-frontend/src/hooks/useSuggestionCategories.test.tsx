@@ -14,7 +14,7 @@ const mockPostFn = jest.fn()
 const mockPutFn = jest.fn()
 const mockDeleteFn = jest.fn()
 const mockReorderPutFn = jest.fn()
-const mockItemById = jest.fn(() => ({ put: mockPutFn, delete: mockDeleteFn }))
+const mockItemById: jest.Mock = jest.fn(() => ({ put: mockPutFn, delete: mockDeleteFn }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {

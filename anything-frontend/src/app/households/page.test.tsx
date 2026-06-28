@@ -13,10 +13,10 @@ const defaultHouseholds = [
   { id: 2, name: 'Work Team', role: 'Member', createdOn: '2024-02-01T00:00:00Z' },
 ]
 
-const mockUseHouseholdContext = jest.fn(() => ({
+const mockUseHouseholdContext: jest.Mock = jest.fn(() => ({
   households: defaultHouseholds,
   isLoading: false,
-  selectedHouseholdId: 1,
+  selectedHouseholdId: 1 as number | null,
   setSelectedHouseholdId: mockSetSelectedHouseholdId,
 }))
 

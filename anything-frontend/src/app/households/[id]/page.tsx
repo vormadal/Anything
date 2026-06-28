@@ -15,11 +15,12 @@ import {
   useHousehold,
   useUpdateHousehold,
   useRemoveHouseholdMember,
+  useUpdateHouseholdMemberRole,
   type HouseholdMember,
 } from "@/hooks/useHouseholds";
-import { useCreateInvite, useCurrentUser } from "@/hooks/useAuth";
+import { useCreateInvite } from "@/hooks/useAuth";
 import { useHouseholdContext } from "@/context/HouseholdContext";
-import { isAdmin } from "@/lib/roles";
+import { canManageHousehold, isHouseholdOwner, HOUSEHOLD_ROLES } from "@/lib/roles";
 import {
   Copy,
   Link,
@@ -27,6 +28,7 @@ import {
   Trash2,
   UserPlus,
   Crown,
+  Shield,
   User,
   Users,
   Settings,
@@ -46,11 +48,14 @@ export default function HouseholdDetailPage() {
   const isValidId = Number.isFinite(householdId) && householdId > 0;
 
   const { data: household, isLoading } = useHousehold(isValidId ? householdId : null);
-  const { selectedHouseholdId } = useHouseholdContext();
-  const { data: currentUser } = useCurrentUser();
+  const { selectedHouseholdId, getHouseholdRole } = useHouseholdContext();
+  const currentRole = getHouseholdRole(isValidId ? householdId : null);
+  const canManage = canManageHousehold(currentRole);
+  const isOwner = isHouseholdOwner(currentRole);
   const updateHousehold = useUpdateHousehold();
   const createInvite = useCreateInvite();
   const removeMember = useRemoveHouseholdMember();
+  const updateMemberRole = useUpdateHouseholdMemberRole();
   const router = useRouter();
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
@@ -64,7 +69,7 @@ export default function HouseholdDetailPage() {
 
   useEffect(() => {
     setLeftAction({ type: "back", href: "/households" });
-    if (household) {
+    if (household && canManage) {
       setHeaderActions(
         <Button
           variant="ghost"
@@ -83,7 +88,7 @@ export default function HouseholdDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [setHeaderActions, setLeftAction, household]);
+  }, [setHeaderActions, setLeftAction, household, canManage]);
 
   const handleRename = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,6 +155,17 @@ export default function HouseholdDetailPage() {
     }
   };
 
+  const handleChangeRole = async (member: HouseholdMember, role: string) => {
+    if (!isValidId || member.role === role) return;
+    try {
+      await updateMemberRole.mutateAsync({ householdId, userId: member.userId, role });
+      toast.success(`${member.name} is now ${role}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update role";
+      toast.error(message);
+    }
+  };
+
   if (!isValidId) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
@@ -205,15 +221,17 @@ export default function HouseholdDetailPage() {
             <Users className="h-4 w-4" />
             Members ({household.members.length})
           </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-            onClick={() => setShowInvite(true)}
-          >
-            <UserPlus className="h-3.5 w-3.5 mr-1" />
-            Invite member
-          </Button>
+          {canManage && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => setShowInvite(true)}
+            >
+              <UserPlus className="h-3.5 w-3.5 mr-1" />
+              Invite member
+            </Button>
+          )}
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
@@ -222,8 +240,12 @@ export default function HouseholdDetailPage() {
             <MemberRow
               key={member.userId}
               member={member}
+              canManage={canManage}
+              canChangeRoles={isOwner}
               onRemove={promptRemoveMember}
+              onChangeRole={handleChangeRole}
               removePending={removeMember.isPending}
+              roleChangePending={updateMemberRole.isPending}
             />
           ))}
           {/* Then regular members */}
@@ -231,15 +253,19 @@ export default function HouseholdDetailPage() {
             <MemberRow
               key={member.userId}
               member={member}
+              canManage={canManage}
+              canChangeRoles={isOwner}
               onRemove={promptRemoveMember}
+              onChangeRole={handleChangeRole}
               removePending={removeMember.isPending}
+              roleChangePending={updateMemberRole.isPending}
             />
           ))}
         </div>
       </div>
 
-      {/* Configuration section — admin only */}
-      {currentUser && isAdmin(currentUser.role) && (
+      {/* Configuration section — household managers (Owner/Admin) only */}
+      {canManage && (
         <div>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mb-2">
             <Settings className="h-4 w-4" />
@@ -464,25 +490,44 @@ function ConfigCard({
   );
 }
 
+function MemberRoleIcon({ role }: { role: string }) {
+  if (role === HOUSEHOLD_ROLES.OWNER) {
+    return <Crown className="h-4 w-4 text-amber-500" />;
+  }
+  if (role === HOUSEHOLD_ROLES.ADMIN) {
+    return <Shield className="h-4 w-4 text-blue-500" />;
+  }
+  return <User className="h-4 w-4 text-gray-400" />;
+}
+
 function MemberRow({
   member,
+  canManage,
+  canChangeRoles,
   onRemove,
+  onChangeRole,
   removePending,
+  roleChangePending,
 }: {
   member: HouseholdMember;
+  canManage: boolean;
+  canChangeRoles: boolean;
   onRemove: (member: HouseholdMember) => void;
+  onChangeRole: (member: HouseholdMember, role: string) => void;
   removePending: boolean;
+  roleChangePending: boolean;
 }) {
-  const isOwner = member.role === "Owner";
+  const isOwner = member.role === HOUSEHOLD_ROLES.OWNER;
+  // Only an Owner can change roles; the Owner row itself is changed via transfer
+  // (promoting another member to Owner), so it has no inline selector.
+  const showRoleSelect = canChangeRoles && !isOwner;
+  // Managers can remove members, but Owners can't be removed here (transfer first).
+  const showRemove = canManage && !isOwner;
 
   return (
     <div className="px-4 py-3 flex items-center gap-3">
       <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-        {isOwner ? (
-          <Crown className="h-4 w-4 text-amber-500" />
-        ) : (
-          <User className="h-4 w-4 text-gray-400" />
-        )}
+        <MemberRoleIcon role={member.role} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -492,18 +537,34 @@ function MemberRow({
           {member.email}
         </p>
       </div>
-      <span className="text-xs text-gray-500 dark:text-gray-400 capitalize flex-shrink-0">
-        {member.role}
-      </span>
-      <button
-        type="button"
-        onClick={() => onRemove(member)}
-        disabled={removePending}
-        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
-        aria-label={`Remove ${member.name}`}
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {showRoleSelect ? (
+        <select
+          value={member.role}
+          onChange={(e) => onChangeRole(member, e.target.value)}
+          disabled={roleChangePending}
+          aria-label={`Change role for ${member.name}`}
+          className="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-700 dark:text-white flex-shrink-0"
+        >
+          <option value={HOUSEHOLD_ROLES.MEMBER}>Member</option>
+          <option value={HOUSEHOLD_ROLES.ADMIN}>Admin</option>
+          <option value={HOUSEHOLD_ROLES.OWNER}>Make owner</option>
+        </select>
+      ) : (
+        <span className="text-xs text-gray-500 dark:text-gray-400 capitalize flex-shrink-0">
+          {member.role}
+        </span>
+      )}
+      {showRemove && (
+        <button
+          type="button"
+          onClick={() => onRemove(member)}
+          disabled={removePending}
+          className="p-1.5 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+          aria-label={`Remove ${member.name}`}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }

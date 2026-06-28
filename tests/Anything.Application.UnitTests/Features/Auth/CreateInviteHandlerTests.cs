@@ -123,8 +123,10 @@ public class CreateInviteHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithHouseholdId_WhenAdminIsMember_CreatesInviteWithHouseholdId()
+    public async Task Handle_WithHouseholdId_WhenGlobalAdminIsOnlyPlainMember_ReturnsForbid()
     {
+        // Global admin is system-level only: being a plain Member of a household does
+        // not grant the right to invite into it — a manager (Owner/Admin) role is required.
         _householdRepo.Query().Returns(new List<Household>
         {
             new() { Id = 99, Name = "Test" }
@@ -136,6 +138,24 @@ public class CreateInviteHandlerTests
         _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
 
         var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.Admin, HouseholdId: 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WithHouseholdId_WhenMemberHasAdminRole_CreatesInvite()
+    {
+        _householdRepo.Query().Returns(new List<Household>
+        {
+            new() { Id = 99, Name = "Test" }
+        }.AsAsyncQueryable());
+        _memberRepo.Query().Returns(new List<HouseholdMember>
+        {
+            new() { HouseholdId = 99, UserId = 1, Role = HouseholdRoles.Admin }
+        }.AsAsyncQueryable());
+        _userRepo.Query().Returns(new List<User>().AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new CreateInviteCommand("new@example.com", 1, UserRoles.User, HouseholdId: 99), TestContext.Current.CancellationToken);
 
         Assert.IsType<Ok<CreateInviteResponse>>(result);
         _inviteRepo.Received(1).Add(Arg.Is<UserInvite>(i => i.HouseholdId == 99));
