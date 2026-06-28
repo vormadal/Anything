@@ -12,8 +12,8 @@ const mockItemsPost = jest.fn()
 const mockItemsItemPut = jest.fn()
 const mockItemsItemDelete = jest.fn()
 const mockCompletePost = jest.fn()
-const mockItemsItemById = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
-const mockById = jest.fn(() => ({
+const mockItemsItemById: jest.Mock = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
+const mockById: jest.Mock = jest.fn(() => ({
   get: mockListGet,
   put: mockListPut,
   delete: jest.fn(),
@@ -771,7 +771,7 @@ describe('ShoppingListDetailPage', () => {
     mockItemsGet.mockResolvedValue([])
     jest.mocked(
       (await import('@/lib/apiClient')).apiClient.api.shoppingListRecommendations.get
-    ).mockResolvedValue([{ id: 1, name: 'Milk', preferredUnit: 'l', isApproved: true }])
+    ).mockResolvedValue([{ id: 1, name: 'Milk', preferredUnit: 'l' }])
 
     render(<ShoppingListDetailPage />)
 
@@ -934,6 +934,7 @@ describe('ShoppingListDetailPage', () => {
     const mockListDelete = jest.fn().mockResolvedValueOnce(undefined)
     mockById.mockReturnValue({
       get: mockListGet,
+      put: mockListPut,
       delete: mockListDelete,
       items: {
         get: mockItemsGet,
@@ -971,6 +972,7 @@ describe('ShoppingListDetailPage', () => {
     const mockListDelete = jest.fn().mockRejectedValueOnce(new Error('Server error'))
     mockById.mockReturnValue({
       get: mockListGet,
+      put: mockListPut,
       delete: mockListDelete,
       items: {
         get: mockItemsGet,

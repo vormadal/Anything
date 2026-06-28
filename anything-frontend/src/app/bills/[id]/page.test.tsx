@@ -9,11 +9,11 @@ const mockBillByIdDelete = jest.fn()
 const mockPriceHistoryGet = jest.fn()
 const mockPriceHistoryPost = jest.fn()
 const mockPriceHistoryByIdDelete = jest.fn()
-const mockPriceHistoryById = jest.fn(() => ({
+const mockPriceHistoryById: jest.Mock = jest.fn(() => ({
   put: jest.fn(),
   delete: mockPriceHistoryByIdDelete,
 }))
-const mockBillById = jest.fn(() => ({
+const mockBillById: jest.Mock = jest.fn(() => ({
   get: mockBillByIdGet,
   put: jest.fn(),
   delete: mockBillByIdDelete,

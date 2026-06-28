@@ -12,7 +12,7 @@ const mockImagesGet = jest.fn()
 const mockAddToShoppingListPost = jest.fn()
 const mockRecipeDelete = jest.fn()
 
-const mockById = jest.fn(() => ({
+const mockById: jest.Mock = jest.fn(() => ({
   get: mockRecipeGet,
   delete: mockRecipeDelete,
   ingredients: { get: mockIngredientsGet },

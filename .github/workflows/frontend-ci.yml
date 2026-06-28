@@ -40,7 +40,10 @@ jobs:
     
     - name: Run ESLint
       run: npm run lint
-    
+
+    - name: Type-check
+      run: npm run typecheck
+
     - name: Build Next.js application
       run: npm run build
       env:

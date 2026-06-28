@@ -2,14 +2,15 @@ import { renderHook, act } from "@testing-library/react";
 import { useBackInterceptor } from "./useBackInterceptor";
 
 jest.mock("sonner", () => {
-  const toastFn = jest.fn().mockReturnValue("mock-toast-id");
-  toastFn.dismiss = jest.fn();
+  const toastFn = Object.assign(jest.fn().mockReturnValue("mock-toast-id"), {
+    dismiss: jest.fn(),
+  });
   return { toast: toastFn };
 });
 
 import { toast } from "sonner";
 
-const mockToast = toast as jest.Mock;
+const mockToast = toast as unknown as jest.Mock;
 const mockDismiss = (toast as unknown as { dismiss: jest.Mock }).dismiss;
 
 describe("useBackInterceptor", () => {
