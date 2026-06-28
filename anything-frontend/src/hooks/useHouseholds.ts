@@ -1,10 +1,12 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER, apiFetch } from "@/lib/apiClient";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
+import { apiClient } from "@/lib/apiClient";
+import type {
+  HouseholdResponse,
+  HouseholdDetailResponse,
+  HouseholdMemberResponse,
+} from "@/lib/api-client/models";
 
 export interface Household {
   id: number;
@@ -28,14 +30,33 @@ export interface HouseholdDetail {
   members: HouseholdMember[];
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token =
-    typeof globalThis.window !== "undefined"
-      ? (localStorage.getItem("accessToken") ?? "")
-      : "";
+// The Kiota client returns models with optional fields and `Date` timestamps;
+// map them to the stable shapes these hooks expose to components.
+function mapHousehold(r: HouseholdResponse): Household {
   return {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
+    id: r.id ?? 0,
+    name: r.name ?? "",
+    createdOn: r.createdOn?.toISOString() ?? "",
+    role: r.role ?? "",
+  };
+}
+
+function mapMember(m: HouseholdMemberResponse): HouseholdMember {
+  return {
+    userId: m.userId ?? 0,
+    name: m.name ?? "",
+    email: m.email ?? "",
+    role: m.role ?? "",
+    joinedOn: m.joinedOn?.toISOString() ?? "",
+  };
+}
+
+function mapDetail(d: HouseholdDetailResponse): HouseholdDetail {
+  return {
+    id: d.id ?? 0,
+    name: d.name ?? "",
+    createdOn: d.createdOn?.toISOString() ?? "",
+    members: (d.members ?? []).map(mapMember),
   };
 }
 
@@ -43,12 +64,8 @@ export function useHouseholds() {
   return useQuery({
     queryKey: ["households"],
     queryFn: async (): Promise<Household[]> => {
-      const response = await fetch(`${API_BASE_URL}/api/households`, {
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok)
-        throw new Error(`Failed to fetch households: ${response.status}`);
-      return response.json() as Promise<Household[]>;
+      const result = await apiClient.api.households.get();
+      return (result ?? []).map(mapHousehold);
     },
   });
 }
@@ -57,12 +74,9 @@ export function useHousehold(id: number | null) {
   return useQuery({
     queryKey: ["households", id],
     queryFn: async (): Promise<HouseholdDetail> => {
-      const response = await fetch(`${API_BASE_URL}/api/households/${id}`, {
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok)
-        throw new Error(`Failed to fetch household: ${response.status}`);
-      return response.json() as Promise<HouseholdDetail>;
+      const result = await apiClient.api.households.byId(id as number).get();
+      if (!result) throw new Error("Household not found");
+      return mapDetail(result);
     },
     enabled: id !== null,
   });
@@ -73,14 +87,13 @@ export function useCreateHousehold() {
 
   return useMutation({
     mutationFn: async (data: { name: string }): Promise<Household> => {
-      const response = await fetch(`${API_BASE_URL}/api/households`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ name: data.name }),
-      });
-      if (!response.ok)
-        throw new Error(`Failed to create household: ${response.status}`);
-      return response.json() as Promise<Household>;
+      const result = await apiClient.api.households.post({ name: data.name });
+      return {
+        id: result?.id ?? 0,
+        name: result?.name ?? "",
+        createdOn: result?.createdOn?.toISOString() ?? "",
+        role: "",
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["households"] });
@@ -93,24 +106,7 @@ export function useUpdateHousehold() {
 
   return useMutation({
     mutationFn: async (data: { id: number; name: string }) => {
-      const householdId =
-        typeof window !== "undefined"
-          ? localStorage.getItem(HOUSEHOLD_ID_KEY)
-          : null;
-      const headers: HeadersInit = {
-        ...getAuthHeaders(),
-        ...(householdId ? { [HOUSEHOLD_HEADER]: householdId } : {}),
-      };
-      const response = await fetch(
-        `${API_BASE_URL}/api/households/${data.id}`,
-        {
-          method: "PUT",
-          headers,
-          body: JSON.stringify({ name: data.name }),
-        }
-      );
-      if (!response.ok)
-        throw new Error(`Failed to update household: ${response.status}`);
+      await apiClient.api.households.byId(data.id).put({ name: data.name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["households"] });
@@ -127,16 +123,9 @@ export function useAddHouseholdMember() {
       userId: number;
       role: string;
     }) => {
-      const response = await fetch(
-        `${API_BASE_URL}/api/households/${data.householdId}/members`,
-        {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ userId: data.userId, role: data.role }),
-        }
-      );
-      if (!response.ok)
-        throw new Error(`Failed to add member: ${response.status}`);
+      await apiClient.api.households
+        .byId(data.householdId)
+        .members.post({ userId: data.userId, role: data.role });
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -155,17 +144,10 @@ export function useUpdateHouseholdMemberRole() {
       userId: number;
       role: string;
     }) => {
-      // Not yet in the generated Kiota client — use the authenticated apiFetch
-      // helper (handles auth + X-Household-Id + 401 refresh), never bare fetch.
-      const response = await apiFetch(
-        `/api/households/${data.householdId}/members/${data.userId}/role`,
-        {
-          method: "PUT",
-          body: JSON.stringify({ role: data.role }),
-        }
-      );
-      if (!response.ok)
-        throw new Error(`Failed to update member role: ${response.status}`);
+      await apiClient.api.households
+        .byId(data.householdId)
+        .members.byUserId(data.userId)
+        .role.put({ role: data.role });
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -181,15 +163,10 @@ export function useRemoveHouseholdMember() {
 
   return useMutation({
     mutationFn: async (data: { householdId: number; userId: number }) => {
-      const response = await fetch(
-        `${API_BASE_URL}/api/households/${data.householdId}/members/${data.userId}`,
-        {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        }
-      );
-      if (!response.ok)
-        throw new Error(`Failed to remove member: ${response.status}`);
+      await apiClient.api.households
+        .byId(data.householdId)
+        .members.byUserId(data.userId)
+        .delete();
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
