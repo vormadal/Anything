@@ -23,10 +23,10 @@ const mockEntriesItemPut = jest.fn()
 const mockEntriesItemDelete = jest.fn()
 const mockEntriesItemById: jest.Mock = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
 const mockAddToShoppingListPost = jest.fn()
-const mockNotesGet = jest.fn()
-const mockNotesPut = jest.fn()
-const mockNotesDelete = jest.fn()
-const mockNotesByNoteId = jest.fn(() => ({ delete: mockNotesDelete }))
+const mockNotesGet: jest.Mock = jest.fn()
+const mockNotesPut: jest.Mock = jest.fn()
+const mockNotesDelete: jest.Mock = jest.fn()
+const mockNotesByNoteId: jest.Mock = jest.fn(() => ({ delete: mockNotesDelete }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
