@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER } from "@/lib/apiClient";
+import { HOUSEHOLD_ID_KEY, HOUSEHOLD_HEADER, apiFetch } from "@/lib/apiClient";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
@@ -155,11 +155,12 @@ export function useUpdateHouseholdMemberRole() {
       userId: number;
       role: string;
     }) => {
-      const response = await fetch(
-        `${API_BASE_URL}/api/households/${data.householdId}/members/${data.userId}/role`,
+      // Not yet in the generated Kiota client — use the authenticated apiFetch
+      // helper (handles auth + X-Household-Id + 401 refresh), never bare fetch.
+      const response = await apiFetch(
+        `/api/households/${data.householdId}/members/${data.userId}/role`,
         {
           method: "PUT",
-          headers: getAuthHeaders(),
           body: JSON.stringify({ role: data.role }),
         }
       );
