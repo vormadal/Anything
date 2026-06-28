@@ -1538,6 +1538,15 @@ export function createUpdateFoodPlanSettingsRequestFromDiscriminatorValue(parseN
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateHouseholdMemberRoleRequest}
+ */
+// @ts-ignore
+export function createUpdateHouseholdMemberRoleRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateHouseholdMemberRoleRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UpdateHouseholdRequest}
  */
 // @ts-ignore
@@ -3181,6 +3190,17 @@ export function deserializeIntoUpdateFoodPlanEntryRequest(updateFoodPlanEntryReq
 export function deserializeIntoUpdateFoodPlanSettingsRequest(updateFoodPlanSettingsRequest: Partial<UpdateFoodPlanSettingsRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "activeDays": n => { updateFoodPlanSettingsRequest.activeDays = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param UpdateHouseholdMemberRoleRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateHouseholdMemberRoleRequest(updateHouseholdMemberRoleRequest: Partial<UpdateHouseholdMemberRoleRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "role": n => { updateHouseholdMemberRoleRequest.role = n.getStringValue(); },
     }
 }
 /**
@@ -5820,6 +5840,17 @@ export function serializeUpdateFoodPlanSettingsRequest(writer: SerializationWrit
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateHouseholdMemberRoleRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateHouseholdMemberRoleRequest(writer: SerializationWriter, updateHouseholdMemberRoleRequest: Partial<UpdateHouseholdMemberRoleRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateHouseholdMemberRoleRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("role", updateHouseholdMemberRoleRequest.role);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param UpdateHouseholdRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -6428,6 +6459,12 @@ export interface UpdateFoodPlanSettingsRequest extends Parsable {
      * The activeDays property
      */
     activeDays?: number | null;
+}
+export interface UpdateHouseholdMemberRoleRequest extends Parsable {
+    /**
+     * The role property
+     */
+    role?: string | null;
 }
 export interface UpdateHouseholdRequest extends Parsable {
     /**

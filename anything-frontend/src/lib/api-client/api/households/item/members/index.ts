@@ -4,7 +4,7 @@
 // @ts-ignore
 import { createHttpValidationProblemDetailsFromDiscriminatorValue, serializeAddHouseholdMemberRequest, type AddHouseholdMemberRequest, type HttpValidationProblemDetails } from '../../../../models/index';
 // @ts-ignore
-import { type WithUserItemRequestBuilder, WithUserItemRequestBuilderRequestsMetadata } from './item/index';
+import { type WithUserItemRequestBuilder, WithUserItemRequestBuilderNavigationMetadata, WithUserItemRequestBuilderRequestsMetadata } from './item/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
@@ -41,6 +41,7 @@ export const MembersRequestBuilderUriTemplate = "{+baseurl}/api/households/{id}/
 export const MembersRequestBuilderNavigationMetadata: Record<Exclude<keyof MembersRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
     byUserId: {
         requestsMetadata: WithUserItemRequestBuilderRequestsMetadata,
+        navigationMetadata: WithUserItemRequestBuilderNavigationMetadata,
         pathParametersMappings: ["userId"],
     },
 };
