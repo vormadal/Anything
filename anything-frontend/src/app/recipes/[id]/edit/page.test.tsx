@@ -19,10 +19,10 @@ const mockImagesGet = jest.fn()
 const mockImagesUploadPost = jest.fn().mockResolvedValue(undefined)
 const mockImageByIdDelete = jest.fn()
 const mockRecipeDelete = jest.fn()
-const mockIngredientById = jest.fn(() => ({ put: mockIngredientByIdPut, delete: mockIngredientByIdDelete }))
-const mockStepById = jest.fn(() => ({ put: mockStepByIdPut, delete: mockStepByIdDelete }))
-const mockImageById = jest.fn(() => ({ delete: mockImageByIdDelete }))
-const mockById = jest.fn(() => ({
+const mockIngredientById: jest.Mock = jest.fn(() => ({ put: mockIngredientByIdPut, delete: mockIngredientByIdDelete }))
+const mockStepById: jest.Mock = jest.fn(() => ({ put: mockStepByIdPut, delete: mockStepByIdDelete }))
+const mockImageById: jest.Mock = jest.fn(() => ({ delete: mockImageByIdDelete }))
+const mockById: jest.Mock = jest.fn(() => ({
   get: mockRecipeGet,
   put: mockRecipePut,
   delete: mockRecipeDelete,

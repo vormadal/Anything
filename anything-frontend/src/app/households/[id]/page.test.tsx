@@ -46,7 +46,7 @@ jest.mock('@/context/HouseholdContext', () => ({
 }))
 
 const mockPush = jest.fn()
-const mockUseParams = jest.fn(() => ({ id: '1' }))
+const mockUseParams: jest.Mock = jest.fn(() => ({ id: '1' }))
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush, back: jest.fn() }),
   useParams: (...args: unknown[]) => mockUseParams(...args),
