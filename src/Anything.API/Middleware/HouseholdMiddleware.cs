@@ -51,16 +51,16 @@ public class HouseholdMiddleware(RequestDelegate next)
         var memberRepository = context.RequestServices.GetRequiredService<IRepository<HouseholdMember>>();
         var householdRepository = context.RequestServices.GetRequiredService<IRepository<Household>>();
 
-        var isActiveMember = await memberRepository.Query()
+        var member = await memberRepository.Query()
             .Join(
                 householdRepository.Query().Where(h => h.DeletedOn == null),
                 m => m.HouseholdId,
                 h => h.Id,
                 (m, h) => m)
             .Where(m => m.HouseholdId == householdId && m.UserId == userId)
-            .AnyAsync(context.RequestAborted);
+            .FirstOrDefaultAsync(context.RequestAborted);
 
-        if (!isActiveMember)
+        if (member is null)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsJsonAsync(new { error = "You are not a member of this household." });
@@ -69,6 +69,7 @@ public class HouseholdMiddleware(RequestDelegate next)
 
         var householdContext = context.RequestServices.GetRequiredService<HouseholdContext>();
         householdContext.HouseholdId = householdId;
+        householdContext.Role = member.Role;
 
         await next(context);
     }

@@ -17,6 +17,10 @@ interface HouseholdContextValue {
   setSelectedHouseholdId: (id: number) => void;
   households: Household[];
   isLoading: boolean;
+  /** The current user's role in the selected household, if known. */
+  currentHouseholdRole: string | undefined;
+  /** The current user's role in a specific household (by id), if known. */
+  getHouseholdRole: (householdId: number | null | undefined) => string | undefined;
 }
 
 const HouseholdContext = createContext<HouseholdContextValue>({
@@ -24,6 +28,8 @@ const HouseholdContext = createContext<HouseholdContextValue>({
   setSelectedHouseholdId: () => {},
   households: [],
   isLoading: true,
+  currentHouseholdRole: undefined,
+  getHouseholdRole: () => undefined,
 });
 
 export function useHouseholdContext() {
@@ -69,6 +75,19 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     }
   }, [effectiveId]);
 
+  const getHouseholdRole = useCallback(
+    (householdId: number | null | undefined) =>
+      householdId == null
+        ? undefined
+        : households.find((h) => h.id === householdId)?.role,
+    [households]
+  );
+
+  const currentHouseholdRole = useMemo(
+    () => getHouseholdRole(effectiveId),
+    [getHouseholdRole, effectiveId]
+  );
+
   return (
     <HouseholdContext.Provider
       value={{
@@ -76,6 +95,8 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         setSelectedHouseholdId,
         households,
         isLoading,
+        currentHouseholdRole,
+        getHouseholdRole,
       }}
     >
       {children}

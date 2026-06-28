@@ -12,7 +12,8 @@ import {
   useExportSuggestionCategories,
   useImportSuggestionCategories,
 } from "@/hooks/useSuggestionCategories";
-import { isAdmin } from "@/lib/roles";
+import { canManageHousehold } from "@/lib/roles";
+import { useHouseholdContext } from "@/context/HouseholdContext";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
 import { X, Pencil, Plus, GripVertical, Download, Upload } from "lucide-react";
@@ -106,6 +107,7 @@ export default function CategoriesPage() {
   const router = useRouter();
   const params = useParams();
   const householdId = typeof params.id === "string" ? params.id : "";
+  const { getHouseholdRole, isLoading: householdsLoading } = useHouseholdContext();
   const { setLeftAction } = useHeaderActions();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -137,7 +139,11 @@ export default function CategoriesPage() {
     })
   );
 
-  if (user && !isAdmin(user.role)) {
+  if (
+    user &&
+    !householdsLoading &&
+    !canManageHousehold(getHouseholdRole(Number(householdId)))
+  ) {
     router.push("/");
     return null;
   }

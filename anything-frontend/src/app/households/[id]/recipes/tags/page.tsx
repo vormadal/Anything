@@ -8,8 +8,9 @@ import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useExportRecipeTags, useImportRecipeTags } from "@/hooks/useRecipes";
-import { isAdmin } from "@/lib/roles";
+import { canManageHousehold } from "@/lib/roles";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { useHouseholdContext } from "@/context/HouseholdContext";
 
 type RecipeTagImportData = {
   recipes: Array<{
@@ -23,6 +24,7 @@ export default function RecipeTagsPage() {
   const router = useRouter();
   const params = useParams();
   const householdId = typeof params.id === "string" ? params.id : "";
+  const { getHouseholdRole, isLoading: householdsLoading } = useHouseholdContext();
   const { setLeftAction } = useHeaderActions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exportRecipeTags = useExportRecipeTags();
@@ -35,7 +37,11 @@ export default function RecipeTagsPage() {
     return () => setLeftAction({ type: "menu" });
   }, [setLeftAction, householdId]);
 
-  if (user && !isAdmin(user.role)) {
+  if (
+    user &&
+    !householdsLoading &&
+    !canManageHousehold(getHouseholdRole(Number(householdId)))
+  ) {
     router.push("/");
     return null;
   }

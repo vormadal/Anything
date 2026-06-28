@@ -14,7 +14,8 @@ import {
   type MeasurementUnit,
   type UnitExportData,
 } from "@/hooks/useUnits";
-import { isAdmin } from "@/lib/roles";
+import { canManageHousehold } from "@/lib/roles";
+import { useHouseholdContext } from "@/context/HouseholdContext";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
 import { X, Pencil, Plus, Search, Download, Upload, Sparkles } from "lucide-react";
@@ -101,6 +102,7 @@ export default function UnitsPage() {
   const router = useRouter();
   const params = useParams();
   const householdId = typeof params.id === "string" ? params.id : "";
+  const { getHouseholdRole, isLoading: householdsLoading } = useHouseholdContext();
   const { setLeftAction } = useHeaderActions();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -133,7 +135,11 @@ export default function UnitsPage() {
     return list.filter((u) => u.name?.toLowerCase().includes(q));
   }, [units, searchQuery]);
 
-  if (user && !isAdmin(user.role)) {
+  if (
+    user &&
+    !householdsLoading &&
+    !canManageHousehold(getHouseholdRole(Number(householdId)))
+  ) {
     router.push("/");
     return null;
   }
