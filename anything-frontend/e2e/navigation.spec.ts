@@ -88,21 +88,33 @@ test("pressing back twice within 2s on root page allows exit", async ({ page }) 
   await expect(page.getByText(/press back again to exit/i)).not.toBeVisible({ timeout: 500 });
 });
 
-test("back button on a sub-page returns home without the exit prompt", async ({ page }) => {
-  // Establish home first so it is the previous history entry, then navigate to
-  // a non-home (menu) page the same way a user would from the drawer.
+test("back from an in-app page navigates back without the exit prompt", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(() => window.history.length > 1);
 
-  await page.goto("/lists");
-  await expect(page.getByRole("heading", { name: "Lists", level: 1 })).toBeVisible();
+  // Navigate within the app (client-side) so there is in-app history behind us.
+  await page.getByRole("button", { name: /open menu/i }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Lists" }).click();
+  await page.waitForURL("**/lists");
 
-  // Pressing back from a non-home page must navigate home, NOT show the
+  // Pressing back must return to the previous in-app page, NOT show the
   // "press back again to exit" prompt (the reported bug).
   await page.evaluate(() => window.history.back());
-  await page.waitForURL("/");
+  await page.waitForURL((url) => url.pathname === "/");
 
   await expect(page.getByText(/press back again to exit/i)).not.toBeVisible();
+});
+
+test("back on a directly-opened deep link still shows the exit prompt", async ({ page }) => {
+  // Opening a shared link straight to a sub-page makes that page the app's entry
+  // point, so the first back press would exit the app and must be guarded.
+  await page.goto("/recipes/new");
+  await page.waitForFunction(() => window.history.length > 1);
+
+  await page.evaluate(() => window.history.back());
+
+  await expect(page.getByText(/press back again to exit/i)).toBeVisible();
+  await expect(page).toHaveURL(/\/recipes\/new/);
 });
 
 test("unauthenticated access redirects to login", async ({ browser }) => {

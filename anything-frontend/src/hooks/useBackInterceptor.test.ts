@@ -1,6 +1,12 @@
 import { renderHook, act } from "@testing-library/react";
 import { useBackInterceptor } from "./useBackInterceptor";
 
+const mockNav = { pathname: "/" };
+
+jest.mock("next/navigation", () => ({
+  usePathname: () => mockNav.pathname,
+}));
+
 jest.mock("sonner", () => {
   const toastFn = jest.fn().mockReturnValue("mock-toast-id");
   toastFn.dismiss = jest.fn();
@@ -13,19 +19,21 @@ const mockToast = toast as jest.Mock;
 const mockDismiss = (toast as unknown as { dismiss: jest.Mock }).dismiss;
 
 const SENTINEL = { appSentinel: true };
+const ENTRY = { appSentinel: false }; // a real (non-sentinel) page entry
 const EXIT_PROMPT = "Press back again to exit";
 
 describe("useBackInterceptor", () => {
   let pushStateSpy: jest.SpyInstance;
   let popstateHandlers: EventListener[];
-  // Simulated current value of window.history.state. The pushState mock updates
-  // it to a sentinel (mirroring the browser) and individual tests set it to
-  // mimic the entry the browser lands on after a back press.
+  // Simulated current value of window.history.state. The pushState mock mirrors
+  // the browser by storing the pushed state; individual tests set it to mimic
+  // the entry the browser lands on after a back press.
   let historyState: unknown;
 
   beforeEach(() => {
     jest.useFakeTimers();
     historyState = null;
+    mockNav.pathname = "/";
     popstateHandlers = [];
 
     Object.defineProperty(window.history, "state", {
@@ -65,71 +73,130 @@ describe("useBackInterceptor", () => {
     Reflect.deleteProperty(window.history, "state");
   });
 
-  // Simulates a back press. `landedOn` is the history entry the browser exposes
-  // via window.history.state after the pop (defaults to a non-sentinel entry).
-  const firePopState = (landedOn: unknown = null) => {
+  // Dispatches a popstate event after positioning history.state on the entry the
+  // browser landed on (defaults to a real, non-sentinel page entry).
+  const firePopState = (landedOn: unknown = ENTRY) => {
     historyState = landedOn;
     act(() => {
       popstateHandlers.forEach((h) => h(new PopStateEvent("popstate")));
     });
   };
 
-  it("pushes a sentinel on mount when on the home page", () => {
-    renderHook(() => useBackInterceptor({ isRoot: true }));
+  // Simulates a forward (router.push) navigation to a new in-app page, which
+  // re-runs the pathname effect with a non-sentinel history entry.
+  const navigateForward = (
+    rerender: (props?: unknown) => void,
+    path: string
+  ) => {
+    mockNav.pathname = path;
+    historyState = ENTRY;
+    act(() => rerender());
+  };
+
+  it("pushes a sentinel buffer on mount", () => {
+    renderHook(() => useBackInterceptor());
 
     expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
   });
 
-  it("does NOT push a sentinel on mount when not on the home page", () => {
-    renderHook(() => useBackInterceptor({ isRoot: false }));
-
-    expect(pushStateSpy).not.toHaveBeenCalled();
-  });
-
-  it("arms a sentinel when navigating into the home page", () => {
-    const { rerender } = renderHook(
-      ({ isRoot }) => useBackInterceptor({ isRoot }),
-      { initialProps: { isRoot: false } }
-    );
-    expect(pushStateSpy).not.toHaveBeenCalled();
-
-    rerender({ isRoot: true });
-
-    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
-  });
-
-  // The core bug: pressing back on a non-home page (a list overview, a detail
-  // page, etc.) must NOT show the exit prompt — it should let the browser
-  // navigate back to the previous page.
-  it("does nothing on back when not on the home page (normal navigation)", () => {
-    renderHook(() => useBackInterceptor({ isRoot: false }));
+  // A directly-opened page (deep link) is the app's entry point, so the first
+  // back press there would exit the app and must be guarded.
+  it("shows the exit prompt on the first back at the entry point (any page)", () => {
+    mockNav.pathname = "/recipes/new";
+    renderHook(() => useBackInterceptor());
 
     pushStateSpy.mockClear();
-    firePopState(); // landed on a regular (non-sentinel) page entry
+    mockToast.mockClear();
+    firePopState(ENTRY); // popped the sentinel off the entry point
+
+    expect(mockToast).toHaveBeenCalledWith(EXIT_PROMPT, { duration: 2000 });
+    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
+  });
+
+  it("allows exit on the second back within 2s (no re-arm, dismisses toast)", () => {
+    renderHook(() => useBackInterceptor());
+
+    firePopState(ENTRY); // first press at the entry point — prompt + re-arm
+    pushStateSpy.mockClear();
+    mockToast.mockClear();
+
+    firePopState(ENTRY); // second press within 2s
+
+    expect(pushStateSpy).not.toHaveBeenCalled();
+    expect(mockToast).not.toHaveBeenCalled();
+    expect(mockDismiss).toHaveBeenCalledWith("mock-toast-id");
+  });
+
+  it("treats back as a first press again after the 2s timeout expires", () => {
+    renderHook(() => useBackInterceptor());
+
+    firePopState(ENTRY); // first press
+    mockToast.mockClear();
+    pushStateSpy.mockClear();
+
+    act(() => {
+      jest.advanceTimersByTime(2001);
+    });
+
+    firePopState(ENTRY); // back after timeout — treated as a first press again
+
+    expect(mockToast).toHaveBeenCalledWith(EXIT_PROMPT, { duration: 2000 });
+    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
+  });
+
+  // The reported bug: backing out of an in-app page must navigate, not prompt.
+  it("does not prompt when backing from an in-app page onto the sentinel", () => {
+    const { rerender } = renderHook(() => useBackInterceptor());
+
+    navigateForward(rerender, "/lists"); // home -> /lists (in-app)
+    pushStateSpy.mockClear();
+    mockToast.mockClear();
+
+    firePopState(SENTINEL); // back lands on the sentinel (returning to entry)
 
     expect(mockToast).not.toHaveBeenCalled();
     expect(pushStateSpy).not.toHaveBeenCalled();
   });
 
-  // Backing into home from a deeper page lands on the sentinel entry: the user
-  // should arrive at home cleanly without the exit prompt.
-  it("does nothing when a back press lands on the sentinel (arriving at home)", () => {
-    renderHook(() => useBackInterceptor({ isRoot: false }));
+  it("does not prompt for ordinary back navigation between in-app pages", () => {
+    const { rerender } = renderHook(() => useBackInterceptor());
 
+    navigateForward(rerender, "/lists"); // home -> /lists
+    navigateForward(rerender, "/lists/abc"); // /lists -> /lists/abc
     pushStateSpy.mockClear();
-    firePopState(SENTINEL); // landed back on the armed sentinel
+    mockToast.mockClear();
+
+    firePopState(ENTRY); // /lists/abc -> /lists (still an in-app entry)
 
     expect(mockToast).not.toHaveBeenCalled();
     expect(pushStateSpy).not.toHaveBeenCalled();
   });
 
-  it("calls the first active handler and re-arms the sentinel", () => {
+  // Full unwind: forward twice, then back twice returns to the entry without a
+  // prompt; only the back that would actually exit prompts.
+  it("prompts only once the user has unwound back to the entry point", () => {
+    const { rerender } = renderHook(() => useBackInterceptor());
+
+    navigateForward(rerender, "/lists"); // home -> /lists
+    navigateForward(rerender, "/lists/abc"); // /lists -> /lists/abc
+
+    firePopState(ENTRY); // /lists/abc -> /lists (in-app, no prompt)
+    expect(mockToast).not.toHaveBeenCalled();
+
+    // /lists -> sentinel (back at entry). The pathname effect then re-runs.
+    mockNav.pathname = "/";
+    firePopState(SENTINEL);
+    act(() => rerender());
+    expect(mockToast).not.toHaveBeenCalled();
+
+    firePopState(ENTRY); // back at the entry point -> would exit -> prompt
+    expect(mockToast).toHaveBeenCalledWith(EXIT_PROMPT, { duration: 2000 });
+  });
+
+  it("calls the first active handler and restores the sentinel", () => {
     const onBack = jest.fn();
     renderHook(() =>
-      useBackInterceptor({
-        handlers: [{ isActive: true, onBack }],
-        isRoot: true,
-      })
+      useBackInterceptor({ handlers: [{ isActive: true, onBack }] })
     );
 
     pushStateSpy.mockClear();
@@ -149,7 +216,6 @@ describe("useBackInterceptor", () => {
           { isActive: false, onBack: onBack1 },
           { isActive: true, onBack: onBack2 },
         ],
-        isRoot: true,
       })
     );
 
@@ -159,52 +225,10 @@ describe("useBackInterceptor", () => {
     expect(onBack2).toHaveBeenCalled();
   });
 
-  it("shows the exit toast and re-arms on the first back press while on home", () => {
-    renderHook(() => useBackInterceptor({ isRoot: true }));
-
-    pushStateSpy.mockClear();
-    mockToast.mockClear();
-    firePopState(); // backed off the sentinel onto the real home entry
-
-    expect(mockToast).toHaveBeenCalledWith(EXIT_PROMPT, { duration: 2000 });
-    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
-  });
-
-  it("allows exit on the second back press within 2s (no re-arm, dismisses toast)", () => {
-    renderHook(() => useBackInterceptor({ isRoot: true }));
-
-    firePopState(); // first press at home — shows toast, re-arms
-    pushStateSpy.mockClear();
-    mockToast.mockClear();
-
-    firePopState(); // second press within 2s
-
-    expect(pushStateSpy).not.toHaveBeenCalled();
-    expect(mockToast).not.toHaveBeenCalled();
-    expect(mockDismiss).toHaveBeenCalledWith("mock-toast-id");
-  });
-
-  it("treats back as a first press again after the 2s timeout expires", () => {
-    renderHook(() => useBackInterceptor({ isRoot: true }));
-
-    firePopState(); // first press
-    mockToast.mockClear();
-    pushStateSpy.mockClear();
-
-    act(() => {
-      jest.advanceTimersByTime(2001);
-    });
-
-    firePopState(); // back after timeout — treated as a first press again
-
-    expect(mockToast).toHaveBeenCalledWith(EXIT_PROMPT, { duration: 2000 });
-    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
-  });
-
   it("removes the popstate listener on unmount", () => {
     const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
 
-    const { unmount } = renderHook(() => useBackInterceptor({ isRoot: true }));
+    const { unmount } = renderHook(() => useBackInterceptor());
 
     unmount();
 

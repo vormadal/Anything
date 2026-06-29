@@ -82,7 +82,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   useBackInterceptor({
     handlers: [{ isActive: drawerOpen, onBack: () => setDrawerOpen(false) }],
-    isRoot: pathname === "/",
   });
 
   useEffect(() => {
