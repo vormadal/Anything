@@ -2,7 +2,6 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, apiFetch, createMultipartBody } from "@/lib/apiClient";
-import { getHouseholdHeader } from "@/lib/householdUtils";
 import type {
   Recipe,
   RecipeIngredient,
@@ -16,8 +15,6 @@ import type {
 
 // Re-export API model types that consumers import from this hook
 export type { ParsedRecipeResponse, ParsedIngredient, ParsedStep, RecipeTag };
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 
 export interface TopTag {
   name: string;
@@ -51,23 +48,10 @@ export function useRecipes(search?: string, tag?: string) {
     // refresh — see issue #571.
     refetchOnMount: "always",
     queryFn: async (): Promise<Recipe[]> => {
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      if (tag) params.set("tag", tag);
-      const qs = params.toString();
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes${qs ? `?${qs}` : ""}`,
-        {
-          cache: "no-store",
-          headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() },
-        }
-      );
-      if (!response.ok) throw new Error(`Failed to fetch recipes: ${response.status}`);
-      return response.json() as Promise<Recipe[]>;
+      const recipes = await apiClient.api.recipes.get({
+        queryParameters: { search, tag },
+      });
+      return (recipes ?? []) as Recipe[];
     },
   });
 }
@@ -79,19 +63,13 @@ export function useTopRecipeTags(count = 10) {
     // issue #571.
     refetchOnMount: "always",
     queryFn: async (): Promise<TopTag[]> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes/tags?count=${count}`,
-        {
-          cache: "no-store",
-          headers: { Authorization: `Bearer ${token}`, ...getHouseholdHeader() },
-        }
-      );
-      if (!response.ok) throw new Error(`Failed to fetch top tags: ${response.status}`);
-      return response.json() as Promise<TopTag[]>;
+      const tags = await apiClient.api.recipes.tags.get({
+        queryParameters: { count },
+      });
+      return (tags ?? []).map((t) => ({
+        name: t.name ?? "",
+        count: t.count ?? 0,
+      }));
     },
   });
 }
@@ -524,27 +502,19 @@ export function useReimportRecipe(recipeId: number) {
 
   return useMutation({
     mutationFn: async (payload: ReimportRecipePayload): Promise<void> => {
-      const token =
-        typeof globalThis.window !== "undefined"
-          ? (localStorage.getItem("accessToken") ?? "")
-          : "";
-      const response = await fetch(
-        `${API_BASE_URL}/api/recipes/${recipeId}/reimport`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            ...getHouseholdHeader(),
-          },
-          body: JSON.stringify(payload),
+      try {
+        await apiClient.api.recipes.byId(recipeId).reimport.post({
+          importName: payload.importName,
+          importIngredients: payload.importIngredients,
+          importSteps: payload.importSteps,
+          importImages: payload.importImages,
+        });
+      } catch (e) {
+        const kiota = e as { responseStatusCode?: number };
+        if (kiota.responseStatusCode !== undefined) {
+          throw Object.assign(e as Error, { status: kiota.responseStatusCode });
         }
-      );
-      if (!response.ok) {
-        const text = await response.text();
-        const err = new Error(text || `Error ${response.status}`) as Error & { status: number };
-        err.status = response.status;
-        throw err;
+        throw e;
       }
     },
     onSuccess: () => {

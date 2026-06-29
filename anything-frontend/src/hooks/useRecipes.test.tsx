@@ -4,6 +4,7 @@ import { ReactNode } from 'react'
 import {
   useRecipes,
   useRecipe,
+  useTopRecipeTags,
   useCreateRecipe,
   useUpdateRecipe,
   useDeleteRecipe,
@@ -17,13 +18,12 @@ import {
   useUploadRecipeImage,
   useDeleteRecipeImage,
   useAddIngredientsToShoppingList,
+  useReimportRecipe,
 } from '@/hooks/useRecipes'
 
-// Mock fetch globally for hooks that still use it directly (useRecipes, useTopRecipeTags, useReimportRecipe)
-const mockFetch = jest.fn()
-global.fetch = mockFetch
-
 // Mock the apiClient module
+const mockRecipesListGet = jest.fn()
+const mockTagsListGet = jest.fn()
 const mockRecipeGet = jest.fn()
 const mockGet = mockRecipeGet
 const mockPost = jest.fn()
@@ -51,6 +51,8 @@ const mockImagesUpload = { post: mockImagesUploadPost }
 const mockImages = { get: mockImagesGet, post: mockImagesPost, byImageId: mockImagesItemById, upload: mockImagesUpload }
 const mockAddToShoppingListPost = jest.fn()
 const mockAddToShoppingList = { post: mockAddToShoppingListPost }
+const mockReimportPost = jest.fn()
+const mockReimport = { post: mockReimportPost }
 const mockTagsGet = jest.fn()
 const mockTagsPost = jest.fn()
 const mockTagsItemDelete = jest.fn()
@@ -65,6 +67,7 @@ const mockById: jest.Mock = jest.fn(() => ({
   images: mockImages,
   addToShoppingList: mockAddToShoppingList,
   tags: mockTags,
+  reimport: mockReimport,
 }))
 
 const mockParseUrlPost = jest.fn()
@@ -77,10 +80,12 @@ jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
       recipes: {
+        get: (...args: unknown[]) => mockRecipesListGet(...args),
         post: (...args: unknown[]) => mockPost(...args),
         byId: (...args: unknown[]) => mockById(...args),
         parseUrl: { post: (...args: unknown[]) => mockParseUrlPost(...args) },
         importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
+        tags: { get: (...args: unknown[]) => mockTagsListGet(...args) },
       },
     },
   },
@@ -110,12 +115,9 @@ function createWrapper() {
 describe('useRecipes hooks', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    // Default fetch response for hooks that use fetch directly
-    mockFetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve([]),
-    } as Response)
+    // Default list responses for query hooks backed by the generated client
+    mockRecipesListGet.mockResolvedValue([])
+    mockTagsListGet.mockResolvedValue([])
   })
 
   describe('useRecipes', () => {
@@ -124,11 +126,7 @@ describe('useRecipes hooks', () => {
         { id: 1, name: 'Pasta', createdOn: '2024-01-01T00:00:00Z' },
         { id: 2, name: 'Salad', createdOn: '2024-01-02T00:00:00Z' },
       ]
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(mockData),
-      } as Response)
+      mockRecipesListGet.mockResolvedValueOnce(mockData)
 
       const { result } = renderHook(() => useRecipes(), {
         wrapper: createWrapper(),
@@ -137,30 +135,32 @@ describe('useRecipes hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual(mockData)
-      expect(mockFetch).toHaveBeenCalledTimes(1)
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/recipes'),
-        expect.objectContaining({
-          cache: 'no-store',
-          headers: expect.objectContaining({ Authorization: expect.any(String) }),
-        })
-      )
+      expect(mockRecipesListGet).toHaveBeenCalledTimes(1)
+      expect(mockRecipesListGet).toHaveBeenCalledWith({
+        queryParameters: { search: undefined, tag: undefined },
+      })
+    })
+
+    it('passes search and tag as query parameters', async () => {
+      mockRecipesListGet.mockResolvedValueOnce([])
+
+      const { result } = renderHook(() => useRecipes('pasta', 'dinner'), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockRecipesListGet).toHaveBeenCalledWith({
+        queryParameters: { search: 'pasta', tag: 'dinner' },
+      })
     })
 
     it('refetches on every mount so a freshly created recipe shows on return (issue #571)', async () => {
       // First mount: empty list (e.g. before a recipe is created elsewhere)
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve([]),
-      } as Response)
+      mockRecipesListGet.mockResolvedValueOnce([])
       // Second mount (returning to the list): backend now has the new recipe
       const created = [{ id: 1, name: 'Fresh Recipe', createdOn: '2024-01-03T00:00:00Z' }]
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(created),
-      } as Response)
+      mockRecipesListGet.mockResolvedValueOnce(created)
 
       // A shared client so the cached query survives the unmount/remount, mirroring
       // navigating away from and back to the recipe list page.
@@ -183,15 +183,11 @@ describe('useRecipes hooks', () => {
       // the cached data is still within staleTime.
       const second = renderHook(() => useRecipes(), { wrapper })
       await waitFor(() => expect(second.result.current.data).toEqual(created))
-      expect(mockFetch).toHaveBeenCalledTimes(2)
+      expect(mockRecipesListGet).toHaveBeenCalledTimes(2)
     })
 
     it('should handle fetch error', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: () => Promise.resolve({}),
-      } as Response)
+      mockRecipesListGet.mockRejectedValueOnce(new Error('Failed to fetch recipes: 500'))
 
       const { result } = renderHook(() => useRecipes(), {
         wrapper: createWrapper(),
@@ -200,6 +196,111 @@ describe('useRecipes hooks', () => {
       await waitFor(() => expect(result.current.isError).toBe(true))
 
       expect(result.current.error).toBeTruthy()
+    })
+  })
+
+  describe('useTopRecipeTags', () => {
+    it('maps the response to name/count pairs with the requested count', async () => {
+      mockTagsListGet.mockResolvedValueOnce([
+        { name: 'dinner', count: 5 },
+        { name: 'quick', count: 2 },
+      ])
+
+      const { result } = renderHook(() => useTopRecipeTags(5), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual([
+        { name: 'dinner', count: 5 },
+        { name: 'quick', count: 2 },
+      ])
+      expect(mockTagsListGet).toHaveBeenCalledWith({ queryParameters: { count: 5 } })
+    })
+
+    it('coerces null name/count and a null list to safe defaults', async () => {
+      mockTagsListGet.mockResolvedValueOnce([{ name: null, count: null }])
+
+      const { result } = renderHook(() => useTopRecipeTags(), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual([{ name: '', count: 0 }])
+      expect(mockTagsListGet).toHaveBeenCalledWith({ queryParameters: { count: 10 } })
+    })
+  })
+
+  describe('useReimportRecipe', () => {
+    it('posts the reimport flags through the generated client', async () => {
+      mockReimportPost.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useReimportRecipe(7), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({
+          importName: true,
+          importIngredients: false,
+          importSteps: true,
+          importImages: false,
+        })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockById).toHaveBeenCalledWith(7)
+      expect(mockReimportPost).toHaveBeenCalledWith({
+        importName: true,
+        importIngredients: false,
+        importSteps: true,
+        importImages: false,
+      })
+    })
+
+    it('surfaces the Kiota status code on the thrown error', async () => {
+      mockReimportPost.mockRejectedValueOnce(
+        Object.assign(new Error('Gone'), { responseStatusCode: 410 })
+      )
+
+      const { result } = renderHook(() => useReimportRecipe(7), {
+        wrapper: createWrapper(),
+      })
+
+      result.current.mutate({
+        importName: true,
+        importIngredients: true,
+        importSteps: true,
+        importImages: true,
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+
+      expect((result.current.error as { status?: number }).status).toBe(410)
+    })
+
+    it('rethrows non-Kiota errors unchanged', async () => {
+      const networkError = new Error('Network down')
+      mockReimportPost.mockRejectedValueOnce(networkError)
+
+      const { result } = renderHook(() => useReimportRecipe(7), {
+        wrapper: createWrapper(),
+      })
+
+      result.current.mutate({
+        importName: true,
+        importIngredients: true,
+        importSteps: true,
+        importImages: true,
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+
+      expect(result.current.error).toBe(networkError)
+      expect((result.current.error as { status?: number }).status).toBeUndefined()
     })
   })
 

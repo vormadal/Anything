@@ -90,6 +90,26 @@ const mockNotesByNoteId: jest.Mock = jest.fn(() => ({ delete: mockNotesDelete })
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
+      recipes: {
+        get: (config?: { queryParameters?: { search?: string; tag?: string } }) => {
+          const qp = config?.queryParameters
+          const params = new URLSearchParams()
+          if (qp?.search) params.set('search', qp.search)
+          if (qp?.tag) params.set('tag', qp.tag)
+          const q = params.toString()
+          return mockFetch(`/api/recipes${q ? `?${q}` : ''}`).then((r: Response) => {
+            if (!r.ok) throw new Error(`Failed to fetch recipes: ${r.status}`)
+            return r.json()
+          })
+        },
+        tags: {
+          get: (config?: { queryParameters?: { count?: number } }) =>
+            mockFetch(`/api/recipes/tags?count=${config?.queryParameters?.count ?? 10}`).then((r: Response) => {
+              if (!r.ok) throw new Error(`Failed to fetch top tags: ${r.status}`)
+              return r.json()
+            }),
+        },
+      },
       foodPlan: {
         settings: {
           get: (...args: unknown[]) => mockSettingsGet(...args),
