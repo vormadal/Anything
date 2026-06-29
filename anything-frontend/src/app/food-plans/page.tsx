@@ -594,13 +594,9 @@ export default function FoodPlanPage() {
   const getNoteForDate = (date: Date): FoodPlanNote | null => {
     if (!notes) return null;
     const ds = toDateInputValue(date);
-    return notes.find((n) => {
-      if (!n.date) return false;
-      // n.date is the API's "YYYY-MM-DD" string, parsed as UTC midnight; compare on the
-      // UTC date portion to avoid local-timezone shifts turning "2026-04-08" into "...-07".
-      const nd = new Date(n.date);
-      return nd.toISOString().substring(0, 10) === ds;
-    }) ?? null;
+    // n.date is a Kiota DateOnly whose toString() yields "YYYY-MM-DD"; compare directly
+    // against the date-input value to avoid local-timezone shifts.
+    return notes.find((n) => n.date != null && n.date.toString() === ds) ?? null;
   };
 
   const getEntriesForDate = (date: Date): FoodPlanEntry[] => {

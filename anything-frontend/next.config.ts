@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Kiota ships its abstractions as ESM; transpiling it lets Jest (via next/jest)
+  // transform the package when hooks import runtime helpers like DateOnly directly.
+  transpilePackages: ["@microsoft/kiota-abstractions"],
   async redirects() {
     return [
       { source: '/shopping-lists', destination: '/lists', permanent: true },

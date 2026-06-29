@@ -78,7 +78,7 @@ public static class FoodPlanEndpoints
         .WithName("GetFoodPlanNotes")
         .RequireAuthorization();
 
-        group.MapPut("/notes/{date}", async (DateOnly date, UpsertFoodPlanNoteRequest request, IMediator mediator) =>
+        group.MapPut("/notes", async (DateOnly date, UpsertFoodPlanNoteRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new UpsertFoodPlanNoteCommand(date, request.Note));
         })

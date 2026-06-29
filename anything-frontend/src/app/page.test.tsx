@@ -18,6 +18,7 @@ function mockRecipesFetch(recipes: unknown[]) {
 
 // Mock the apiClient module
 const mockFoodPlanEntriesGet = jest.fn()
+const mockFoodPlanNotesGet = jest.fn()
 const mockApiFetch = jest.fn()
 const mockShoppingListsGet = jest.fn()
 
@@ -30,6 +31,11 @@ jest.mock('@/lib/apiClient', () => ({
           get: (...args: unknown[]) => mockFoodPlanEntriesGet(...args),
           post: jest.fn(),
           byId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })),
+        },
+        notes: {
+          get: (...args: unknown[]) => mockFoodPlanNotesGet(...args),
+          put: jest.fn(),
+          byNoteId: jest.fn(() => ({ delete: jest.fn() })),
         },
         addToShoppingList: { post: jest.fn() },
       },
@@ -55,6 +61,7 @@ describe('Home Page Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockFoodPlanNotesGet.mockResolvedValue([])
     mockApiFetch.mockResolvedValue({ ok: true, json: async () => [] })
     mockRecipesFetch([])
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
@@ -276,12 +283,9 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanEntriesGet.mockResolvedValue([
       { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z' },
     ])
-    mockApiFetch.mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { id: 1, date: '2025-06-16T00:00:00Z', note: 'Eating at friends tonight' },
-      ],
-    })
+    mockFoodPlanNotesGet.mockResolvedValue([
+      { id: 1, date: '2025-06-16', note: 'Eating at friends tonight' },
+    ])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
