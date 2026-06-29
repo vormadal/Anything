@@ -3,8 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiClient";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
-
 export type ShareExpiry = "OneWeek" | "OneMonth" | "Forever";
 
 export interface RecipeShareResponse {
@@ -97,7 +95,7 @@ export function useSharedRecipe(token: string) {
   return useQuery({
     queryKey: ["sharedRecipe", token],
     queryFn: async (): Promise<SharedRecipeResponse> => {
-      const res = await fetch(`${API_BASE_URL}/api/shared/recipes/${token}`);
+      const res = await apiFetch(`/api/shared/recipes/${token}`);
       if (!res.ok) throw new Error("Share link not found");
       return res.json();
     },
