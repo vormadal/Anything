@@ -88,6 +88,23 @@ test("pressing back twice within 2s on root page allows exit", async ({ page }) 
   await expect(page.getByText(/press back again to exit/i)).not.toBeVisible({ timeout: 500 });
 });
 
+test("back button on a sub-page returns home without the exit prompt", async ({ page }) => {
+  // Establish home first so it is the previous history entry, then navigate to
+  // a non-home (menu) page the same way a user would from the drawer.
+  await page.goto("/");
+  await page.waitForFunction(() => window.history.length > 1);
+
+  await page.goto("/lists");
+  await expect(page.getByRole("heading", { name: "Lists", level: 1 })).toBeVisible();
+
+  // Pressing back from a non-home page must navigate home, NOT show the
+  // "press back again to exit" prompt (the reported bug).
+  await page.evaluate(() => window.history.back());
+  await page.waitForURL("/");
+
+  await expect(page.getByText(/press back again to exit/i)).not.toBeVisible();
+});
+
 test("unauthenticated access redirects to login", async ({ browser }) => {
   // Explicitly pass an empty storageState to override the project-level storageState
   // (which contains auth tokens). Without this, browser.newContext() would inherit
