@@ -4,6 +4,7 @@ import { ReactNode } from 'react'
 import {
   useRecipes,
   useRecipe,
+  useTopRecipeTags,
   useCreateRecipe,
   useUpdateRecipe,
   useDeleteRecipe,
@@ -17,6 +18,7 @@ import {
   useUploadRecipeImage,
   useDeleteRecipeImage,
   useAddIngredientsToShoppingList,
+  useReimportRecipe,
 } from '@/hooks/useRecipes'
 
 // Mock the apiClient module
@@ -49,6 +51,8 @@ const mockImagesUpload = { post: mockImagesUploadPost }
 const mockImages = { get: mockImagesGet, post: mockImagesPost, byImageId: mockImagesItemById, upload: mockImagesUpload }
 const mockAddToShoppingListPost = jest.fn()
 const mockAddToShoppingList = { post: mockAddToShoppingListPost }
+const mockReimportPost = jest.fn()
+const mockReimport = { post: mockReimportPost }
 const mockTagsGet = jest.fn()
 const mockTagsPost = jest.fn()
 const mockTagsItemDelete = jest.fn()
@@ -63,6 +67,7 @@ const mockById: jest.Mock = jest.fn(() => ({
   images: mockImages,
   addToShoppingList: mockAddToShoppingList,
   tags: mockTags,
+  reimport: mockReimport,
 }))
 
 const mockParseUrlPost = jest.fn()
@@ -191,6 +196,111 @@ describe('useRecipes hooks', () => {
       await waitFor(() => expect(result.current.isError).toBe(true))
 
       expect(result.current.error).toBeTruthy()
+    })
+  })
+
+  describe('useTopRecipeTags', () => {
+    it('maps the response to name/count pairs with the requested count', async () => {
+      mockTagsListGet.mockResolvedValueOnce([
+        { name: 'dinner', count: 5 },
+        { name: 'quick', count: 2 },
+      ])
+
+      const { result } = renderHook(() => useTopRecipeTags(5), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual([
+        { name: 'dinner', count: 5 },
+        { name: 'quick', count: 2 },
+      ])
+      expect(mockTagsListGet).toHaveBeenCalledWith({ queryParameters: { count: 5 } })
+    })
+
+    it('coerces null name/count and a null list to safe defaults', async () => {
+      mockTagsListGet.mockResolvedValueOnce([{ name: null, count: null }])
+
+      const { result } = renderHook(() => useTopRecipeTags(), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual([{ name: '', count: 0 }])
+      expect(mockTagsListGet).toHaveBeenCalledWith({ queryParameters: { count: 10 } })
+    })
+  })
+
+  describe('useReimportRecipe', () => {
+    it('posts the reimport flags through the generated client', async () => {
+      mockReimportPost.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useReimportRecipe(7), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({
+          importName: true,
+          importIngredients: false,
+          importSteps: true,
+          importImages: false,
+        })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockById).toHaveBeenCalledWith(7)
+      expect(mockReimportPost).toHaveBeenCalledWith({
+        importName: true,
+        importIngredients: false,
+        importSteps: true,
+        importImages: false,
+      })
+    })
+
+    it('surfaces the Kiota status code on the thrown error', async () => {
+      mockReimportPost.mockRejectedValueOnce(
+        Object.assign(new Error('Gone'), { responseStatusCode: 410 })
+      )
+
+      const { result } = renderHook(() => useReimportRecipe(7), {
+        wrapper: createWrapper(),
+      })
+
+      result.current.mutate({
+        importName: true,
+        importIngredients: true,
+        importSteps: true,
+        importImages: true,
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+
+      expect((result.current.error as { status?: number }).status).toBe(410)
+    })
+
+    it('rethrows non-Kiota errors unchanged', async () => {
+      const networkError = new Error('Network down')
+      mockReimportPost.mockRejectedValueOnce(networkError)
+
+      const { result } = renderHook(() => useReimportRecipe(7), {
+        wrapper: createWrapper(),
+      })
+
+      result.current.mutate({
+        importName: true,
+        importIngredients: true,
+        importSteps: true,
+        importImages: true,
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+
+      expect(result.current.error).toBe(networkError)
+      expect((result.current.error as { status?: number }).status).toBeUndefined()
     })
   })
 
