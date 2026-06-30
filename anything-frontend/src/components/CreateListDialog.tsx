@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,16 +40,17 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
   const createFromTemplate = useCreateFromTemplate();
   const { data: templates, isLoading: templatesLoading } = useShoppingListTemplates(open);
 
-  // Reset the form each time the dialog opens
-  useEffect(() => {
-    if (open) {
+  const isPending = createList.isPending || createFromTemplate.isPending;
+
+  // Reset the form on close so the next open starts fresh (without a state-syncing effect)
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
       setMode("checklist");
       setName("");
       setTemplateId(null);
     }
-  }, [open]);
-
-  const isPending = createList.isPending || createFromTemplate.isPending;
+    onOpenChange(next);
+  };
 
   const handleSelectTemplate = (id: number, templateName: string) => {
     setTemplateId(id);
@@ -65,7 +66,7 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
           name: name.trim() || null,
         });
         toast.success("List created from template");
-        onOpenChange(false);
+        handleOpenChange(false);
         if (newList?.id) onCreated(newList.id);
         return;
       }
@@ -76,7 +77,7 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
         type: mode === "checklist" ? 0 : 1,
       });
       toast.success(mode === "checklist" ? "Checklist created" : "Shopping list created");
-      onOpenChange(false);
+      handleOpenChange(false);
       if (newList?.id) onCreated(newList.id);
     } catch {
       toast.error("Failed to create list. Please try again.");
@@ -86,7 +87,7 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
   const canSubmit = mode === "template" ? templateId !== null : name.trim().length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a list</DialogTitle>
@@ -170,7 +171,7 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleCreate} disabled={!canSubmit || isPending}>
