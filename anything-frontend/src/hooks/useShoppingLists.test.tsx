@@ -12,6 +12,9 @@ import {
   useReorderShoppingListItems,
   useRemoveShoppingListItem,
   useUpdateShoppingList,
+  useShoppingListTemplates,
+  useCreateFromTemplate,
+  useSaveAsTemplate,
 } from '@/hooks/useShoppingLists'
 
 // Mock the apiClient module
@@ -26,9 +29,12 @@ const mockItemsItemDelete = jest.fn()
 const mockItemsReorderPut = jest.fn()
 const mockItemsItemById: jest.Mock = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
 const mockCompletePost = jest.fn()
+const mockSaveAsTemplatePost = jest.fn()
+const mockTemplatesGet = jest.fn()
+const mockFromTemplatePost = jest.fn()
 const mockItems = { get: mockItemsGet, post: mockItemsPost, byItemId: mockItemsItemById, reorder: { put: mockItemsReorderPut } }
 const mockComplete = { post: mockCompletePost }
-const mockById: jest.Mock = jest.fn(() => ({ delete: mockDelete, get: mockGet, put: mockPut, items: mockItems, complete: mockComplete }))
+const mockById: jest.Mock = jest.fn(() => ({ delete: mockDelete, get: mockGet, put: mockPut, items: mockItems, complete: mockComplete, saveAsTemplate: { post: mockSaveAsTemplatePost } }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -37,6 +43,8 @@ jest.mock('@/lib/apiClient', () => ({
         get: (...args: unknown[]) => mockGet(...args),
         post: (...args: unknown[]) => mockPost(...args),
         byId: (...args: unknown[]) => mockById(...args),
+        templates: { get: (...args: unknown[]) => mockTemplatesGet(...args) },
+        fromTemplate: { post: (...args: unknown[]) => mockFromTemplatePost(...args) },
       },
     },
   },
@@ -280,6 +288,68 @@ describe('useShoppingLists hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(mockItemsReorderPut).toHaveBeenCalledWith({ ids: [3, 1, 2] })
+    })
+  })
+
+  describe('useShoppingListTemplates', () => {
+    it('should fetch templates successfully', async () => {
+      const mockData = [{ id: 1, name: 'Weekly Groceries', type: 1, itemCount: 4 }]
+      mockTemplatesGet.mockResolvedValueOnce(mockData)
+
+      const { result } = renderHook(() => useShoppingListTemplates(), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual(mockData)
+      expect(mockTemplatesGet).toHaveBeenCalledTimes(1)
+    })
+
+    it('should not fetch when disabled', () => {
+      const { result } = renderHook(() => useShoppingListTemplates(false), {
+        wrapper: createWrapper(),
+      })
+
+      expect(result.current.fetchStatus).toBe('idle')
+      expect(mockTemplatesGet).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useCreateFromTemplate', () => {
+    it('should create a list from a template', async () => {
+      mockFromTemplatePost.mockResolvedValueOnce({ id: 5, name: 'Weekly Groceries' })
+
+      const { result } = renderHook(() => useCreateFromTemplate(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ templateId: 2, name: 'This Week' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockFromTemplatePost).toHaveBeenCalledWith({ templateId: 2, name: 'This Week' })
+    })
+  })
+
+  describe('useSaveAsTemplate', () => {
+    it('should save a list as a template', async () => {
+      mockSaveAsTemplatePost.mockResolvedValueOnce({ id: 8, name: 'Groceries', isTemplate: true })
+
+      const { result } = renderHook(() => useSaveAsTemplate(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ id: 1, name: 'Groceries' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockSaveAsTemplatePost).toHaveBeenCalledWith({ name: 'Groceries' })
     })
   })
 

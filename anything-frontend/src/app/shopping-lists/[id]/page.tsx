@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeleteShoppingList } from "@/hooks/useShoppingLists";
+import { useDeleteShoppingList, useSaveAsTemplate, useShoppingListTemplates } from "@/hooks/useShoppingLists";
 import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
 import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -18,7 +18,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { Pencil, Trash2, MoreVertical, SquarePen } from "lucide-react";
+import { Pencil, Trash2, MoreVertical, SquarePen, LayoutTemplate } from "lucide-react";
 import { ShoppingListView } from "./ShoppingListView";
 import { ShoppingListEditMode } from "./ShoppingListEditMode";
 
@@ -37,6 +37,7 @@ export default function ShoppingListDetailPage() {
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const handleDeleteListRef = useRef<() => void>(() => undefined);
+  const handleSaveAsTemplateRef = useRef<() => void>(() => undefined);
   const openEditNameDialogRef = useRef<() => void>(() => undefined);
 
   const { data: list } = useQuery({
@@ -46,6 +47,11 @@ export default function ShoppingListDetailPage() {
   });
 
   const deleteList = useDeleteShoppingList();
+  const saveAsTemplate = useSaveAsTemplate();
+  const { data: templates } = useShoppingListTemplates(!!list?.sourceTemplateId);
+  const sourceTemplate = list?.sourceTemplateId
+    ? templates?.find((t) => t.id === list.sourceTemplateId)
+    : undefined;
   const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
 
   // No dependency array: keeps the closure fresh without adding unstable refs to the header effect deps
@@ -57,6 +63,14 @@ export default function ShoppingListDetailPage() {
         router.push("/shopping-lists");
       } catch {
         toast.error("Failed to delete shopping list. Please try again.");
+      }
+    };
+    handleSaveAsTemplateRef.current = async () => {
+      try {
+        await saveAsTemplate.mutateAsync({ id: listId });
+        toast.success("Saved as template");
+      } catch {
+        toast.error("Failed to save as template. Please try again.");
       }
     };
   });
@@ -85,6 +99,10 @@ export default function ShoppingListDetailPage() {
             <DropdownMenuItem onSelect={() => openEditNameDialogRef.current()}>
               <SquarePen className="h-4 w-4" />
               Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleSaveAsTemplateRef.current()}>
+              <LayoutTemplate className="h-4 w-4" />
+              Save as template
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
@@ -115,6 +133,12 @@ export default function ShoppingListDetailPage() {
         inputRef={editNameDialog.inputRef}
       />
       <PageTitle>{list?.name ?? "Shopping List"}</PageTitle>
+      {sourceTemplate && (
+        <div className="-mt-2 mb-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <LayoutTemplate className="h-3.5 w-3.5" />
+          <span>From template: {sourceTemplate.name}</span>
+        </div>
+      )}
       {isEditMode ? (
         <ShoppingListEditMode listId={listId} />
       ) : (

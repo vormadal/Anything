@@ -6,6 +6,7 @@ import { getAccessToken } from "@/hooks/useAuth";
 
 type SyncEvent =
   | { type: "shoppingLists" }
+  | { type: "shoppingListTemplates" }
   | { type: "shoppingListItems"; listId: number };
 
 const SSE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
@@ -25,6 +26,8 @@ export function useRealtimeSync() {
         const data = JSON.parse(event.data) as SyncEvent;
         if (data.type === "shoppingLists") {
           queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+        } else if (data.type === "shoppingListTemplates") {
+          queryClient.invalidateQueries({ queryKey: ["shoppingListTemplates"] });
         } else if (data.type === "shoppingListItems" && data.listId !== undefined) {
           queryClient.invalidateQueries({
             queryKey: ["shoppingListItems", data.listId],
