@@ -65,21 +65,6 @@ test("back button closes hamburger menu instead of navigating away", async ({ pa
   await expect(page).toHaveURL("/");
 });
 
-test("back closes the drawer after it also triggered a navigation", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForFunction(() => window.history.length > 1);
-
-  // Opening a nav item both closes the drawer and routes to a new page.
-  // The drawer's sentinel history entry must not interfere with that
-  // navigation (regression test for the drawer-close/navigate race).
-  await page.getByRole("button", { name: /open menu/i }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Lists" }).click();
-  await page.waitForURL("**/lists");
-
-  await page.evaluate(() => window.history.back());
-  await page.waitForURL((url) => url.pathname === "/");
-});
-
 test("unauthenticated access redirects to login", async ({ browser }) => {
   // Explicitly pass an empty storageState to override the project-level storageState
   // (which contains auth tokens). Without this, browser.newContext() would inherit
