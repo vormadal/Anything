@@ -18,6 +18,10 @@ export interface HouseholdsItemRequestBuilder extends BaseRequestBuilder<Househo
     get members(): MembersRequestBuilder;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     */
+     delete(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
+    /**
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {Promise<HouseholdDetailResponse>}
      */
      get(requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<HouseholdDetailResponse | undefined>;
@@ -27,6 +31,11 @@ export interface HouseholdsItemRequestBuilder extends BaseRequestBuilder<Househo
      * @throws {HttpValidationProblemDetails} error when the service returns a 400 status code
      */
      put(body: UpdateHouseholdRequest, requestConfiguration?: RequestConfiguration<object> | undefined) : Promise<void>;
+    /**
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+     toDeleteRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined) : RequestInformation;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {RequestInformation}
@@ -56,6 +65,10 @@ export const HouseholdsItemRequestBuilderNavigationMetadata: Record<Exclude<keyo
  * Metadata for all the requests in the request builder.
  */
 export const HouseholdsItemRequestBuilderRequestsMetadata: RequestsMetadata = {
+    delete: {
+        uriTemplate: HouseholdsItemRequestBuilderUriTemplate,
+        adapterMethodName: "sendNoResponseContent",
+    },
     get: {
         uriTemplate: HouseholdsItemRequestBuilderUriTemplate,
         responseBodyContentType: "application/json",
