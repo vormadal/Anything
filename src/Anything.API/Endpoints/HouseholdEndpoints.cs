@@ -102,6 +102,18 @@ public static class HouseholdEndpoints
         .Produces(404)
         .RequireAuthorization();
 
+        group.MapDelete("/{id}", async (int id, ClaimsPrincipal user, IMediator mediator) =>
+        {
+            if (!TryGetUserId(user, out var userId))
+                return Results.Unauthorized();
+            return await mediator.Send(new DeleteHouseholdCommand(id, userId));
+        })
+        .WithName("DeleteHousehold")
+        .Produces(204)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization();
+
     }
 
     private static bool TryGetUserId(ClaimsPrincipal user, out int userId)

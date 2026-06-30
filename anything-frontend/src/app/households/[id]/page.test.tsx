@@ -20,6 +20,7 @@ const mockHouseholdDetail = {
 
 const mockHouseholdGet = jest.fn()
 const mockUpdateMutateAsync = jest.fn()
+const mockDeleteMutateAsync = jest.fn()
 const mockCreateInviteMutateAsync = jest.fn()
 const mockRemoveMutateAsync = jest.fn()
 const mockUpdateRoleMutateAsync = jest.fn()
@@ -27,6 +28,7 @@ const mockUpdateRoleMutateAsync = jest.fn()
 jest.mock('@/hooks/useHouseholds', () => ({
   useHousehold: (...args: unknown[]) => mockHouseholdGet(...args),
   useUpdateHousehold: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
+  useDeleteHousehold: () => ({ mutateAsync: mockDeleteMutateAsync, isPending: false }),
   useRemoveHouseholdMember: () => ({ mutateAsync: mockRemoveMutateAsync, isPending: false }),
   useUpdateHouseholdMemberRole: () => ({ mutateAsync: mockUpdateRoleMutateAsync, isPending: false }),
 }))
@@ -82,6 +84,7 @@ describe('HouseholdDetailPage', () => {
     mockHouseholdGet.mockReturnValue({ data: mockHouseholdDetail, isLoading: false })
     mockCurrentUser.mockReturnValue({ data: { name: 'Admin', email: 'admin@test.com', role: 'Admin' } })
     mockUpdateMutateAsync.mockResolvedValue(undefined)
+    mockDeleteMutateAsync.mockResolvedValue(undefined)
     mockCreateInviteMutateAsync.mockResolvedValue({ inviteUrl: '/register?token=abc', token: 'abc' })
     mockRemoveMutateAsync.mockResolvedValue(undefined)
     mockUpdateRoleMutateAsync.mockResolvedValue(undefined)
@@ -284,6 +287,69 @@ describe('HouseholdDetailPage', () => {
       await waitFor(() => screen.getAllByText('Smith Family'))
       expect(screen.queryByText('Configuration')).not.toBeInTheDocument()
       expect(screen.queryByText('Suggestions')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Danger zone', () => {
+    it('shows Danger Zone with Delete button for the Owner', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => {
+        expect(screen.getByText('Danger Zone')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument()
+      })
+    })
+
+    it('hides Danger Zone for non-owner managers', async () => {
+      mockGetHouseholdRole.mockReturnValue('Admin')
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getAllByText('Smith Family'))
+      expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument()
+    })
+
+    it('opens delete confirmation dialog when Delete is clicked', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByRole('button', { name: /^delete$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+      expect(screen.getByRole('heading', { name: 'Delete Household' })).toBeInTheDocument()
+    })
+
+    it('keeps the confirm button disabled until the household name is typed exactly', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByRole('button', { name: /^delete$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+
+      const confirmBtn = screen.getByRole('button', { name: /^delete household$/i })
+      expect(confirmBtn).toBeDisabled()
+
+      const input = screen.getByLabelText(/type/i)
+      fireEvent.change(input, { target: { value: 'wrong name' } })
+      expect(confirmBtn).toBeDisabled()
+
+      fireEvent.change(input, { target: { value: 'Smith Family' } })
+      expect(confirmBtn).toBeEnabled()
+    })
+
+    it('calls deleteHousehold and navigates away when confirmed', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByRole('button', { name: /^delete$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+
+      fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'Smith Family' } })
+      fireEvent.click(screen.getByRole('button', { name: /^delete household$/i }))
+
+      await waitFor(() => {
+        expect(mockDeleteMutateAsync).toHaveBeenCalledWith(1)
+        expect(toast.success).toHaveBeenCalledWith('Household deleted')
+        expect(mockPush).toHaveBeenCalledWith('/households')
+      })
+    })
+
+    it('does not delete when the dialog is cancelled', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByRole('button', { name: /^delete$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+      expect(mockDeleteMutateAsync).not.toHaveBeenCalled()
     })
   })
 })

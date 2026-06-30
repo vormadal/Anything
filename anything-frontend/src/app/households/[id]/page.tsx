@@ -14,6 +14,7 @@ import {
 import {
   useHousehold,
   useUpdateHousehold,
+  useDeleteHousehold,
   useRemoveHouseholdMember,
   useUpdateHouseholdMemberRole,
   type HouseholdMember,
@@ -53,6 +54,7 @@ export default function HouseholdDetailPage() {
   const canManage = canManageHousehold(currentRole);
   const isOwner = isHouseholdOwner(currentRole);
   const updateHousehold = useUpdateHousehold();
+  const deleteHousehold = useDeleteHousehold();
   const createInvite = useCreateInvite();
   const removeMember = useRemoveHouseholdMember();
   const updateMemberRole = useUpdateHouseholdMemberRole();
@@ -66,6 +68,8 @@ export default function HouseholdDetailPage() {
   const [inviteData, setInviteData] = useState<{ email: string; url: string } | null>(null);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<HouseholdMember | null>(null);
+  const [showDeleteHousehold, setShowDeleteHousehold] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
   useEffect(() => {
     setLeftAction({ type: "back", href: "/households" });
@@ -151,6 +155,18 @@ export default function HouseholdDetailPage() {
       setMemberToRemove(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to remove member";
+      toast.error(message);
+    }
+  };
+
+  const handleDeleteHousehold = async () => {
+    if (!isValidId || !household || deleteConfirmName !== household.name) return;
+    try {
+      await deleteHousehold.mutateAsync(householdId);
+      toast.success("Household deleted");
+      router.push("/households");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete household";
       toast.error(message);
     }
   };
@@ -326,6 +342,37 @@ export default function HouseholdDetailPage() {
         </div>
       )}
 
+      {/* Danger zone — Owner only */}
+      {isOwner && (
+        <div>
+          <h2 className="text-sm font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5 mb-2">
+            <Trash2 className="h-4 w-4" />
+            Danger Zone
+          </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-red-200 dark:border-red-900/50 p-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                Delete this household
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Permanently removes the household for all members. This cannot be undone.
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                setDeleteConfirmName("");
+                setShowDeleteHousehold(true);
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Invite member dialog */}
       <Dialog open={showInvite} onOpenChange={handleCloseInvite}>
         <DialogContent>
@@ -451,6 +498,50 @@ export default function HouseholdDetailPage() {
               disabled={removeMember.isPending}
             >
               {removeMember.isPending ? "Removing..." : "Remove"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete household confirmation dialog */}
+      <Dialog open={showDeleteHousehold} onOpenChange={setShowDeleteHousehold}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Household</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            This permanently deletes <span className="font-medium">{household.name}</span> and
+            all of its data for every member. This cannot be undone.
+          </p>
+          <div className="space-y-2 mt-2">
+            <label htmlFor="delete-confirm-name" className="text-xs text-gray-500 dark:text-gray-400">
+              Type <span className="font-medium">{household.name}</span> to confirm.
+            </label>
+            <input
+              id="delete-confirm-name"
+              type="text"
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              placeholder={household.name}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-2 justify-end mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeleteHousehold(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteHousehold}
+              disabled={deleteHousehold.isPending || deleteConfirmName !== household.name}
+            >
+              {deleteHousehold.isPending ? "Deleting..." : "Delete Household"}
             </Button>
           </div>
         </DialogContent>

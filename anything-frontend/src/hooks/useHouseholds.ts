@@ -114,6 +114,19 @@ export function useUpdateHousehold() {
   });
 }
 
+export function useDeleteHousehold() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await apiClient.api.households.byId(id).delete();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+    },
+  });
+}
+
 export function useAddHouseholdMember() {
   const queryClient = useQueryClient();
 
