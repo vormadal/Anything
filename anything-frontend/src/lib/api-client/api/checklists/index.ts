@@ -4,9 +4,13 @@
 // @ts-ignore
 import { createHttpValidationProblemDetailsFromDiscriminatorValue, createShoppingListFromDiscriminatorValue, createShoppingListResponseFromDiscriminatorValue, serializeCreateShoppingListRequest, serializeShoppingList, type CreateShoppingListRequest, type HttpValidationProblemDetails, type ShoppingList, type ShoppingListResponse } from '../../models/index';
 // @ts-ignore
+import { FromTemplateRequestBuilderRequestsMetadata, type FromTemplateRequestBuilder } from './fromTemplate/index';
+// @ts-ignore
 import { ChecklistsItemRequestBuilderNavigationMetadata, ChecklistsItemRequestBuilderRequestsMetadata, type ChecklistsItemRequestBuilder } from './item/index';
 // @ts-ignore
 import { ReorderRequestBuilderRequestsMetadata, type ReorderRequestBuilder } from './reorder/index';
+// @ts-ignore
+import { TemplatesRequestBuilderRequestsMetadata, type TemplatesRequestBuilder } from './templates/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
@@ -15,9 +19,17 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  */
 export interface ChecklistsRequestBuilder extends BaseRequestBuilder<ChecklistsRequestBuilder> {
     /**
+     * The fromTemplate property
+     */
+    get fromTemplate(): FromTemplateRequestBuilder;
+    /**
      * The reorder property
      */
     get reorder(): ReorderRequestBuilder;
+    /**
+     * The templates property
+     */
+    get templates(): TemplatesRequestBuilder;
     /**
      * Gets an item from the ApiSdk.api.checklists.item collection
      * @param id Unique identifier of the item
@@ -61,8 +73,14 @@ export const ChecklistsRequestBuilderNavigationMetadata: Record<Exclude<keyof Ch
         navigationMetadata: ChecklistsItemRequestBuilderNavigationMetadata,
         pathParametersMappings: ["id"],
     },
+    fromTemplate: {
+        requestsMetadata: FromTemplateRequestBuilderRequestsMetadata,
+    },
     reorder: {
         requestsMetadata: ReorderRequestBuilderRequestsMetadata,
+    },
+    templates: {
+        requestsMetadata: TemplatesRequestBuilderRequestsMetadata,
     },
 };
 /**

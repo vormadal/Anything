@@ -671,6 +671,15 @@ export function createCreateRecommendationRequestFromDiscriminatorValue(parseNod
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateShoppingListFromTemplateRequest}
+ */
+// @ts-ignore
+export function createCreateShoppingListFromTemplateRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateShoppingListFromTemplateRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {CreateShoppingListItemRequest}
  */
 // @ts-ignore
@@ -1343,6 +1352,15 @@ export function createReorderSuggestionCategoriesRequestFromDiscriminatorValue(p
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SaveAsTemplateRequest}
+ */
+// @ts-ignore
+export function createSaveAsTemplateRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSaveAsTemplateRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {SharedIngredientResponse}
  */
 // @ts-ignore
@@ -1375,6 +1393,16 @@ export function createSharedStepResponseFromDiscriminatorValue(parseNode: ParseN
 // @ts-ignore
 export function createShoppingListFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoShoppingList;
+}
+export interface CreateShoppingListFromTemplateRequest extends Parsable {
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The templateId property
+     */
+    templateId?: number | null;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1426,6 +1454,15 @@ export interface CreateShoppingListRequest extends Parsable {
 // @ts-ignore
 export function createShoppingListResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoShoppingListResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ShoppingListTemplateResponse}
+ */
+// @ts-ignore
+export function createShoppingListTemplateResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoShoppingListTemplateResponse;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -2135,6 +2172,18 @@ export function deserializeIntoCreateRecommendationRequest(createRecommendationR
     return {
         "name": n => { createRecommendationRequest.name = n.getStringValue(); },
         "preferredUnit": n => { createRecommendationRequest.preferredUnit = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateShoppingListFromTemplateRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateShoppingListFromTemplateRequest(createShoppingListFromTemplateRequest: Partial<CreateShoppingListFromTemplateRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { createShoppingListFromTemplateRequest.name = n.getStringValue(); },
+        "templateId": n => { createShoppingListFromTemplateRequest.templateId = n.getNumberValue(); },
     }
 }
 /**
@@ -2936,6 +2985,17 @@ export function deserializeIntoReorderSuggestionCategoriesRequest(reorderSuggest
 }
 /**
  * The deserialization information for the current model
+ * @param SaveAsTemplateRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSaveAsTemplateRequest(saveAsTemplateRequest: Partial<SaveAsTemplateRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { saveAsTemplateRequest.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param SharedIngredientResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -2996,9 +3056,11 @@ export function deserializeIntoShoppingList(shoppingList: Partial<ShoppingList> 
         "deletedOn": n => { shoppingList.deletedOn = n.getDateValue(); },
         "householdId": n => { shoppingList.householdId = n.getNumberValue(); },
         "id": n => { shoppingList.id = n.getNumberValue(); },
+        "isTemplate": n => { shoppingList.isTemplate = n.getBooleanValue(); },
         "modifiedOn": n => { shoppingList.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingList.name = n.getStringValue(); },
         "sortOrder": n => { shoppingList.sortOrder = n.getNumberValue(); },
+        "sourceTemplateId": n => { shoppingList.sourceTemplateId = n.getNumberValue(); },
         "type": n => { shoppingList.type = n.getNumberValue(); },
     }
 }
@@ -3056,6 +3118,22 @@ export function deserializeIntoShoppingListResponse(shoppingListResponse: Partia
         "name": n => { shoppingListResponse.name = n.getStringValue(); },
         "type": n => { shoppingListResponse.type = n.getNumberValue(); },
         "uncheckedItemCount": n => { shoppingListResponse.uncheckedItemCount = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param ShoppingListTemplateResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoShoppingListTemplateResponse(shoppingListTemplateResponse: Partial<ShoppingListTemplateResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { shoppingListTemplateResponse.createdOn = n.getDateValue(); },
+        "id": n => { shoppingListTemplateResponse.id = n.getNumberValue(); },
+        "itemCount": n => { shoppingListTemplateResponse.itemCount = n.getNumberValue(); },
+        "modifiedOn": n => { shoppingListTemplateResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { shoppingListTemplateResponse.name = n.getStringValue(); },
+        "type": n => { shoppingListTemplateResponse.type = n.getNumberValue(); },
     }
 }
 /**
@@ -4359,6 +4437,12 @@ export interface ReorderSuggestionCategoriesRequest extends Parsable {
      */
     ids?: number[] | null;
 }
+export interface SaveAsTemplateRequest extends Parsable {
+    /**
+     * The name property
+     */
+    name?: string | null;
+}
 /**
  * Serializes information the current object
  * @param AddBillPriceRequest The instance to serialize from.
@@ -4779,6 +4863,18 @@ export function serializeCreateRecommendationRequest(writer: SerializationWriter
     if (!createRecommendationRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", createRecommendationRequest.name);
     writer.writeStringValue("preferredUnit", createRecommendationRequest.preferredUnit);
+}
+/**
+ * Serializes information the current object
+ * @param CreateShoppingListFromTemplateRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateShoppingListFromTemplateRequest(writer: SerializationWriter, createShoppingListFromTemplateRequest: Partial<CreateShoppingListFromTemplateRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createShoppingListFromTemplateRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", createShoppingListFromTemplateRequest.name);
+    writer.writeNumberValue("templateId", createShoppingListFromTemplateRequest.templateId);
 }
 /**
  * Serializes information the current object
@@ -5582,6 +5678,17 @@ export function serializeReorderSuggestionCategoriesRequest(writer: Serializatio
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SaveAsTemplateRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSaveAsTemplateRequest(writer: SerializationWriter, saveAsTemplateRequest: Partial<SaveAsTemplateRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!saveAsTemplateRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", saveAsTemplateRequest.name);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param SharedIngredientResponse The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -5642,9 +5749,11 @@ export function serializeShoppingList(writer: SerializationWriter, shoppingList:
     writer.writeDateValue("deletedOn", shoppingList.deletedOn);
     writer.writeNumberValue("householdId", shoppingList.householdId);
     writer.writeNumberValue("id", shoppingList.id);
+    writer.writeBooleanValue("isTemplate", shoppingList.isTemplate);
     writer.writeDateValue("modifiedOn", shoppingList.modifiedOn);
     writer.writeStringValue("name", shoppingList.name);
     writer.writeNumberValue("sortOrder", shoppingList.sortOrder);
+    writer.writeNumberValue("sourceTemplateId", shoppingList.sourceTemplateId);
     writer.writeNumberValue("type", shoppingList.type);
 }
 /**
@@ -5702,6 +5811,22 @@ export function serializeShoppingListResponse(writer: SerializationWriter, shopp
     writer.writeStringValue("name", shoppingListResponse.name);
     writer.writeNumberValue("type", shoppingListResponse.type);
     writer.writeNumberValue("uncheckedItemCount", shoppingListResponse.uncheckedItemCount);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ShoppingListTemplateResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeShoppingListTemplateResponse(writer: SerializationWriter, shoppingListTemplateResponse: Partial<ShoppingListTemplateResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!shoppingListTemplateResponse || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", shoppingListTemplateResponse.createdOn);
+    writer.writeNumberValue("id", shoppingListTemplateResponse.id);
+    writer.writeNumberValue("itemCount", shoppingListTemplateResponse.itemCount);
+    writer.writeDateValue("modifiedOn", shoppingListTemplateResponse.modifiedOn);
+    writer.writeStringValue("name", shoppingListTemplateResponse.name);
+    writer.writeNumberValue("type", shoppingListTemplateResponse.type);
 }
 /**
  * Serializes information the current object
@@ -6178,6 +6303,10 @@ export interface ShoppingList extends Parsable {
      */
     id?: number | null;
     /**
+     * The isTemplate property
+     */
+    isTemplate?: boolean | null;
+    /**
      * The modifiedOn property
      */
     modifiedOn?: Date | null;
@@ -6189,6 +6318,10 @@ export interface ShoppingList extends Parsable {
      * The sortOrder property
      */
     sortOrder?: number | null;
+    /**
+     * The sourceTemplateId property
+     */
+    sourceTemplateId?: number | null;
     /**
      * The type property
      */
@@ -6303,6 +6436,32 @@ export interface ShoppingListResponse extends Parsable {
      * The uncheckedItemCount property
      */
     uncheckedItemCount?: number | null;
+}
+export interface ShoppingListTemplateResponse extends Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The itemCount property
+     */
+    itemCount?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The type property
+     */
+    type?: number | null;
 }
 export interface Something extends Parsable {
     /**
