@@ -34,6 +34,7 @@ export function useBackInterceptor({
   const sentinelActiveRef = useRef(false);
   const suppressNextPopstateRef = useRef(false);
   const wasAnyActiveRef = useRef(false);
+  const pathnameAtSentinelRef = useRef<string | null>(null);
 
   const isAnyActive = handlers.some((h) => h.isActive);
 
@@ -42,12 +43,19 @@ export function useBackInterceptor({
     wasAnyActiveRef.current = isAnyActive;
 
     if (isAnyActive && !wasActive) {
+      pathnameAtSentinelRef.current = window.location.pathname;
       window.history.pushState(SENTINEL, "");
       sentinelActiveRef.current = true;
     } else if (!isAnyActive && wasActive && sentinelActiveRef.current) {
-      suppressNextPopstateRef.current = true;
       sentinelActiveRef.current = false;
-      window.history.back();
+      // If the page has already navigated elsewhere (e.g. a nav item both
+      // closed the drawer and routed away), the sentinel is no longer the
+      // top history entry — popping now would undo that navigation instead
+      // of discarding the sentinel.
+      if (window.location.pathname === pathnameAtSentinelRef.current) {
+        suppressNextPopstateRef.current = true;
+        window.history.back();
+      }
     }
   }, [isAnyActive]);
 

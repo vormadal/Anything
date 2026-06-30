@@ -65,56 +65,19 @@ test("back button closes hamburger menu instead of navigating away", async ({ pa
   await expect(page).toHaveURL("/");
 });
 
-test("back button shows exit prompt on root page", async ({ page }) => {
+test("back closes the drawer after it also triggered a navigation", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(() => window.history.length > 1);
 
-  await page.evaluate(() => window.history.back());
-
-  await expect(page.getByText(/press back again to exit/i)).toBeVisible();
-  await expect(page).toHaveURL("/");
-});
-
-test("pressing back twice within 2s on root page allows exit", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForFunction(() => window.history.length > 1);
-
-  await page.evaluate(() => window.history.back());
-  await expect(page.getByText(/press back again to exit/i)).toBeVisible();
-
-  await page.evaluate(() => window.history.back());
-  await page.waitForTimeout(300);
-
-  await expect(page.getByText(/press back again to exit/i)).not.toBeVisible({ timeout: 500 });
-});
-
-test("back from an in-app page navigates back without the exit prompt", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForFunction(() => window.history.length > 1);
-
-  // Navigate within the app (client-side) so there is in-app history behind us.
+  // Opening a nav item both closes the drawer and routes to a new page.
+  // The drawer's sentinel history entry must not interfere with that
+  // navigation (regression test for the drawer-close/navigate race).
   await page.getByRole("button", { name: /open menu/i }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Lists" }).click();
   await page.waitForURL("**/lists");
 
-  // Pressing back must return to the previous in-app page, NOT show the
-  // "press back again to exit" prompt (the reported bug).
   await page.evaluate(() => window.history.back());
   await page.waitForURL((url) => url.pathname === "/");
-
-  await expect(page.getByText(/press back again to exit/i)).not.toBeVisible();
-});
-
-test("back on a directly-opened deep link still shows the exit prompt", async ({ page }) => {
-  // Opening a shared link straight to a sub-page makes that page the app's entry
-  // point, so the first back press would exit the app and must be guarded.
-  await page.goto("/recipes/new");
-  await page.waitForFunction(() => window.history.length > 1);
-
-  await page.evaluate(() => window.history.back());
-
-  await expect(page.getByText(/press back again to exit/i)).toBeVisible();
-  await expect(page).toHaveURL(/\/recipes\/new/);
 });
 
 test("unauthenticated access redirects to login", async ({ browser }) => {

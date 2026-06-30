@@ -155,6 +155,29 @@ describe("useBackInterceptor", () => {
     expect(onBack).not.toHaveBeenCalled();
   });
 
+  it("does not call history.back when the page navigated away while deactivating", () => {
+    // e.g. a nav item that both closes the drawer and routes to a new page —
+    // popping here would undo that navigation instead of discarding the
+    // sentinel, since the sentinel is no longer the top history entry.
+    const onBack = jest.fn();
+    const { rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useBackInterceptor({ handlers: [{ isActive: active, onBack }] }),
+      { initialProps: { active: true } }
+    );
+
+    // Simulate a real navigation (bypassing the pushState spy's no-op) so
+    // window.location.pathname actually changes, the way router.push would.
+    const originalPathname = window.location.pathname;
+    History.prototype.pushState.call(window.history, null, "", "/lists");
+
+    rerender({ active: false });
+
+    expect(backSpy).not.toHaveBeenCalled();
+
+    History.prototype.pushState.call(window.history, null, "", originalPathname);
+  });
+
   it("does not call history.back when deactivating without a prior sentinel", () => {
     // Handlers that were never active should not trigger cleanup.
     const onBack = jest.fn();
