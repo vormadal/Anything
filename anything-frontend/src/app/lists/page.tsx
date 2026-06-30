@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { CountBadge } from "@/components/ui/count-badge";
-import { useShoppingLists, useCreateShoppingList, useReorderShoppingLists } from "@/hooks/useShoppingLists";
-import { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
+import { useShoppingLists, useReorderShoppingLists } from "@/hooks/useShoppingLists";
+import { CreateListDialog } from "@/components/CreateListDialog";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
@@ -77,11 +77,7 @@ function DraggableListItem({ list, onClick }: { list: ShoppingListResponse; onCl
 
 export default function ListsPage() {
   const [isCreating, setIsCreating] = useState(false);
-  const [newListName, setNewListName] = useState("");
-  const [newListType, setNewListType] = useState<number>(1);
-  const inputRef = useRef<HTMLInputElement>(null);
   const { data: lists, isLoading, error } = useShoppingLists();
-  const createList = useCreateShoppingList();
   const reorderLists = useReorderShoppingLists();
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
@@ -105,28 +101,6 @@ export default function ListsPage() {
     reorderLists.mutate(reordered.map((l) => l.id ?? 0));
   };
 
-  const handleCreateList = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newListName.trim()) return;
-    try {
-      const newList = await createList.mutateAsync({ name: newListName, type: newListType });
-      setNewListName("");
-      setIsCreating(false);
-      toast.success("List created");
-      if (newList?.id) {
-        router.push(`/lists/${newList.id}`);
-      }
-    } catch {
-      toast.error("Failed to create list. Please try again.");
-    }
-  };
-
-  const handleCancelCreate = () => {
-    setIsCreating(false);
-    setNewListName("");
-    setNewListType(1);
-  };
-
   useEffect(() => {
     setHeaderActions(
       <div className="flex items-center gap-1 ml-auto">
@@ -143,52 +117,16 @@ export default function ListsPage() {
     return () => setHeaderActions(null);
   }, [setHeaderActions]);
 
-  useEffect(() => {
-    if (isCreating) {
-      inputRef.current?.focus();
-    }
-  }, [isCreating]);
-
   const hasActiveLists = lists && lists.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <PageTitle>Lists</PageTitle>
-      {isCreating && (
-        <form onSubmit={handleCreateList} className="mb-4">
-          <div className="flex gap-2 flex-wrap">
-            <input
-              ref={inputRef}
-              type="text"
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              placeholder="List name..."
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              onKeyDown={(e) => {
-                if (e.key === "Escape") handleCancelCreate();
-              }}
-            />
-            <div className="flex gap-2 items-center">
-              <label className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input type="radio" name="listType" value="1" checked={newListType === 1} onChange={() => setNewListType(1)} className="accent-green-500" />
-                <ShoppingCart className="h-4 w-4 text-green-500" />
-                Shopping
-              </label>
-              <label className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input type="radio" name="listType" value="0" checked={newListType === 0} onChange={() => setNewListType(0)} className="accent-blue-500" />
-                <ListChecks className="h-4 w-4 text-blue-500" />
-                Checklist
-              </label>
-            </div>
-            <Button type="submit" size="sm" disabled={createList.isPending}>
-              {createList.isPending ? "Creating..." : "Create list"}
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={handleCancelCreate}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      )}
+      <CreateListDialog
+        open={isCreating}
+        onOpenChange={setIsCreating}
+        onCreated={(listId) => router.push(`/lists/${listId}`)}
+      />
 
       {isLoading && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -202,7 +140,7 @@ export default function ListsPage() {
         </div>
       )}
 
-      {lists && lists.length === 0 && !isCreating && (
+      {lists?.length === 0 && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           No lists yet.
         </div>
