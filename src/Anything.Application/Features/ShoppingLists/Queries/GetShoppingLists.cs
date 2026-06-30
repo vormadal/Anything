@@ -15,7 +15,7 @@ public class GetShoppingListsHandler(IRepository<ShoppingList> listRepository, I
     public async Task<List<ShoppingListResponse>> Handle(GetShoppingListsQuery query, CancellationToken ct = default)
     {
         return await listRepository.Query()
-            .Where(l => l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
+            .Where(l => l.DeletedOn == null && !l.IsTemplate && l.HouseholdId == householdContext.HouseholdId)
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.CreatedOn)
             .GroupJoin(

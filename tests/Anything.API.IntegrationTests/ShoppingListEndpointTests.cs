@@ -551,6 +551,147 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    // --- Templates: POST /api/checklists/{id}/save-as-template ---
+
+    [Fact]
+    public async Task SaveAsTemplate_CopiesItemsAndExcludesFromActiveLists()
+    {
+        var list = await CreateGeneralChecklistAsync("Weekly Chores");
+        await AddItemAsync(list.Id, "Vacuum", null, null);
+        await AddItemAsync(list.Id, "Dishes", null, null);
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/checklists/{list.Id}/save-as-template", new { }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var template = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(template);
+        Assert.True(template.IsTemplate);
+        Assert.Equal("Weekly Chores", template.Name);
+        Assert.Equal(0, template.Type);
+
+        // The template does not appear among active lists
+        var listsResponse = await client.GetAsync("/api/checklists", TestContext.Current.CancellationToken);
+        var lists = await listsResponse.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(lists);
+        Assert.DoesNotContain(lists, l => l.Id == template.Id);
+
+        // Its items were copied
+        var itemsResponse = await client.GetAsync($"/api/checklists/{template.Id}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(items);
+        Assert.Equal(["Vacuum", "Dishes"], items.Select(i => i.Name).ToArray());
+    }
+
+    [Fact]
+    public async Task SaveAsTemplate_WithCustomName_UsesProvidedName()
+    {
+        var list = await CreateShoppingListAsync("Original");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/checklists/{list.Id}/save-as-template", new { name = "My Template" }, TestContext.Current.CancellationToken);
+        var template = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Equal("My Template", template?.Name);
+    }
+
+    [Fact]
+    public async Task SaveAsTemplate_WhenListNotFound_Returns404()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync(
+            "/api/checklists/99999/save-as-template", new { }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- Templates: GET /api/checklists/templates ---
+
+    [Fact]
+    public async Task GetTemplates_ReturnsTemplatesWithItemCount()
+    {
+        var list = await CreateShoppingListAsync("Groceries");
+        await AddItemAsync(list.Id, "Milk", null, null);
+        await AddItemAsync(list.Id, "Bread", null, null);
+        var template = await SaveAsTemplateAsync(list.Id, "Grocery Template");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync("/api/checklists/templates", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var templates = await response.Content.ReadFromJsonAsync<ShoppingListTemplateDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(templates);
+        var dto = Assert.Single(templates, t => t.Id == template.Id);
+        Assert.Equal("Grocery Template", dto.Name);
+        Assert.Equal(2, dto.ItemCount);
+    }
+
+    // --- Templates: POST /api/checklists/from-template ---
+
+    [Fact]
+    public async Task CreateFromTemplate_CopiesItemsUncheckedAndTracksSource()
+    {
+        var source = await CreateShoppingListAsync("Source");
+        await AddItemAsync(source.Id, "Apples", 3m, "kg");
+        await AddItemAsync(source.Id, "Oranges", null, null);
+        var template = await SaveAsTemplateAsync(source.Id, "Fruit Template");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync(
+            "/api/checklists/from-template", new { templateId = template.Id }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var newList = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(newList);
+        Assert.Equal("Fruit Template", newList.Name);
+        Assert.Equal(template.Id, newList.SourceTemplateId);
+        Assert.False(newList.IsTemplate);
+
+        // Appears among active lists
+        var listsResponse = await client.GetAsync("/api/checklists", TestContext.Current.CancellationToken);
+        var lists = await listsResponse.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(lists);
+        Assert.Contains(lists, l => l.Id == newList.Id);
+
+        // Items copied and unchecked
+        var itemsResponse = await client.GetAsync($"/api/checklists/{newList.Id}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(items);
+        Assert.Equal(["Apples", "Oranges"], items.Select(i => i.Name).ToArray());
+        Assert.All(items, i => Assert.False(i.IsChecked));
+        Assert.Contains(items, i => i.Name == "Apples" && i.Amount == 3m && i.Unit == "kg");
+    }
+
+    [Fact]
+    public async Task CreateFromTemplate_WithCustomName_UsesProvidedName()
+    {
+        var source = await CreateShoppingListAsync("Source");
+        var template = await SaveAsTemplateAsync(source.Id, "Template");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/checklists/from-template", new { templateId = template.Id, name = "This Week" }, TestContext.Current.CancellationToken);
+        var newList = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Equal("This Week", newList?.Name);
+    }
+
+    [Fact]
+    public async Task CreateFromTemplate_WhenTemplateNotFound_Returns404()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync(
+            "/api/checklists/from-template", new { templateId = 99999 }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateFromTemplate_WithNonTemplateId_Returns404()
+    {
+        // A regular list id is not a valid template
+        var list = await CreateShoppingListAsync("Regular List");
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync(
+            "/api/checklists/from-template", new { templateId = list.Id }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     // --- Helpers ---
 
     private async Task<ShoppingListDto> CreateShoppingListAsync(string name)
@@ -573,6 +714,16 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         return result;
     }
 
+    private async Task<ShoppingListDto> SaveAsTemplateAsync(int listId, string name)
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync($"/api/checklists/{listId}/save-as-template", new { name }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        return result;
+    }
+
     private async Task<ShoppingListItemDto> AddItemAsync(int listId, string name, decimal? amount, string? unit)
     {
         var client = await GetAuthenticatedHttpClientAsync();
@@ -584,6 +735,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record ShoppingListDto(int Id, string? Name, int Type = 1, DateTime? DeletedOn = null);
+    private record ShoppingListDto(int Id, string? Name, int Type = 1, DateTime? DeletedOn = null, bool IsTemplate = false, int? SourceTemplateId = null);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
+    private record ShoppingListTemplateDto(int Id, string? Name, int Type, int ItemCount);
 }
