@@ -188,6 +188,78 @@ public class HouseholdEndpointTests : IntegrationTestBase
     }
 
     // -------------------------------------------------------------------------
+    // Delete household tests
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task DeleteHousehold_ByOwner_RemovesItFromHouseholdList()
+    {
+        var token = await GetAdminTokenAsync();
+        var client = Factory.CreateClient();
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+
+        var createResponse = await client.PostAsJsonAsync(
+            "/api/households", new { name = "Household To Delete" }, TestContext.Current.CancellationToken);
+        var created = await createResponse.Content.ReadFromJsonAsync<HouseholdResponse>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(created);
+
+        var deleteResponse = await client.DeleteAsync(
+            $"/api/households/{created.Id}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var listResponse = await client.GetAsync("/api/households", TestContext.Current.CancellationToken);
+        var households = await listResponse.Content.ReadFromJsonAsync<HouseholdResponse[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(households);
+        Assert.DoesNotContain(households, h => h.Id == created.Id);
+
+        var getResponse = await client.GetAsync(
+            $"/api/households/{created.Id}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteHousehold_ByNonOwnerMember_Returns403()
+    {
+        var token = await GetAdminTokenAsync();
+        var adminClient = Factory.CreateClient();
+        adminClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+
+        // Register a regular user and add them as an Admin (not Owner) of the household.
+        var inviteResp = await adminClient.PostAsJsonAsync(
+            "/api/auth/invites", new { email = "deleter-admin@test.com" }, TestContext.Current.CancellationToken);
+        var invite = await inviteResp.Content.ReadFromJsonAsync<InviteResponse>(JsonOptions, TestContext.Current.CancellationToken);
+        var registerResp = await HttpClient.PostAsJsonAsync("/api/auth/register", new
+        {
+            email = "deleter-admin@test.com",
+            password = "User123!",
+            name = "Deleter Admin",
+            inviteToken = invite!.Token
+        }, TestContext.Current.CancellationToken);
+        var registered = await registerResp.Content.ReadFromJsonAsync<RegisterResponse>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(registered);
+
+        await adminClient.PostAsJsonAsync(
+            $"/api/households/{DefaultHouseholdId}/members",
+            new { userId = registered.Id, role = "Admin" },
+            TestContext.Current.CancellationToken);
+
+        var loginResponse = await HttpClient.PostAsJsonAsync("/api/auth/login", new
+        {
+            email = "deleter-admin@test.com",
+            password = "User123!"
+        }, TestContext.Current.CancellationToken);
+        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, TestContext.Current.CancellationToken);
+
+        var adminMemberClient = Factory.CreateClient();
+        adminMemberClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {login!.AccessToken}");
+
+        var response = await adminMemberClient.DeleteAsync(
+            $"/api/households/{DefaultHouseholdId}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    // -------------------------------------------------------------------------
     // Member management tests
     // -------------------------------------------------------------------------
 

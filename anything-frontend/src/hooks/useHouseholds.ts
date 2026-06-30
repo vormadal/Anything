@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, apiFetch } from "@/lib/apiClient";
 import type {
   HouseholdResponse,
   HouseholdDetailResponse,
@@ -107,6 +107,22 @@ export function useUpdateHousehold() {
   return useMutation({
     mutationFn: async (data: { id: number; name: string }) => {
       await apiClient.api.households.byId(data.id).put({ name: data.name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["households"] });
+    },
+  });
+}
+
+// DELETE /api/households/{id} isn't in the generated Kiota client yet
+// (the update-api-client workflow regenerates it after this lands), so use apiFetch.
+export function useDeleteHousehold() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiFetch(`/api/households/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete household");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["households"] });
