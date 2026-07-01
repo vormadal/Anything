@@ -34,7 +34,6 @@ import { CookingModeProvider } from "@/context/CookingModeContext";
 import { CookingModeDrawer } from "@/components/CookingModeDrawer";
 import { useSmartBack } from "@/hooks/useSmartBack";
 import { useIsAuthenticated } from "@/hooks/useAuth";
-import { useBackInterceptor } from "@/hooks/useBackInterceptor";
 
 const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 
@@ -80,10 +79,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
   const { navigateBack } = useSmartBack();
 
-  const { skipCleanup } = useBackInterceptor({
-    handlers: [{ isActive: drawerOpen, onBack: () => setDrawerOpen(false) }],
-  });
-
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace("/login");
@@ -95,13 +90,11 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   const navigate = (path: string) => {
-    skipCleanup();
     setDrawerOpen(false);
     router.push(path);
   };
 
   const handleLogout = async () => {
-    skipCleanup();
     setDrawerOpen(false);
     await logout.mutateAsync();
     toast.success("Logged out successfully");
