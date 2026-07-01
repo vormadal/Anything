@@ -155,10 +155,29 @@ describe("useBackInterceptor", () => {
     expect(onBack).not.toHaveBeenCalled();
   });
 
-  it("does not call history.back when the page navigated away while deactivating", () => {
+  it("does not call history.back when skipCleanup was called before deactivating", () => {
     // e.g. a nav item that both closes the drawer and routes to a new page —
     // popping here would undo that navigation instead of discarding the
-    // sentinel, since the sentinel is no longer the top history entry.
+    // sentinel. router.push() commits its URL change asynchronously (via a
+    // React transition), so callers must signal intent explicitly via
+    // skipCleanup() rather than relying on window.location having already
+    // changed by the time this hook's effect runs.
+    const onBack = jest.fn();
+    const { result, rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useBackInterceptor({ handlers: [{ isActive: active, onBack }] }),
+      { initialProps: { active: true } }
+    );
+
+    result.current.skipCleanup();
+    rerender({ active: false });
+
+    expect(backSpy).not.toHaveBeenCalled();
+  });
+
+  it("calls history.back when deactivating without skipCleanup, even if the URL has not changed yet", () => {
+    // Mirrors the real-world timing of router.push(): the URL update lands
+    // in a later transition commit, so it must not be used as the signal.
     const onBack = jest.fn();
     const { rerender } = renderHook(
       ({ active }: { active: boolean }) =>
@@ -166,16 +185,9 @@ describe("useBackInterceptor", () => {
       { initialProps: { active: true } }
     );
 
-    // Simulate a real navigation (bypassing the pushState spy's no-op) so
-    // window.location.pathname actually changes, the way router.push would.
-    const originalPathname = window.location.pathname;
-    History.prototype.pushState.call(window.history, null, "", "/lists");
-
     rerender({ active: false });
 
-    expect(backSpy).not.toHaveBeenCalled();
-
-    History.prototype.pushState.call(window.history, null, "", originalPathname);
+    expect(backSpy).toHaveBeenCalled();
   });
 
   it("does not call history.back when deactivating without a prior sentinel", () => {

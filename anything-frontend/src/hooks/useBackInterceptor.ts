@@ -34,7 +34,7 @@ export function useBackInterceptor({
   const sentinelActiveRef = useRef(false);
   const suppressNextPopstateRef = useRef(false);
   const wasAnyActiveRef = useRef(false);
-  const pathnameAtSentinelRef = useRef<string | null>(null);
+  const skipNextCleanupRef = useRef(false);
 
   const isAnyActive = handlers.some((h) => h.isActive);
 
@@ -43,21 +43,29 @@ export function useBackInterceptor({
     wasAnyActiveRef.current = isAnyActive;
 
     if (isAnyActive && !wasActive) {
-      pathnameAtSentinelRef.current = window.location.pathname;
       window.history.pushState(SENTINEL, "");
       sentinelActiveRef.current = true;
     } else if (!isAnyActive && wasActive && sentinelActiveRef.current) {
       sentinelActiveRef.current = false;
-      // If the page has already navigated elsewhere (e.g. a nav item both
-      // closed the drawer and routed away), the sentinel is no longer the
-      // top history entry — popping now would undo that navigation instead
-      // of discarding the sentinel.
-      if (window.location.pathname === pathnameAtSentinelRef.current) {
+      // Callers that deactivate a handler as a side effect of navigating
+      // elsewhere (e.g. a drawer nav item that both closes the drawer and
+      // routes to a new page) call skipCleanup() beforehand. router.push()
+      // navigations commit asynchronously (via a React transition), so by
+      // the time this effect runs, window.location may not reflect the new
+      // route yet — comparing URLs here would be racy. Popping here would
+      // undo that in-flight navigation instead of discarding the sentinel.
+      if (skipNextCleanupRef.current) {
+        skipNextCleanupRef.current = false;
+      } else {
         suppressNextPopstateRef.current = true;
         window.history.back();
       }
     }
   }, [isAnyActive]);
+
+  const skipCleanup = () => {
+    skipNextCleanupRef.current = true;
+  };
 
   useEffect(() => {
     const handlePopState = () => {
@@ -75,4 +83,6 @@ export function useBackInterceptor({
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  return { skipCleanup };
 }

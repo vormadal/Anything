@@ -80,7 +80,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
   const { navigateBack } = useSmartBack();
 
-  useBackInterceptor({
+  const { skipCleanup } = useBackInterceptor({
     handlers: [{ isActive: drawerOpen, onBack: () => setDrawerOpen(false) }],
   });
 
@@ -95,11 +95,13 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   const navigate = (path: string) => {
+    skipCleanup();
     setDrawerOpen(false);
     router.push(path);
   };
 
   const handleLogout = async () => {
+    skipCleanup();
     setDrawerOpen(false);
     await logout.mutateAsync();
     toast.success("Logged out successfully");
