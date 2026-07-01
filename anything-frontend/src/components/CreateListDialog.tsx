@@ -93,6 +93,7 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
           <DialogTitle>Create a list</DialogTitle>
         </DialogHeader>
 
+        <div className="mt-4 space-y-4">
         <div className="grid grid-cols-3 gap-2">
           {MODE_OPTIONS.map(({ mode: value, label, icon: Icon }) => (
             <button
@@ -169,8 +170,9 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         )}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 mt-6">
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
