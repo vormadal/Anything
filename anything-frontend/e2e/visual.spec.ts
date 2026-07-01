@@ -50,6 +50,15 @@ const mockShoppingLists = [
 
 const mockGeneralList = { id: 3, name: "Hardware Store", uncheckedItemCount: 0, deletedOn: null, type: 0 };
 
+// A list created from a template — carries sourceTemplateId so the detail page
+// renders the "From template: …" indicator (resolved against mockListTemplates).
+const mockListFromTemplate = { id: 4, name: "Beach Trip", uncheckedItemCount: 6, deletedOn: null, type: 0, sourceTemplateId: 101 };
+
+const mockListTemplates = [
+  { id: 101, name: "Vacation Packing", type: 0, itemCount: 8, createdOn: "2024-06-01T00:00:00Z", modifiedOn: null },
+  { id: 102, name: "Weekly Groceries", type: 1, itemCount: 12, createdOn: "2024-06-01T00:00:00Z", modifiedOn: null },
+];
+
 const mockShoppingListItems = [
   { id: 1, listId: 1, name: "Milk", amount: null, unit: null, isChecked: false, completedOn: null, addedByRecipe: null, shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
   { id: 2, listId: 1, name: "Bread", amount: 2, unit: "loaves", isChecked: true, completedOn: null, addedByRecipe: null, shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
@@ -254,6 +263,16 @@ async function setupApiMocks(page: Page) {
   );
   await page.route(/\/api\/checklists\/3$/, (route) =>
     route.fulfill({ json: mockGeneralList })
+  );
+  // List templates (registered after the general checklists route → higher LIFO priority)
+  await page.route("**/api/checklists/templates**", (route) =>
+    route.fulfill({ json: mockListTemplates })
+  );
+  await page.route(/\/api\/checklists\/4$/, (route) =>
+    route.fulfill({ json: mockListFromTemplate })
+  );
+  await page.route(/\/api\/checklists\/4\/items/, (route) =>
+    route.fulfill({ json: mockGeneralChecklistItems })
   );
 
   // ---- Bills ----
@@ -466,11 +485,46 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  test("create list dialog - default (checklist)", async ({ page }) => {
+    await page.goto("/lists");
+    await page.waitForSelector('[aria-label="New list"]');
+    await page.getByRole("button", { name: "New list" }).click();
+    await page.waitForSelector('[role="dialog"]');
+    await expect(page).toHaveScreenshot(
+      "create-list-dialog-default.png",
+      screenshotOptions
+    );
+  });
+
+  test("create list dialog - from template", async ({ page }) => {
+    await page.goto("/lists");
+    await page.waitForSelector('[aria-label="New list"]');
+    await page.getByRole("button", { name: "New list" }).click();
+    await page.waitForSelector('[role="dialog"]');
+    await page.getByRole("button", { name: "From template" }).click();
+    // Wait for the template list to load
+    await page.getByText("Vacation Packing").waitFor();
+    await expect(page).toHaveScreenshot(
+      "create-list-dialog-from-template.png",
+      screenshotOptions
+    );
+  });
+
   test("shopping list detail", async ({ page }) => {
     await page.goto("/lists/1");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "list-detail.png",
+      screenshotOptions
+    );
+  });
+
+  test("list detail - created from template", async ({ page }) => {
+    await page.goto("/lists/4");
+    // The "From template: …" indicator resolves the template name asynchronously
+    await page.getByText("From template: Vacation Packing").waitFor();
+    await expect(page).toHaveScreenshot(
+      "list-detail-from-template.png",
       screenshotOptions
     );
   });
