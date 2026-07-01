@@ -12,6 +12,10 @@ on:
       - 'anything-frontend/**'
       - '.github/workflows/frontend-ci.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-build:
     name: Lint and Build (Next.js)

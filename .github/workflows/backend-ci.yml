@@ -16,6 +16,10 @@ on:
       - 'Anything.slnx'
       - '.github/workflows/backend-ci.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: Build and Test (.NET)
