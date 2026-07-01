@@ -89,8 +89,9 @@ test("food plan ingredients can be sent to a shopping list", async ({
   // 1. Create a shopping list to receive the ingredients
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list" }).click();
+  await page.getByRole("button", { name: "Shopping list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
-  await page.getByRole("button", { name: "Create list" }).click();
+  await page.getByRole("button", { name: "Create" }).click();
   await expect(page).toHaveURL(/\/lists\/\d+/);
 
   // 2. Navigate to the food plan
@@ -124,8 +125,9 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
   // Step 1 — Create a shopping list
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list" }).click();
+  await page.getByRole("button", { name: "Shopping list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
-  await page.getByRole("button", { name: "Create list" }).click();
+  await page.getByRole("button", { name: "Create" }).click();
   await page.waitForURL(/\/lists\/\d+/);
   const listUrl = page.url();
 
