@@ -15,6 +15,10 @@ on:
       - 'src/Anything.Core/**'
       - '.github/workflows/update-api-client.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   update-api-client:
     name: Regenerate API Client
