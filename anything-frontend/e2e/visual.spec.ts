@@ -863,17 +863,6 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
-  test("navigation - exit prompt visible", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForFunction(() => window.history.length > 1);
-    await page.evaluate(() => window.history.back());
-    await page.waitForSelector("text=Press back again to exit");
-    await expect(page).toHaveScreenshot(
-      "navigation-exit-prompt.png",
-      screenshotOptions
-    );
-  });
-
   test("household detail page - loading state", async ({ page }) => {
     // Override household detail to never resolve so we get loading state
     await page.route(/\/api\/households\/\d+$/, () => {

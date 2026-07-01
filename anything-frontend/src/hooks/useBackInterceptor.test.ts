@@ -1,52 +1,22 @@
 import { renderHook, act } from "@testing-library/react";
 import { useBackInterceptor } from "./useBackInterceptor";
 
-const mockNav = { pathname: "/" };
-
-jest.mock("next/navigation", () => ({
-  usePathname: () => mockNav.pathname,
-}));
-
-jest.mock("sonner", () => {
-  const toastFn = Object.assign(jest.fn().mockReturnValue("mock-toast-id"), {
-    dismiss: jest.fn(),
-  });
-  return { toast: toastFn };
-});
-
-import { toast } from "sonner";
-
-const mockToast = toast as unknown as jest.Mock;
-const mockDismiss = (toast as unknown as { dismiss: jest.Mock }).dismiss;
-
-const SENTINEL = { appSentinel: true };
-const ENTRY = { appSentinel: false }; // a real (non-sentinel) page entry
-const EXIT_PROMPT = "Press back again to exit";
+const SENTINEL = { backInterceptorSentinel: true };
 
 describe("useBackInterceptor", () => {
   let pushStateSpy: jest.SpyInstance;
+  let backSpy: jest.SpyInstance;
   let popstateHandlers: EventListener[];
-  // Simulated current value of window.history.state. The pushState mock mirrors
-  // the browser by storing the pushed state; individual tests set it to mimic
-  // the entry the browser lands on after a back press.
-  let historyState: unknown;
 
   beforeEach(() => {
-    jest.useFakeTimers();
-    historyState = null;
-    mockNav.pathname = "/";
     popstateHandlers = [];
-
-    Object.defineProperty(window.history, "state", {
-      configurable: true,
-      get: () => historyState,
-    });
 
     pushStateSpy = jest
       .spyOn(window.history, "pushState")
-      .mockImplementation((state) => {
-        historyState = state;
-      });
+      .mockImplementation(() => {});
+    backSpy = jest
+      .spyOn(window.history, "back")
+      .mockImplementation(() => {});
 
     const originalAdd = window.addEventListener.bind(window);
     jest.spyOn(window, "addEventListener").mockImplementation((type, handler, ...rest) => {
@@ -63,149 +33,70 @@ describe("useBackInterceptor", () => {
       }
       return originalRemove(type, handler, ...rest);
     });
-
-    mockToast.mockClear();
-    mockDismiss.mockClear();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
     jest.restoreAllMocks();
-    Reflect.deleteProperty(window.history, "state");
   });
 
-  // Dispatches a popstate event after positioning history.state on the entry the
-  // browser landed on (defaults to a real, non-sentinel page entry).
-  const firePopState = (landedOn: unknown = ENTRY) => {
-    historyState = landedOn;
+  const firePopState = () => {
     act(() => {
       popstateHandlers.forEach((h) => h(new PopStateEvent("popstate")));
     });
   };
 
-  // Simulates a forward (router.push) navigation to a new in-app page, which
-  // re-runs the pathname effect with a non-sentinel history entry.
-  const navigateForward = (
-    rerender: (props?: unknown) => void,
-    path: string
-  ) => {
-    mockNav.pathname = path;
-    historyState = ENTRY;
-    act(() => rerender());
-  };
-
-  it("pushes a sentinel buffer on mount", () => {
-    renderHook(() => useBackInterceptor());
-
-    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
-  });
-
-  // A directly-opened page (deep link) is the app's entry point, so the first
-  // back press there would exit the app and must be guarded.
-  it("shows the exit prompt on the first back at the entry point (any page)", () => {
-    mockNav.pathname = "/recipes/new";
-    renderHook(() => useBackInterceptor());
-
-    pushStateSpy.mockClear();
-    mockToast.mockClear();
-    firePopState(ENTRY); // popped the sentinel off the entry point
-
-    expect(mockToast).toHaveBeenCalledWith(EXIT_PROMPT, { duration: 2000 });
-    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
-  });
-
-  it("allows exit on the second back within 2s (no re-arm, dismisses toast)", () => {
-    renderHook(() => useBackInterceptor());
-
-    firePopState(ENTRY); // first press at the entry point — prompt + re-arm
-    pushStateSpy.mockClear();
-    mockToast.mockClear();
-
-    firePopState(ENTRY); // second press within 2s
-
-    expect(pushStateSpy).not.toHaveBeenCalled();
-    expect(mockToast).not.toHaveBeenCalled();
-    expect(mockDismiss).toHaveBeenCalledWith("mock-toast-id");
-  });
-
-  it("treats back as a first press again after the 2s timeout expires", () => {
-    renderHook(() => useBackInterceptor());
-
-    firePopState(ENTRY); // first press
-    mockToast.mockClear();
-    pushStateSpy.mockClear();
-
-    act(() => {
-      jest.advanceTimersByTime(2001);
-    });
-
-    firePopState(ENTRY); // back after timeout — treated as a first press again
-
-    expect(mockToast).toHaveBeenCalledWith(EXIT_PROMPT, { duration: 2000 });
-    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
-  });
-
-  // The reported bug: backing out of an in-app page must navigate, not prompt.
-  it("does not prompt when backing from an in-app page onto the sentinel", () => {
-    const { rerender } = renderHook(() => useBackInterceptor());
-
-    navigateForward(rerender, "/lists"); // home -> /lists (in-app)
-    pushStateSpy.mockClear();
-    mockToast.mockClear();
-
-    firePopState(SENTINEL); // back lands on the sentinel (returning to entry)
-
-    expect(mockToast).not.toHaveBeenCalled();
+  it("does not push a sentinel on mount when no handlers are active", () => {
+    const onBack = jest.fn();
+    renderHook(() =>
+      useBackInterceptor({ handlers: [{ isActive: false, onBack }] })
+    );
     expect(pushStateSpy).not.toHaveBeenCalled();
   });
 
-  it("does not prompt for ordinary back navigation between in-app pages", () => {
-    const { rerender } = renderHook(() => useBackInterceptor());
-
-    navigateForward(rerender, "/lists"); // home -> /lists
-    navigateForward(rerender, "/lists/abc"); // /lists -> /lists/abc
-    pushStateSpy.mockClear();
-    mockToast.mockClear();
-
-    firePopState(ENTRY); // /lists/abc -> /lists (still an in-app entry)
-
-    expect(mockToast).not.toHaveBeenCalled();
-    expect(pushStateSpy).not.toHaveBeenCalled();
-  });
-
-  // Full unwind: forward twice, then back twice returns to the entry without a
-  // prompt; only the back that would actually exit prompts.
-  it("prompts only once the user has unwound back to the entry point", () => {
-    const { rerender } = renderHook(() => useBackInterceptor());
-
-    navigateForward(rerender, "/lists"); // home -> /lists
-    navigateForward(rerender, "/lists/abc"); // /lists -> /lists/abc
-
-    firePopState(ENTRY); // /lists/abc -> /lists (in-app, no prompt)
-    expect(mockToast).not.toHaveBeenCalled();
-
-    // /lists -> sentinel (back at entry). The pathname effect then re-runs.
-    mockNav.pathname = "/";
-    firePopState(SENTINEL);
-    act(() => rerender());
-    expect(mockToast).not.toHaveBeenCalled();
-
-    firePopState(ENTRY); // back at the entry point -> would exit -> prompt
-    expect(mockToast).toHaveBeenCalledWith(EXIT_PROMPT, { duration: 2000 });
-  });
-
-  it("calls the first active handler and restores the sentinel", () => {
+  it("pushes a sentinel when first rendered with an active handler", () => {
     const onBack = jest.fn();
     renderHook(() =>
       useBackInterceptor({ handlers: [{ isActive: true, onBack }] })
     );
+    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
+  });
 
+  it("pushes a sentinel when a handler transitions from inactive to active", () => {
+    const onBack = jest.fn();
+    const { rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useBackInterceptor({ handlers: [{ isActive: active, onBack }] }),
+      { initialProps: { active: false } }
+    );
+    expect(pushStateSpy).not.toHaveBeenCalled();
+
+    rerender({ active: true });
+
+    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
+  });
+
+  it("calls the active handler on popstate", () => {
+    const onBack = jest.fn();
+    renderHook(() =>
+      useBackInterceptor({ handlers: [{ isActive: true, onBack }] })
+    );
     pushStateSpy.mockClear();
+
     firePopState();
 
     expect(onBack).toHaveBeenCalled();
-    expect(pushStateSpy).toHaveBeenCalledWith(SENTINEL, "");
-    expect(mockToast).not.toHaveBeenCalled();
+  });
+
+  it("does not re-push a sentinel after the active handler is called", () => {
+    const onBack = jest.fn();
+    renderHook(() =>
+      useBackInterceptor({ handlers: [{ isActive: true, onBack }] })
+    );
+    pushStateSpy.mockClear();
+
+    firePopState();
+
+    expect(pushStateSpy).not.toHaveBeenCalled();
   });
 
   it("skips inactive handlers and fires the first active one", () => {
@@ -226,13 +117,83 @@ describe("useBackInterceptor", () => {
     expect(onBack2).toHaveBeenCalled();
   });
 
-  it("removes the popstate listener on unmount", () => {
-    const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
+  it("does not call any handler when popstate fires and no handler is active", () => {
+    const onBack = jest.fn();
+    renderHook(() =>
+      useBackInterceptor({ handlers: [{ isActive: false, onBack }] })
+    );
 
+    firePopState();
+
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it("calls history.back to pop the sentinel when handler deactivates via UI", () => {
+    const onBack = jest.fn();
+    const { rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useBackInterceptor({ handlers: [{ isActive: active, onBack }] }),
+      { initialProps: { active: true } }
+    );
+
+    rerender({ active: false });
+
+    expect(backSpy).toHaveBeenCalled();
+  });
+
+  it("suppresses the popstate that follows a programmatic close", () => {
+    const onBack = jest.fn();
+    const { rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useBackInterceptor({ handlers: [{ isActive: active, onBack }] }),
+      { initialProps: { active: true } }
+    );
+
+    rerender({ active: false }); // triggers history.back()
+    firePopState(); // simulates the popstate that history.back() would fire
+
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it("does not call history.back when the page navigated away while deactivating", () => {
+    // e.g. a nav item that both closes the drawer and routes to a new page —
+    // popping here would undo that navigation instead of discarding the
+    // sentinel, since the sentinel is no longer the top history entry.
+    const onBack = jest.fn();
+    const { rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useBackInterceptor({ handlers: [{ isActive: active, onBack }] }),
+      { initialProps: { active: true } }
+    );
+
+    // Simulate a real navigation (bypassing the pushState spy's no-op) so
+    // window.location.pathname actually changes, the way router.push would.
+    const originalPathname = window.location.pathname;
+    History.prototype.pushState.call(window.history, null, "", "/lists");
+
+    rerender({ active: false });
+
+    expect(backSpy).not.toHaveBeenCalled();
+
+    History.prototype.pushState.call(window.history, null, "", originalPathname);
+  });
+
+  it("does not call history.back when deactivating without a prior sentinel", () => {
+    // Handlers that were never active should not trigger cleanup.
+    const onBack = jest.fn();
+    renderHook(() =>
+      useBackInterceptor({ handlers: [{ isActive: false, onBack }] })
+    );
+
+    expect(backSpy).not.toHaveBeenCalled();
+  });
+
+  it("removes the popstate listener on unmount", () => {
     const { unmount } = renderHook(() => useBackInterceptor());
+    expect(popstateHandlers).toHaveLength(1);
 
     unmount();
 
-    expect(removeEventListenerSpy).toHaveBeenCalledWith("popstate", expect.any(Function));
+    expect(popstateHandlers).toHaveLength(0);
   });
 });
