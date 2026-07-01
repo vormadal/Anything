@@ -8,6 +8,9 @@ public record SyncEvent
     public static SyncEvent ShoppingLists() =>
         new() { Type = "shoppingLists" };
 
+    public static SyncEvent ShoppingListTemplates() =>
+        new() { Type = "shoppingListTemplates" };
+
     public static SyncEvent ShoppingListItems(int listId) =>
         new() { Type = "shoppingListItems", ListId = listId };
 }

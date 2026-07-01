@@ -20,6 +20,23 @@ public static class ShoppingListEndpoints
         .WithName("GetShoppingLists")
         .RequireAuthorization();
 
+        group.MapGet("/templates", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new GetShoppingListTemplatesQuery());
+        })
+        .WithName("GetShoppingListTemplates")
+        .RequireAuthorization();
+
+        group.MapPost("/from-template", async (CreateShoppingListFromTemplateRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new CreateShoppingListFromTemplateCommand(request.TemplateId, request.Name));
+        })
+        .WithName("CreateShoppingListFromTemplate")
+        .Produces<ShoppingList>(StatusCodes.Status201Created)
+        .Produces(404)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapGet("/{id}", async (int id, IMediator mediator) =>
         {
             return await mediator.Send(new GetShoppingListByIdQuery(id));
@@ -122,6 +139,16 @@ public static class ShoppingListEndpoints
         .WithName("DeleteShoppingListItem")
         .Produces(204)
         .Produces(404)
+        .RequireAuthorization();
+
+        group.MapPost("/{id}/save-as-template", async (int id, SaveAsTemplateRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new SaveShoppingListAsTemplateCommand(id, request.Name));
+        })
+        .WithName("SaveShoppingListAsTemplate")
+        .Produces<ShoppingList>(StatusCodes.Status201Created)
+        .Produces(404)
+        .WithParameterValidation()
         .RequireAuthorization();
 
         group.MapPost("/{id}/complete", async (int id, CompleteShoppingListRequest request, IMediator mediator) =>

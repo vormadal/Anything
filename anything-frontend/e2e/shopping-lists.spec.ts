@@ -16,8 +16,9 @@ test("create shopping list, add items, and complete it", async ({ page }) => {
 
   // Open the create form via the "+" button in the header
   await page.getByRole("button", { name: "New list" }).click();
+  await page.getByRole("button", { name: "Shopping list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
-  await page.getByRole("button", { name: "Create list" }).click();
+  await page.getByRole("button", { name: "Create" }).click();
 
   // Should navigate to the new list's detail page
   await expect(page).toHaveURL(/\/lists\/\d+/);
@@ -69,8 +70,9 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
   // Create a list
   await page.goto("/lists");
   await page.getByRole("button", { name: "New list" }).click();
+  await page.getByRole("button", { name: "Shopping list" }).click();
   await page.getByPlaceholder("List name...").fill(listName);
-  await page.getByRole("button", { name: "Create list" }).click();
+  await page.getByRole("button", { name: "Create" }).click();
   await expect(page).toHaveURL(/\/lists\/\d+/);
 
   // Open More options to rename the list (Rename is now always visible, no need to enter edit mode first)

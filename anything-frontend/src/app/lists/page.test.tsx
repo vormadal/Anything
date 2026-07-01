@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 
 const mockShoppingListsGet = jest.fn()
 const mockShoppingListsPost = jest.fn()
+const mockTemplatesGet = jest.fn()
+const mockFromTemplatePost = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -13,6 +15,8 @@ jest.mock('@/lib/apiClient', () => ({
       checklists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
         post: (...args: unknown[]) => mockShoppingListsPost(...args),
+        templates: { get: (...args: unknown[]) => mockTemplatesGet(...args) },
+        fromTemplate: { post: (...args: unknown[]) => mockFromTemplatePost(...args) },
       },
     },
   },
@@ -34,6 +38,7 @@ describe('ListsPage', () => {
     jest.clearAllMocks()
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
+    mockTemplatesGet.mockResolvedValue([])
   })
 
   afterEach(() => { localStorage.clear() })
@@ -73,36 +78,74 @@ describe('ListsPage', () => {
     })
   })
 
-  it('should open create form when plus button is clicked', async () => {
+  it('should open create dialog when plus button is clicked', async () => {
     const user = userEvent.setup()
     mockShoppingListsGet.mockResolvedValue([])
     render(<ListsPage />)
     await user.click(screen.getByRole('button', { name: 'New list' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('List name...')).toBeInTheDocument()
   })
 
-  it('should create a new shopping list and navigate to it', async () => {
+  it('should create a checklist (type 0) by default and navigate to it', async () => {
     const user = userEvent.setup()
-    const mockNewList = { id: 3, name: 'Party Supplies', type: 1, createdOn: '2024-01-03T00:00:00Z' }
+    const mockNewList = { id: 3, name: 'Chores', type: 0, createdOn: '2024-01-03T00:00:00Z' }
     mockShoppingListsGet.mockResolvedValue([])
     mockShoppingListsPost.mockResolvedValueOnce(mockNewList)
     render(<ListsPage />)
     await user.click(screen.getByRole('button', { name: 'New list' }))
-    await user.type(screen.getByPlaceholderText('List name...'), 'Party Supplies')
-    await user.click(screen.getByRole('button', { name: 'Create list' }))
+    await user.type(screen.getByPlaceholderText('List name...'), 'Chores')
+    await user.click(screen.getByRole('button', { name: 'Create' }))
     await waitFor(() => {
-      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies', type: 1 })
+      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Chores', type: 0 })
     })
-    expect(toast.success).toHaveBeenCalledWith('List created')
+    expect(toast.success).toHaveBeenCalledWith('Checklist created')
     expect(mockPush).toHaveBeenCalledWith('/lists/3')
   })
 
-  it('should not submit when list name is empty', async () => {
+  it('should create a shopping list (type 1) when that mode is selected', async () => {
+    const user = userEvent.setup()
+    const mockNewList = { id: 4, name: 'Party Supplies', type: 1, createdOn: '2024-01-03T00:00:00Z' }
+    mockShoppingListsGet.mockResolvedValue([])
+    mockShoppingListsPost.mockResolvedValueOnce(mockNewList)
+    render(<ListsPage />)
+    await user.click(screen.getByRole('button', { name: 'New list' }))
+    await user.click(screen.getByRole('button', { name: 'Shopping list' }))
+    await user.type(screen.getByPlaceholderText('List name...'), 'Party Supplies')
+    await user.click(screen.getByRole('button', { name: 'Create' }))
+    await waitFor(() => {
+      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies', type: 1 })
+    })
+    expect(toast.success).toHaveBeenCalledWith('Shopping list created')
+    expect(mockPush).toHaveBeenCalledWith('/lists/4')
+  })
+
+  it('should create a list from a template', async () => {
+    const user = userEvent.setup()
+    mockShoppingListsGet.mockResolvedValue([])
+    mockTemplatesGet.mockResolvedValue([{ id: 7, name: 'Weekly Groceries', type: 1, itemCount: 5 }])
+    mockFromTemplatePost.mockResolvedValueOnce({ id: 9, name: 'Weekly Groceries', type: 1, createdOn: '2024-01-03T00:00:00Z' })
+    render(<ListsPage />)
+    await user.click(screen.getByRole('button', { name: 'New list' }))
+    await user.click(screen.getByRole('button', { name: 'From template' }))
+    await waitFor(() => {
+      expect(screen.getByText('Weekly Groceries')).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('button', { name: /Weekly Groceries/ }))
+    await user.click(screen.getByRole('button', { name: 'Create' }))
+    await waitFor(() => {
+      expect(mockFromTemplatePost).toHaveBeenCalledWith({ templateId: 7, name: 'Weekly Groceries' })
+    })
+    expect(toast.success).toHaveBeenCalledWith('List created from template')
+    expect(mockPush).toHaveBeenCalledWith('/lists/9')
+  })
+
+  it('should disable Create when list name is empty', async () => {
     const user = userEvent.setup()
     mockShoppingListsGet.mockResolvedValue([])
     render(<ListsPage />)
     await user.click(screen.getByRole('button', { name: 'New list' }))
-    await user.click(screen.getByRole('button', { name: 'Create list' }))
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
     expect(mockShoppingListsPost).not.toHaveBeenCalled()
   })
 
@@ -113,20 +156,22 @@ describe('ListsPage', () => {
     render(<ListsPage />)
     await user.click(screen.getByRole('button', { name: 'New list' }))
     await user.type(screen.getByPlaceholderText('List name...'), 'Fail List')
-    await user.click(screen.getByRole('button', { name: 'Create list' }))
+    await user.click(screen.getByRole('button', { name: 'Create' }))
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to create list. Please try again.')
     })
   })
 
-  it('should cancel create form when Cancel is clicked', async () => {
+  it('should close the dialog when Cancel is clicked', async () => {
     const user = userEvent.setup()
     mockShoppingListsGet.mockResolvedValue([])
     render(<ListsPage />)
     await user.click(screen.getByRole('button', { name: 'New list' }))
     expect(screen.getByPlaceholderText('List name...')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByPlaceholderText('List name...')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('List name...')).not.toBeInTheDocument()
+    })
   })
 
   it('should navigate to list when row is clicked', async () => {

@@ -38,6 +38,39 @@ internal static class ShoppingListHelpers
         }
     }
 
+    internal static async Task<int> GetNextListSortOrder(
+        IRepository<ShoppingList> repository,
+        int householdId,
+        bool isTemplate,
+        CancellationToken ct)
+    {
+        var max = await repository.Query()
+            .Where(l => l.DeletedOn == null && l.IsTemplate == isTemplate && l.HouseholdId == householdId)
+            .Select(l => (int?)l.SortOrder)
+            .MaxAsync(ct);
+        return (max ?? -1) + 1;
+    }
+
+    internal static List<ShoppingListItem> CopyItems(
+        IEnumerable<ShoppingListItem> source,
+        int targetListId,
+        DateTime now)
+    {
+        return source
+            .OrderBy(i => i.SortOrder)
+            .Select((i, index) => new ShoppingListItem
+            {
+                ShoppingListId = targetListId,
+                SortOrder = index,
+                Name = i.Name,
+                Amount = i.Amount,
+                Unit = i.Unit,
+                IsChecked = false,
+                CreatedOn = now
+            })
+            .ToList();
+    }
+
     internal static void MergeOrAddItem(
         IRepository<ShoppingListItem> repository,
         List<ShoppingListItem> existingItems,

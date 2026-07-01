@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeleteShoppingList, useConvertShoppingListType } from "@/hooks/useShoppingLists";
+import { useDeleteShoppingList, useConvertShoppingListType, useSaveAsTemplate, useShoppingListTemplates } from "@/hooks/useShoppingLists";
 import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
 import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -18,7 +18,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { LayoutList, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks } from "lucide-react";
+import { LayoutList, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks, LayoutTemplate } from "lucide-react";
 import { ShoppingListView } from "@/app/shopping-lists/[id]/ShoppingListView";
 import { ShoppingListEditMode } from "@/app/shopping-lists/[id]/ShoppingListEditMode";
 import { GeneralChecklistView } from "./GeneralChecklistView";
@@ -40,6 +40,7 @@ export default function ListDetailPage() {
 
   const handleDeleteListRef = useRef<() => void>(() => undefined);
   const handleConvertTypeRef = useRef<() => Promise<void>>(async () => {});
+  const handleSaveAsTemplateRef = useRef<() => void>(() => undefined);
   const openEditNameDialogRef = useRef<() => void>(() => undefined);
 
   const { data: list } = useQuery({
@@ -50,6 +51,11 @@ export default function ListDetailPage() {
 
   const deleteList = useDeleteShoppingList();
   const convertType = useConvertShoppingListType();
+  const saveAsTemplate = useSaveAsTemplate();
+  const { data: templates } = useShoppingListTemplates(!!list?.sourceTemplateId);
+  const sourceTemplate = list?.sourceTemplateId
+    ? templates?.find((t) => t.id === list.sourceTemplateId)
+    : undefined;
   const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
 
   const isGeneral = list?.type === 0;
@@ -74,6 +80,14 @@ export default function ListDetailPage() {
         toast.success(`Converted to ${isGeneral ? "Shopping List" : "Checklist"}`);
       } catch {
         toast.error("Failed to convert list type. Please try again.");
+      }
+    };
+    handleSaveAsTemplateRef.current = async () => {
+      try {
+        await saveAsTemplate.mutateAsync({ id: listId });
+        toast.success("Saved as template");
+      } catch {
+        toast.error("Failed to save as template. Please try again.");
       }
     };
   });
@@ -116,6 +130,10 @@ export default function ListDetailPage() {
                 </>
               )}
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleSaveAsTemplateRef.current()}>
+              <LayoutTemplate className="h-4 w-4" />
+              Save as template
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
               onSelect={() => handleDeleteListRef.current()}
@@ -146,6 +164,12 @@ export default function ListDetailPage() {
         inputRef={editNameDialog.inputRef}
       />
       <PageTitle>{list?.name ?? "List"}</PageTitle>
+      {sourceTemplate && (
+        <div className="-mt-2 mb-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <LayoutTemplate className="h-3.5 w-3.5" />
+          <span>From template: {sourceTemplate.name}</span>
+        </div>
+      )}
       {isEditMode ? (
         isGeneral ? (
           <GeneralChecklistEditMode listId={listId} />

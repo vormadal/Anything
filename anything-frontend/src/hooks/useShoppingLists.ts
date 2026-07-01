@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { ShoppingListResponse, ShoppingListItem } from "@/lib/api-client/models/index";
+import type { ShoppingListResponse, ShoppingListItem, ShoppingListTemplateResponse } from "@/lib/api-client/models/index";
 
 export function useShoppingLists() {
   return useQuery({
@@ -20,6 +20,39 @@ export function useCreateShoppingList() {
       apiClient.api.checklists.post({ name: list.name, type: list.type ?? 1 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+    },
+  });
+}
+
+export function useShoppingListTemplates(enabled = true) {
+  return useQuery({
+    queryKey: ["shoppingListTemplates"],
+    queryFn: () =>
+      apiClient.api.checklists.templates.get() as unknown as Promise<ShoppingListTemplateResponse[]>,
+    enabled,
+  });
+}
+
+export function useCreateFromTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ templateId, name }: { templateId: number; name?: string | null }) =>
+      apiClient.api.checklists.fromTemplate.post({ templateId, name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+    },
+  });
+}
+
+export function useSaveAsTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, name }: { id: number; name?: string | null }) =>
+      apiClient.api.checklists.byId(id).saveAsTemplate.post({ name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListTemplates"] });
     },
   });
 }

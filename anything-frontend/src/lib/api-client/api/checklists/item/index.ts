@@ -8,6 +8,8 @@ import { CompleteRequestBuilderRequestsMetadata, type CompleteRequestBuilder } f
 // @ts-ignore
 import { ItemsRequestBuilderNavigationMetadata, ItemsRequestBuilderRequestsMetadata, type ItemsRequestBuilder } from './items/index';
 // @ts-ignore
+import { SaveAsTemplateRequestBuilderRequestsMetadata, type SaveAsTemplateRequestBuilder } from './saveAsTemplate/index';
+// @ts-ignore
 import { type TypeRequestBuilder, TypeRequestBuilderRequestsMetadata } from './type/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
@@ -24,6 +26,10 @@ export interface ChecklistsItemRequestBuilder extends BaseRequestBuilder<Checkli
      * The items property
      */
     get items(): ItemsRequestBuilder;
+    /**
+     * The saveAsTemplate property
+     */
+    get saveAsTemplate(): SaveAsTemplateRequestBuilder;
     /**
      * The type property
      */
@@ -74,6 +80,9 @@ export const ChecklistsItemRequestBuilderNavigationMetadata: Record<Exclude<keyo
     items: {
         requestsMetadata: ItemsRequestBuilderRequestsMetadata,
         navigationMetadata: ItemsRequestBuilderNavigationMetadata,
+    },
+    saveAsTemplate: {
+        requestsMetadata: SaveAsTemplateRequestBuilderRequestsMetadata,
     },
     type: {
         requestsMetadata: TypeRequestBuilderRequestsMetadata,
