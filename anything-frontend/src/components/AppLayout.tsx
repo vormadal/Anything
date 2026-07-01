@@ -34,7 +34,6 @@ import { CookingModeProvider } from "@/context/CookingModeContext";
 import { CookingModeDrawer } from "@/components/CookingModeDrawer";
 import { useSmartBack } from "@/hooks/useSmartBack";
 import { useIsAuthenticated } from "@/hooks/useAuth";
-import { useBackInterceptor } from "@/hooks/useBackInterceptor";
 
 const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 
@@ -79,10 +78,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useIsAuthenticated();
   const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
   const { navigateBack } = useSmartBack();
-
-  useBackInterceptor({
-    handlers: [{ isActive: drawerOpen, onBack: () => setDrawerOpen(false) }],
-  });
 
   useEffect(() => {
     if (!isAuthenticated) {

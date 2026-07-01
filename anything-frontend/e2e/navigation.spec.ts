@@ -48,23 +48,6 @@ for (const { subPath, title } of HOUSEHOLD_CONFIG_PAGES) {
   });
 }
 
-test("back button closes hamburger menu instead of navigating away", async ({ page }) => {
-  await page.goto("/");
-  // Wait for the back-interceptor sentinel to be pushed — proves the hook is
-  // mounted and ready. Cannot use waitForLoadState("networkidle") here because
-  // the home page makes continuous React Query polling calls.
-  await page.waitForFunction(() => window.history.length > 1);
-
-  await page.getByRole("button", { name: /open menu/i }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-
-  await page.evaluate(() => window.history.back());
-  await page.waitForTimeout(300);
-
-  await expect(page.getByRole("dialog")).not.toBeVisible();
-  await expect(page).toHaveURL("/");
-});
-
 test("unauthenticated access redirects to login", async ({ browser }) => {
   // Explicitly pass an empty storageState to override the project-level storageState
   // (which contains auth tokens). Without this, browser.newContext() would inherit
