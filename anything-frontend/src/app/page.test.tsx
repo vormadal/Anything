@@ -319,6 +319,23 @@ describe('Home Page Integration Tests', () => {
     })
   })
 
+  it('should display day note on home page when no meals are planned', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockFoodPlanNotesGet.mockResolvedValue([
+      { id: 1, date: '2025-06-16', note: 'Eating at friends tonight' },
+    ])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/No meals planned for Monday/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Eating at friends tonight')).toBeInTheDocument()
+  })
+
   it('should not display note section when no day note exists', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockFoodPlanEntriesGet.mockResolvedValue([

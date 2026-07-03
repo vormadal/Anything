@@ -83,6 +83,11 @@ export default function Home() {
               <Plus className="h-4 w-4 mr-1" />
               Add meals
             </Button>
+            {todayNote?.note && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 italic mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                {todayNote.note}
+              </p>
+            )}
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">

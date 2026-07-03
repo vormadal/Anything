@@ -458,6 +458,20 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-empty.png", screenshotOptions);
   });
 
+  test("home page - note without meals", async ({ page }) => {
+    // No meals planned for today, but a note exists for the day
+    await page.route("**/api/food-plan/entries**", (route) =>
+      route.fulfill({ json: [] })
+    );
+    await page.route("**/api/food-plan/notes**", (route) =>
+      route.fulfill({ json: [{ id: 2, date: "2025-01-15", note: "Eating out tonight" }] })
+    );
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("home-note-without-meals.png", screenshotOptions);
+  });
+
   // ---- Lists ----
 
   test("lists - with items", async ({ page }) => {
