@@ -61,6 +61,9 @@ jest.mock('@/lib/apiClient', () => ({
       },
       checklists: {
         get: (...args: unknown[]) => mockShoppingListsGet(...args),
+        post: jest.fn(),
+        templates: { get: jest.fn().mockResolvedValue([]) },
+        fromTemplate: { post: jest.fn() },
       },
     },
   },
@@ -263,7 +266,7 @@ describe('Home Page Integration Tests', () => {
     expect(mockPush).toHaveBeenCalledWith('/lists/3')
   })
 
-  it('should navigate to all shopping lists when "All lists" is clicked', async () => {
+  it('should open the create list dialog when "Create" is clicked in the Lists section', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockFoodPlanEntriesGet.mockResolvedValue([])
@@ -272,11 +275,11 @@ describe('Home Page Integration Tests', () => {
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'All lists' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Lists' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'All lists' }))
-    expect(mockPush).toHaveBeenCalledWith('/lists')
+    await user.click(screen.getByRole('button', { name: 'Create' }))
+    expect(screen.getByText('Create a list')).toBeInTheDocument()
   })
 
   it('should display unchecked item count badge on home page when count > 0', async () => {
