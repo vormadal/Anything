@@ -9,5 +9,5 @@ public static class HomeCardKeys
     /// <summary>
     /// Known home page cards in their default display order.
     /// </summary>
-    public static readonly IReadOnlyList<string> All = [FoodPlan, Bills, Lists];
+    public static readonly IReadOnlyList<string> All = [FoodPlan, Lists, Bills];
 }
