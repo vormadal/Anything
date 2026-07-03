@@ -797,6 +797,24 @@ export function createFoodPlanSettingsFromDiscriminatorValue(parseNode: ParseNod
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {HomeCardPreferenceItem}
+ */
+// @ts-ignore
+export function createHomeCardPreferenceItemFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoHomeCardPreferenceItem;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {HomeCardPreferenceResponse}
+ */
+// @ts-ignore
+export function createHomeCardPreferenceResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoHomeCardPreferenceResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {HouseholdDetailResponse}
  */
 // @ts-ignore
@@ -1575,6 +1593,15 @@ export function createUpdateFoodPlanSettingsRequestFromDiscriminatorValue(parseN
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateHomeCardPreferencesRequest}
+ */
+// @ts-ignore
+export function createUpdateHomeCardPreferencesRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateHomeCardPreferencesRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UpdateHouseholdMemberRoleRequest}
  */
 // @ts-ignore
@@ -2349,6 +2376,31 @@ export function deserializeIntoFoodPlanSettings(foodPlanSettings: Partial<FoodPl
         "householdId": n => { foodPlanSettings.householdId = n.getNumberValue(); },
         "id": n => { foodPlanSettings.id = n.getNumberValue(); },
         "modifiedOn": n => { foodPlanSettings.modifiedOn = n.getDateValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param HomeCardPreferenceItem The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoHomeCardPreferenceItem(homeCardPreferenceItem: Partial<HomeCardPreferenceItem> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "cardKey": n => { homeCardPreferenceItem.cardKey = n.getStringValue(); },
+        "isVisible": n => { homeCardPreferenceItem.isVisible = n.getBooleanValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param HomeCardPreferenceResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoHomeCardPreferenceResponse(homeCardPreferenceResponse: Partial<HomeCardPreferenceResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "cardKey": n => { homeCardPreferenceResponse.cardKey = n.getStringValue(); },
+        "isVisible": n => { homeCardPreferenceResponse.isVisible = n.getBooleanValue(); },
+        "sortOrder": n => { homeCardPreferenceResponse.sortOrder = n.getNumberValue(); },
     }
 }
 /**
@@ -3272,6 +3324,17 @@ export function deserializeIntoUpdateFoodPlanSettingsRequest(updateFoodPlanSetti
 }
 /**
  * The deserialization information for the current model
+ * @param UpdateHomeCardPreferencesRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateHomeCardPreferencesRequest(updateHomeCardPreferencesRequest: Partial<UpdateHomeCardPreferencesRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "cards": n => { updateHomeCardPreferencesRequest.cards = n.getCollectionOfObjectValues<HomeCardPreferenceItem>(createHomeCardPreferenceItemFromDiscriminatorValue); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param UpdateHouseholdMemberRoleRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -3618,6 +3681,30 @@ export interface FoodPlanSettings extends Parsable {
      * The modifiedOn property
      */
     modifiedOn?: Date | null;
+}
+export interface HomeCardPreferenceItem extends Parsable {
+    /**
+     * The cardKey property
+     */
+    cardKey?: string | null;
+    /**
+     * The isVisible property
+     */
+    isVisible?: boolean | null;
+}
+export interface HomeCardPreferenceResponse extends Parsable {
+    /**
+     * The cardKey property
+     */
+    cardKey?: string | null;
+    /**
+     * The isVisible property
+     */
+    isVisible?: boolean | null;
+    /**
+     * The sortOrder property
+     */
+    sortOrder?: number | null;
 }
 export interface Household extends Parsable {
     /**
@@ -5043,6 +5130,31 @@ export function serializeFoodPlanSettings(writer: SerializationWriter, foodPlanS
 }
 /**
  * Serializes information the current object
+ * @param HomeCardPreferenceItem The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeHomeCardPreferenceItem(writer: SerializationWriter, homeCardPreferenceItem: Partial<HomeCardPreferenceItem> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!homeCardPreferenceItem || isSerializingDerivedType) { return; }
+    writer.writeStringValue("cardKey", homeCardPreferenceItem.cardKey);
+    writer.writeBooleanValue("isVisible", homeCardPreferenceItem.isVisible);
+}
+/**
+ * Serializes information the current object
+ * @param HomeCardPreferenceResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeHomeCardPreferenceResponse(writer: SerializationWriter, homeCardPreferenceResponse: Partial<HomeCardPreferenceResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!homeCardPreferenceResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("cardKey", homeCardPreferenceResponse.cardKey);
+    writer.writeBooleanValue("isVisible", homeCardPreferenceResponse.isVisible);
+    writer.writeNumberValue("sortOrder", homeCardPreferenceResponse.sortOrder);
+}
+/**
+ * Serializes information the current object
  * @param Household The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
@@ -5965,6 +6077,17 @@ export function serializeUpdateFoodPlanSettingsRequest(writer: SerializationWrit
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateHomeCardPreferencesRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateHomeCardPreferencesRequest(writer: SerializationWriter, updateHomeCardPreferencesRequest: Partial<UpdateHomeCardPreferencesRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateHomeCardPreferencesRequest || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfObjectValues<HomeCardPreferenceItem>("cards", updateHomeCardPreferencesRequest.cards, serializeHomeCardPreferenceItem);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param UpdateHouseholdMemberRoleRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -6618,6 +6741,12 @@ export interface UpdateFoodPlanSettingsRequest extends Parsable {
      * The activeDays property
      */
     activeDays?: number | null;
+}
+export interface UpdateHomeCardPreferencesRequest extends Parsable {
+    /**
+     * The cards property
+     */
+    cards?: HomeCardPreferenceItem[] | null;
 }
 export interface UpdateHouseholdMemberRoleRequest extends Parsable {
     /**

@@ -148,6 +148,12 @@ const mockFoodPlanSettings = {
   userId: 1,
 };
 
+const mockHomeCardPreferences = [
+  { cardKey: "foodplan", sortOrder: 0, isVisible: true },
+  { cardKey: "lists", sortOrder: 1, isVisible: true },
+  { cardKey: "bills", sortOrder: 2, isVisible: true },
+];
+
 // Entries spread across the week of 2025-01-13 (Mon) – 2025-01-15 (Wed, = FIXED_DATE)
 const mockFoodPlanEntries = [
   { id: 1, date: "2025-01-13", name: "Pasta Carbonara", recipeId: 1, addedToShoppingListOn: null },
@@ -339,6 +345,15 @@ async function setupApiMocks(page: Page) {
     route.fulfill({ json: mockFoodPlanNotes })
   );
 
+  // ---- Home page card preferences ----
+  await page.route("**/api/home/card-preferences**", (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockHomeCardPreferences });
+    } else {
+      route.fulfill({ status: 204, body: "" });
+    }
+  });
+
   // ---- Misc ----
   await page.route("**/api/shopping-list-recommendations/export**", (route) =>
     route.fulfill({ json: { recommendations: [] } })
@@ -470,6 +485,27 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("home-note-without-meals.png", screenshotOptions);
+  });
+
+  test("home preferences - reorder and toggle cards", async ({ page }) => {
+    // Reordered (Lists first) with Bills hidden, to showcase the drag handles and toggles.
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "lists", sortOrder: 0, isVisible: true },
+            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
+            { cardKey: "bills", sortOrder: 2, isVisible: false },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+
+    await page.goto("/home-preferences");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("home-preferences.png", screenshotOptions);
   });
 
   // ---- Lists ----

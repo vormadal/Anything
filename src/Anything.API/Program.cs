@@ -145,6 +145,7 @@ app.MapLocationEndpoints();
 app.MapVendorEndpoints();
 app.MapBillEndpoints();
 app.MapEventsEndpoints();
+app.MapHomePreferenceEndpoints();
 
 await app.RunAsync();
 

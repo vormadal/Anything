@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import Home from './page'
@@ -21,6 +21,8 @@ const mockFoodPlanEntriesGet = jest.fn()
 const mockFoodPlanNotesGet = jest.fn()
 const mockApiFetch = jest.fn()
 const mockShoppingListsGet = jest.fn()
+const mockBillSummaryGet = jest.fn()
+const mockHomeCardPreferencesGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -65,6 +67,12 @@ jest.mock('@/lib/apiClient', () => ({
         templates: { get: jest.fn().mockResolvedValue([]) },
         fromTemplate: { post: jest.fn() },
       },
+      bills: {
+        summary: { get: (...args: unknown[]) => mockBillSummaryGet(...args) },
+      },
+      home: {
+        cardPreferences: { get: (...args: unknown[]) => mockHomeCardPreferencesGet(...args), put: jest.fn() },
+      },
     },
   },
   apiFetch: (...args: unknown[]) => mockApiFetch(...args),
@@ -87,6 +95,12 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanNotesGet.mockResolvedValue([])
     mockApiFetch.mockResolvedValue({ ok: true, json: async () => [] })
     mockRecipesFetch([])
+    mockBillSummaryGet.mockResolvedValue(undefined)
+    mockHomeCardPreferencesGet.mockResolvedValue([
+      { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
+      { cardKey: 'lists', sortOrder: 1, isVisible: true },
+      { cardKey: 'bills', sortOrder: 2, isVisible: true },
+    ])
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
     localStorage.setItem('accessToken', 'test-token')
   })
@@ -356,5 +370,144 @@ describe('Home Page Integration Tests', () => {
     // No note should be rendered
     const italicParagraphs = document.querySelectorAll('p.italic')
     expect(italicParagraphs.length).toBe(0)
+  })
+
+  // ------- Bills card on home page -------
+  it('should not show the Bills card when there are no bills', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockBillSummaryGet.mockResolvedValue({ totalBills: 0 })
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Lists' })).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('heading', { name: 'Bills' })).not.toBeInTheDocument()
+  })
+
+  it('should show the Bills card summary when bills exist', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockBillSummaryGet.mockResolvedValue({
+      totalBills: 3,
+      automatedCount: 2,
+      manualCount: 1,
+      totalMonthlyEquivalent: 450,
+      totalCurrentMonthAmount: 450,
+      totalCurrentYearAmount: 5400,
+    })
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Bills' })).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('3 bills total')).toBeInTheDocument()
+    expect(screen.getByText('2 auto')).toBeInTheDocument()
+    expect(screen.getByText('1 manual')).toBeInTheDocument()
+  })
+
+  it('should navigate to create a bill when "Create" is clicked in the Bills section', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockBillSummaryGet.mockResolvedValue({
+      totalBills: 1,
+      automatedCount: 1,
+      manualCount: 0,
+      totalMonthlyEquivalent: 100,
+      totalCurrentMonthAmount: 100,
+      totalCurrentYearAmount: 1200,
+    })
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Bills' })).toBeInTheDocument()
+    })
+
+    const billsSection = screen.getByRole('heading', { name: 'Bills' }).closest('section') as HTMLElement
+    await user.click(within(billsSection).getByRole('button', { name: /Create/ }))
+    expect(mockPush).toHaveBeenCalledWith('/bills/new')
+  })
+
+  it('should navigate to bills overview when the Bills card is clicked', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockBillSummaryGet.mockResolvedValue({
+      totalBills: 1,
+      automatedCount: 1,
+      manualCount: 0,
+      totalMonthlyEquivalent: 100,
+      totalCurrentMonthAmount: 100,
+      totalCurrentYearAmount: 1200,
+    })
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('1 bills total')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('1 bills total'))
+    expect(mockPush).toHaveBeenCalledWith('/bills')
+  })
+
+  // ------- Home card preferences (order/visibility) -------
+  it('should navigate to home preferences when the settings button is clicked', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await user.click(screen.getByRole('button', { name: 'Customize home page' }))
+    expect(mockPush).toHaveBeenCalledWith('/home-preferences')
+  })
+
+  it('should render cards in the order returned by preferences', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue([
+      { cardKey: 'lists', sortOrder: 0, isVisible: true },
+      { cardKey: 'foodplan', sortOrder: 1, isVisible: true },
+      { cardKey: 'bills', sortOrder: 2, isVisible: true },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      const headings = screen.getAllByRole('heading').map((h) => h.textContent)
+      expect(headings.indexOf('Lists')).toBeLessThan(headings.indexOf("Today's Menu"))
+    })
+  })
+
+  it('should hide a card whose preference marks it not visible', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue([
+      { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
+      { cardKey: 'lists', sortOrder: 1, isVisible: false },
+      { cardKey: 'bills', sortOrder: 2, isVisible: true },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Lists' })).not.toBeInTheDocument()
+    })
+
+    expect(screen.getByText("Today's Menu")).toBeInTheDocument()
   })
 })

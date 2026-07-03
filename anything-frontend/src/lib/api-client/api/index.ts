@@ -12,6 +12,8 @@ import { EventsRequestBuilderRequestsMetadata, type EventsRequestBuilder } from 
 // @ts-ignore
 import { FoodPlanRequestBuilderNavigationMetadata, type FoodPlanRequestBuilder } from './foodPlan/index';
 // @ts-ignore
+import { HomeRequestBuilderNavigationMetadata, type HomeRequestBuilder } from './home/index';
+// @ts-ignore
 import { HouseholdsRequestBuilderNavigationMetadata, HouseholdsRequestBuilderRequestsMetadata, type HouseholdsRequestBuilder } from './households/index';
 // @ts-ignore
 import { InventoryBoxesRequestBuilderNavigationMetadata, InventoryBoxesRequestBuilderRequestsMetadata, type InventoryBoxesRequestBuilder } from './inventoryBoxes/index';
@@ -62,6 +64,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The foodPlan property
      */
     get foodPlan(): FoodPlanRequestBuilder;
+    /**
+     * The home property
+     */
+    get home(): HomeRequestBuilder;
     /**
      * The households property
      */
@@ -135,6 +141,9 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     },
     foodPlan: {
         navigationMetadata: FoodPlanRequestBuilderNavigationMetadata,
+    },
+    home: {
+        navigationMetadata: HomeRequestBuilderNavigationMetadata,
     },
     households: {
         requestsMetadata: HouseholdsRequestBuilderRequestsMetadata,
