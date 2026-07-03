@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
+import { CreateListDialog } from "@/components/CreateListDialog";
+import { useState } from "react";
 
 function getTargetDate(): Date {
   const now = new Date();
@@ -25,6 +27,7 @@ const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 
 export default function Home() {
   const router = useRouter();
+  const [isCreatingList, setIsCreatingList] = useState(false);
   const targetDate = getTargetDate();
   const isShowingTomorrow = new Date().getHours() >= 18;
 
@@ -49,6 +52,11 @@ export default function Home() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-6">
       <PageTitle>Anything</PageTitle>
+      <CreateListDialog
+        open={isCreatingList}
+        onOpenChange={setIsCreatingList}
+        onCreated={(listId) => router.push(`/lists/${listId}`)}
+      />
       {/* Menu of the Day */}
       <section>
         <div className="flex items-center justify-between mb-3">
@@ -122,6 +130,65 @@ export default function Home() {
         )}
       </section>
 
+      {/* Lists */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <LayoutList className="h-5 w-5 text-green-600" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Lists
+            </h2>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCreatingList(true)}
+            className="text-xs"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Create
+          </Button>
+        </div>
+
+        {listsLoading ? (
+          <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
+        ) : topLists.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No shopping lists yet.</p>
+            <Button size="sm" onClick={() => setIsCreatingList(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Create list
+            </Button>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+            {topLists.map((list) => (
+              <button
+                key={list.id}
+                type="button"
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                onClick={() => router.push(`/lists/${list.id}`)}
+              >
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{list.name}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <CountBadge count={list.uncheckedItemCount} />
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                </div>
+              </button>
+            ))}
+            {(shoppingLists?.length ?? 0) > 2 && (
+              <button
+                type="button"
+                className="w-full px-4 py-2.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                onClick={() => router.push("/lists")}
+              >
+                View all {shoppingLists?.length} lists →
+              </button>
+            )}
+          </div>
+        )}
+      </section>
+
       {/* Bills summary */}
       {billSummary && billSummary.totalBills > 0 && (
         <section>
@@ -133,10 +200,11 @@ export default function Home() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push("/bills")}
+              onClick={() => router.push("/bills/new")}
               className="text-xs"
             >
-              All bills
+              <Plus className="h-4 w-4 mr-1" />
+              Create
             </Button>
           </div>
           <button
@@ -184,64 +252,6 @@ export default function Home() {
           </button>
         </section>
       )}
-
-      {/* Lists */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <LayoutList className="h-5 w-5 text-green-600" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Lists
-            </h2>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/lists")}
-            className="text-xs"
-          >
-            All lists
-          </Button>
-        </div>
-
-        {listsLoading ? (
-          <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
-        ) : topLists.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No shopping lists yet.</p>
-            <Button size="sm" onClick={() => router.push("/lists")}>
-              <Plus className="h-4 w-4 mr-1" />
-              Create list
-            </Button>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-            {topLists.map((list) => (
-              <button
-                key={list.id}
-                type="button"
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
-                onClick={() => router.push(`/lists/${list.id}`)}
-              >
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{list.name}</span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <CountBadge count={list.uncheckedItemCount} />
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
-                </div>
-              </button>
-            ))}
-            {(shoppingLists?.length ?? 0) > 2 && (
-              <button
-                type="button"
-                className="w-full px-4 py-2.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                onClick={() => router.push("/lists")}
-              >
-                View all {shoppingLists?.length} lists →
-              </button>
-            )}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
