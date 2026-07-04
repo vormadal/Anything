@@ -88,7 +88,7 @@ public class ImportRecipeTagsHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenRecipeMissing_ReturnsBadRequest()
+    public async Task Handle_WhenRecipeMissing_ReturnsValidationProblem()
     {
         _recipeRepo.Query().Returns(Array.Empty<Recipe>().AsAsyncQueryable());
         _tagRepo.Query().Returns(Array.Empty<RecipeTag>().AsAsyncQueryable());
@@ -98,11 +98,12 @@ public class ImportRecipeTagsHandlerTests
                 new RecipeTagImportExportItem("Missing", ["Any"])
             ]), TestContext.Current.CancellationToken);
 
-        Assert.IsType<BadRequest<string>>(result);
+        var validationProblem = Assert.IsType<ValidationProblem>(result);
+        Assert.Contains("not found", validationProblem.ProblemDetails.Errors["recipes"].Single());
     }
 
     [Fact]
-    public async Task Handle_WhenTagExceedsMaxLength_ReturnsBadRequest()
+    public async Task Handle_WhenTagExceedsMaxLength_ReturnsValidationProblem()
     {
         var existingRecipe = new Recipe { Id = 1, HouseholdId = 1, Name = "Soup" };
 
@@ -114,8 +115,8 @@ public class ImportRecipeTagsHandlerTests
                 new RecipeTagImportExportItem("Soup", [new string('x', 51)])
             ]), TestContext.Current.CancellationToken);
 
-        var badRequest = Assert.IsType<BadRequest<string>>(result);
-        Assert.Contains("maximum length of 50", badRequest.Value);
+        var validationProblem = Assert.IsType<ValidationProblem>(result);
+        Assert.Contains("maximum length of 50", validationProblem.ProblemDetails.Errors["tags"].Single());
         _tagRepo.DidNotReceive().Add(Arg.Any<RecipeTag>());
         await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
     }

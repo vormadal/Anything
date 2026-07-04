@@ -19,6 +19,8 @@ import {
   useDeleteRecipeImage,
   useAddIngredientsToShoppingList,
   useReimportRecipe,
+  useImportRecipeTags,
+  useExportRecipeTags,
 } from '@/hooks/useRecipes'
 
 // Mock the apiClient module
@@ -72,6 +74,8 @@ const mockById: jest.Mock = jest.fn(() => ({
 
 const mockParseUrlPost = jest.fn()
 const mockImportPost = jest.fn()
+const mockTagsExportGet = jest.fn()
+const mockTagsImportPost = jest.fn()
 
 // Mock MultipartBody via the createMultipartBody factory exported from apiClient
 const mockMultipartBodyInstance = { addOrReplacePart: jest.fn() }
@@ -85,7 +89,11 @@ jest.mock('@/lib/apiClient', () => ({
         byId: (...args: unknown[]) => mockById(...args),
         parseUrl: { post: (...args: unknown[]) => mockParseUrlPost(...args) },
         importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
-        tags: { get: (...args: unknown[]) => mockTagsListGet(...args) },
+        tags: {
+          get: (...args: unknown[]) => mockTagsListGet(...args),
+          exportEscaped: { get: (...args: unknown[]) => mockTagsExportGet(...args) },
+          importEscaped: { post: (...args: unknown[]) => mockTagsImportPost(...args) },
+        },
       },
     },
   },
@@ -230,6 +238,73 @@ describe('useRecipes hooks', () => {
 
       expect(result.current.data).toEqual([{ name: '', count: 0 }])
       expect(mockTagsListGet).toHaveBeenCalledWith({ queryParameters: { count: 10 } })
+    })
+  })
+
+  describe('useImportRecipeTags', () => {
+    it('posts the import payload through the generated client', async () => {
+      mockTagsImportPost.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useImportRecipeTags(), {
+        wrapper: createWrapper(),
+      })
+
+      const payload = { recipes: [{ recipeName: 'Soup', tags: ['warm'] }] }
+      await act(async () => {
+        await result.current.mutateAsync(payload)
+      })
+
+      expect(mockTagsImportPost).toHaveBeenCalledWith(payload)
+    })
+
+    it('wraps a 400 validation error into RecipeTagImportRejectedError with the server message', async () => {
+      mockTagsImportPost.mockRejectedValueOnce({
+        responseStatusCode: 400,
+        errors: { additionalData: { recipes: ['Recipe(s) not found: Soup'] } },
+      })
+
+      const { result } = renderHook(() => useImportRecipeTags(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({ recipes: [{ recipeName: 'Soup', tags: [] }] })
+        ).rejects.toThrow('Recipe(s) not found: Soup')
+      })
+    })
+
+    it('rethrows non-validation errors unchanged', async () => {
+      const networkError = new Error('network down')
+      mockTagsImportPost.mockRejectedValueOnce(networkError)
+
+      const { result } = renderHook(() => useImportRecipeTags(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({ recipes: [{ recipeName: 'Soup', tags: [] }] })
+        ).rejects.toThrow('network down')
+      })
+    })
+  })
+
+  describe('useExportRecipeTags', () => {
+    it('fetches export data through the generated client', async () => {
+      mockTagsExportGet.mockResolvedValueOnce({ recipes: [] })
+      global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
+      global.URL.revokeObjectURL = jest.fn()
+
+      const { result } = renderHook(() => useExportRecipeTags(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync()
+      })
+
+      expect(mockTagsExportGet).toHaveBeenCalled()
     })
   })
 
