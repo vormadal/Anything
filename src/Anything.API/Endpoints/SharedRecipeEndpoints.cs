@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Anything.Application.Features.Recipes.Commands;
 using Anything.Application.Features.Recipes.Queries;
 using Anything.Contracts.Recipes;
+using Anything.Core.Entities;
 using Anything.Mediator;
 
 namespace Anything.API.Endpoints;
@@ -35,7 +36,7 @@ public static class SharedRecipeEndpoints
             return await mediator.Send(new CloneSharedRecipeCommand(token, request.TargetHouseholdId, userId, email));
         })
         .WithName("CloneSharedRecipe")
-        .Produces(StatusCodes.Status201Created)
+        .Produces<Recipe>(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status403Forbidden)
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status410Gone)

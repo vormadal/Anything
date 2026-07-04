@@ -45,7 +45,7 @@ public class AcceptHouseholdInviteHandlerTests
 
         var result = await CreateHandler().Handle(new AcceptHouseholdInviteCommand("abc", 1), TestContext.Current.CancellationToken);
 
-        Assert.IsType<BadRequest<string>>(result);
+        Assert.IsType<ValidationProblem>(result);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class AcceptHouseholdInviteHandlerTests
 
         var result = await CreateHandler().Handle(new AcceptHouseholdInviteCommand("abc", 1), TestContext.Current.CancellationToken);
 
-        Assert.IsType<BadRequest<string>>(result);
+        Assert.IsType<ValidationProblem>(result);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class AcceptHouseholdInviteHandlerTests
 
         var result = await CreateHandler().Handle(new AcceptHouseholdInviteCommand("abc", 1), TestContext.Current.CancellationToken);
 
-        Assert.IsType<BadRequest<string>>(result);
+        Assert.IsType<ValidationProblem>(result);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class AcceptHouseholdInviteHandlerTests
 
         var result = await CreateHandler().Handle(new AcceptHouseholdInviteCommand("abc", 1), TestContext.Current.CancellationToken);
 
-        Assert.IsType<BadRequest<string>>(result);
+        Assert.IsType<ValidationProblem>(result);
     }
 
     [Fact]
