@@ -7,6 +7,8 @@ import {
   useUpdateSuggestionCategory,
   useDeleteSuggestionCategory,
   useReorderSuggestionCategories,
+  useExportSuggestionCategories,
+  useImportSuggestionCategories,
 } from '@/hooks/useSuggestionCategories'
 
 const mockGetFn = jest.fn()
@@ -14,6 +16,8 @@ const mockPostFn = jest.fn()
 const mockPutFn = jest.fn()
 const mockDeleteFn = jest.fn()
 const mockReorderPutFn = jest.fn()
+const mockExportGet = jest.fn()
+const mockImportPost = jest.fn()
 const mockItemById: jest.Mock = jest.fn(() => ({ put: mockPutFn, delete: mockDeleteFn }))
 
 jest.mock('@/lib/apiClient', () => ({
@@ -24,6 +28,8 @@ jest.mock('@/lib/apiClient', () => ({
         post: (...args: unknown[]) => mockPostFn(...args),
         byId: (...args: unknown[]) => mockItemById(...args),
         reorder: { put: (...args: unknown[]) => mockReorderPutFn(...args) },
+        exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
+        importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
       },
     },
   },
@@ -129,6 +135,41 @@ describe('useSuggestionCategories hooks', () => {
       })
 
       expect(mockReorderPutFn).toHaveBeenCalledWith({ ids: [3, 1, 2] })
+    })
+  })
+
+  describe('useExportSuggestionCategories', () => {
+    it('fetches export data through the generated client', async () => {
+      mockExportGet.mockResolvedValueOnce({ categories: [] })
+      global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
+      global.URL.revokeObjectURL = jest.fn()
+
+      const { result } = renderHook(() => useExportSuggestionCategories(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync()
+      })
+
+      expect(mockExportGet).toHaveBeenCalled()
+    })
+  })
+
+  describe('useImportSuggestionCategories', () => {
+    it('posts the import payload through the generated client', async () => {
+      mockImportPost.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useImportSuggestionCategories(), {
+        wrapper: createWrapper(),
+      })
+
+      const payload = { categories: [{ name: 'Frozen' }] }
+      await act(async () => {
+        await result.current.mutateAsync(payload)
+      })
+
+      expect(mockImportPost).toHaveBeenCalledWith(payload)
     })
   })
 })

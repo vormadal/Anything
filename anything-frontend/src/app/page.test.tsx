@@ -19,7 +19,6 @@ function mockRecipesFetch(recipes: unknown[]) {
 // Mock the apiClient module
 const mockFoodPlanEntriesGet = jest.fn()
 const mockFoodPlanNotesGet = jest.fn()
-const mockApiFetch = jest.fn()
 const mockShoppingListsGet = jest.fn()
 const mockBillSummaryGet = jest.fn()
 const mockHomeCardPreferencesGet = jest.fn()
@@ -75,7 +74,6 @@ jest.mock('@/lib/apiClient', () => ({
       },
     },
   },
-  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }))
 
 // Mock next/navigation
@@ -93,7 +91,6 @@ describe('Home Page Integration Tests', () => {
     jest.clearAllMocks()
     mockFoodPlanEntriesGet.mockResolvedValue([])
     mockFoodPlanNotesGet.mockResolvedValue([])
-    mockApiFetch.mockResolvedValue({ ok: true, json: async () => [] })
     mockRecipesFetch([])
     mockBillSummaryGet.mockResolvedValue(undefined)
     mockHomeCardPreferencesGet.mockResolvedValue([
@@ -358,7 +355,6 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanEntriesGet.mockResolvedValue([
       { id: 1, name: 'Pasta', recipeId: null, date: '2025-06-16T00:00:00Z' },
     ])
-    mockApiFetch.mockResolvedValue({ ok: true, json: async () => [] })
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)

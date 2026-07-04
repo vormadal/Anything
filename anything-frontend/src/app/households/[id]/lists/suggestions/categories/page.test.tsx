@@ -9,7 +9,8 @@ const mockCategoriesPost = jest.fn();
 const mockUpdatePut = jest.fn();
 const mockDeleteFn = jest.fn();
 const mockReorderPut = jest.fn();
-const mockApiFetch = jest.fn();
+const mockExportGet = jest.fn();
+const mockImportPost = jest.fn();
 const mockItemById = jest.fn((id: number) => ({
   put: (...args: unknown[]) => mockUpdatePut(id, ...args),
   delete: (...args: unknown[]) => mockDeleteFn(id, ...args),
@@ -23,10 +24,11 @@ jest.mock("@/lib/apiClient", () => ({
         post: (...args: unknown[]) => mockCategoriesPost(...args),
         byId: (id: number) => mockItemById(id),
         reorder: { put: (...args: unknown[]) => mockReorderPut(...args) },
+        exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
+        importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
       },
     },
   },
-  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
 
 const mockPush = jest.fn();
@@ -318,10 +320,7 @@ describe("CategoriesPage (household config)", () => {
 
     it("exports categories successfully", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({
-        ok: true,
-        json: jest.fn().mockResolvedValue({ categories: [{ name: "Dairy" }] }),
-      });
+      mockExportGet.mockResolvedValueOnce({ categories: [{ name: "Dairy" }] });
 
       renderWithClient(<CategoriesPage />);
 
@@ -329,14 +328,14 @@ describe("CategoriesPage (household config)", () => {
       await user.click(screen.getByRole("button", { name: "Export categories" }));
 
       await waitFor(() => {
-        expect(mockApiFetch).toHaveBeenCalledWith("/api/suggestion-categories/export");
+        expect(mockExportGet).toHaveBeenCalled();
         expect(toast.success).toHaveBeenCalledWith("Categories exported.");
       });
     });
 
     it("shows error toast when export fails", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({ ok: false });
+      mockExportGet.mockRejectedValueOnce(new Error("Export failed"));
 
       renderWithClient(<CategoriesPage />);
 
@@ -358,7 +357,7 @@ describe("CategoriesPage (household config)", () => {
 
     it("imports categories from a valid JSON file successfully", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({ ok: true });
+      mockImportPost.mockResolvedValueOnce(undefined);
 
       renderWithClient(<CategoriesPage />);
 
@@ -370,17 +369,16 @@ describe("CategoriesPage (household config)", () => {
       await user.upload(fileInput, file);
 
       await waitFor(() => {
-        expect(mockApiFetch).toHaveBeenCalledWith(
-          "/api/suggestion-categories/import",
-          expect.objectContaining({ method: "POST" })
-        );
+        expect(mockImportPost).toHaveBeenCalledWith({
+          categories: [{ name: "Dairy" }, { name: "Bakery" }],
+        });
         expect(toast.success).toHaveBeenCalledWith("Categories imported.");
       });
     });
 
     it("shows error toast when import API call fails", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({ ok: false });
+      mockImportPost.mockRejectedValueOnce(new Error("Import failed"));
 
       renderWithClient(<CategoriesPage />);
 

@@ -1,12 +1,15 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
-import { useLogin, useLogout, useUpdateProfile, useChangePassword, setTokens, clearTokens, getAccessToken, getRefreshToken, setUser, getUser } from "@/hooks/useAuth";
+import { useLogin, useLogout, useUpdateProfile, useChangePassword, useMyPendingInvites, useAcceptHouseholdInvite, setTokens, clearTokens, getAccessToken, getRefreshToken, setUser, getUser } from "@/hooks/useAuth";
 
 // Mock the apiClient module
 const mockLoginPost = jest.fn()
 const mockProfilePut = jest.fn()
 const mockPasswordPut = jest.fn()
+const mockInvitesMeGet = jest.fn()
+const mockInviteAcceptPost = jest.fn()
+const mockInvitesById = jest.fn(() => ({ accept: { post: mockInviteAcceptPost } }))
 
 jest.mock('@/lib/apiClient', () => {
   class ApiError extends Error {
@@ -25,7 +28,11 @@ jest.mock('@/lib/apiClient', () => {
           logout: { post: jest.fn() },
           refresh: { post: jest.fn() },
           register: { post: jest.fn() },
-          invites: { post: jest.fn() },
+          invites: {
+            post: jest.fn(),
+            me: { get: (...args: unknown[]) => mockInvitesMeGet(...args) },
+            byId: (...args: unknown[]) => mockInvitesById(...args),
+          },
           profile: {
             put: (...args: unknown[]) => mockProfilePut(...args),
             password: { put: (...args: unknown[]) => mockPasswordPut(...args) },
@@ -184,6 +191,87 @@ describe("useAuth hooks", () => {
         currentPassword: "OldPass123!",
         newPassword: "NewPass123!",
       });
+    });
+  });
+
+  describe("useMyPendingInvites", () => {
+    it("fetches and normalizes pending invites when authenticated", async () => {
+      setTokens("access-token", "refresh-token");
+      setUser({ email: "test@example.com", name: "Test User", role: "User" });
+      mockInvitesMeGet.mockResolvedValueOnce([
+        { id: 1, token: "tok", email: "a@b.c", householdId: 5, householdName: "Home", inviteUrl: "/invite/tok" },
+      ]);
+
+      const { result } = renderHook(() => useMyPendingInvites(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.data).toEqual([
+        {
+          id: 1,
+          token: "tok",
+          email: "a@b.c",
+          householdId: 5,
+          householdName: "Home",
+          expiresAt: "",
+          inviteUrl: "/invite/tok",
+        },
+      ]);
+    });
+
+    it("does not fetch when not authenticated", async () => {
+      const { result } = renderHook(() => useMyPendingInvites(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.fetchStatus).toBe("idle");
+      expect(mockInvitesMeGet).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("useAcceptHouseholdInvite", () => {
+    it("accepts an invite by token", async () => {
+      mockInviteAcceptPost.mockResolvedValueOnce(undefined);
+
+      const { result } = renderHook(() => useAcceptHouseholdInvite(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync("tok-123");
+      });
+
+      expect(mockInvitesById).toHaveBeenCalledWith("tok-123");
+      expect(mockInviteAcceptPost).toHaveBeenCalled();
+    });
+
+    it("surfaces the server's validation message on rejection", async () => {
+      mockInviteAcceptPost.mockRejectedValueOnce({
+        responseStatusCode: 400,
+        errors: { additionalData: { invite: ["This invite has expired."] } },
+      });
+
+      const { result } = renderHook(() => useAcceptHouseholdInvite(), {
+        wrapper: createWrapper(),
+      });
+
+      await expect(result.current.mutateAsync("tok-123")).rejects.toThrow(
+        "This invite has expired."
+      );
+    });
+
+    it("falls back to a generic message for unexpected failures", async () => {
+      mockInviteAcceptPost.mockRejectedValueOnce(new Error("network down"));
+
+      const { result } = renderHook(() => useAcceptHouseholdInvite(), {
+        wrapper: createWrapper(),
+      });
+
+      await expect(result.current.mutateAsync("tok-123")).rejects.toThrow(
+        "Failed to accept invite"
+      );
     });
   });
 });

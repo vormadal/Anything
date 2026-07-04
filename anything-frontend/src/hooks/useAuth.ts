@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, ApiError, apiFetch } from "@/lib/apiClient";
+import { apiClient, ApiError } from "@/lib/apiClient";
 
 // Storage keys
 const ACCESS_TOKEN_KEY = "accessToken";
@@ -198,23 +198,43 @@ export function useMyPendingInvites() {
   return useQuery({
     queryKey: ["auth", "invites", "me"],
     queryFn: async (): Promise<PendingInvite[]> => {
-      const response = await apiFetch("/api/auth/invites/me");
-      if (!response.ok) throw new Error("Failed to fetch pending invites");
-      return response.json() as Promise<PendingInvite[]>;
+      const invites = await apiClient.api.auth.invites.me.get();
+      return (invites ?? []).map((invite) => ({
+        id: invite.id ?? 0,
+        token: invite.token ?? "",
+        email: invite.email ?? "",
+        householdId: invite.householdId ?? null,
+        householdName: invite.householdName ?? null,
+        expiresAt: invite.expiresAt ? invite.expiresAt.toISOString() : "",
+        inviteUrl: invite.inviteUrl ?? "",
+      }));
     },
     enabled: isAuthenticated,
   });
 }
 
-// Accept a household invite by token (for existing users)
+// Accept a household invite by token (for existing users).
+// The generated client types this path segment as a numeric id because it
+// shares a URL prefix with the numeric DeleteInvite route ("/invites/{id}");
+// the value is only ever used as a raw path segment, so passing the string
+// token through is safe at runtime despite the numeric type.
 export function useAcceptHouseholdInvite() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (token: string): Promise<void> => {
-      const response = await apiFetch(`/api/auth/invites/${token}/accept`, { method: "POST" });
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || "Failed to accept invite");
+      try {
+        await apiClient.api.auth.invites.byId(token as unknown as number).accept.post();
+      } catch (err) {
+        // A mapped 400 (HttpValidationProblemDetails) deserializes to a plain object,
+        // not a DefaultApiError instance, so this checks the shape instead of `instanceof`.
+        const validationErrors =
+          typeof err === "object" && err !== null
+            ? (err as { errors?: { additionalData?: Record<string, unknown> } }).errors?.additionalData
+            : undefined;
+        const messages = validationErrors
+          ? Object.values(validationErrors).flat().filter((m): m is string => typeof m === "string")
+          : [];
+        throw new Error(messages.join(" ") || "Failed to accept invite");
       }
     },
     onSuccess: () => {

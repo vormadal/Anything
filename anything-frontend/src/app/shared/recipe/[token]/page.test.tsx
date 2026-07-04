@@ -3,16 +3,27 @@ import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import SharedRecipePage from './page'
 
-const mockApiFetch = jest.fn()
+const mockSharedRecipeGet = jest.fn()
+const mockClonePost = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
-  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
   apiClient: {
     api: {
       households: {
         get: jest.fn().mockResolvedValue([]),
       },
+      shared: {
+        recipes: {
+          byToken: () => ({
+            get: (...args: unknown[]) => mockSharedRecipeGet(...args),
+            clone: { post: (...args: unknown[]) => mockClonePost(...args) },
+          }),
+        },
+      },
     },
+  },
+  ApiError: class MockApiError extends Error {
+    responseStatusCode?: number
   },
 }))
 
@@ -65,15 +76,9 @@ const mockRecipe = {
   targetEmail: null,
 }
 
-// Routes apiFetch calls: the share GET (`/shared/recipes/{token}`) returns the
-// supplied recipe, while the clone POST (`.../clone`) returns the new recipe id.
-function setupApiFetch(sharedResponse: { ok: boolean; json?: () => Promise<unknown> }) {
-  mockApiFetch.mockImplementation((path: string) => {
-    if (typeof path === 'string' && path.includes('/clone')) {
-      return Promise.resolve({ ok: true, json: async () => ({ id: 99 }) })
-    }
-    return Promise.resolve(sharedResponse)
-  })
+function setupSharedRecipe(recipe: unknown) {
+  mockSharedRecipeGet.mockResolvedValueOnce(recipe)
+  mockClonePost.mockResolvedValueOnce({ id: 99 })
 }
 
 describe('SharedRecipePage', () => {
@@ -89,13 +94,10 @@ describe('SharedRecipePage', () => {
   })
 
   it('shows login prompt for targeted share when not authenticated', async () => {
-    setupApiFetch({
-      ok: true,
-      json: async () => ({
-        ...mockRecipe,
-        isTargeted: true,
-        targetEmail: 'alice@example.com',
-      }),
+    setupSharedRecipe({
+      ...mockRecipe,
+      isTargeted: true,
+      targetEmail: 'alice@example.com',
     })
 
     render(<SharedRecipePage />)
@@ -104,20 +106,17 @@ describe('SharedRecipePage', () => {
   })
 
   it('shows not found when fetch fails', async () => {
-    setupApiFetch({ ok: false })
+    mockSharedRecipeGet.mockRejectedValueOnce(new Error('Share link not found'))
 
     render(<SharedRecipePage />)
     await waitFor(() => expect(screen.getByText('Link not found')).toBeInTheDocument())
   })
 
   it('clones recipe and navigates on success', async () => {
-    setupApiFetch({
-      ok: true,
-      json: async () => ({
-        ...mockRecipe,
-        isTargeted: true,
-        targetEmail: 'alice@example.com',
-      }),
+    setupSharedRecipe({
+      ...mockRecipe,
+      isTargeted: true,
+      targetEmail: 'alice@example.com',
     })
     mockIsAuthenticated = () => true
     mockGetUser = () => ({ email: 'alice@example.com', name: 'Alice', role: 'User' })

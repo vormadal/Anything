@@ -1,6 +1,7 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
+import { ApiError } from '@/lib/apiClient'
 import {
   useRecipeShares,
   useCreateRecipeShare,
@@ -9,19 +10,30 @@ import {
   useCloneSharedRecipe,
 } from '@/hooks/useRecipeShares'
 
-const mockApiFetch = jest.fn()
-
-jest.mock('@/lib/apiClient', () => ({
-  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
+const mockSharesGet = jest.fn()
+const mockSharesPost = jest.fn()
+const mockSharesItemDelete = jest.fn()
+const mockSharesItemById: jest.Mock = jest.fn(() => ({ delete: mockSharesItemDelete }))
+const mockShares = { get: mockSharesGet, post: mockSharesPost, byTokenId: mockSharesItemById }
+const mockRecipesById: jest.Mock = jest.fn(() => ({ shares: mockShares }))
+const mockSharedRecipeGet = jest.fn()
+const mockClonePost = jest.fn()
+const mockSharedRecipeByToken: jest.Mock = jest.fn(() => ({
+  get: mockSharedRecipeGet,
+  clone: { post: mockClonePost },
 }))
 
-function jsonResponse(data: unknown, ok = true, status = 200) {
-  return Promise.resolve({
-    ok,
-    status,
-    json: () => Promise.resolve(data),
-  } as Response)
-}
+jest.mock('@/lib/apiClient', () => ({
+  apiClient: {
+    api: {
+      recipes: { byId: (...args: unknown[]) => mockRecipesById(...args) },
+      shared: { recipes: { byToken: (...args: unknown[]) => mockSharedRecipeByToken(...args) } },
+    },
+  },
+  ApiError: class MockApiError extends Error {
+    responseStatusCode?: number
+  },
+}))
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -37,6 +49,14 @@ function createWrapper() {
   return Wrapper
 }
 
+const normalizedShareDefaults = {
+  targetEmail: null,
+  expiresAt: null,
+  createdOn: '',
+  isExpired: false,
+  isClaimed: false,
+}
+
 describe('useRecipeShares hooks', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -44,8 +64,7 @@ describe('useRecipeShares hooks', () => {
 
   describe('useRecipeShares', () => {
     it('loads the share links for a recipe', async () => {
-      const shares = [{ id: 1, token: 'abc', shareUrl: 'https://x/abc' }]
-      mockApiFetch.mockReturnValueOnce(jsonResponse(shares))
+      mockSharesGet.mockResolvedValueOnce([{ id: 1, token: 'abc', shareUrl: 'https://x/abc' }])
 
       const { result } = renderHook(() => useRecipeShares(3), {
         wrapper: createWrapper(),
@@ -53,12 +72,15 @@ describe('useRecipeShares hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(result.current.data).toEqual(shares)
-      expect(mockApiFetch).toHaveBeenCalledWith('/api/recipes/3/shares')
+      expect(result.current.data).toEqual([
+        { id: 1, token: 'abc', shareUrl: 'https://x/abc', ...normalizedShareDefaults },
+      ])
+      expect(mockRecipesById).toHaveBeenCalledWith(3)
+      expect(mockSharesGet).toHaveBeenCalled()
     })
 
     it('throws when the request fails', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse({}, false, 500))
+      mockSharesGet.mockRejectedValueOnce(new Error('server error'))
 
       const { result } = renderHook(() => useRecipeShares(3), {
         wrapper: createWrapper(),
@@ -70,8 +92,7 @@ describe('useRecipeShares hooks', () => {
 
   describe('useCreateRecipeShare', () => {
     it('posts the expiry and target email', async () => {
-      const created = { id: 9, token: 'tok', shareUrl: 'https://x/tok' }
-      mockApiFetch.mockReturnValueOnce(jsonResponse(created))
+      mockSharesPost.mockResolvedValueOnce({ id: 9, token: 'tok', shareUrl: 'https://x/tok' })
 
       const { result } = renderHook(() => useCreateRecipeShare(3), {
         wrapper: createWrapper(),
@@ -83,15 +104,17 @@ describe('useRecipeShares hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(result.current.data).toEqual(created)
-      expect(mockApiFetch).toHaveBeenCalledWith('/api/recipes/3/shares', {
-        method: 'POST',
-        body: JSON.stringify({ expiry: 'OneWeek', targetEmail: 'a@b.c' }),
+      expect(result.current.data).toEqual({
+        id: 9,
+        token: 'tok',
+        shareUrl: 'https://x/tok',
+        ...normalizedShareDefaults,
       })
+      expect(mockSharesPost).toHaveBeenCalledWith({ expiry: 'OneWeek', targetEmail: 'a@b.c' })
     })
 
     it('defaults a missing target email to null and throws on failure', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse({}, false, 400))
+      mockSharesPost.mockRejectedValueOnce(new Error('failed'))
 
       const { result } = renderHook(() => useCreateRecipeShare(3), {
         wrapper: createWrapper(),
@@ -101,16 +124,13 @@ describe('useRecipeShares hooks', () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true))
 
-      expect(mockApiFetch).toHaveBeenCalledWith('/api/recipes/3/shares', {
-        method: 'POST',
-        body: JSON.stringify({ expiry: 'Forever', targetEmail: null }),
-      })
+      expect(mockSharesPost).toHaveBeenCalledWith({ expiry: 'Forever', targetEmail: null })
     })
   })
 
   describe('useRevokeRecipeShare', () => {
     it('deletes a share token', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse(null))
+      mockSharesItemDelete.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useRevokeRecipeShare(3), {
         wrapper: createWrapper(),
@@ -122,13 +142,12 @@ describe('useRecipeShares hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockApiFetch).toHaveBeenCalledWith('/api/recipes/3/shares/42', {
-        method: 'DELETE',
-      })
+      expect(mockSharesItemById).toHaveBeenCalledWith(42)
+      expect(mockSharesItemDelete).toHaveBeenCalled()
     })
 
     it('throws when revoke fails', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse({}, false, 500))
+      mockSharesItemDelete.mockRejectedValueOnce(new Error('server error'))
 
       const { result } = renderHook(() => useRevokeRecipeShare(3), {
         wrapper: createWrapper(),
@@ -141,9 +160,8 @@ describe('useRecipeShares hooks', () => {
   })
 
   describe('useSharedRecipe', () => {
-    it('fetches a shared recipe by token via apiFetch', async () => {
-      const recipe = { recipeId: 1, recipeName: 'Cake' }
-      mockApiFetch.mockReturnValueOnce(jsonResponse(recipe))
+    it('fetches a shared recipe by token via the generated client', async () => {
+      mockSharedRecipeGet.mockResolvedValueOnce({ recipeId: 1, recipeName: 'Cake' })
 
       const { result } = renderHook(() => useSharedRecipe('token-123'), {
         wrapper: createWrapper(),
@@ -151,12 +169,26 @@ describe('useRecipeShares hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(result.current.data).toEqual(recipe)
-      expect(mockApiFetch).toHaveBeenCalledWith('/api/shared/recipes/token-123')
+      expect(result.current.data).toEqual({
+        recipeId: 1,
+        recipeName: 'Cake',
+        notes: null,
+        cookTimeMinutes: null,
+        servings: null,
+        servingsType: '',
+        ingredients: [],
+        steps: [],
+        tags: [],
+        imageUrls: [],
+        isExpired: false,
+        isTargeted: false,
+        targetEmail: null,
+      })
+      expect(mockSharedRecipeByToken).toHaveBeenCalledWith('token-123')
     })
 
-    it('throws "Share link not found" on a non-ok response', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse({}, false, 404))
+    it('throws "Share link not found" when the client returns nothing', async () => {
+      mockSharedRecipeGet.mockResolvedValueOnce(undefined)
 
       const { result } = renderHook(() => useSharedRecipe('missing'), {
         wrapper: createWrapper(),
@@ -170,7 +202,7 @@ describe('useRecipeShares hooks', () => {
 
   describe('useCloneSharedRecipe', () => {
     it('clones into the target household and returns the new id', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse({ id: 77 }))
+      mockClonePost.mockResolvedValueOnce({ id: 77 })
 
       const { result } = renderHook(() => useCloneSharedRecipe('token-123'), {
         wrapper: createWrapper(),
@@ -183,14 +215,14 @@ describe('useRecipeShares hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
       expect(result.current.data).toEqual({ id: 77 })
-      expect(mockApiFetch).toHaveBeenCalledWith('/api/shared/recipes/token-123/clone', {
-        method: 'POST',
-        body: JSON.stringify({ targetHouseholdId: 5 }),
-      })
+      expect(mockSharedRecipeByToken).toHaveBeenCalledWith('token-123')
+      expect(mockClonePost).toHaveBeenCalledWith({ targetHouseholdId: 5 })
     })
 
     it('maps a 403 to an authorization error', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse({}, false, 403))
+      const error = new ApiError()
+      error.responseStatusCode = 403
+      mockClonePost.mockRejectedValueOnce(error)
 
       const { result } = renderHook(() => useCloneSharedRecipe('token-123'), {
         wrapper: createWrapper(),
@@ -206,7 +238,7 @@ describe('useRecipeShares hooks', () => {
     })
 
     it('throws a generic error for other failures', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse({}, false, 500))
+      mockClonePost.mockRejectedValueOnce(new Error('server error'))
 
       const { result } = renderHook(() => useCloneSharedRecipe('token-123'), {
         wrapper: createWrapper(),
@@ -220,7 +252,9 @@ describe('useRecipeShares hooks', () => {
     })
 
     it('maps a 410 to an expired-link error', async () => {
-      mockApiFetch.mockReturnValueOnce(jsonResponse({}, false, 410))
+      const error = new ApiError()
+      error.responseStatusCode = 410
+      mockClonePost.mockRejectedValueOnce(error)
 
       const { result } = renderHook(() => useCloneSharedRecipe('token-123'), {
         wrapper: createWrapper(),

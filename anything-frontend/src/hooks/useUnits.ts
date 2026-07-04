@@ -1,18 +1,14 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/apiClient";
+import { apiClient } from "@/lib/apiClient";
+import type {
+  MeasurementUnit,
+  ExportUnitsResponse,
+  ImportUnitsRequest,
+} from "@/lib/api-client/models/index";
 
-export type MeasurementUnit = {
-  id?: number | null;
-  name?: string | null;
-  householdId?: number | null;
-  createdOn?: string | null;
-  modifiedOn?: string | null;
-};
-
-export type UnitExportItem = { name: string; delete?: boolean };
-export type UnitExportData = { units: UnitExportItem[] };
+export type { MeasurementUnit, ExportUnitsResponse, ImportUnitsRequest };
 
 const UNITS_KEY = ["units"];
 
@@ -20,9 +16,8 @@ export function useUnits() {
   return useQuery({
     queryKey: UNITS_KEY,
     queryFn: async () => {
-      const response = await apiFetch("/api/units");
-      if (!response.ok) throw new Error("Failed to load units");
-      return (await response.json()) as MeasurementUnit[];
+      const units = await apiClient.api.units.get();
+      return units ?? [];
     },
   });
 }
@@ -32,11 +27,7 @@ export function useCreateUnit() {
 
   return useMutation({
     mutationFn: async (name: string) => {
-      const response = await apiFetch("/api/units", {
-        method: "POST",
-        body: JSON.stringify({ name }),
-      });
-      if (!response.ok) throw new Error("Failed to create unit");
+      await apiClient.api.units.post({ name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: UNITS_KEY });
@@ -49,11 +40,7 @@ export function useUpdateUnit() {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: number; name: string }) => {
-      const response = await apiFetch(`/api/units/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({ name }),
-      });
-      if (!response.ok) throw new Error("Failed to update unit");
+      await apiClient.api.units.byId(id).put({ name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: UNITS_KEY });
@@ -66,8 +53,7 @@ export function useDeleteUnit() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiFetch(`/api/units/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed to delete unit");
+      await apiClient.api.units.byId(id).delete();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: UNITS_KEY });
@@ -80,8 +66,7 @@ export function useSeedDefaultUnits() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await apiFetch("/api/units/seed-defaults", { method: "POST" });
-      if (!response.ok) throw new Error("Failed to add common units");
+      await apiClient.api.units.seedDefaults.post();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: UNITS_KEY });
@@ -92,9 +77,8 @@ export function useSeedDefaultUnits() {
 export function useExportUnits() {
   return useMutation({
     mutationFn: async () => {
-      const response = await apiFetch("/api/units/export");
-      if (!response.ok) throw new Error("Export failed");
-      const data = (await response.json()) as UnitExportData;
+      const data = await apiClient.api.units.exportEscaped.get();
+      if (!data) throw new Error("Export failed");
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -110,12 +94,8 @@ export function useImportUnits() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: UnitExportData) => {
-      const response = await apiFetch("/api/units/import", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Import failed");
+    mutationFn: async (data: ImportUnitsRequest) => {
+      await apiClient.api.units.importEscaped.post(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: UNITS_KEY });

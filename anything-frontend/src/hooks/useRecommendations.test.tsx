@@ -6,6 +6,8 @@ import {
   useAllRecommendations,
   useDeleteRecommendation,
   useUpdateRecommendation,
+  useExportRecommendations,
+  useImportRecommendations,
 } from '@/hooks/useRecommendations'
 
 const mockGet = jest.fn()
@@ -13,6 +15,8 @@ const mockAllGet = jest.fn()
 const mockDeleteFn = jest.fn()
 const mockPutFn = jest.fn()
 const mockItemById: jest.Mock = jest.fn(() => ({ delete: mockDeleteFn, put: mockPutFn }))
+const mockExportGet = jest.fn()
+const mockImportPost = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -21,6 +25,8 @@ jest.mock('@/lib/apiClient', () => ({
         get: (...args: unknown[]) => mockGet(...args),
         all: { get: (...args: unknown[]) => mockAllGet(...args) },
         byId: (...args: unknown[]) => mockItemById(...args),
+        exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
+        importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
       },
     },
   },
@@ -161,6 +167,43 @@ describe('useRecommendations hooks', () => {
           await result.current.mutateAsync({ id: 1, name: 'Milk' })
         })
       ).rejects.toThrow('Forbidden')
+    })
+  })
+
+  describe('useExportRecommendations', () => {
+    it('fetches export data with the uncategorizedOnly filter', async () => {
+      mockExportGet.mockResolvedValueOnce({ recommendations: [] })
+      global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
+      global.URL.revokeObjectURL = jest.fn()
+
+      const { result } = renderHook(() => useExportRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({ uncategorizedOnly: true })
+      })
+
+      expect(mockExportGet).toHaveBeenCalledWith({
+        queryParameters: { uncategorizedOnly: true },
+      })
+    })
+  })
+
+  describe('useImportRecommendations', () => {
+    it('posts the import payload', async () => {
+      mockImportPost.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useImportRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      const payload = { recommendations: [{ name: 'Milk', preferredUnit: 'L' }] }
+      await act(async () => {
+        await result.current.mutateAsync(payload)
+      })
+
+      expect(mockImportPost).toHaveBeenCalledWith(payload)
     })
   })
 })
