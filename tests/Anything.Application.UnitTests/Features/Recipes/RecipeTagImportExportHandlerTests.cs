@@ -5,6 +5,7 @@ using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -98,8 +99,9 @@ public class ImportRecipeTagsHandlerTests
                 new RecipeTagImportExportItem("Missing", ["Any"])
             ]), TestContext.Current.CancellationToken);
 
-        var validationProblem = Assert.IsType<ValidationProblem>(result);
-        Assert.Contains("not found", validationProblem.ProblemDetails.Errors["recipes"].Single());
+        var problemResult = Assert.IsType<ProblemHttpResult>(result);
+        var problemDetails = Assert.IsType<HttpValidationProblemDetails>(problemResult.ProblemDetails);
+        Assert.Contains("not found", problemDetails.Errors["recipes"].Single());
     }
 
     [Fact]
@@ -115,8 +117,9 @@ public class ImportRecipeTagsHandlerTests
                 new RecipeTagImportExportItem("Soup", [new string('x', 51)])
             ]), TestContext.Current.CancellationToken);
 
-        var validationProblem = Assert.IsType<ValidationProblem>(result);
-        Assert.Contains("maximum length of 50", validationProblem.ProblemDetails.Errors["tags"].Single());
+        var problemResult = Assert.IsType<ProblemHttpResult>(result);
+        var problemDetails = Assert.IsType<HttpValidationProblemDetails>(problemResult.ProblemDetails);
+        Assert.Contains("maximum length of 50", problemDetails.Errors["tags"].Single());
         _tagRepo.DidNotReceive().Add(Arg.Any<RecipeTag>());
         await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
     }

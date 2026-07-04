@@ -9,7 +9,8 @@ const mockProfilePut = jest.fn()
 const mockPasswordPut = jest.fn()
 const mockInvitesMeGet = jest.fn()
 const mockInviteAcceptPost = jest.fn()
-const mockInvitesById = jest.fn(() => ({ accept: { post: mockInviteAcceptPost } }))
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must accept the id argument the real client passes
+const mockInvitesById = jest.fn((id: unknown) => ({ accept: { post: mockInviteAcceptPost } }))
 
 jest.mock('@/lib/apiClient', () => {
   class ApiError extends Error {
@@ -31,7 +32,7 @@ jest.mock('@/lib/apiClient', () => {
           invites: {
             post: jest.fn(),
             me: { get: (...args: unknown[]) => mockInvitesMeGet(...args) },
-            byId: (...args: unknown[]) => mockInvitesById(...args),
+            byId: (id: unknown) => mockInvitesById(id),
           },
           profile: {
             put: (...args: unknown[]) => mockProfilePut(...args),
