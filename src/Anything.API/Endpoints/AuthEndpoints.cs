@@ -59,7 +59,7 @@ public static class AuthEndpoints
         })
         .WithName("AcceptHouseholdInvite")
         .Produces(200)
-        .Produces(400)
+        .Produces<HttpValidationProblemDetails>(400)
         .Produces(403)
         .Produces(404)
         .RequireAuthorization();

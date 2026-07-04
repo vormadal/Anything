@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, apiFetch, createMultipartBody } from "@/lib/apiClient";
+import { apiClient, createMultipartBody } from "@/lib/apiClient";
 import type {
   Recipe,
   RecipeIngredient,
@@ -11,34 +11,47 @@ import type {
   ParsedIngredient,
   ParsedStep,
   RecipeTag,
+  ExportRecipeTagsResponse,
+  ImportRecipeTagsRequest,
 } from "@/lib/api-client/models/index";
 
 // Re-export API model types that consumers import from this hook
 export type { ParsedRecipeResponse, ParsedIngredient, ParsedStep, RecipeTag };
+export type { ExportRecipeTagsResponse, ImportRecipeTagsRequest };
 
 export interface TopTag {
   name: string;
   count: number;
 }
 
-type RecipeTagExportItem = {
-  recipeName: string;
-  ingredients: string[];
-  tags: string[];
-};
+/**
+ * Thrown when the server rejects the recipe tags import payload for a data
+ * reason (unknown recipe, duplicate name, tag too long, etc.) rather than a
+ * malformed request. Callers use this to tell the two failure modes apart.
+ */
+export class RecipeTagImportRejectedError extends Error {}
 
-type RecipeTagsExportData = {
-  recipes: RecipeTagExportItem[];
-};
+// Shape of the Kiota-generated HttpValidationProblemDetails error thrown for 400 responses.
+interface ValidationProblemError {
+  responseStatusCode?: number;
+  detail?: string | null;
+  errors?: { additionalData?: Record<string, unknown> } | null;
+}
 
-type RecipeTagImportItem = {
-  recipeName: string;
-  tags: string[];
-};
+function isValidationProblemError(err: unknown): err is ValidationProblemError {
+  return typeof err === "object" && err !== null && "responseStatusCode" in err;
+}
 
-type RecipeTagsImportData = {
-  recipes: RecipeTagImportItem[];
-};
+function extractValidationMessage(err: unknown): string | null {
+  if (!isValidationProblemError(err) || err.responseStatusCode !== 400) return null;
+
+  const fieldErrors = err.errors?.additionalData;
+  const messages = fieldErrors
+    ? Object.values(fieldErrors).flat().filter((m): m is string => typeof m === "string")
+    : [];
+
+  return messages.length > 0 ? messages.join(" ") : (err.detail ?? null);
+}
 
 export function useRecipes(search?: string, tag?: string) {
   return useQuery({
@@ -457,9 +470,8 @@ export function useDeleteRecipeTag(recipeId: number) {
 export function useExportRecipeTags() {
   return useMutation({
     mutationFn: async () => {
-      const response = await apiFetch("/api/recipes/tags/export");
-      if (!response.ok) throw new Error("Export failed");
-      const data = await response.json() as RecipeTagsExportData;
+      const data = await apiClient.api.recipes.tags.exportEscaped.get();
+      if (!data) throw new Error("Export failed");
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -475,12 +487,14 @@ export function useImportRecipeTags() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: RecipeTagsImportData) => {
-      const response = await apiFetch("/api/recipes/tags/import", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Import failed");
+    mutationFn: async (data: ImportRecipeTagsRequest) => {
+      try {
+        await apiClient.api.recipes.tags.importEscaped.post(data);
+      } catch (err) {
+        const message = extractValidationMessage(err);
+        if (message) throw new RecipeTagImportRejectedError(message);
+        throw err;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });

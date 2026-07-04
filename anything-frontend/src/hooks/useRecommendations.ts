@@ -1,16 +1,14 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, apiFetch } from "@/lib/apiClient";
-import type { ShoppingListRecommendation } from "@/lib/api-client/models/index";
+import { apiClient } from "@/lib/apiClient";
+import type {
+  ShoppingListRecommendation,
+  ExportRecommendationsResponse,
+  ImportRecommendationsRequest,
+} from "@/lib/api-client/models/index";
 
-type RecommendationExportItem = {
-  name: string;
-  preferredUnit?: string | null;
-  category?: string | null;
-  delete?: boolean;
-};
-type RecommendationExportData = { recommendations: RecommendationExportItem[] };
+export type { ExportRecommendationsResponse, ImportRecommendationsRequest };
 
 export function useRecommendations() {
   return useQuery({
@@ -79,10 +77,10 @@ export function useDeleteRecommendation() {
 export function useExportRecommendations() {
   return useMutation({
     mutationFn: async ({ uncategorizedOnly = false }: { uncategorizedOnly?: boolean } = {}) => {
-      const query = uncategorizedOnly ? "?uncategorizedOnly=true" : "";
-      const response = await apiFetch(`/api/shopping-list-recommendations/export${query}`);
-      if (!response.ok) throw new Error("Export failed");
-      const data = await response.json() as RecommendationExportData;
+      const data = await apiClient.api.shoppingListRecommendations.exportEscaped.get({
+        queryParameters: { uncategorizedOnly },
+      });
+      if (!data) throw new Error("Export failed");
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -98,12 +96,8 @@ export function useImportRecommendations() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: RecommendationExportData) => {
-      const response = await apiFetch("/api/shopping-list-recommendations/import", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Import failed");
+    mutationFn: async (data: ImportRecommendationsRequest) => {
+      await apiClient.api.shoppingListRecommendations.importEscaped.post(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });

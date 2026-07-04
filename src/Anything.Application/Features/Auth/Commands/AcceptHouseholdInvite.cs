@@ -16,6 +16,8 @@ public class AcceptHouseholdInviteHandler(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IRequestHandler<AcceptHouseholdInviteCommand, IResult>
 {
+    private const string InviteField = "invite";
+
     public async Task<IResult> Handle(AcceptHouseholdInviteCommand command, CancellationToken ct = default)
     {
         var invite = await inviteRepository.Query()
@@ -26,14 +28,14 @@ public class AcceptHouseholdInviteHandler(
             return Results.NotFound();
 
         if (invite.IsUsed)
-            return Results.BadRequest("This invite has already been used.");
+            return ValidationError("This invite has already been used.");
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         if (invite.ExpiresAt < now)
-            return Results.BadRequest("This invite has expired.");
+            return ValidationError("This invite has expired.");
 
         if (!invite.HouseholdId.HasValue)
-            return Results.BadRequest("This invite is not for a household.");
+            return ValidationError("This invite is not for a household.");
 
         var user = await userRepository.Query()
             .Where(u => u.Id == command.UserId && u.DeletedOn == null)
@@ -50,7 +52,7 @@ public class AcceptHouseholdInviteHandler(
             .AnyAsync(ct);
 
         if (existingMembership)
-            return Results.BadRequest("You are already a member of this household.");
+            return ValidationError("You are already a member of this household.");
 
         var member = new HouseholdMember
         {
@@ -65,4 +67,7 @@ public class AcceptHouseholdInviteHandler(
 
         return Results.Ok();
     }
+
+    private static IResult ValidationError(string message) =>
+        Results.ValidationProblem(new Dictionary<string, string[]> { [InviteField] = [message] });
 }

@@ -12,7 +12,7 @@ import {
   useExportUnits,
   useImportUnits,
   type MeasurementUnit,
-  type UnitExportData,
+  type ImportUnitsRequest,
 } from "@/hooks/useUnits";
 import { canManageHousehold } from "@/lib/roles";
 import { useHouseholdContext } from "@/context/HouseholdContext";
@@ -206,7 +206,7 @@ export default function UnitsPage() {
     if (!file) return;
     try {
       const text = await file.text();
-      const data = JSON.parse(text) as UnitExportData;
+      const data = JSON.parse(text) as ImportUnitsRequest;
       await importUnits.mutateAsync(data);
       toast.success("Units imported.");
     } catch {

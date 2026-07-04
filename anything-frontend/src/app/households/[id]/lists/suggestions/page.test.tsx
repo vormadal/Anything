@@ -10,7 +10,8 @@ const mockCategoriesGet = jest.fn();
 const mockDeleteFn = jest.fn();
 const mockUpdatePut = jest.fn();
 const mockCreatePost = jest.fn();
-const mockApiFetch = jest.fn();
+const mockExportGet = jest.fn();
+const mockImportPost = jest.fn();
 const mockItemById = jest.fn((id: number) => ({
   delete: (...args: unknown[]) => mockDeleteFn(id, ...args),
   put: (...args: unknown[]) => mockUpdatePut(id, ...args),
@@ -24,13 +25,14 @@ jest.mock("@/lib/apiClient", () => ({
         uncategorized: { get: (...args: unknown[]) => mockUncategorizedGet(...args) },
         post: (...args: unknown[]) => mockCreatePost(...args),
         byId: (id: number) => mockItemById(id),
+        exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
+        importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
       },
       suggestionCategories: {
         get: (...args: unknown[]) => mockCategoriesGet(...args),
       },
     },
   },
-  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
 
 const mockPush = jest.fn();
@@ -464,10 +466,7 @@ describe("SuggestionsPage (household config)", () => {
 
     it("exports suggestions successfully", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({
-        ok: true,
-        json: jest.fn().mockResolvedValue({ recommendations: [{ name: "Milk", preferredUnit: "L" }] }),
-      });
+      mockExportGet.mockResolvedValueOnce({ recommendations: [{ name: "Milk", preferredUnit: "L" }] });
 
       renderWithClient(<SuggestionsPage />);
 
@@ -476,17 +475,14 @@ describe("SuggestionsPage (household config)", () => {
       await user.click(screen.getByRole("button", { name: "Export all" }));
 
       await waitFor(() => {
-        expect(mockApiFetch).toHaveBeenCalledWith("/api/shopping-list-recommendations/export");
+        expect(mockExportGet).toHaveBeenCalledWith({ queryParameters: { uncategorizedOnly: false } });
         expect(toast.success).toHaveBeenCalledWith("Suggestions exported.");
       });
     });
 
     it("exports uncategorized suggestions successfully", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({
-        ok: true,
-        json: jest.fn().mockResolvedValue({ recommendations: [{ name: "Milk", preferredUnit: "L" }] }),
-      });
+      mockExportGet.mockResolvedValueOnce({ recommendations: [{ name: "Milk", preferredUnit: "L" }] });
 
       renderWithClient(<SuggestionsPage />);
 
@@ -495,14 +491,14 @@ describe("SuggestionsPage (household config)", () => {
       await user.click(screen.getByRole("button", { name: "Export uncategorized" }));
 
       await waitFor(() => {
-        expect(mockApiFetch).toHaveBeenCalledWith("/api/shopping-list-recommendations/export?uncategorizedOnly=true");
+        expect(mockExportGet).toHaveBeenCalledWith({ queryParameters: { uncategorizedOnly: true } });
         expect(toast.success).toHaveBeenCalledWith("Suggestions exported.");
       });
     });
 
     it("shows error toast when export fails", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({ ok: false });
+      mockExportGet.mockRejectedValueOnce(new Error("Export failed"));
 
       renderWithClient(<SuggestionsPage />);
 
@@ -525,7 +521,7 @@ describe("SuggestionsPage (household config)", () => {
 
     it("imports suggestions from a valid JSON file successfully", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({ ok: true });
+      mockImportPost.mockResolvedValueOnce(undefined);
 
       renderWithClient(<SuggestionsPage />);
 
@@ -537,17 +533,16 @@ describe("SuggestionsPage (household config)", () => {
       await user.upload(fileInput, file);
 
       await waitFor(() => {
-        expect(mockApiFetch).toHaveBeenCalledWith(
-          "/api/shopping-list-recommendations/import",
-          expect.objectContaining({ method: "POST" })
-        );
+        expect(mockImportPost).toHaveBeenCalledWith({
+          recommendations: [{ name: "Milk", preferredUnit: "L" }],
+        });
         expect(toast.success).toHaveBeenCalledWith("Suggestions imported.");
       });
     });
 
     it("passes delete flags through import payload", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({ ok: true });
+      mockImportPost.mockResolvedValueOnce(undefined);
 
       renderWithClient(<SuggestionsPage />);
 
@@ -561,19 +556,15 @@ describe("SuggestionsPage (household config)", () => {
       await user.upload(fileInput, file);
 
       await waitFor(() => {
-        expect(mockApiFetch).toHaveBeenCalledWith(
-          "/api/shopping-list-recommendations/import",
-          expect.objectContaining({ method: "POST" })
-        );
+        expect(mockImportPost).toHaveBeenCalledWith({
+          recommendations: [{ name: "Milk", delete: true }],
+        });
       });
-
-      const payload = JSON.parse((mockApiFetch.mock.calls[0]?.[1] as { body?: string })?.body ?? "{}");
-      expect(payload).toEqual({ recommendations: [{ name: "Milk", delete: true }] });
     });
 
     it("shows error toast when import API call fails", async () => {
       const user = userEvent.setup();
-      mockApiFetch.mockResolvedValueOnce({ ok: false });
+      mockImportPost.mockRejectedValueOnce(new Error("Import failed"));
 
       renderWithClient(<SuggestionsPage />);
 

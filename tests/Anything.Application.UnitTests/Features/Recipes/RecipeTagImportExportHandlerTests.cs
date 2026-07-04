@@ -5,6 +5,7 @@ using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -88,7 +89,7 @@ public class ImportRecipeTagsHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenRecipeMissing_ReturnsBadRequest()
+    public async Task Handle_WhenRecipeMissing_ReturnsValidationProblem()
     {
         _recipeRepo.Query().Returns(Array.Empty<Recipe>().AsAsyncQueryable());
         _tagRepo.Query().Returns(Array.Empty<RecipeTag>().AsAsyncQueryable());
@@ -98,11 +99,13 @@ public class ImportRecipeTagsHandlerTests
                 new RecipeTagImportExportItem("Missing", ["Any"])
             ]), TestContext.Current.CancellationToken);
 
-        Assert.IsType<BadRequest<string>>(result);
+        var problemResult = Assert.IsType<ProblemHttpResult>(result);
+        var problemDetails = Assert.IsType<HttpValidationProblemDetails>(problemResult.ProblemDetails);
+        Assert.Contains("not found", problemDetails.Errors["recipes"].Single());
     }
 
     [Fact]
-    public async Task Handle_WhenTagExceedsMaxLength_ReturnsBadRequest()
+    public async Task Handle_WhenTagExceedsMaxLength_ReturnsValidationProblem()
     {
         var existingRecipe = new Recipe { Id = 1, HouseholdId = 1, Name = "Soup" };
 
@@ -114,8 +117,9 @@ public class ImportRecipeTagsHandlerTests
                 new RecipeTagImportExportItem("Soup", [new string('x', 51)])
             ]), TestContext.Current.CancellationToken);
 
-        var badRequest = Assert.IsType<BadRequest<string>>(result);
-        Assert.Contains("maximum length of 50", badRequest.Value);
+        var problemResult = Assert.IsType<ProblemHttpResult>(result);
+        var problemDetails = Assert.IsType<HttpValidationProblemDetails>(problemResult.ProblemDetails);
+        Assert.Contains("maximum length of 50", problemDetails.Errors["tags"].Single());
         _tagRepo.DidNotReceive().Add(Arg.Any<RecipeTag>());
         await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
     }

@@ -19,6 +19,9 @@ public class ImportRecipeTagsHandler(
     : IRequestHandler<ImportRecipeTagsCommand, IResult>
 {
     private const int MaxTagNameLength = 50;
+    private const string RecipeNameField = "recipeName";
+    private const string TagsField = "tags";
+    private const string RecipesField = "recipes";
 
     public async Task<IResult> Handle(ImportRecipeTagsCommand command, CancellationToken ct = default)
     {
@@ -27,15 +30,15 @@ public class ImportRecipeTagsHandler(
         foreach (var item in command.Recipes)
         {
             if (string.IsNullOrWhiteSpace(item.RecipeName))
-                return Results.BadRequest("Recipe name is required.");
+                return ValidationError(RecipeNameField, "Recipe name is required.");
             var recipeName = item.RecipeName.Trim();
             var (normalizedTags, validationError) = NormalizeTags(item.Tags);
 
             if (validationError is not null)
-                return Results.BadRequest(validationError);
+                return ValidationError(TagsField, validationError);
 
             if (!importByRecipeName.TryAdd(recipeName, normalizedTags))
-                return Results.BadRequest($"Duplicate recipe name in import: {recipeName}");
+                return ValidationError(RecipesField, $"Duplicate recipe name in import: {recipeName}");
         }
 
         var allRecipes = await recipeRepository.Query()
@@ -47,7 +50,7 @@ public class ImportRecipeTagsHandler(
         foreach (var recipe in allRecipes)
         {
             if (recipesByName.ContainsKey(recipe.Name))
-                return Results.BadRequest($"Recipe name is not unique: {recipe.Name}");
+                return ValidationError(RecipesField, $"Recipe name is not unique: {recipe.Name}");
 
             recipesByName[recipe.Name] = (recipe.Id, recipe.Name);
         }
@@ -57,7 +60,7 @@ public class ImportRecipeTagsHandler(
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         if (missingRecipes.Count > 0)
-            return Results.BadRequest($"Recipe(s) not found: {string.Join(", ", missingRecipes)}");
+            return ValidationError(RecipesField, $"Recipe(s) not found: {string.Join(", ", missingRecipes)}");
 
         var targetRecipeIds = importByRecipeName.Keys
             .Select(name => recipesByName[name].Id)
@@ -101,6 +104,9 @@ public class ImportRecipeTagsHandler(
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
     }
+
+    private static IResult ValidationError(string field, string message) =>
+        Results.ValidationProblem(new Dictionary<string, string[]> { [field] = [message] });
 
     private static (List<string> Tags, string? ValidationError) NormalizeTags(List<string>? tags)
     {

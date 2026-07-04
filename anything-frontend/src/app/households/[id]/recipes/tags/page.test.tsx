@@ -4,11 +4,20 @@ import { renderWithClient } from "@/__tests__/utils/test-utils";
 import RecipeTagsPage from "./page";
 import { toast } from "sonner";
 
-const mockApiFetch = jest.fn();
+const mockExportGet = jest.fn();
+const mockImportPost = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
-  apiClient: { api: {} },
-  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
+  apiClient: {
+    api: {
+      recipes: {
+        tags: {
+          exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
+          importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
+        },
+      },
+    },
+  },
 }));
 
 const mockPush = jest.fn();
@@ -77,17 +86,14 @@ describe("RecipeTagsPage (household config)", () => {
       return el;
     });
 
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: jest.fn().mockResolvedValue({ recipes: [] }),
-    });
+    mockExportGet.mockResolvedValueOnce({ recipes: [] });
 
     renderWithClient(<RecipeTagsPage />);
 
     await user.click(screen.getByRole("button", { name: "Export recipe tags" }));
 
     await waitFor(() => {
-      expect(mockApiFetch).toHaveBeenCalledWith("/api/recipes/tags/export");
+      expect(mockExportGet).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith("Recipe tags exported.");
     });
   });
@@ -96,7 +102,7 @@ describe("RecipeTagsPage (household config)", () => {
     const user = userEvent.setup();
     localStorage.setItem("user", adminUser);
     localStorage.setItem("accessToken", "test-token");
-    mockApiFetch.mockResolvedValueOnce({ ok: true });
+    mockImportPost.mockResolvedValueOnce(undefined);
 
     renderWithClient(<RecipeTagsPage />);
 
@@ -109,15 +115,14 @@ describe("RecipeTagsPage (household config)", () => {
     await user.upload(fileInput, file);
 
     await waitFor(() => {
-      expect(mockApiFetch).toHaveBeenCalledWith(
-        "/api/recipes/tags/import",
-        expect.objectContaining({ method: "POST" })
-      );
+      expect(mockImportPost).toHaveBeenCalledWith({
+        recipes: [{ recipeName: "Soup", tags: ["warm"] }],
+      });
       expect(toast.success).toHaveBeenCalledWith("Recipe tags imported.");
     });
   });
 
-  it("shows error toast when import file has invalid JSON", async () => {
+  it("shows a format-specific error when the import file has invalid JSON", async () => {
     const user = userEvent.setup();
     localStorage.setItem("user", adminUser);
     localStorage.setItem("accessToken", "test-token");
@@ -129,7 +134,80 @@ describe("RecipeTagsPage (household config)", () => {
     await user.upload(fileInput, file);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Failed to import recipe tags.");
+      expect(toast.error).toHaveBeenCalledWith(
+        "Import failed: the file isn't valid JSON. Check for a missing bracket, quote, or comma, or re-export a fresh copy."
+      );
+    });
+    expect(mockImportPost).not.toHaveBeenCalled();
+  });
+
+  it("shows a format-specific error when the JSON is valid but has the wrong shape", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("user", adminUser);
+    localStorage.setItem("accessToken", "test-token");
+
+    renderWithClient(<RecipeTagsPage />);
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(
+      [JSON.stringify({ recipes: [{ recipeName: "Soup" }] })],
+      "recipe-tags.json",
+      { type: "application/json" }
+    );
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('the file\'s format is wrong. Item 1 in "recipes" ("Soup") is missing a "tags" array')
+      );
+    });
+    expect(mockImportPost).not.toHaveBeenCalled();
+  });
+
+  it("shows the server's rejection reason when the data is invalid", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("user", adminUser);
+    localStorage.setItem("accessToken", "test-token");
+    mockImportPost.mockRejectedValueOnce({
+      responseStatusCode: 400,
+      errors: { additionalData: { recipes: ["Recipe(s) not found: Soup"] } },
+    });
+
+    renderWithClient(<RecipeTagsPage />);
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(
+      [JSON.stringify({ recipes: [{ recipeName: "Soup", tags: ["warm"] }] })],
+      "recipe-tags.json",
+      { type: "application/json" }
+    );
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("Import rejected: Recipe(s) not found: Soup");
+    });
+  });
+
+  it("shows a generic error for unexpected failures (e.g. network issues)", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("user", adminUser);
+    localStorage.setItem("accessToken", "test-token");
+    mockImportPost.mockRejectedValueOnce(new Error("network down"));
+
+    renderWithClient(<RecipeTagsPage />);
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(
+      [JSON.stringify({ recipes: [{ recipeName: "Soup", tags: ["warm"] }] })],
+      "recipe-tags.json",
+      { type: "application/json" }
+    );
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Failed to import recipe tags. Check your connection and try again."
+      );
     });
   });
 });

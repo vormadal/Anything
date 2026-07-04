@@ -1,10 +1,14 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, apiFetch } from "@/lib/apiClient";
-import type { SuggestionCategory } from "@/lib/api-client/models/index";
+import { apiClient } from "@/lib/apiClient";
+import type {
+  SuggestionCategory,
+  ExportSuggestionCategoriesResponse,
+  ImportSuggestionCategoriesRequest,
+} from "@/lib/api-client/models/index";
 
-type CategoryExportData = { categories: Array<{ name: string }> };
+export type { ExportSuggestionCategoriesResponse, ImportSuggestionCategoriesRequest };
 
 export function useSuggestionCategories() {
   return useQuery({
@@ -65,9 +69,8 @@ export function useReorderSuggestionCategories() {
 export function useExportSuggestionCategories() {
   return useMutation({
     mutationFn: async () => {
-      const response = await apiFetch("/api/suggestion-categories/export");
-      if (!response.ok) throw new Error("Export failed");
-      const data = await response.json() as CategoryExportData;
+      const data = await apiClient.api.suggestionCategories.exportEscaped.get();
+      if (!data) throw new Error("Export failed");
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -83,12 +86,8 @@ export function useImportSuggestionCategories() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: CategoryExportData) => {
-      const response = await apiFetch("/api/suggestion-categories/import", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Import failed");
+    mutationFn: async (data: ImportSuggestionCategoriesRequest) => {
+      await apiClient.api.suggestionCategories.importEscaped.post(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suggestionCategories"] });
