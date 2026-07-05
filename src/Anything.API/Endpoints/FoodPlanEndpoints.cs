@@ -24,7 +24,14 @@ public static class FoodPlanEndpoints
 
         group.MapPut("/settings", async (UpdateFoodPlanSettingsRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateFoodPlanSettingsCommand(request.ActiveDays));
+            return await mediator.Send(new UpdateFoodPlanSettingsCommand(
+                request.ActiveDays,
+                request.SuggestionRotationWeight,
+                request.SuggestionFavoritesWeight,
+                request.SuggestionSeasonalityWeight,
+                request.SuggestionExclusionWindowDays,
+                request.SuggestionRotationSaturationDays,
+                request.SuggestionSeasonalityWindowDays));
         })
         .WithName("UpdateFoodPlanSettings")
         .Produces<FoodPlanSettings>()
@@ -93,6 +100,56 @@ public static class FoodPlanEndpoints
             return await mediator.Send(new DeleteFoodPlanNoteCommand(noteId));
         })
         .WithName("DeleteFoodPlanNote")
+        .Produces(204)
+        .Produces(404)
+        .RequireAuthorization();
+
+        // --- Suggestions ---
+
+        group.MapGet("/suggestions", async (DateOnly date, int? count, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetFoodPlanSuggestionsQuery(date, count ?? 10));
+        })
+        .WithName("GetFoodPlanSuggestions")
+        .Produces<List<FoodPlanSuggestionResponse>>()
+        .RequireAuthorization();
+
+        // --- Seasonal tag rules ---
+
+        group.MapGet("/seasonal-tags", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new GetSeasonalTagRulesQuery());
+        })
+        .WithName("GetSeasonalTagRules")
+        .Produces<List<SeasonalTagRuleResponse>>()
+        .RequireAuthorization();
+
+        group.MapPost("/seasonal-tags", async (UpsertSeasonalTagRuleRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new CreateSeasonalTagRuleCommand(
+                request.Keyword, request.MatchPrefix, request.Months, request.Boost));
+        })
+        .WithName("CreateSeasonalTagRule")
+        .Produces<SeasonalTagRuleResponse>(StatusCodes.Status201Created)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapPut("/seasonal-tags/{ruleId}", async (int ruleId, UpsertSeasonalTagRuleRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new UpdateSeasonalTagRuleCommand(
+                ruleId, request.Keyword, request.MatchPrefix, request.Months, request.Boost));
+        })
+        .WithName("UpdateSeasonalTagRule")
+        .Produces<SeasonalTagRuleResponse>()
+        .Produces(404)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        group.MapDelete("/seasonal-tags/{ruleId}", async (int ruleId, IMediator mediator) =>
+        {
+            return await mediator.Send(new DeleteSeasonalTagRuleCommand(ruleId));
+        })
+        .WithName("DeleteSeasonalTagRule")
         .Produces(204)
         .Produces(404)
         .RequireAuthorization();
