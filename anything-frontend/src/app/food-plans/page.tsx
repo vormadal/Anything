@@ -1,16 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   useFoodPlanSettings,
   useFoodPlanEntries,
   useFoodPlanNotes,
+  useFoodPlanSuggestions,
   useAddFoodPlanEntry,
   useDeleteFoodPlanEntry,
   useAddFoodPlanToShoppingList,
   useUpsertFoodPlanNote,
   useDeleteFoodPlanNote,
   type FoodPlanNote,
+  type FoodPlanSuggestionResponse,
 } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
@@ -20,13 +23,14 @@ import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, X, Settings, CalendarDays } from "lucide-react";
+import { ShoppingCart, X, Settings, CalendarDays, Sparkles, Plus } from "lucide-react";
 import { bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
 import { format, isSameDay, addDays as dateFnsAddDays } from "date-fns";
 import { da } from "date-fns/locale";
 
 const DEFAULT_ACTIVE_DAYS = 31;
 const SUGGESTION_BLUR_DELAY_MS = 150;
+const MAX_RANKED_SUGGESTIONS = 5;
 
 function addDays(date: Date, days: number): Date {
   return dateFnsAddDays(date, days);
@@ -140,6 +144,16 @@ function DayRow({
         </div>
       )}
 
+      {/* Suggest hint on empty upcoming days — opening the day shows ranked suggestions */}
+      {dayEntries.length === 0 && date.getTime() >= today.getTime() && (
+        <div className="mb-1">
+          <span className="inline-flex items-center gap-1 rounded border border-dashed border-gray-300 dark:border-gray-600 px-2 py-1 text-xs text-gray-400 dark:text-gray-500">
+            <Sparkles className="h-3 w-3" />
+            Suggest meal
+          </span>
+        </div>
+      )}
+
       {/* Note preview */}
       {note?.note && (
         <p className="text-xs text-gray-500 dark:text-gray-400 italic truncate mt-1">
@@ -157,16 +171,18 @@ function DayManagementDialog({
   note,
   recipes,
   onClose,
+  showSuggestionsOnOpen = false,
 }: {
   date: Date;
   entries: FoodPlanEntry[];
   note: FoodPlanNote | null;
   recipes: Recipe[] | undefined;
   onClose: () => void;
+  showSuggestionsOnOpen?: boolean;
 }) {
   const [name, setName] = useState("");
   const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(showSuggestionsOnOpen);
   const [noteText, setNoteText] = useState(note?.note ?? "");
   const lastSavedNote = useRef(note?.note ?? "");
   const [isSaving, setIsSaving] = useState(false);
@@ -184,10 +200,36 @@ function DayManagementDialog({
     ? (recipes ?? []).filter((r) => r.name?.toLowerCase().includes(name.toLowerCase()))
     : [];
 
+  // Ranked suggestions from the backend, shown while the input is empty.
+  const { data: rankedSuggestions } = useFoodPlanSuggestions(dateStr);
+  const topSuggestions = (rankedSuggestions ?? []).slice(0, MAX_RANKED_SUGGESTIONS);
+  const showRanked = showSuggestions && !name.trim() && topSuggestions.length > 0;
+  const showNoRecipesHint =
+    showSuggestions && !name.trim() && topSuggestions.length === 0 && recipes?.length === 0;
+
   const handleSelectSuggestion = (recipe: Recipe) => {
     setName(recipe.name ?? "");
     setSelectedRecipeId(recipe.id ?? null);
     setShowSuggestions(false);
+  };
+
+  const handleSelectRanked = (suggestion: FoodPlanSuggestionResponse) => {
+    setName(suggestion.name ?? "");
+    setSelectedRecipeId(suggestion.recipeId ?? null);
+    setShowSuggestions(false);
+  };
+
+  const handleQuickAdd = async (suggestion: FoodPlanSuggestionResponse) => {
+    try {
+      await addEntry.mutateAsync({
+        name: suggestion.name ?? "",
+        recipeId: suggestion.recipeId ?? null,
+        date: toUtcMidnight(date),
+      });
+      toast.success("Entry added");
+    } catch {
+      toast.error("Failed to add entry. Please try again.");
+    }
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -332,6 +374,7 @@ function DayManagementDialog({
                 placeholder="Meal name..."
                 className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 autoComplete="off"
+                autoFocus={showSuggestionsOnOpen}
               />
               {showSuggestions && suggestions.length > 0 && (
                 <ul className="absolute z-10 left-0 right-0 mt-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md max-h-36 overflow-y-auto">
@@ -345,6 +388,47 @@ function DayManagementDialog({
                     </li>
                   ))}
                 </ul>
+              )}
+              {showRanked && (
+                <ul className="absolute z-10 left-0 right-0 mt-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md max-h-56 overflow-y-auto">
+                  <li className="flex items-center gap-1 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    <Sparkles className="h-3 w-3" />
+                    Suggestions
+                  </li>
+                  {topSuggestions.map((s) => (
+                    <li
+                      key={s.recipeId}
+                      onMouseDown={() => handleSelectRanked(s)}
+                      className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-gray-800 dark:text-gray-200 truncate">{s.name}</div>
+                        {s.reasons?.[0] && (
+                          <div className="text-xs text-gray-400 dark:text-gray-500 truncate">{s.reasons[0]}</div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          handleQuickAdd(s);
+                        }}
+                        disabled={addEntry.isPending}
+                        className="shrink-0 rounded-full border border-gray-300 dark:border-gray-600 p-1 text-gray-500 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-300 disabled:opacity-50"
+                        aria-label={`Add ${s.name}`}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {showNoRecipesHint && (
+                <div className="absolute z-10 left-0 right-0 mt-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md px-3 py-2 text-xs text-gray-400 dark:text-gray-500">
+                  <Link href="/recipes" className="hover:underline">
+                    Add recipes to get suggestions
+                  </Link>
+                </div>
               )}
             </div>
             <Button
@@ -529,6 +613,7 @@ export default function FoodPlanPage() {
   const [weeksBack, setWeeksBack] = useState(1);
   const [weeksForward, setWeeksForward] = useState(1);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [suggestOnOpen, setSuggestOnOpen] = useState(false);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
   const [isTodayVisible, setIsTodayVisible] = useState(true);
   const todayRef = useRef<HTMLButtonElement | null>(null);
@@ -672,7 +757,13 @@ export default function FoodPlanPage() {
               today={today}
               entries={entries ?? []}
               note={getNoteForDate(date)}
-              onOpen={() => setSelectedDay(date)}
+              onOpen={() => {
+                // Empty upcoming days open straight into ranked suggestions.
+                setSuggestOnOpen(
+                  getEntriesForDate(date).length === 0 && date.getTime() >= today.getTime()
+                );
+                setSelectedDay(date);
+              }}
               todayRef={todayRefCallback}
             />
           ))}
@@ -693,6 +784,7 @@ export default function FoodPlanPage() {
           note={selectedDayNote}
           recipes={recipes}
           onClose={() => setSelectedDay(null)}
+          showSuggestionsOnOpen={suggestOnOpen}
         />
       )}
 

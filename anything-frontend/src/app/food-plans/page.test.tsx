@@ -1,5 +1,5 @@
 import React, { act } from 'react'
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import FoodPlanPage from './page'
@@ -82,6 +82,7 @@ const mockEntriesItemDelete = jest.fn()
 const mockEntriesItemById: jest.Mock = jest.fn(() => ({ put: mockEntriesItemPut, delete: mockEntriesItemDelete }))
 const mockAddToShoppingListPost = jest.fn()
 const mockShoppingListsGet = jest.fn()
+const mockSuggestionsGet = jest.fn()
 const mockNotesGet: jest.Mock = jest.fn()
 const mockNotesPut: jest.Mock = jest.fn()
 const mockNotesDelete: jest.Mock = jest.fn()
@@ -127,6 +128,9 @@ jest.mock('@/lib/apiClient', () => ({
         },
         addToShoppingList: {
           post: (...args: unknown[]) => mockAddToShoppingListPost(...args),
+        },
+        suggestions: {
+          get: (...args: unknown[]) => mockSuggestionsGet(...args),
         },
       },
       checklists: {
@@ -198,6 +202,7 @@ describe('FoodPlanPage', () => {
     mockNotesDelete.mockResolvedValue(undefined)
     mockRecipesFetch([])
     mockShoppingListsGet.mockResolvedValue([])
+    mockSuggestionsGet.mockResolvedValue([])
   })
 
   // ------- 1. Loading state -------
@@ -615,6 +620,170 @@ describe('FoodPlanPage', () => {
 
     // Input is focused but empty — no suggestions
     expect(screen.queryByText('Pasta')).not.toBeInTheDocument()
+  })
+
+  // ------- 6b. Ranked meal suggestions -------
+  const rankedSuggestionsFixture = [
+    { recipeId: 11, name: 'Lasagna', score: 55.5, reasons: ['Last planned 5 weeks ago', 'Planned 4 times'], timesPlanned: 4, lastPlannedOn: null },
+    { recipeId: 12, name: 'Risotto', score: 28, reasons: ['Not planned yet'], timesPlanned: 0, lastPlannedOn: null },
+  ]
+
+  it('should show the suggest chip only on empty upcoming days', async () => {
+    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Tomorrow meal', 1)])
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    const todayRow = screen.getByRole('button', { name: /i dag/ })
+    expect(within(todayRow).getByText('Suggest meal')).toBeInTheDocument()
+
+    const tomorrowRow = screen.getByRole('button', { name: /i morgen/ })
+    expect(within(tomorrowRow).queryByText('Suggest meal')).not.toBeInTheDocument()
+
+    const yesterdayRow = screen.getByRole('button', { name: /i går/ })
+    expect(within(yesterdayRow).queryByText('Suggest meal')).not.toBeInTheDocument()
+  })
+
+  it('should show ranked suggestions with reasons when opening an empty upcoming day', async () => {
+    const user = userEvent.setup()
+    mockSuggestionsGet.mockResolvedValue(rankedSuggestionsFixture)
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /i dag/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Lasagna')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Suggestions')).toBeInTheDocument()
+    expect(screen.getByText('Last planned 5 weeks ago')).toBeInTheDocument()
+    expect(screen.getByText('Risotto')).toBeInTheDocument()
+    expect(screen.getByText('Not planned yet')).toBeInTheDocument()
+  })
+
+  it('should switch from ranked suggestions to type-ahead when typing', async () => {
+    const user = userEvent.setup()
+    mockSuggestionsGet.mockResolvedValue(rankedSuggestionsFixture)
+    mockRecipesFetch([{ id: 1, name: 'Pasta Carbonara' }])
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /i dag/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Lasagna')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByPlaceholderText('Meal name...'), 'Pasta')
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta Carbonara')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Suggestions')).not.toBeInTheDocument()
+    expect(screen.queryByText('Lasagna')).not.toBeInTheDocument()
+  })
+
+  it('should fill the input when selecting a ranked suggestion and submit with recipeId', async () => {
+    const user = userEvent.setup()
+    mockSuggestionsGet.mockResolvedValue(rankedSuggestionsFixture)
+    mockEntriesPost.mockResolvedValue({ id: 10, name: 'Lasagna', recipeId: 11 })
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /i dag/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Lasagna')).toBeInTheDocument()
+    })
+
+    fireEvent.mouseDown(screen.getByText('Lasagna'))
+
+    expect(screen.getByPlaceholderText('Meal name...')).toHaveValue('Lasagna')
+
+    await user.click(screen.getByRole('button', { name: 'Add meal' }))
+
+    await waitFor(() => {
+      expect(mockEntriesPost).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Lasagna', recipeId: 11 }),
+      )
+    })
+  })
+
+  it('should add an entry immediately when clicking the plus button on a suggestion', async () => {
+    const user = userEvent.setup()
+    mockSuggestionsGet.mockResolvedValue(rankedSuggestionsFixture)
+    mockEntriesPost.mockResolvedValue({ id: 10, name: 'Lasagna', recipeId: 11 })
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /i dag/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Lasagna')).toBeInTheDocument()
+    })
+
+    fireEvent.mouseDown(screen.getByRole('button', { name: 'Add Lasagna' }))
+
+    await waitFor(() => {
+      expect(mockEntriesPost).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Lasagna', recipeId: 11 }),
+      )
+    })
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('Entry added')
+    })
+  })
+
+  it('should not render the suggestions dropdown when there are no suggestions', async () => {
+    const user = userEvent.setup()
+    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /i dag/ }))
+
+    expect(screen.queryByText('Suggestions')).not.toBeInTheDocument()
+    expect(screen.queryByText('Add recipes to get suggestions')).not.toBeInTheDocument()
+  })
+
+  it('should hint at adding recipes when the household has none', async () => {
+    const user = userEvent.setup()
+    mockRecipesFetch([])
+
+    render(<FoodPlanPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('i dag')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /i dag/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Add recipes to get suggestions')).toBeInTheDocument()
+    })
   })
 
   // ------- 7. Note in dialog -------
