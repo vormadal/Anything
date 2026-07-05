@@ -797,6 +797,15 @@ export function createFoodPlanSettingsFromDiscriminatorValue(parseNode: ParseNod
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {FoodPlanSuggestionResponse}
+ */
+// @ts-ignore
+export function createFoodPlanSuggestionResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoFoodPlanSuggestionResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {HomeCardPreferenceItem}
  */
 // @ts-ignore
@@ -1379,6 +1388,15 @@ export function createSaveAsTemplateRequestFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SeasonalTagRuleResponse}
+ */
+// @ts-ignore
+export function createSeasonalTagRuleResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSeasonalTagRuleResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {SharedIngredientResponse}
  */
 // @ts-ignore
@@ -1760,6 +1778,15 @@ export function createUpdateVendorRequestFromDiscriminatorValue(parseNode: Parse
 // @ts-ignore
 export function createUpsertFoodPlanNoteRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoUpsertFoodPlanNoteRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpsertSeasonalTagRuleRequest}
+ */
+// @ts-ignore
+export function createUpsertSeasonalTagRuleRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpsertSeasonalTagRuleRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -2376,6 +2403,29 @@ export function deserializeIntoFoodPlanSettings(foodPlanSettings: Partial<FoodPl
         "householdId": n => { foodPlanSettings.householdId = n.getNumberValue(); },
         "id": n => { foodPlanSettings.id = n.getNumberValue(); },
         "modifiedOn": n => { foodPlanSettings.modifiedOn = n.getDateValue(); },
+        "seasonalTagsSeededOn": n => { foodPlanSettings.seasonalTagsSeededOn = n.getDateValue(); },
+        "suggestionExclusionWindowDays": n => { foodPlanSettings.suggestionExclusionWindowDays = n.getNumberValue(); },
+        "suggestionFavoritesWeight": n => { foodPlanSettings.suggestionFavoritesWeight = n.getNumberValue(); },
+        "suggestionRotationSaturationDays": n => { foodPlanSettings.suggestionRotationSaturationDays = n.getNumberValue(); },
+        "suggestionRotationWeight": n => { foodPlanSettings.suggestionRotationWeight = n.getNumberValue(); },
+        "suggestionSeasonalityWeight": n => { foodPlanSettings.suggestionSeasonalityWeight = n.getNumberValue(); },
+        "suggestionSeasonalityWindowDays": n => { foodPlanSettings.suggestionSeasonalityWindowDays = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param FoodPlanSuggestionResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoFoodPlanSuggestionResponse(foodPlanSuggestionResponse: Partial<FoodPlanSuggestionResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "lastPlannedOn": n => { foodPlanSuggestionResponse.lastPlannedOn = n.getDateOnlyValue(); },
+        "name": n => { foodPlanSuggestionResponse.name = n.getStringValue(); },
+        "reasons": n => { foodPlanSuggestionResponse.reasons = n.getCollectionOfPrimitiveValues<string>(); },
+        "recipeId": n => { foodPlanSuggestionResponse.recipeId = n.getNumberValue(); },
+        "score": n => { foodPlanSuggestionResponse.score = n.getNumberValue(); },
+        "timesPlanned": n => { foodPlanSuggestionResponse.timesPlanned = n.getNumberValue(); },
     }
 }
 /**
@@ -3048,6 +3098,21 @@ export function deserializeIntoSaveAsTemplateRequest(saveAsTemplateRequest: Part
 }
 /**
  * The deserialization information for the current model
+ * @param SeasonalTagRuleResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSeasonalTagRuleResponse(seasonalTagRuleResponse: Partial<SeasonalTagRuleResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "boost": n => { seasonalTagRuleResponse.boost = n.getNumberValue(); },
+        "id": n => { seasonalTagRuleResponse.id = n.getNumberValue(); },
+        "keyword": n => { seasonalTagRuleResponse.keyword = n.getStringValue(); },
+        "matchPrefix": n => { seasonalTagRuleResponse.matchPrefix = n.getBooleanValue(); },
+        "months": n => { seasonalTagRuleResponse.months = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param SharedIngredientResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -3320,6 +3385,12 @@ export function deserializeIntoUpdateFoodPlanEntryRequest(updateFoodPlanEntryReq
 export function deserializeIntoUpdateFoodPlanSettingsRequest(updateFoodPlanSettingsRequest: Partial<UpdateFoodPlanSettingsRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "activeDays": n => { updateFoodPlanSettingsRequest.activeDays = n.getNumberValue(); },
+        "suggestionExclusionWindowDays": n => { updateFoodPlanSettingsRequest.suggestionExclusionWindowDays = n.getNumberValue(); },
+        "suggestionFavoritesWeight": n => { updateFoodPlanSettingsRequest.suggestionFavoritesWeight = n.getNumberValue(); },
+        "suggestionRotationSaturationDays": n => { updateFoodPlanSettingsRequest.suggestionRotationSaturationDays = n.getNumberValue(); },
+        "suggestionRotationWeight": n => { updateFoodPlanSettingsRequest.suggestionRotationWeight = n.getNumberValue(); },
+        "suggestionSeasonalityWeight": n => { updateFoodPlanSettingsRequest.suggestionSeasonalityWeight = n.getNumberValue(); },
+        "suggestionSeasonalityWindowDays": n => { updateFoodPlanSettingsRequest.suggestionSeasonalityWindowDays = n.getNumberValue(); },
     }
 }
 /**
@@ -3553,6 +3624,20 @@ export function deserializeIntoUpsertFoodPlanNoteRequest(upsertFoodPlanNoteReque
 }
 /**
  * The deserialization information for the current model
+ * @param UpsertSeasonalTagRuleRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpsertSeasonalTagRuleRequest(upsertSeasonalTagRuleRequest: Partial<UpsertSeasonalTagRuleRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "boost": n => { upsertSeasonalTagRuleRequest.boost = n.getNumberValue(); },
+        "keyword": n => { upsertSeasonalTagRuleRequest.keyword = n.getStringValue(); },
+        "matchPrefix": n => { upsertSeasonalTagRuleRequest.matchPrefix = n.getBooleanValue(); },
+        "months": n => { upsertSeasonalTagRuleRequest.months = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param Vendor The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -3681,6 +3766,60 @@ export interface FoodPlanSettings extends Parsable {
      * The modifiedOn property
      */
     modifiedOn?: Date | null;
+    /**
+     * The seasonalTagsSeededOn property
+     */
+    seasonalTagsSeededOn?: Date | null;
+    /**
+     * The suggestionExclusionWindowDays property
+     */
+    suggestionExclusionWindowDays?: number | null;
+    /**
+     * The suggestionFavoritesWeight property
+     */
+    suggestionFavoritesWeight?: number | null;
+    /**
+     * The suggestionRotationSaturationDays property
+     */
+    suggestionRotationSaturationDays?: number | null;
+    /**
+     * The suggestionRotationWeight property
+     */
+    suggestionRotationWeight?: number | null;
+    /**
+     * The suggestionSeasonalityWeight property
+     */
+    suggestionSeasonalityWeight?: number | null;
+    /**
+     * The suggestionSeasonalityWindowDays property
+     */
+    suggestionSeasonalityWindowDays?: number | null;
+}
+export interface FoodPlanSuggestionResponse extends Parsable {
+    /**
+     * The lastPlannedOn property
+     */
+    lastPlannedOn?: DateOnly | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The reasons property
+     */
+    reasons?: string[] | null;
+    /**
+     * The recipeId property
+     */
+    recipeId?: number | null;
+    /**
+     * The score property
+     */
+    score?: number | null;
+    /**
+     * The timesPlanned property
+     */
+    timesPlanned?: number | null;
 }
 export interface HomeCardPreferenceItem extends Parsable {
     /**
@@ -4530,6 +4669,28 @@ export interface SaveAsTemplateRequest extends Parsable {
      */
     name?: string | null;
 }
+export interface SeasonalTagRuleResponse extends Parsable {
+    /**
+     * The boost property
+     */
+    boost?: number | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The keyword property
+     */
+    keyword?: string | null;
+    /**
+     * The matchPrefix property
+     */
+    matchPrefix?: boolean | null;
+    /**
+     * The months property
+     */
+    months?: number | null;
+}
 /**
  * Serializes information the current object
  * @param AddBillPriceRequest The instance to serialize from.
@@ -5127,6 +5288,29 @@ export function serializeFoodPlanSettings(writer: SerializationWriter, foodPlanS
     writer.writeNumberValue("householdId", foodPlanSettings.householdId);
     writer.writeNumberValue("id", foodPlanSettings.id);
     writer.writeDateValue("modifiedOn", foodPlanSettings.modifiedOn);
+    writer.writeDateValue("seasonalTagsSeededOn", foodPlanSettings.seasonalTagsSeededOn);
+    writer.writeNumberValue("suggestionExclusionWindowDays", foodPlanSettings.suggestionExclusionWindowDays);
+    writer.writeNumberValue("suggestionFavoritesWeight", foodPlanSettings.suggestionFavoritesWeight);
+    writer.writeNumberValue("suggestionRotationSaturationDays", foodPlanSettings.suggestionRotationSaturationDays);
+    writer.writeNumberValue("suggestionRotationWeight", foodPlanSettings.suggestionRotationWeight);
+    writer.writeNumberValue("suggestionSeasonalityWeight", foodPlanSettings.suggestionSeasonalityWeight);
+    writer.writeNumberValue("suggestionSeasonalityWindowDays", foodPlanSettings.suggestionSeasonalityWindowDays);
+}
+/**
+ * Serializes information the current object
+ * @param FoodPlanSuggestionResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeFoodPlanSuggestionResponse(writer: SerializationWriter, foodPlanSuggestionResponse: Partial<FoodPlanSuggestionResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!foodPlanSuggestionResponse || isSerializingDerivedType) { return; }
+    writer.writeDateOnlyValue("lastPlannedOn", foodPlanSuggestionResponse.lastPlannedOn);
+    writer.writeStringValue("name", foodPlanSuggestionResponse.name);
+    writer.writeCollectionOfPrimitiveValues<string>("reasons", foodPlanSuggestionResponse.reasons);
+    writer.writeNumberValue("recipeId", foodPlanSuggestionResponse.recipeId);
+    writer.writeNumberValue("score", foodPlanSuggestionResponse.score);
+    writer.writeNumberValue("timesPlanned", foodPlanSuggestionResponse.timesPlanned);
 }
 /**
  * Serializes information the current object
@@ -5801,6 +5985,21 @@ export function serializeSaveAsTemplateRequest(writer: SerializationWriter, save
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SeasonalTagRuleResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSeasonalTagRuleResponse(writer: SerializationWriter, seasonalTagRuleResponse: Partial<SeasonalTagRuleResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!seasonalTagRuleResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("boost", seasonalTagRuleResponse.boost);
+    writer.writeNumberValue("id", seasonalTagRuleResponse.id);
+    writer.writeStringValue("keyword", seasonalTagRuleResponse.keyword);
+    writer.writeBooleanValue("matchPrefix", seasonalTagRuleResponse.matchPrefix);
+    writer.writeNumberValue("months", seasonalTagRuleResponse.months);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param SharedIngredientResponse The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -6073,6 +6272,12 @@ export function serializeUpdateFoodPlanEntryRequest(writer: SerializationWriter,
 export function serializeUpdateFoodPlanSettingsRequest(writer: SerializationWriter, updateFoodPlanSettingsRequest: Partial<UpdateFoodPlanSettingsRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateFoodPlanSettingsRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("activeDays", updateFoodPlanSettingsRequest.activeDays);
+    writer.writeNumberValue("suggestionExclusionWindowDays", updateFoodPlanSettingsRequest.suggestionExclusionWindowDays);
+    writer.writeNumberValue("suggestionFavoritesWeight", updateFoodPlanSettingsRequest.suggestionFavoritesWeight);
+    writer.writeNumberValue("suggestionRotationSaturationDays", updateFoodPlanSettingsRequest.suggestionRotationSaturationDays);
+    writer.writeNumberValue("suggestionRotationWeight", updateFoodPlanSettingsRequest.suggestionRotationWeight);
+    writer.writeNumberValue("suggestionSeasonalityWeight", updateFoodPlanSettingsRequest.suggestionSeasonalityWeight);
+    writer.writeNumberValue("suggestionSeasonalityWindowDays", updateFoodPlanSettingsRequest.suggestionSeasonalityWindowDays);
 }
 /**
  * Serializes information the current object
@@ -6302,6 +6507,20 @@ export function serializeUpdateVendorRequest(writer: SerializationWriter, update
 export function serializeUpsertFoodPlanNoteRequest(writer: SerializationWriter, upsertFoodPlanNoteRequest: Partial<UpsertFoodPlanNoteRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!upsertFoodPlanNoteRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("note", upsertFoodPlanNoteRequest.note);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpsertSeasonalTagRuleRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpsertSeasonalTagRuleRequest(writer: SerializationWriter, upsertSeasonalTagRuleRequest: Partial<UpsertSeasonalTagRuleRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!upsertSeasonalTagRuleRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("boost", upsertSeasonalTagRuleRequest.boost);
+    writer.writeStringValue("keyword", upsertSeasonalTagRuleRequest.keyword);
+    writer.writeBooleanValue("matchPrefix", upsertSeasonalTagRuleRequest.matchPrefix);
+    writer.writeNumberValue("months", upsertSeasonalTagRuleRequest.months);
 }
 /**
  * Serializes information the current object
@@ -6741,6 +6960,30 @@ export interface UpdateFoodPlanSettingsRequest extends Parsable {
      * The activeDays property
      */
     activeDays?: number | null;
+    /**
+     * The suggestionExclusionWindowDays property
+     */
+    suggestionExclusionWindowDays?: number | null;
+    /**
+     * The suggestionFavoritesWeight property
+     */
+    suggestionFavoritesWeight?: number | null;
+    /**
+     * The suggestionRotationSaturationDays property
+     */
+    suggestionRotationSaturationDays?: number | null;
+    /**
+     * The suggestionRotationWeight property
+     */
+    suggestionRotationWeight?: number | null;
+    /**
+     * The suggestionSeasonalityWeight property
+     */
+    suggestionSeasonalityWeight?: number | null;
+    /**
+     * The suggestionSeasonalityWindowDays property
+     */
+    suggestionSeasonalityWindowDays?: number | null;
 }
 export interface UpdateHomeCardPreferencesRequest extends Parsable {
     /**
@@ -6935,6 +7178,24 @@ export interface UpsertFoodPlanNoteRequest extends Parsable {
      * The note property
      */
     note?: string | null;
+}
+export interface UpsertSeasonalTagRuleRequest extends Parsable {
+    /**
+     * The boost property
+     */
+    boost?: number | null;
+    /**
+     * The keyword property
+     */
+    keyword?: string | null;
+    /**
+     * The matchPrefix property
+     */
+    matchPrefix?: boolean | null;
+    /**
+     * The months property
+     */
+    months?: number | null;
 }
 export interface Vendor extends Parsable {
     /**
