@@ -753,13 +753,15 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   // Empty upcoming day → dialog opens with ranked suggestions (names + reasons) and
   // the calendar behind shows the dashed "Suggest meal" chips on empty days.
+  // NB: two torsdag rows are rendered (Jan 9 + Jan 16); target the upcoming one via
+  // its full "torsdag, i morgen" label — the past one does not auto-open suggestions.
   test("food plans - day dialog ranked suggestions", async ({ page }) => {
     await page.route("**/api/food-plan/entries**", (route) =>
       route.fulfill({ json: [] })
     );
     await page.goto("/food-plans");
-    await page.waitForSelector('button[aria-label*="torsdag"]');
-    await page.getByRole("button", { name: /torsdag/i }).first().click();
+    await page.waitForSelector('button[aria-label="torsdag, i morgen"]');
+    await page.getByRole("button", { name: "torsdag, i morgen" }).click();
     await page.getByText("Suggestions", { exact: true }).waitFor();
     await expect(page).toHaveScreenshot(
       "food-plans-day-dialog-suggestions.png",
