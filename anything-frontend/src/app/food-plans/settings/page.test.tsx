@@ -7,6 +7,11 @@ import { toast } from 'sonner'
 // Mock the apiClient module
 const mockSettingsGet = jest.fn()
 const mockSettingsPut = jest.fn()
+const mockRulesGet = jest.fn()
+const mockRulesPost = jest.fn()
+const mockRulesPut = jest.fn()
+const mockRulesDelete = jest.fn()
+const mockRulesByRuleId: jest.Mock = jest.fn(() => ({ put: mockRulesPut, delete: mockRulesDelete }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -15,6 +20,11 @@ jest.mock('@/lib/apiClient', () => ({
         settings: {
           get: (...args: unknown[]) => mockSettingsGet(...args),
           put: (...args: unknown[]) => mockSettingsPut(...args),
+        },
+        seasonalTags: {
+          get: (...args: unknown[]) => mockRulesGet(...args),
+          post: (...args: unknown[]) => mockRulesPost(...args),
+          byRuleId: (...args: unknown[]) => mockRulesByRuleId(...args),
         },
       },
     },
@@ -48,6 +58,10 @@ describe('FoodPlanSettingsPage', () => {
     jest.clearAllMocks()
     mockSettingsGet.mockResolvedValue({ activeDays: 31 })
     mockSettingsPut.mockResolvedValue(undefined)
+    mockRulesGet.mockResolvedValue([])
+    mockRulesPost.mockResolvedValue({})
+    mockRulesPut.mockResolvedValue({})
+    mockRulesDelete.mockResolvedValue(undefined)
   })
 
   it('should display loading state', () => {
@@ -171,5 +185,171 @@ describe('FoodPlanSettingsPage', () => {
     render(<FoodPlanSettingsPage />)
 
     expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
+  })
+
+  // ------- Suggestion tuning -------
+
+  it('should render tuning fields with values from settings', async () => {
+    mockSettingsGet.mockResolvedValue({
+      activeDays: 31,
+      suggestionRotationWeight: 50,
+      suggestionExclusionWindowDays: 13,
+    })
+
+    render(<FoodPlanSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Rotation weight')).toHaveValue(50)
+    })
+    expect(screen.getByLabelText('Exclusion window (days)')).toHaveValue(13)
+    // Fields missing from the response fall back to defaults
+    expect(screen.getByLabelText('Favorites weight')).toHaveValue(25)
+  })
+
+  it('should save tuning together with the current active days', async () => {
+    const user = userEvent.setup()
+
+    render(<FoodPlanSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Rotation weight')).toBeInTheDocument()
+    })
+
+    const rotationInput = screen.getByLabelText('Rotation weight')
+    await user.clear(rotationInput)
+    await user.type(rotationInput, '60')
+    await user.click(screen.getByRole('button', { name: 'Save Tuning' }))
+
+    await waitFor(() => {
+      expect(mockSettingsPut).toHaveBeenCalledWith(
+        expect.objectContaining({ activeDays: 31, suggestionRotationWeight: 60 }),
+      )
+    })
+    expect(toast.success).toHaveBeenCalledWith('Settings updated')
+  })
+
+  it('should reset tuning to defaults', async () => {
+    const user = userEvent.setup()
+    mockSettingsGet.mockResolvedValue({ activeDays: 31, suggestionRotationWeight: 77 })
+
+    render(<FoodPlanSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Rotation weight')).toHaveValue(77)
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Reset to defaults' }))
+
+    await waitFor(() => {
+      expect(mockSettingsPut).toHaveBeenCalledWith(
+        expect.objectContaining({
+          activeDays: 31,
+          suggestionRotationWeight: 40,
+          suggestionFavoritesWeight: 25,
+          suggestionSeasonalityWeight: 20,
+          suggestionExclusionWindowDays: 6,
+          suggestionRotationSaturationDays: 84,
+          suggestionSeasonalityWindowDays: 21,
+        }),
+      )
+    })
+    expect(screen.getByLabelText('Rotation weight')).toHaveValue(40)
+  })
+
+  // ------- Seasonal tags -------
+
+  it('should list seasonal tag rules with their months', async () => {
+    mockRulesGet.mockResolvedValue([
+      { id: 1, keyword: 'jul', matchPrefix: false, months: 1 << 11, boost: 15 },
+      { id: 2, keyword: 'jule', matchPrefix: true, months: 1 << 11, boost: 15 },
+    ])
+
+    render(<FoodPlanSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('jul')).toBeInTheDocument()
+    })
+    expect(screen.getByText('jule')).toBeInTheDocument()
+    expect(screen.getByText('prefix')).toBeInTheDocument()
+    expect(screen.getAllByText(/\+15 · Dec/).length).toBe(2)
+  })
+
+  it('should create a rule with the selected months as a bitmask', async () => {
+    const user = userEvent.setup()
+
+    render(<FoodPlanSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Tag keyword, e.g. jul')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByPlaceholderText('Tag keyword, e.g. jul'), 'sommer')
+    await user.click(screen.getByText('Jun'))
+    await user.click(screen.getByText('Jul'))
+    await user.click(screen.getByText('Aug'))
+    await user.click(screen.getByRole('button', { name: 'Add tag' }))
+
+    await waitFor(() => {
+      expect(mockRulesPost).toHaveBeenCalledWith({
+        keyword: 'sommer',
+        matchPrefix: false,
+        months: (1 << 5) | (1 << 6) | (1 << 7),
+        boost: 10,
+      })
+    })
+    expect(toast.success).toHaveBeenCalledWith('Seasonal tag added')
+  })
+
+  it('should edit an existing rule and round-trip its month bitmask', async () => {
+    const user = userEvent.setup()
+    mockRulesGet.mockResolvedValue([
+      { id: 5, keyword: 'vinter', matchPrefix: false, months: (1 << 11) | 1 | (1 << 1), boost: 10 },
+    ])
+
+    render(<FoodPlanSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('vinter')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+
+    expect(screen.getByPlaceholderText('Tag keyword, e.g. jul')).toHaveValue('vinter')
+
+    // Toggle Mar on — Dec, Jan and Feb stay selected from the loaded bitmask
+    await user.click(screen.getByText('Mar'))
+    await user.click(screen.getByRole('button', { name: 'Update tag' }))
+
+    await waitFor(() => {
+      expect(mockRulesByRuleId).toHaveBeenCalledWith(5)
+      expect(mockRulesPut).toHaveBeenCalledWith({
+        keyword: 'vinter',
+        matchPrefix: false,
+        months: (1 << 11) | 1 | (1 << 1) | (1 << 2),
+        boost: 10,
+      })
+    })
+    expect(toast.success).toHaveBeenCalledWith('Seasonal tag updated')
+  })
+
+  it('should delete a rule', async () => {
+    const user = userEvent.setup()
+    mockRulesGet.mockResolvedValue([
+      { id: 7, keyword: 'jul', matchPrefix: false, months: 1 << 11, boost: 15 },
+    ])
+
+    render(<FoodPlanSettingsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('jul')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Remove seasonal tag jul' }))
+
+    await waitFor(() => {
+      expect(mockRulesByRuleId).toHaveBeenCalledWith(7)
+      expect(mockRulesDelete).toHaveBeenCalled()
+    })
+    expect(toast.success).toHaveBeenCalledWith('Seasonal tag removed')
   })
 })

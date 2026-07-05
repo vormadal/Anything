@@ -33,6 +33,14 @@ export class FoodPlanPage {
   }
 
   /**
+   * Returns the day-row card whose aria-label contains the given relative
+   * label ("i dag", "i morgen", "i går").
+   */
+  dayRowByRelative(label: string): Locator {
+    return this.page.locator(`button[aria-label*="${label}"]`);
+  }
+
+  /**
    * Opens the DayManagementDialog for the first visible day row.
    *
    * Clicks the h3 weekday heading rather than the button centre so that the
@@ -43,5 +51,13 @@ export class FoodPlanPage {
    */
   async openFirstDayDialog() {
     await this.dayRows().first().locator("h3").first().click();
+  }
+
+  /**
+   * Opens the DayManagementDialog for today's row (see openFirstDayDialog for
+   * why the h3 heading is clicked).
+   */
+  async openTodayDialog() {
+    await this.todayRow().locator("h3").first().click();
   }
 }

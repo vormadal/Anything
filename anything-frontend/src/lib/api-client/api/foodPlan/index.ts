@@ -8,7 +8,11 @@ import { EntriesRequestBuilderNavigationMetadata, EntriesRequestBuilderRequestsM
 // @ts-ignore
 import { NotesRequestBuilderNavigationMetadata, NotesRequestBuilderRequestsMetadata, type NotesRequestBuilder } from './notes/index';
 // @ts-ignore
+import { SeasonalTagsRequestBuilderNavigationMetadata, SeasonalTagsRequestBuilderRequestsMetadata, type SeasonalTagsRequestBuilder } from './seasonalTags/index';
+// @ts-ignore
 import { SettingsRequestBuilderRequestsMetadata, type SettingsRequestBuilder } from './settings/index';
+// @ts-ignore
+import { SuggestionsRequestBuilderRequestsMetadata, type SuggestionsRequestBuilder } from './suggestions/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata } from '@microsoft/kiota-abstractions';
 
@@ -29,9 +33,17 @@ export interface FoodPlanRequestBuilder extends BaseRequestBuilder<FoodPlanReque
      */
     get notes(): NotesRequestBuilder;
     /**
+     * The seasonalTags property
+     */
+    get seasonalTags(): SeasonalTagsRequestBuilder;
+    /**
      * The settings property
      */
     get settings(): SettingsRequestBuilder;
+    /**
+     * The suggestions property
+     */
+    get suggestions(): SuggestionsRequestBuilder;
 }
 /**
  * Uri template for the request builder.
@@ -52,8 +64,15 @@ export const FoodPlanRequestBuilderNavigationMetadata: Record<Exclude<keyof Food
         requestsMetadata: NotesRequestBuilderRequestsMetadata,
         navigationMetadata: NotesRequestBuilderNavigationMetadata,
     },
+    seasonalTags: {
+        requestsMetadata: SeasonalTagsRequestBuilderRequestsMetadata,
+        navigationMetadata: SeasonalTagsRequestBuilderNavigationMetadata,
+    },
     settings: {
         requestsMetadata: SettingsRequestBuilderRequestsMetadata,
+    },
+    suggestions: {
+        requestsMetadata: SuggestionsRequestBuilderRequestsMetadata,
     },
 };
 /* tslint:enable */

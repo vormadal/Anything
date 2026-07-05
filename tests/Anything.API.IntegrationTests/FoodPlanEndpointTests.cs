@@ -624,7 +624,136 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // --- GET /api/food-plan/suggestions ---
+
+    [Fact]
+    public async Task GetSuggestions_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync("/api/food-plan/suggestions?date=2026-09-15", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetSuggestions_ExcludesRecentAndRanksRestedAboveNeverPlanned()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var targetDate = new DateOnly(2026, 9, 15);
+        var plannedYesterday = await CreateRecipe($"Yesterday {Guid.NewGuid()}");
+        var plannedLongAgo = await CreateRecipe($"LongAgo {Guid.NewGuid()}");
+        var neverPlanned = await CreateRecipe($"Never {Guid.NewGuid()}");
+
+        await AddEntry(plannedYesterday, new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc));
+        await AddEntry(plannedLongAgo, new DateTime(2026, 6, 10, 0, 0, 0, DateTimeKind.Utc));
+
+        var response = await client.GetAsync($"/api/food-plan/suggestions?date={targetDate:yyyy-MM-dd}&count=50", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var suggestions = await response.Content.ReadFromJsonAsync<List<FoodPlanSuggestionDto>>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(suggestions);
+
+        Assert.DoesNotContain(suggestions, s => s.RecipeId == plannedYesterday.Id);
+        var longAgoIndex = suggestions.FindIndex(s => s.RecipeId == plannedLongAgo.Id);
+        var neverIndex = suggestions.FindIndex(s => s.RecipeId == neverPlanned.Id);
+        Assert.True(longAgoIndex >= 0, "Recipe planned long ago should be suggested");
+        Assert.True(neverIndex >= 0, "Never-planned recipe should be suggested");
+        Assert.True(longAgoIndex < neverIndex, "A fully rested recipe should outrank a never-planned one");
+        Assert.Contains(suggestions[longAgoIndex].Reasons, r => r.StartsWith("Last planned"));
+        Assert.Contains("Not planned yet", suggestions[neverIndex].Reasons);
+    }
+
+    // --- /api/food-plan/seasonal-tags ---
+
+    [Fact]
+    public async Task GetSeasonalTags_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync("/api/food-plan/seasonal-tags", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetSeasonalTags_SeedsDefaultRulesOnFirstUse()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.GetAsync("/api/food-plan/seasonal-tags", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var rules = await response.Content.ReadFromJsonAsync<List<SeasonalTagRuleDto>>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(rules);
+        Assert.Contains(rules, r => r.Keyword == "jul" && r.Boost == 15);
+        Assert.Contains(rules, r => r.Keyword == "sommer" && r.Boost == 10);
+    }
+
+    [Fact]
+    public async Task SeasonalTagRule_CrudRoundtrip()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var keyword = $"testtag{Guid.NewGuid():N}"[..20];
+
+        var createResponse = await client.PostAsJsonAsync("/api/food-plan/seasonal-tags",
+            new { keyword, matchPrefix = true, months = 0b1000000000, boost = 12 }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<SeasonalTagRuleDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(created);
+        Assert.Equal(keyword, created.Keyword);
+
+        var updateResponse = await client.PutAsJsonAsync($"/api/food-plan/seasonal-tags/{created.Id}",
+            new { keyword, matchPrefix = false, months = 0b0100000000, boost = 8 }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        var updated = await updateResponse.Content.ReadFromJsonAsync<SeasonalTagRuleDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(updated);
+        Assert.Equal(8, updated.Boost);
+        Assert.False(updated.MatchPrefix);
+
+        var deleteResponse = await client.DeleteAsync($"/api/food-plan/seasonal-tags/{created.Id}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var listResponse = await client.GetAsync("/api/food-plan/seasonal-tags", TestContext.Current.CancellationToken);
+        var rules = await listResponse.Content.ReadFromJsonAsync<List<SeasonalTagRuleDto>>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(rules);
+        Assert.DoesNotContain(rules, r => r.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task CreateSeasonalTagRule_WithInvalidMonths_Returns400()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.PostAsJsonAsync("/api/food-plan/seasonal-tags",
+            new { keyword = "invalid", matchPrefix = false, months = 0, boost = 10 }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    // --- Suggestion tuning settings ---
+
+    [Fact]
+    public async Task UpdateFoodPlanSettings_PersistsSuggestionTuning()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.PutAsJsonAsync("/api/food-plan/settings",
+            new
+            {
+                activeDays = 31,
+                suggestionRotationWeight = 50,
+                suggestionExclusionWindowDays = 13
+            }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var getResponse = await client.GetAsync("/api/food-plan/settings", TestContext.Current.CancellationToken);
+        var settings = await getResponse.Content.ReadFromJsonAsync<FoodPlanSettingsDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(settings);
+        Assert.Equal(50, settings.SuggestionRotationWeight);
+        Assert.Equal(13, settings.SuggestionExclusionWindowDays);
+        // Untouched tuning values keep their defaults.
+        Assert.Equal(25, settings.SuggestionFavoritesWeight);
+    }
+
     // --- Helpers ---
+
+    private async Task AddEntry(RecipeDto recipe, DateTime date)
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+        var response = await client.PostAsJsonAsync("/api/food-plan/entries",
+            new { name = recipe.Name, recipeId = recipe.Id, date }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
 
     private async Task<RecipeDto> CreateRecipe(string name)
     {
@@ -636,7 +765,17 @@ public class FoodPlanEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record FoodPlanSettingsDto(int Id, int ActiveDays);
+    private record FoodPlanSettingsDto(
+        int Id,
+        int ActiveDays,
+        int SuggestionRotationWeight = 40,
+        int SuggestionFavoritesWeight = 25,
+        int SuggestionSeasonalityWeight = 20,
+        int SuggestionExclusionWindowDays = 6,
+        int SuggestionRotationSaturationDays = 84,
+        int SuggestionSeasonalityWindowDays = 21);
+    private record FoodPlanSuggestionDto(int RecipeId, string Name, double Score, List<string> Reasons, DateOnly? LastPlannedOn, int TimesPlanned);
+    private record SeasonalTagRuleDto(int Id, string Keyword, bool MatchPrefix, int Months, int Boost);
     private record FoodPlanEntryDto(int Id, int? RecipeId, string? Name, DateTime Date, DateTime? AddedToShoppingListOn);
     private record FoodPlanNoteDto(int Id, DateOnly Date, string Note);
     private record RecipeDto(int Id, string? Name);

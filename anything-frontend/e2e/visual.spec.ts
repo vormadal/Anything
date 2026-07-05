@@ -165,6 +165,20 @@ const mockFoodPlanNotes = [
   { id: 1, date: "2025-01-13", note: "Meal prep day" },
 ];
 
+// Ranked meal suggestions; reasons match a FIXED_DATE (mid-January) target.
+const mockFoodPlanSuggestions = [
+  { recipeId: 1, name: "Pasta Carbonara", score: 62.5, reasons: ["Last planned 5 weeks ago", "Planned 12 times"], lastPlannedOn: "2024-12-11", timesPlanned: 12 },
+  { recipeId: 2, name: "Chicken Stir Fry", score: 48.1, reasons: ["Often planned in January"], lastPlannedOn: "2024-11-20", timesPlanned: 6 },
+  { recipeId: 3, name: "Beef Tacos", score: 38.0, reasons: ["Matches 'vinter'"], lastPlannedOn: "2024-10-02", timesPlanned: 2 },
+  { recipeId: 4, name: "Tomato Soup", score: 28.0, reasons: ["Not planned yet"], lastPlannedOn: null, timesPlanned: 0 },
+];
+
+const mockSeasonalTagRules = [
+  { id: 1, keyword: "vinter", matchPrefix: false, months: 0b100000000011, boost: 10 },
+  { id: 2, keyword: "jul", matchPrefix: false, months: 0b100000000000, boost: 15 },
+  { id: 3, keyword: "jule", matchPrefix: true, months: 0b100000000000, boost: 15 },
+];
+
 const mockRecommendations = [
   { id: 1, name: "Milk", isApproved: true, preferredUnit: null, categoryId: null },
   { id: 2, name: "Bread", isApproved: true, preferredUnit: "loaves", categoryId: null },
@@ -344,6 +358,16 @@ async function setupApiMocks(page: Page) {
   await page.route("**/api/food-plan/notes**", (route) =>
     route.fulfill({ json: mockFoodPlanNotes })
   );
+  await page.route("**/api/food-plan/suggestions**", (route) =>
+    route.fulfill({ json: mockFoodPlanSuggestions })
+  );
+  await page.route("**/api/food-plan/seasonal-tags**", (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockSeasonalTagRules });
+    } else {
+      route.fulfill({ status: 204, body: "" });
+    }
+  });
 
   // ---- Home page card preferences ----
   await page.route("**/api/home/card-preferences**", (route) => {
@@ -714,7 +738,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   // "torsdag" = Thursday 2025-01-16, one day after the fixed-date Wednesday.
-  // aria-label becomes "torsdag, i morgen" (tomorrow). Has no entries in mock data.
+  // aria-label becomes "torsdag, i morgen" (tomorrow). Has no entries in mock data,
+  // so the dialog opens with the ranked suggestions dropdown visible.
   test("food plans - day dialog empty day", async ({ page }) => {
     await page.goto("/food-plans");
     await page.waitForSelector('button[aria-label*="torsdag"]');
@@ -722,6 +747,34 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForSelector('[aria-label="Close dialog"]');
     await expect(page).toHaveScreenshot(
       "food-plans-day-dialog-empty.png",
+      screenshotOptions
+    );
+  });
+
+  // Empty upcoming day → dialog opens with ranked suggestions (names + reasons) and
+  // the calendar behind shows the dashed "Suggest meal" chips on empty days.
+  // NB: two torsdag rows are rendered (Jan 9 + Jan 16); target the upcoming one via
+  // its full "torsdag, i morgen" label — the past one does not auto-open suggestions.
+  test("food plans - day dialog ranked suggestions", async ({ page }) => {
+    await page.route("**/api/food-plan/entries**", (route) =>
+      route.fulfill({ json: [] })
+    );
+    await page.goto("/food-plans");
+    await page.waitForSelector('button[aria-label="torsdag, i morgen"]');
+    await page.getByRole("button", { name: "torsdag, i morgen" }).click();
+    await page.getByText("Suggestions", { exact: true }).waitFor();
+    await expect(page).toHaveScreenshot(
+      "food-plans-day-dialog-suggestions.png",
+      screenshotOptions
+    );
+  });
+
+  // Settings page with the suggestion tuning fields and seasonal tag rules.
+  test("food plans - settings suggestions and seasonal tags", async ({ page }) => {
+    await page.goto("/food-plans/settings");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "food-plans-settings-suggestions.png",
       screenshotOptions
     );
   });
