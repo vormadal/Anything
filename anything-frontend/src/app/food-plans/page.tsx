@@ -390,7 +390,12 @@ function DayManagementDialog({
                 </ul>
               )}
               {showRanked && (
-                <ul className="absolute z-10 left-0 right-0 mt-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md max-h-56 overflow-y-auto">
+                // Deliberately not `absolute` (unlike the typeahead list above): this list can
+                // auto-open on empty upcoming days (showSuggestionsOnOpen) and stay open without
+                // the input ever blurring, so an absolutely-positioned overlay would sit on top
+                // of the Note section below and swallow clicks meant for it (e.g. "Clear note").
+                // Keeping it in normal flow pushes later content down instead of covering it.
+                <ul className="mt-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md max-h-56 overflow-y-auto">
                   <li className="flex items-center gap-1 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                     <Sparkles className="h-3 w-3" />
                     Suggestions

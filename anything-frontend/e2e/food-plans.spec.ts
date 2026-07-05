@@ -1,6 +1,6 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { FoodPlanPage } from "./pages/FoodPlanPage";
-import { getEnv } from "./env";
+import { apiRequest } from "./apiRequest";
 
 /**
  * Food plan full flow:
@@ -9,53 +9,10 @@ import { getEnv } from "./env";
  * meal suggestions → one-tap add → variety exclusion
  */
 
-const env = getEnv();
-
 interface SuggestionDto {
   recipeId: number;
   name: string;
   reasons: string[];
-}
-
-/**
- * Performs an authenticated JSON request against the API from inside the page
- * (so it works in the deploy environment where the API is proxied at the app
- * origin). Returns the parsed JSON body, or null for 204 responses.
- */
-async function apiRequest<T>(
-  page: Page,
-  method: string,
-  path: string,
-  body?: unknown
-): Promise<T> {
-  const accessToken = await page.evaluate(() => localStorage.getItem("accessToken"));
-  const householdId = await page.evaluate(() => localStorage.getItem("householdId"));
-  return page.evaluate(
-    async ([apiUrl, token, hid, m, p, b]) => {
-      const res = await fetch(`${apiUrl}${p}`, {
-        method: m as string,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-Household-Id": (hid as string) ?? "",
-        },
-        body: b === null ? undefined : JSON.stringify(b),
-      });
-      if (!res.ok) {
-        throw new Error(`${m} ${p} failed with status ${res.status}`);
-      }
-      if (res.status === 204) return null;
-      return res.json();
-    },
-    [env.apiUrl, accessToken, householdId, method, path, body ?? null] as [
-      string,
-      string | null,
-      string | null,
-      string,
-      string,
-      unknown,
-    ]
-  ) as Promise<T>;
 }
 
 function toDateString(date: Date): string {
@@ -218,10 +175,12 @@ test("suggests recipes and adds a meal with one tap from the dropdown", async ({
     // API-level membership check: the dropdown shows only the top 5, and in the
     // deploy environment a brand-new "Not planned yet" recipe can legitimately be
     // outranked by rested favorites — so assert membership via the API instead.
+    // count=200 (the API's max) gives headroom against the deploy household's
+    // accumulated recipe history; see GetFoodPlanSuggestions.MaxCount.
     const suggestions = await apiRequest<SuggestionDto[]>(
       page,
       "GET",
-      `/api/food-plan/suggestions?date=${tomorrowDateString()}&count=50`
+      `/api/food-plan/suggestions?date=${tomorrowDateString()}&count=200`
     );
     const mine = suggestions.find((s) => s.recipeId === recipe.id);
     expect(mine, "newly created recipe should be suggested").toBeTruthy();

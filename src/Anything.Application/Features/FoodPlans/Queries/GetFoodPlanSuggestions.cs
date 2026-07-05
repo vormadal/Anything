@@ -20,7 +20,12 @@ public class GetFoodPlanSuggestionsHandler(
     TimeProvider timeProvider) : IRequestHandler<GetFoodPlanSuggestionsQuery, List<FoodPlanSuggestionResponse>>
 {
     private const int MinCount = 1;
-    private const int MaxCount = 50;
+    // Scoring/ranking of every household recipe happens regardless of count (see Handle
+    // below), so raising this cap only changes how many already-scored results are returned
+    // -- it doesn't add meaningful query cost. A higher ceiling gives more headroom for a
+    // brand-new "not planned yet" recipe (fixed, low rotation score) to still surface among
+    // households that have accumulated many rested/favorite recipes over time.
+    private const int MaxCount = 200;
 
     public async Task<List<FoodPlanSuggestionResponse>> Handle(GetFoodPlanSuggestionsQuery query, CancellationToken ct = default)
     {
