@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { FoodPlanPage } from "./pages/FoodPlanPage";
 import { apiRequest } from "./apiRequest";
 
@@ -26,6 +26,32 @@ function tomorrowDateString(): string {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   return toDateString(tomorrow);
+}
+
+/**
+ * Creates a throwaway household and switches the page's client to it, then
+ * returns its id so the caller can delete it in a `finally` block.
+ *
+ * Suggestion ranking scores every recipe in the household, so tests that
+ * assert on ranking need a household with no pre-existing recipes to reliably
+ * surface a brand-new "Not planned yet" candidate. The shared deploy
+ * household accumulates real recipes over time and will eventually outrank a
+ * fresh candidate no matter how high the API's result count is set (see
+ * GetFoodPlanSuggestions.MaxCount) — that crowding is what made these tests
+ * flaky against the persistent deploy environment. Deleting the household
+ * afterwards leaves its recipes/entries orphaned but invisible to every
+ * other household's suggestions, so no per-recipe/per-entry cleanup is
+ * needed either.
+ */
+async function useEphemeralHousehold(page: Page): Promise<{ id: number }> {
+  const household = await apiRequest<{ id: number }>(page, "POST", "/api/households", {
+    name: `E2E Ephemeral ${Date.now()}`,
+  });
+  await page.evaluate(
+    (id) => localStorage.setItem("householdId", String(id)),
+    household.id
+  );
+  return household;
 }
 
 test("add and remove a meal entry from the food plan", async ({ page }) => {
@@ -164,23 +190,21 @@ test("suggests recipes and adds a meal with one tap from the dropdown", async ({
     page.getByRole("heading", { name: "Food Plan", level: 1 })
   ).toBeVisible();
 
-  // All 7 days active so today's row is visible on weekends too.
-  await apiRequest(page, "PUT", "/api/food-plan/settings", { activeDays: 127 });
-  const recipe = await apiRequest<{ id: number }>(page, "POST", "/api/recipes", {
-    name: recipeName,
-  });
-  let suggestedName: string | null = null;
+  const household = await useEphemeralHousehold(page);
 
   try {
-    // API-level membership check: the dropdown shows only the top 5, and in the
-    // deploy environment a brand-new "Not planned yet" recipe can legitimately be
-    // outranked by rested favorites — so assert membership via the API instead.
-    // count=200 (the API's max) gives headroom against the deploy household's
-    // accumulated recipe history; see GetFoodPlanSuggestions.MaxCount.
+    // All 7 days active so today's row is visible on weekends too.
+    await apiRequest(page, "PUT", "/api/food-plan/settings", { activeDays: 127 });
+    const recipe = await apiRequest<{ id: number }>(page, "POST", "/api/recipes", {
+      name: recipeName,
+    });
+
+    // The ephemeral household has no other recipes, so ours is guaranteed to
+    // rank first regardless of result count.
     const suggestions = await apiRequest<SuggestionDto[]>(
       page,
       "GET",
-      `/api/food-plan/suggestions?date=${tomorrowDateString()}&count=200`
+      `/api/food-plan/suggestions?date=${tomorrowDateString()}&count=10`
     );
     const mine = suggestions.find((s) => s.recipeId === recipe.id);
     expect(mine, "newly created recipe should be suggested").toBeTruthy();
@@ -200,7 +224,7 @@ test("suggests recipes and adds a meal with one tap from the dropdown", async ({
     const addButton = page.locator('ul button[aria-label^="Add "]').first();
     await expect(addButton).toBeVisible();
     const label = await addButton.getAttribute("aria-label");
-    suggestedName = label?.replace(/^Add /, "") ?? null;
+    const suggestedName = label?.replace(/^Add /, "") ?? null;
     await addButton.click();
 
     // The entry appears in the dialog's meal list.
@@ -216,22 +240,10 @@ test("suggests recipes and adds a meal with one tap from the dropdown", async ({
     // Clean up the added entry through the UI.
     await entryInList.getByRole("button", { name: "Remove entry" }).click();
     await expect(entryInList).not.toBeVisible();
-    suggestedName = null;
   } finally {
-    // If the UI cleanup did not run, remove any entry added for today via the API.
-    if (suggestedName) {
-      const today = toDateString(new Date());
-      const entries = await apiRequest<{ id: number; name: string }[]>(
-        page,
-        "GET",
-        `/api/food-plan/entries?startDate=${today}T00:00:00Z&endDate=${today}T23:59:59Z`
-      );
-      const leftover = entries.find((e) => e.name === suggestedName);
-      if (leftover) {
-        await apiRequest(page, "DELETE", `/api/food-plan/entries/${leftover.id}`);
-      }
-    }
-    await apiRequest(page, "DELETE", `/api/recipes/${recipe.id}`);
+    // Deleting the household takes the recipe/entry/settings created above
+    // with it — no per-record cleanup needed.
+    await apiRequest(page, "DELETE", `/api/households/${household.id}`);
   }
 });
 
@@ -244,27 +256,30 @@ test("recently planned recipes are excluded from suggestions", async ({ page }) 
     page.getByRole("heading", { name: "Food Plan", level: 1 })
   ).toBeVisible();
 
-  // All 7 days active so tomorrow's row is visible on weekends too.
-  await apiRequest(page, "PUT", "/api/food-plan/settings", { activeDays: 127 });
-  const recipe = await apiRequest<{ id: number }>(page, "POST", "/api/recipes", {
-    name: recipeName,
-  });
-  let entryId: number | null = null;
+  const household = await useEphemeralHousehold(page);
 
   try {
-    const suggestionsPath = `/api/food-plan/suggestions?date=${tomorrowDateString()}&count=50`;
+    // All 7 days active so tomorrow's row is visible on weekends too.
+    await apiRequest(page, "PUT", "/api/food-plan/settings", { activeDays: 127 });
+    const recipe = await apiRequest<{ id: number }>(page, "POST", "/api/recipes", {
+      name: recipeName,
+    });
+
+    // The ephemeral household has no other recipes, so this membership check
+    // is a real assertion of the exclusion logic rather than a coin flip
+    // against whatever else the household happens to contain.
+    const suggestionsPath = `/api/food-plan/suggestions?date=${tomorrowDateString()}&count=10`;
 
     // Before planning, the recipe is suggested for tomorrow.
     const before = await apiRequest<SuggestionDto[]>(page, "GET", suggestionsPath);
     expect(before.some((s) => s.recipeId === recipe.id)).toBe(true);
 
     // Plan it for today — inside the variety exclusion window around tomorrow.
-    const entry = await apiRequest<{ id: number }>(page, "POST", "/api/food-plan/entries", {
+    await apiRequest(page, "POST", "/api/food-plan/entries", {
       name: recipeName,
       recipeId: recipe.id,
       date: `${toDateString(new Date())}T00:00:00Z`,
     });
-    entryId = entry.id;
 
     // The recipe is no longer suggested for tomorrow.
     const after = await apiRequest<SuggestionDto[]>(page, "GET", suggestionsPath);
@@ -281,9 +296,8 @@ test("recently planned recipes are excluded from suggestions", async ({ page }) 
     await suggestionsLoaded;
     await expect(page.locator(`ul button[aria-label="Add ${recipeName}"]`)).toHaveCount(0);
   } finally {
-    if (entryId != null) {
-      await apiRequest(page, "DELETE", `/api/food-plan/entries/${entryId}`);
-    }
-    await apiRequest(page, "DELETE", `/api/recipes/${recipe.id}`);
+    // Deleting the household takes the recipe/entry/settings created above
+    // with it — no per-record cleanup needed.
+    await apiRequest(page, "DELETE", `/api/households/${household.id}`);
   }
 });
