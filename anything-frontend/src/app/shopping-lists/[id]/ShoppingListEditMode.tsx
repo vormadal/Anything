@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Clock, Plus, Trash2 } from "lucide-react";
 import {
   useShoppingListItems,
   useAddShoppingListItem,
@@ -13,6 +13,7 @@ import { useRecommendations } from "@/hooks/useRecommendations";
 import { useUnits } from "@/hooks/useUnits";
 import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
+import { usePendingItemIds } from "@/lib/offline/outboxStore";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 
 interface Props {
@@ -42,6 +43,7 @@ export function ShoppingListEditMode({ listId }: Props) {
   const removeItem = useRemoveShoppingListItem(listId);
   const { data: recommendations } = useRecommendations();
   const { data: units } = useUnits();
+  const pendingItemIds = usePendingItemIds(listId);
 
   const filteredSuggestions =
     recommendations?.filter(
@@ -302,6 +304,12 @@ export function ShoppingListEditMode({ listId }: Props) {
                     <span className="text-gray-400 dark:text-gray-500 mr-1">{item.amount}×</span>
                   )}
                   {item.name}
+                  {pendingItemIds.has(item.id!) && (
+                    <Clock
+                      className="inline-block h-3 w-3 ml-1.5 mb-0.5 text-gray-400 dark:text-gray-500"
+                      aria-label="Pending sync"
+                    />
+                  )}
                 </span>
               )}
 

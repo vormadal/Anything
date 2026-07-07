@@ -19,6 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { LayoutList, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks, LayoutTemplate } from "lucide-react";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { ShoppingListView } from "@/app/shopping-lists/[id]/ShoppingListView";
 import { ShoppingListEditMode } from "@/app/shopping-lists/[id]/ShoppingListEditMode";
 import { GeneralChecklistView } from "./GeneralChecklistView";
@@ -37,6 +38,7 @@ export default function ListDetailPage() {
     setIsEditMode(editParam);
   }, [editParam]);
   const { setHeaderActions, setLeftAction } = useHeaderActions();
+  const isOnline = useOnlineStatus();
 
   const handleDeleteListRef = useRef<() => void>(() => undefined);
   const handleConvertTypeRef = useRef<() => Promise<void>>(async () => {});
@@ -117,7 +119,10 @@ export default function ListDetailPage() {
               <SquarePen className="h-4 w-4" />
               Rename
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handleConvertTypeRef.current()}>
+            <DropdownMenuItem
+              disabled={!isOnline}
+              onSelect={() => handleConvertTypeRef.current()}
+            >
               {isGeneral ? (
                 <>
                   <ShoppingCart className="h-4 w-4" />
@@ -130,7 +135,10 @@ export default function ListDetailPage() {
                 </>
               )}
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handleSaveAsTemplateRef.current()}>
+            <DropdownMenuItem
+              disabled={!isOnline}
+              onSelect={() => handleSaveAsTemplateRef.current()}
+            >
               <LayoutTemplate className="h-4 w-4" />
               Save as template
             </DropdownMenuItem>
@@ -150,7 +158,7 @@ export default function ListDetailPage() {
       setLeftAction({ type: "menu" });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, isGeneral, listId, setHeaderActions, setLeftAction]);
+  }, [isEditMode, isGeneral, isOnline, listId, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">

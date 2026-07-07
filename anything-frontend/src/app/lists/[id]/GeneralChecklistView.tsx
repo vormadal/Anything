@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, Clock } from "lucide-react";
 import {
   useShoppingListItems,
   useUpdateShoppingListItem,
@@ -9,6 +9,7 @@ import {
 } from "@/hooks/useShoppingLists";
 import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
+import { usePendingItemIds } from "@/lib/offline/outboxStore";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 import { useRouter } from "next/navigation";
 
@@ -21,6 +22,7 @@ export function GeneralChecklistView({ listId }: Props) {
   const { data: items, isLoading, error } = useShoppingListItems(listId);
   const updateItem = useUpdateShoppingListItem(listId);
   const deleteList = useDeleteShoppingList();
+  const pendingItemIds = usePendingItemIds(listId);
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
   const checkedItems = items?.filter((i) => i.isChecked) ?? [];
@@ -76,6 +78,12 @@ export function GeneralChecklistView({ listId }: Props) {
                 />
                 <span className="flex-1 text-sm text-gray-900 dark:text-white">
                   {item.name}
+                  {pendingItemIds.has(item.id!) && (
+                    <Clock
+                      className="inline-block h-3 w-3 ml-1.5 mb-0.5 text-gray-400 dark:text-gray-500"
+                      aria-label="Pending sync"
+                    />
+                  )}
                 </span>
               </li>
             ))}
@@ -95,6 +103,9 @@ export function GeneralChecklistView({ listId }: Props) {
                 </button>
                 <span className="flex-1 text-sm line-through text-gray-400 dark:text-gray-600">
                   {item.name}
+                  {pendingItemIds.has(item.id!) && (
+                    <Clock className="inline-block h-3 w-3 ml-1.5 mb-0.5" aria-label="Pending sync" />
+                  )}
                 </span>
               </li>
             ))}

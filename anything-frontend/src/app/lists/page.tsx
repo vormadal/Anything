@@ -26,9 +26,18 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { ShoppingListResponse } from "@/lib/api-client/models/index";
 
-function DraggableListItem({ list, onClick }: { list: ShoppingListResponse; onClick: () => void }) {
+function DraggableListItem({
+  list,
+  onClick,
+  disabled,
+}: {
+  list: ShoppingListResponse;
+  onClick: () => void;
+  disabled: boolean;
+}) {
   const {
     attributes,
     listeners,
@@ -50,8 +59,10 @@ function DraggableListItem({ list, onClick }: { list: ShoppingListResponse; onCl
     <div ref={setNodeRef} style={style} className="flex items-center gap-1">
       <button
         type="button"
-        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none"
+        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="Drag to reorder"
+        disabled={disabled}
+        title={disabled ? "Reordering requires an internet connection" : undefined}
         {...attributes}
         {...listeners}
       >
@@ -81,6 +92,7 @@ export default function ListsPage() {
   const reorderLists = useReorderShoppingLists();
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
+  const isOnline = useOnlineStatus();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -90,6 +102,7 @@ export default function ListsPage() {
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (!isOnline) return;
     const { active, over } = event;
     if (!over || active.id === over.id || !lists) return;
 
@@ -162,6 +175,7 @@ export default function ListsPage() {
                   key={list.id}
                   list={list}
                   onClick={() => router.push(`/lists/${list.id}`)}
+                  disabled={!isOnline}
                 />
               ))}
             </div>

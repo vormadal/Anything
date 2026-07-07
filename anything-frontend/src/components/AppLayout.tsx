@@ -34,6 +34,8 @@ import { CookingModeProvider } from "@/context/CookingModeContext";
 import { CookingModeDrawer } from "@/components/CookingModeDrawer";
 import { useSmartBack } from "@/hooks/useSmartBack";
 import { useIsAuthenticated } from "@/hooks/useAuth";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 
@@ -78,6 +80,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useIsAuthenticated();
   const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
   const { navigateBack } = useSmartBack();
+  useOfflineSync();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -135,6 +138,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           {headerActions}
         </div>
       </header>
+
+      <OfflineBanner />
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent side="left" className="w-72 flex flex-col p-0">

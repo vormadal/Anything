@@ -652,6 +652,42 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  // ---- Offline mode ----
+
+  test("offline banner - visible when offline", async ({ page }) => {
+    // Force navigator.onLine to false before any app JS runs, so useOnlineStatus
+    // reports offline on first render without needing real network disruption
+    // (which would also break the mocked API routes below).
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "onLine", { get: () => false, configurable: true });
+    });
+    await page.goto("/lists");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("offline-banner.png", screenshotOptions);
+  });
+
+  test("shopping list - item pending sync while offline", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "onLine", { get: () => false, configurable: true });
+    });
+    await page.goto("/lists/1");
+    await page.waitForSelector('[aria-label="Edit list"]');
+    await page.getByRole("button", { name: "Edit list" }).click();
+    await page.waitForLoadState("networkidle");
+
+    // Adding an item while offline queues it in the outbox and renders it
+    // immediately (optimistic update) with a pending-sync indicator.
+    await page.getByPlaceholder("Add an item...").fill("Offline Item");
+    await page.getByRole("button", { name: "Add item" }).click();
+    await page.getByText("Offline Item").waitFor();
+    await page.waitForSelector('[aria-label="Pending sync"]');
+
+    await expect(page).toHaveScreenshot(
+      "list-detail-pending-sync.png",
+      screenshotOptions
+    );
+  });
+
   // ---- Recipes ----
 
   test("recipes - with items", async ({ page }) => {

@@ -10,7 +10,7 @@ Reusable UI components shared across multiple pages.
   - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`
   - Auth: `AuthGuard`
   - Error: `ErrorBoundary`
-  - PWA: `ServiceWorkerRegistration`
+  - PWA: `ServiceWorkerRegistration`, `OfflineBanner` (shown app-wide via `useOnlineStatus()`; the underlying offline read/write support is scoped to shopping list / general checklist items only — see `src/lib/agent.md`)
 - `ui/` — Shadcn UI primitives (`button`, `dialog`, `dropdown-menu`, `sheet`, `combobox-field`, `count-badge`, `sonner`, etc.)
   - Add new Shadcn components manually by copying from the Shadcn docs into this folder
 
