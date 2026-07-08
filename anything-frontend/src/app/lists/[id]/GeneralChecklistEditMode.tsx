@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { Clock, GripVertical, Plus, Trash2 } from "lucide-react";
 import {
   useShoppingListItems,
   useAddShoppingListItem,
@@ -12,6 +12,8 @@ import {
 } from "@/hooks/useShoppingLists";
 import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
+import { usePendingItemIds } from "@/lib/offline/outboxStore";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 import {
   DndContext,
@@ -39,20 +41,24 @@ function DraggableChecklistItem({
   item,
   onRemove,
   disabled,
+  dragDisabled,
   editingItem,
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
   onEditNameChange,
+  isPending,
 }: {
   item: ShoppingListItem;
   onRemove: (itemId: number) => void;
   disabled: boolean;
+  dragDisabled: boolean;
   editingItem: { id: number; name: string } | null;
   onStartEdit: (item: ShoppingListItem) => void;
   onSaveEdit: (item: ShoppingListItem) => void;
   onCancelEdit: () => void;
   onEditNameChange: (name: string) => void;
+  isPending: boolean;
 }) {
   const isEditing = editingItem?.id === item.id;
   const cancelEditRef = useRef(false);
@@ -80,9 +86,10 @@ function DraggableChecklistItem({
     >
       <button
         type="button"
-        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none"
+        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="Drag to reorder item"
-        disabled={disabled}
+        disabled={disabled || dragDisabled}
+        title={dragDisabled ? "Reordering requires an internet connection" : undefined}
         {...attributes}
         {...listeners}
       >
@@ -128,6 +135,12 @@ function DraggableChecklistItem({
           }}
         >
           {item.name}
+          {isPending && (
+            <Clock
+              className="inline-block h-3 w-3 ml-1.5 mb-0.5 text-gray-400 dark:text-gray-500"
+              aria-label="Pending sync"
+            />
+          )}
         </span>
       )}
       {!isEditing && (
@@ -156,6 +169,8 @@ export function GeneralChecklistEditMode({ listId }: Props) {
   const updateItem = useUpdateShoppingListItem(listId);
   const reorderItems = useReorderShoppingListItems(listId);
   const removeItem = useRemoveShoppingListItem(listId);
+  const pendingItemIds = usePendingItemIds(listId);
+  const isOnline = useOnlineStatus();
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -214,6 +229,7 @@ export function GeneralChecklistEditMode({ listId }: Props) {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (!isOnline) return;
     const { active, over } = event;
     if (!over || active.id === over.id || !items) return;
 
@@ -277,6 +293,7 @@ export function GeneralChecklistEditMode({ listId }: Props) {
                   item={item}
                   onRemove={handleRemoveItem}
                   disabled={isBusy || editingItem !== null}
+                  dragDisabled={!isOnline}
                   editingItem={editingItem}
                   onStartEdit={handleStartEdit}
                   onSaveEdit={handleSaveEdit}
@@ -284,6 +301,7 @@ export function GeneralChecklistEditMode({ listId }: Props) {
                   onEditNameChange={(name) =>
                     setEditingItem(editingItem ? { ...editingItem, name } : null)
                   }
+                  isPending={pendingItemIds.has(item.id!)}
                 />
               ))}
             </ul>

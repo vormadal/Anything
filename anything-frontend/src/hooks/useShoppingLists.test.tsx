@@ -16,6 +16,18 @@ import {
   useCreateFromTemplate,
   useSaveAsTemplate,
 } from '@/hooks/useShoppingLists'
+import { getAllQueuedMutations, dequeueMutation, hydrateOutbox } from '@/lib/offline/outbox'
+
+function setOnline(value: boolean) {
+  Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+}
+
+async function clearOutboxQueue() {
+  await hydrateOutbox()
+  for (const mutation of getAllQueuedMutations()) {
+    await dequeueMutation(mutation.id)
+  }
+}
 
 // Mock the apiClient module
 const mockGet = jest.fn()
@@ -65,8 +77,10 @@ function createWrapper() {
 }
 
 describe('useShoppingLists hooks', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks()
+    setOnline(true)
+    await clearOutboxQueue()
   })
 
   describe('useShoppingLists', () => {
@@ -233,6 +247,42 @@ describe('useShoppingLists hooks', () => {
 
       expect(mockItemsPost).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk' }))
     })
+
+    it('should queue offline instead of calling the API when offline', async () => {
+      setOnline(false)
+
+      const { result } = renderHook(() => useAddShoppingListItem(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ name: 'Milk' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockItemsPost).not.toHaveBeenCalled()
+      const queued = getAllQueuedMutations()
+      expect(queued).toHaveLength(1)
+      expect(queued[0]).toMatchObject({ type: 'add', listId: 1, payload: { name: 'Milk' } })
+      expect(result.current.data?.id).toBeLessThan(0)
+    })
+
+    it('should queue offline when the network request throws a fetch-level error', async () => {
+      mockItemsPost.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+      const { result } = renderHook(() => useAddShoppingListItem(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ name: 'Milk' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(getAllQueuedMutations()).toHaveLength(1)
+    })
   })
 
   describe('useUpdateShoppingListItem', () => {
@@ -252,6 +302,38 @@ describe('useShoppingLists hooks', () => {
       expect(mockItemsItemById).toHaveBeenCalledWith(2)
       expect(mockItemsItemPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', isChecked: true }))
     })
+
+    it('should queue offline instead of calling the API when offline', async () => {
+      setOnline(false)
+
+      const { result } = renderHook(() => useUpdateShoppingListItem(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ itemId: 2, name: 'Milk', isChecked: true })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockItemsItemPut).not.toHaveBeenCalled()
+      expect(getAllQueuedMutations()).toMatchObject([{ type: 'update', listId: 1, itemId: 2 }])
+    })
+
+    it('should queue an update targeting an unsynced (temp id) item regardless of online status', async () => {
+      const { result } = renderHook(() => useUpdateShoppingListItem(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ itemId: -1, name: 'Milk', isChecked: true })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockItemsItemPut).not.toHaveBeenCalled()
+      expect(getAllQueuedMutations()).toMatchObject([{ type: 'update', listId: 1, itemId: -1 }])
+    })
   })
 
   describe('useRemoveShoppingListItem', () => {
@@ -270,6 +352,23 @@ describe('useShoppingLists hooks', () => {
 
       expect(mockItemsItemById).toHaveBeenCalledWith(2)
       expect(mockItemsItemDelete).toHaveBeenCalled()
+    })
+
+    it('should queue offline instead of calling the API when offline', async () => {
+      setOnline(false)
+
+      const { result } = renderHook(() => useRemoveShoppingListItem(1), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate(2)
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockItemsItemDelete).not.toHaveBeenCalled()
+      expect(getAllQueuedMutations()).toMatchObject([{ type: 'delete', listId: 1, itemId: 2 }])
     })
   })
 

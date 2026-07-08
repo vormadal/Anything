@@ -8,6 +8,7 @@ React Query hooks for all API interactions. One file per feature domain.
   - Domains: Auth, Bills, FoodPlans, Households, Inventory (Boxes/Items/StorageUnits), Locations, Recipes, Recommendations, ShoppingLists, Somethings, SuggestionCategories, Vendors
 - Dialog-state hooks: `useAddToFoodPlanDialog.ts`, `useEditListNameDialog.ts`
 - Utility hooks: `useSmartBack.ts` (history-aware back navigation), `useRealtimeSync.ts` (SSE subscription)
+- Offline hooks: `useOnlineStatus.ts` (`navigator.onLine` via `useSyncExternalStore`, plus a non-hook `isOffline()` for use inside `mutationFn`), `useOfflineSync.ts` (mounted once from `AppLayout`; replays the outbox on `online`/focus/visibilitychange — see `src/lib/agent.md`'s "Offline support" section for the full picture)
 - Most hooks have a paired `.test.tsx` file
 
 ## Key Patterns
@@ -15,6 +16,7 @@ React Query hooks for all API interactions. One file per feature domain.
 - All hook files are marked `"use client"` — they cannot be imported in server components.
 - Use `apiClient` from `@/lib/apiClient` for all API calls — never raw `fetch`.
 - Mutations call `queryClient.invalidateQueries(...)` on success to keep the cache fresh.
+- Exception: the three shopping-list-item mutations in `useShoppingLists.ts` (`useAddShoppingListItem`/`useUpdateShoppingListItem`/`useRemoveShoppingListItem`) only invalidate when the mutation actually reached the server — see `src/lib/agent.md`'s "Offline support" section.
 - Query keys follow the pattern `[entityName]` or `[entityName, id]` for consistent invalidation.
 - Tests that involve polling/intervals must use `jest.useFakeTimers()` / `jest.useRealTimers()` to prevent CI hangs.
 - Use `renderWithClient` from `@/__tests__/utils/test-utils` for rendering hooks/components in tests.

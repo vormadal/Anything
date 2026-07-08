@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, ChefHat, List } from "lucide-react";
+import { Check, ChefHat, Clock, List } from "lucide-react";
 import {
   useShoppingListItems,
   useUpdateShoppingListItem,
@@ -11,6 +11,8 @@ import {
 import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
 import { CompleteListDialog } from "@/components/CompleteListDialog";
+import { usePendingItemIds } from "@/lib/offline/outboxStore";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 
 type SortMode = "default" | "grouped";
@@ -105,6 +107,8 @@ export function ShoppingListView({ listId }: Props) {
   const completeList = useCompleteShoppingList();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("default");
+  const pendingItemIds = usePendingItemIds(listId);
+  const isOnline = useOnlineStatus();
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
   const aggregatedUnchecked = useMemo(
@@ -253,6 +257,12 @@ export function ShoppingListView({ listId }: Props) {
                         </span>
                       )}
                       {agg.name}
+                      {agg.underlyingIds.some((id) => pendingItemIds.has(id)) && (
+                        <Clock
+                          className="inline-block h-3 w-3 ml-1.5 mb-0.5 text-gray-400 dark:text-gray-500"
+                          aria-label="Pending sync"
+                        />
+                      )}
                     </span>
                   </li>
                 ))}
@@ -281,6 +291,9 @@ export function ShoppingListView({ listId }: Props) {
                         <span className="mr-1">{agg.amount}×</span>
                       )}
                       {agg.name}
+                      {agg.underlyingIds.some((id) => pendingItemIds.has(id)) && (
+                        <Clock className="inline-block h-3 w-3 ml-1.5 mb-0.5" aria-label="Pending sync" />
+                      )}
                     </span>
                   </li>
                 ))}
@@ -340,6 +353,12 @@ export function ShoppingListView({ listId }: Props) {
                           </span>
                         )}
                         {item.name}
+                        {pendingItemIds.has(item.id!) && (
+                          <Clock
+                            className="inline-block h-3 w-3 ml-1.5 mb-0.5 text-gray-400 dark:text-gray-500"
+                            aria-label="Pending sync"
+                          />
+                        )}
                       </span>
                     </li>
                   ))}
@@ -351,7 +370,8 @@ export function ShoppingListView({ listId }: Props) {
           <div className="fixed bottom-6 right-6 z-30">
             <Button
               onClick={handleCompleteClick}
-              disabled={completeList.isPending}
+              disabled={completeList.isPending || !isOnline}
+              title={isOnline ? undefined : "Completing a list requires an internet connection"}
               className="shadow-lg"
             >
               {completeList.isPending ? "Completing..." : "Complete List"}
