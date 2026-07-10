@@ -11,6 +11,7 @@ import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand } from
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 import { CreateListDialog } from "@/components/CreateListDialog";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 function getTargetDate(): Date {
   const now = new Date();
@@ -123,6 +124,7 @@ export function ListsCard() {
   const router = useRouter();
   const [isCreatingList, setIsCreatingList] = useState(false);
   const { data: shoppingLists, isLoading: listsLoading } = useShoppingLists();
+  const isOnline = useOnlineStatus();
   const topLists = shoppingLists?.slice(0, 5) ?? [];
 
   return (
@@ -143,6 +145,8 @@ export function ListsCard() {
           variant="ghost"
           size="sm"
           onClick={() => setIsCreatingList(true)}
+          disabled={!isOnline}
+          title={isOnline ? undefined : "Creating lists requires an internet connection"}
           className="text-xs"
         >
           <Plus className="h-4 w-4 mr-1" />
@@ -152,10 +156,21 @@ export function ListsCard() {
 
       {listsLoading ? (
         <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
+      ) : !isOnline && !shoppingLists ? (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            You&apos;re offline — lists will appear once you&apos;re back online.
+          </p>
+        </div>
       ) : topLists.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No shopping lists yet.</p>
-          <Button size="sm" onClick={() => setIsCreatingList(true)}>
+          <Button
+            size="sm"
+            onClick={() => setIsCreatingList(true)}
+            disabled={!isOnline}
+            title={isOnline ? undefined : "Creating lists requires an internet connection"}
+          >
             <Plus className="h-4 w-4 mr-1" />
             Create list
           </Button>
@@ -194,6 +209,7 @@ export function ListsCard() {
 export function BillsCard() {
   const router = useRouter();
   const { data: billSummary } = useBillSummary();
+  const isOnline = useOnlineStatus();
 
   if (!billSummary || billSummary.totalBills === 0) {
     return null;
@@ -210,6 +226,8 @@ export function BillsCard() {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/bills/new")}
+          disabled={!isOnline}
+          title={isOnline ? undefined : "Creating bills requires an internet connection"}
           className="text-xs"
         >
           <Plus className="h-4 w-4 mr-1" />
