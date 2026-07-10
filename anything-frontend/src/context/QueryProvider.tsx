@@ -19,6 +19,15 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
           },
+          // Mutations implement their own offline handling (isOffline()/isNetworkError()
+          // checks that queue into the outbox — see useShoppingLists.ts). React Query's
+          // default networkMode "online" pauses mutationFn until the browser's online
+          // event fires, which would bypass that logic entirely: the mutation would sit
+          // paused while offline and only run once back online, when isOffline() already
+          // reports false and it goes straight to the network instead of the outbox.
+          mutations: {
+            networkMode: "always",
+          },
         },
       })
   );
