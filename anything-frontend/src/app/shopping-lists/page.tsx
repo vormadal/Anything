@@ -140,13 +140,15 @@ export default function ShoppingListsPage() {
           size="icon"
           onClick={() => setIsCreating(true)}
           aria-label="Create shopping list"
+          disabled={!isOnline}
+          title={isOnline ? undefined : "Creating lists requires an internet connection"}
         >
           <Plus className="h-5 w-5" />
         </Button>
       </div>
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  }, [setHeaderActions, isOnline]);
 
   useEffect(() => {
     if (isCreating) {
@@ -173,7 +175,12 @@ export default function ShoppingListsPage() {
                 if (e.key === "Escape") handleCancelCreate();
               }}
             />
-            <Button type="submit" size="sm" disabled={createList.isPending}>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={createList.isPending || !isOnline}
+              title={isOnline ? undefined : "Creating lists requires an internet connection"}
+            >
               {createList.isPending ? "Creating..." : "Create list"}
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={handleCancelCreate}>
@@ -189,9 +196,15 @@ export default function ShoppingListsPage() {
         </div>
       )}
 
-      {error && (
+      {error && !lists && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4">
           Failed to load shopping lists. Please try again later.
+        </div>
+      )}
+
+      {!isOnline && !lists && !isLoading && (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          You&apos;re offline — shopping lists will appear once you&apos;re back online.
         </div>
       )}
 

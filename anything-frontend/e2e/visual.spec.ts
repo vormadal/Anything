@@ -688,6 +688,19 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  test("home page - edit options disabled while offline", async ({ page }) => {
+    // Force navigator.onLine to false before any app JS runs (see the offline banner
+    // test above for why this — rather than a real network cut — is enough here:
+    // useOnlineStatus reads navigator.onLine directly, so the disabled/title state on
+    // the Create and Customize buttons reflects it immediately on first render).
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "onLine", { get: () => false, configurable: true });
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("home-offline-disabled.png", screenshotOptions);
+  });
+
   // ---- Recipes ----
 
   test("recipes - with items", async ({ page }) => {

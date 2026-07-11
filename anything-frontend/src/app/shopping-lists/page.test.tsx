@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { onlineManager } from '@tanstack/react-query'
 import { render } from '@/__tests__/utils/test-utils'
 import ShoppingListsPage from './page'
 import { toast } from 'sonner'
@@ -38,6 +39,16 @@ jest.mock('sonner', () => ({
   Toaster: () => null,
 }))
 
+function setOnline(value: boolean) {
+  // Covers every subscriber: the navigator property for components reading it directly
+  // on first render, react-query's onlineManager singleton (which gates query fetch-pausing
+  // and only reacts to a direct call, not the DOM event, before any query has subscribed),
+  // and a real window event for useOnlineStatus's post-mount re-renders.
+  Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+  onlineManager.setOnline(value)
+  window.dispatchEvent(new Event(value ? 'online' : 'offline'))
+}
+
 describe('ShoppingListsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -47,6 +58,7 @@ describe('ShoppingListsPage', () => {
 
   afterEach(() => {
     localStorage.clear()
+    setOnline(true)
   })
 
   it('should display loading state initially', () => {
@@ -236,5 +248,41 @@ describe('ShoppingListsPage', () => {
     })
 
     expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
+
+  it('should still show cached lists after going offline', async () => {
+    const mockData = [{ id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }]
+    mockShoppingListsGet.mockResolvedValue(mockData)
+
+    render(<ShoppingListsPage />)
+    await waitFor(() => { expect(screen.getByText('Groceries')).toBeInTheDocument() })
+
+    setOnline(false)
+
+    await waitFor(() => { expect(screen.getByText('Groceries')).toBeInTheDocument() })
+    expect(screen.queryByText(/you're offline/i)).not.toBeInTheDocument()
+  })
+
+  it('should show an offline message instead of a false empty state when there is no cached data', async () => {
+    setOnline(false)
+    mockShoppingListsGet.mockImplementation(() => new Promise(() => { /* never resolves */ }))
+
+    render(<ShoppingListsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/you're offline/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByText('No shopping lists yet.')).not.toBeInTheDocument()
+  })
+
+  it('should disable the create shopping list button while offline', async () => {
+    setOnline(false)
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<ShoppingListsPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create shopping list' })).toBeDisabled()
+    })
   })
 })

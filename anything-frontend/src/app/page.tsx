@@ -8,11 +8,13 @@ import { useHeaderActions } from "@/context/PageActionsContext";
 import { Settings } from "lucide-react";
 import { DEFAULT_HOME_CARD_ORDER, HOME_CARD_REGISTRY, type HomeCardKey } from "./HomeCards";
 import { useHomeCardPreferences } from "@/hooks/useHomePreferences";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function Home() {
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
   const { data: preferences } = useHomeCardPreferences();
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     setHeaderActions(
@@ -21,7 +23,8 @@ export default function Home() {
         size="icon"
         onClick={() => router.push("/home-preferences")}
         aria-label="Customize home page"
-        title="Customize home page"
+        title={isOnline ? "Customize home page" : "Customizing the home page requires an internet connection"}
+        disabled={!isOnline}
         className="ml-auto"
       >
         <Settings className="h-5 w-5" />
@@ -29,7 +32,7 @@ export default function Home() {
     );
     return () => setHeaderActions(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- router identity is stable in the real app; omitted to avoid re-running on every render
-  }, [setHeaderActions]);
+  }, [setHeaderActions, isOnline]);
 
   const cardKeys: HomeCardKey[] = preferences
     ? preferences

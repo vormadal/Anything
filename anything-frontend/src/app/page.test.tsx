@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { onlineManager } from '@tanstack/react-query'
 import { render } from '@/__tests__/utils/test-utils'
 import Home from './page'
 
@@ -86,6 +87,16 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/',
 }))
 
+function setOnline(value: boolean) {
+  // Covers every subscriber: the navigator property for components reading it directly
+  // on first render, react-query's onlineManager singleton (which gates query fetch-pausing
+  // and only reacts to a direct call, not the DOM event, before any query has subscribed),
+  // and a real window event for useOnlineStatus's post-mount re-renders.
+  Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+  onlineManager.setOnline(value)
+  window.dispatchEvent(new Event(value ? 'online' : 'offline'))
+}
+
 describe('Home Page Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -105,6 +116,7 @@ describe('Home Page Integration Tests', () => {
   afterEach(() => {
     localStorage.clear()
     jest.useRealTimers()
+    setOnline(true)
   })
 
   it('should render "Today\'s Menu" heading when hour is before 18', () => {
@@ -505,5 +517,75 @@ describe('Home Page Integration Tests', () => {
     })
 
     expect(screen.getByText("Today's Menu")).toBeInTheDocument()
+  })
+
+  // ------- Offline mode: edit options disabled -------
+  it('should disable the Customize home page button while offline', async () => {
+    setOnline(false)
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Customize home page' })).toBeDisabled()
+    })
+  })
+
+  it('should disable the Lists card Create button while offline', async () => {
+    setOnline(false)
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+    })
+  })
+
+  it('should disable the Bills card Create button while offline', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockBillSummaryGet.mockResolvedValue({
+      totalBills: 1,
+      automatedCount: 1,
+      manualCount: 0,
+      totalMonthlyEquivalent: 100,
+      totalCurrentMonthAmount: 100,
+      totalCurrentYearAmount: 1200,
+    })
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Bills' })).toBeInTheDocument()
+    })
+
+    // Go offline after the bill summary has already loaded, so the card stays
+    // visible (its query pauses on cached in-memory data) and only its Create
+    // action becomes unavailable.
+    setOnline(false)
+
+    const billsSection = screen.getByRole('heading', { name: 'Bills' }).closest('section') as HTMLElement
+    await waitFor(() => {
+      expect(within(billsSection).getByRole('button', { name: /Create/ })).toBeDisabled()
+    })
+  })
+
+  it('should show cached lists (not a loading spinner) after going offline', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([{ id: 1, name: 'Groceries' }])
+
+    render(<Home />)
+    await waitFor(() => { expect(screen.getByText('Groceries')).toBeInTheDocument() })
+
+    setOnline(false)
+
+    await waitFor(() => { expect(screen.getByText('Groceries')).toBeInTheDocument() })
   })
 })

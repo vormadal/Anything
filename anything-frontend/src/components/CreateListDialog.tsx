@@ -15,6 +15,7 @@ import {
   useCreateFromTemplate,
   useShoppingListTemplates,
 } from "@/hooks/useShoppingLists";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
 
 type Mode = "checklist" | "shopping" | "template";
@@ -39,6 +40,7 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
   const createList = useCreateShoppingList();
   const createFromTemplate = useCreateFromTemplate();
   const { data: templates, isLoading: templatesLoading } = useShoppingListTemplates(open);
+  const isOnline = useOnlineStatus();
 
   const isPending = createList.isPending || createFromTemplate.isPending;
 
@@ -84,7 +86,7 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
     }
   };
 
-  const canSubmit = mode === "template" ? templateId !== null : name.trim().length > 0;
+  const canSubmit = (mode === "template" ? templateId !== null : name.trim().length > 0) && isOnline;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -176,7 +178,11 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!canSubmit || isPending}>
+          <Button
+            onClick={handleCreate}
+            disabled={!canSubmit || isPending}
+            title={isOnline ? undefined : "Creating a list requires an internet connection"}
+          >
             {isPending ? "Creating..." : "Create"}
           </Button>
         </DialogFooter>

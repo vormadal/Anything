@@ -122,13 +122,15 @@ export default function ListsPage() {
           size="icon"
           onClick={() => setIsCreating(true)}
           aria-label="New list"
+          disabled={!isOnline}
+          title={isOnline ? undefined : "Creating lists requires an internet connection"}
         >
           <Plus className="h-5 w-5" />
         </Button>
       </div>
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  }, [setHeaderActions, isOnline]);
 
   const hasActiveLists = lists && lists.length > 0;
 
@@ -147,9 +149,15 @@ export default function ListsPage() {
         </div>
       )}
 
-      {error && (
+      {error && !lists && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4">
           Failed to load lists. Please try again later.
+        </div>
+      )}
+
+      {!isOnline && !lists && !isLoading && (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          You&apos;re offline — lists will appear once you&apos;re back online.
         </div>
       )}
 
