@@ -18,5 +18,10 @@ setup("authenticate as admin", async ({ page }) => {
     { timeout: 10000 }
   );
 
+  // Mark the onboarding tour as seen so it doesn't auto-open on top of
+  // every authenticated test. Keep the value in sync with TOUR_VERSION
+  // in src/lib/tourSteps.ts.
+  await page.evaluate(() => localStorage.setItem("tourSeenVersion", "1"));
+
   await page.context().storageState({ path: "playwright/.auth/user.json" });
 });

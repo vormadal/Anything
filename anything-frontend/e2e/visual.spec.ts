@@ -1139,3 +1139,59 @@ test.describe("Visual Snapshots - Shared Recipe Page (Authenticated)", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Onboarding tour + nav drawer
+// ---------------------------------------------------------------------------
+
+// Step titles in full-tour order for the mocked Owner + app-Admin user.
+// Keep in sync with TOUR_STEPS in src/lib/tourSteps.ts.
+const tourStepSnapshots: Array<{ id: string; title: string }> = [
+  { id: "home", title: "Welcome to Anything" },
+  { id: "lists", title: "Lists" },
+  { id: "recipes", title: "Recipes" },
+  { id: "food-plan", title: "Food Plan" },
+  { id: "bills", title: "Bills" },
+  { id: "households", title: "Households" },
+  { id: "manage-household", title: "Manage your household" },
+  { id: "owner", title: "Owner tools" },
+  { id: "admin", title: "App administration" },
+];
+
+test.describe("Visual Snapshots - Onboarding Tour", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(FIXED_DATE);
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    // The auth fixture marks the tour as seen, so it does not auto-open.
+    await page.getByRole("button", { name: "Open menu" }).click();
+  });
+
+  test("nav drawer", async ({ page }) => {
+    await expect(page.getByRole("button", { name: "Take the tour" })).toBeVisible();
+    await expect(page).toHaveScreenshot("nav-drawer.png", screenshotOptions);
+  });
+
+  test("onboarding tour - topic menu", async ({ page }) => {
+    await page.getByRole("button", { name: "Take the tour" }).click();
+    await expect(page.getByRole("dialog", { name: "Take a tour" })).toBeVisible();
+    await expect(page).toHaveScreenshot("onboarding-tour-menu.png", screenshotOptions);
+  });
+
+  test("onboarding tour - every step", async ({ page }) => {
+    await page.getByRole("button", { name: "Take the tour" }).click();
+    await page.getByRole("button", { name: /Full tour/ }).click();
+
+    for (const [index, step] of tourStepSnapshots.entries()) {
+      await expect(page.getByRole("dialog", { name: step.title })).toBeVisible();
+      await expect(page).toHaveScreenshot(
+        `onboarding-tour-step-${step.id}.png`,
+        screenshotOptions
+      );
+      if (index < tourStepSnapshots.length - 1) {
+        await page.getByRole("button", { name: "Next" }).click();
+      }
+    }
+  });
+});
+
