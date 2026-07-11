@@ -1140,8 +1140,22 @@ test.describe("Visual Snapshots - Shared Recipe Page (Authenticated)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Onboarding tour
+// Onboarding tour + nav drawer
 // ---------------------------------------------------------------------------
+
+// Step titles in full-tour order for the mocked Owner + app-Admin user.
+// Keep in sync with TOUR_STEPS in src/lib/tourSteps.ts.
+const tourStepSnapshots: Array<{ id: string; title: string }> = [
+  { id: "home", title: "Welcome to Anything" },
+  { id: "lists", title: "Lists" },
+  { id: "recipes", title: "Recipes" },
+  { id: "food-plan", title: "Food Plan" },
+  { id: "bills", title: "Bills" },
+  { id: "households", title: "Households" },
+  { id: "manage-household", title: "Manage your household" },
+  { id: "owner", title: "Owner tools" },
+  { id: "admin", title: "App administration" },
+];
 
 test.describe("Visual Snapshots - Onboarding Tour", () => {
   test.beforeEach(async ({ page }) => {
@@ -1149,27 +1163,35 @@ test.describe("Visual Snapshots - Onboarding Tour", () => {
     await setupApiMocks(page);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // Relaunch the tour from the nav drawer (the auth fixture marks it seen,
-    // so it does not auto-open).
+    // The auth fixture marks the tour as seen, so it does not auto-open.
     await page.getByRole("button", { name: "Open menu" }).click();
+  });
+
+  test("nav drawer", async ({ page }) => {
+    await expect(page.getByRole("button", { name: "Take the tour" })).toBeVisible();
+    await expect(page).toHaveScreenshot("nav-drawer.png", screenshotOptions);
+  });
+
+  test("onboarding tour - topic menu", async ({ page }) => {
     await page.getByRole("button", { name: "Take the tour" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Welcome to Anything" })
-    ).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Take a tour" })).toBeVisible();
+    await expect(page).toHaveScreenshot("onboarding-tour-menu.png", screenshotOptions);
   });
 
-  test("onboarding tour - first step", async ({ page }) => {
-    await expect(page).toHaveScreenshot("onboarding-tour-step-1.png", screenshotOptions);
-  });
+  test("onboarding tour - every step", async ({ page }) => {
+    await page.getByRole("button", { name: "Take the tour" }).click();
+    await page.getByRole("button", { name: /Full tour/ }).click();
 
-  test("onboarding tour - manager step", async ({ page }) => {
-    // Step 7 (manage-household) is visible because the mocked household role
-    // is Owner — it showcases a role-gated step.
-    await page.getByRole("button", { name: "Go to step 7" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Manage your household" })
-    ).toBeVisible();
-    await expect(page).toHaveScreenshot("onboarding-tour-manager-step.png", screenshotOptions);
+    for (const [index, step] of tourStepSnapshots.entries()) {
+      await expect(page.getByRole("dialog", { name: step.title })).toBeVisible();
+      await expect(page).toHaveScreenshot(
+        `onboarding-tour-step-${step.id}.png`,
+        screenshotOptions
+      );
+      if (index < tourStepSnapshots.length - 1) {
+        await page.getByRole("button", { name: "Next" }).click();
+      }
+    }
   });
 });
 

@@ -48,6 +48,14 @@ describe("useOnboardingTour", () => {
     expect(localStorage.getItem(TOUR_SEEN_KEY)).toBe(TOUR_VERSION);
   });
 
+  it("auto-open starts in the full tour steps view", () => {
+    setState();
+    const { result } = renderHook(() => useOnboardingTour());
+
+    expect(result.current.open).toBe(true);
+    expect(result.current.initialView).toBe("steps");
+  });
+
   it("does not auto-open when the tour was already seen", () => {
     localStorage.setItem(TOUR_SEEN_KEY, TOUR_VERSION);
     setState();
@@ -89,7 +97,7 @@ describe("useOnboardingTour", () => {
     expect(result.current.open).toBe(true);
   });
 
-  it("startTour opens the tour even when already seen", () => {
+  it("startTour opens the topic menu even when already seen", () => {
     localStorage.setItem(TOUR_SEEN_KEY, TOUR_VERSION);
     setState();
     const { result } = renderHook(() => useOnboardingTour());
@@ -98,17 +106,21 @@ describe("useOnboardingTour", () => {
     act(() => result.current.startTour());
 
     expect(result.current.open).toBe(true);
+    expect(result.current.initialView).toBe("menu");
   });
 
-  it("filters steps by household role", () => {
+  it("filters steps and topics by role", () => {
     setState();
     const member = renderHook(() => useOnboardingTour());
     const memberStepCount = member.result.current.steps.length;
+    const memberTopicCount = member.result.current.topics.length;
 
     setState({ currentHouseholdRole: "Owner", userRole: "Admin" });
     const owner = renderHook(() => useOnboardingTour());
 
     expect(memberStepCount).toBe(6);
+    expect(memberTopicCount).toBe(6);
     expect(owner.result.current.steps.length).toBeGreaterThan(memberStepCount);
+    expect(owner.result.current.topics.length).toBe(7);
   });
 });

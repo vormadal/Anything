@@ -5,9 +5,11 @@ import { useCurrentUser, useIsAuthenticated } from "@/hooks/useAuth";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import {
   getVisibleTourSteps,
+  getVisibleTourTopics,
   hasSeenTour,
   markTourSeen,
 } from "@/lib/tourSteps";
+import type { TourView } from "@/components/OnboardingTourDialog";
 
 // Drives the onboarding tour dialog: filters steps by the current user's
 // roles and auto-opens the tour once the user belongs to a household.
@@ -23,13 +25,20 @@ export function useOnboardingTour() {
   // written, so a live read would immediately close it again.
   const seenInitially = useMemo(() => hasSeenTour(), []);
 
-  const steps = useMemo(
-    () =>
-      getVisibleTourSteps({
-        householdRole: currentHouseholdRole,
-        userRole: user?.role,
-      }),
+  const visibilityCtx = useMemo(
+    () => ({
+      householdRole: currentHouseholdRole,
+      userRole: user?.role,
+    }),
     [currentHouseholdRole, user?.role]
+  );
+  const steps = useMemo(
+    () => getVisibleTourSteps(visibilityCtx),
+    [visibilityCtx]
+  );
+  const topics = useMemo(
+    () => getVisibleTourTopics(visibilityCtx),
+    [visibilityCtx]
   );
 
   // The tour only makes sense with household context, so wait until the
@@ -63,5 +72,16 @@ export function useOnboardingTour() {
     setManuallyOpened(true);
   }, []);
 
-  return { open: manuallyOpened || autoOpen, setOpen, steps, startTour };
+  // First-time auto-open drops straight into the full tour; opening from
+  // the nav drawer shows the topic menu.
+  const initialView: TourView = manuallyOpened ? "menu" : "steps";
+
+  return {
+    open: manuallyOpened || autoOpen,
+    setOpen,
+    steps,
+    topics,
+    initialView,
+    startTour,
+  };
 }

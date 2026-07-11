@@ -1,9 +1,11 @@
 import {
   getVisibleTourSteps,
+  getVisibleTourTopics,
   hasSeenTour,
   markTourSeen,
   TOUR_SEEN_KEY,
   TOUR_STEPS,
+  TOUR_TOPICS,
   TOUR_VERSION,
 } from "./tourSteps";
 
@@ -50,6 +52,56 @@ describe("getVisibleTourSteps", () => {
       userRole: undefined,
     });
     expect(steps.map((s) => s.id)).toEqual(BASE_STEP_IDS);
+  });
+
+  it("filters by topic and role combined", () => {
+    const memberHousehold = getVisibleTourSteps(
+      { householdRole: "Member", userRole: "User" },
+      "household"
+    );
+    expect(memberHousehold.map((s) => s.id)).toEqual(["households"]);
+
+    const ownerHousehold = getVisibleTourSteps(
+      { householdRole: "Owner", userRole: "User" },
+      "household"
+    );
+    expect(ownerHousehold.map((s) => s.id)).toEqual([
+      "households",
+      "manage-household",
+      "owner",
+    ]);
+  });
+});
+
+describe("getVisibleTourTopics", () => {
+  it("hides the admin topic for non-admins", () => {
+    const topics = getVisibleTourTopics({
+      householdRole: "Member",
+      userRole: "User",
+    });
+    expect(topics.map((t) => t.id)).toEqual([
+      "home",
+      "lists",
+      "recipes",
+      "food-plan",
+      "bills",
+      "household",
+    ]);
+  });
+
+  it("shows every topic to an Owner with global Admin role", () => {
+    const topics = getVisibleTourTopics({
+      householdRole: "Owner",
+      userRole: "Admin",
+    });
+    expect(topics.map((t) => t.id)).toEqual(TOUR_TOPICS.map((t) => t.id));
+  });
+
+  it("maps every step to a defined topic", () => {
+    const topicIds = new Set(TOUR_TOPICS.map((t) => t.id));
+    for (const step of TOUR_STEPS) {
+      expect(topicIds.has(step.topicId)).toBe(true);
+    }
   });
 });
 

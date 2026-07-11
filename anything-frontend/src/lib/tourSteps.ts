@@ -21,6 +21,8 @@ export interface TourVisibilityContext {
 
 export interface TourStep {
   id: string;
+  /** The tour topic (area) this step belongs to. */
+  topicId: string;
   icon: LucideIcon;
   title: string;
   description: string;
@@ -28,6 +30,13 @@ export interface TourStep {
   route?: string;
   /** Omitted means the step is visible to everyone. */
   isVisible?: (ctx: TourVisibilityContext) => boolean;
+}
+
+export interface TourTopic {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  description: string;
 }
 
 export const TOUR_SEEN_KEY = "tourSeenVersion";
@@ -47,10 +56,57 @@ export function markTourSeen(): void {
 }
 
 const HOUSEHOLDS_ROUTE = "/households";
+const HOUSEHOLD_TOPIC = "household";
+
+export const TOUR_TOPICS: TourTopic[] = [
+  {
+    id: "home",
+    label: "Home",
+    icon: Home,
+    description: "Your daily overview",
+  },
+  {
+    id: "lists",
+    label: "Lists",
+    icon: LayoutList,
+    description: "Checklists & shopping lists",
+  },
+  {
+    id: "recipes",
+    label: "Recipes",
+    icon: CookingPot,
+    description: "Your recipe collection",
+  },
+  {
+    id: "food-plan",
+    label: "Food Plan",
+    icon: CalendarDays,
+    description: "Weekly meal planning",
+  },
+  {
+    id: "bills",
+    label: "Bills",
+    icon: Receipt,
+    description: "Recurring bills",
+  },
+  {
+    id: HOUSEHOLD_TOPIC,
+    label: "Household",
+    icon: Users,
+    description: "Sharing, members & settings",
+  },
+  {
+    id: "admin",
+    label: "Administration",
+    icon: Shield,
+    description: "App-level administration",
+  },
+];
 
 export const TOUR_STEPS: TourStep[] = [
   {
     id: "home",
+    topicId: "home",
     icon: Home,
     title: "Welcome to Anything",
     description:
@@ -59,6 +115,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "lists",
+    topicId: "lists",
     icon: LayoutList,
     title: "Lists",
     description:
@@ -67,6 +124,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "recipes",
+    topicId: "recipes",
     icon: CookingPot,
     title: "Recipes",
     description:
@@ -75,6 +133,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "food-plan",
+    topicId: "food-plan",
     icon: CalendarDays,
     title: "Food Plan",
     description:
@@ -83,6 +142,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "bills",
+    topicId: "bills",
     icon: Receipt,
     title: "Bills",
     description:
@@ -91,6 +151,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "households",
+    topicId: HOUSEHOLD_TOPIC,
     icon: Users,
     title: "Households",
     description:
@@ -99,6 +160,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "manage-household",
+    topicId: HOUSEHOLD_TOPIC,
     icon: Settings,
     title: "Manage your household",
     description:
@@ -108,6 +170,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "owner",
+    topicId: HOUSEHOLD_TOPIC,
     icon: Crown,
     title: "Owner tools",
     description:
@@ -117,6 +180,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "admin",
+    topicId: "admin",
     icon: Shield,
     title: "App administration",
     description:
@@ -126,6 +190,21 @@ export const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-export function getVisibleTourSteps(ctx: TourVisibilityContext): TourStep[] {
-  return TOUR_STEPS.filter((step) => step.isVisible?.(ctx) ?? true);
+export function getVisibleTourSteps(
+  ctx: TourVisibilityContext,
+  topicId?: string
+): TourStep[] {
+  return TOUR_STEPS.filter(
+    (step) =>
+      (step.isVisible?.(ctx) ?? true) &&
+      (topicId === undefined || step.topicId === topicId)
+  );
+}
+
+// Topics with at least one visible step for the given roles.
+export function getVisibleTourTopics(ctx: TourVisibilityContext): TourTopic[] {
+  const visibleTopicIds = new Set(
+    getVisibleTourSteps(ctx).map((step) => step.topicId)
+  );
+  return TOUR_TOPICS.filter((topic) => visibleTopicIds.has(topic.id));
 }

@@ -246,6 +246,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         open={tour.open}
         onOpenChange={tour.setOpen}
         steps={tour.steps}
+        topics={tour.topics}
+        initialView={tour.initialView}
       />
     </div>
   );
