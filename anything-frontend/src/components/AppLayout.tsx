@@ -25,6 +25,7 @@ import {
   CalendarDays,
   Receipt,
   Users,
+  HelpCircle,
 } from "lucide-react";
 import {
   PageActionsProvider,
@@ -36,6 +37,8 @@ import { useSmartBack } from "@/hooks/useSmartBack";
 import { useIsAuthenticated } from "@/hooks/useAuth";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { OnboardingTourDialog } from "@/components/OnboardingTourDialog";
 
 const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 
@@ -52,6 +55,11 @@ const NAV_ITEMS = [
 const ADMIN_NAV_ITEMS = [
   { label: "Invite Users", path: "/admin/invite", icon: UserPlus },
 ];
+
+const NAV_ACTIVE_CLASS =
+  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white";
+const NAV_INACTIVE_CLASS =
+  "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white";
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -81,6 +89,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
   const { navigateBack } = useSmartBack();
   useOfflineSync();
+  const tour = useOnboardingTour();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -158,9 +167,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive(item.path)
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+                    isActive(item.path) ? NAV_ACTIVE_CLASS : NAV_INACTIVE_CLASS
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
@@ -183,8 +190,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                       onClick={() => navigate(item.path)}
                       className={`flex items-center gap-3 w-full pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         isActive(item.path)
-                          ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+                          ? NAV_ACTIVE_CLASS
+                          : NAV_INACTIVE_CLASS
                       }`}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -194,6 +201,17 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                 })}
               </div>
             )}
+
+            <button
+              onClick={() => {
+                setDrawerOpen(false);
+                tour.startTour();
+              }}
+              className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${NAV_INACTIVE_CLASS}`}
+            >
+              <HelpCircle className="h-5 w-5 shrink-0" />
+              Take the tour
+            </button>
           </nav>
 
           <div className="border-t border-gray-200 dark:border-gray-800 p-4">
@@ -224,6 +242,11 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
       <main>{children}</main>
       <CookingModeDrawer />
+      <OnboardingTourDialog
+        open={tour.open}
+        onOpenChange={tour.setOpen}
+        steps={tour.steps}
+      />
     </div>
   );
 }
