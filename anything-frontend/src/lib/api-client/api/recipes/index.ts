@@ -8,6 +8,8 @@ import { ImportRequestBuilderRequestsMetadata, type ImportRequestBuilder } from 
 // @ts-ignore
 import { RecipesItemRequestBuilderNavigationMetadata, RecipesItemRequestBuilderRequestsMetadata, type RecipesItemRequestBuilder } from './item/index';
 // @ts-ignore
+import { ParseTextRequestBuilderRequestsMetadata, type ParseTextRequestBuilder } from './parseText/index';
+// @ts-ignore
 import { ParseUrlRequestBuilderRequestsMetadata, type ParseUrlRequestBuilder } from './parseUrl/index';
 // @ts-ignore
 import { TagsRequestBuilderNavigationMetadata, TagsRequestBuilderRequestsMetadata, type TagsRequestBuilder } from './tags/index';
@@ -22,6 +24,10 @@ export interface RecipesRequestBuilder extends BaseRequestBuilder<RecipesRequest
      * The import property
      */
     get importEscaped(): ImportRequestBuilder;
+    /**
+     * The parseText property
+     */
+    get parseText(): ParseTextRequestBuilder;
     /**
      * The parseUrl property
      */
@@ -86,6 +92,9 @@ export const RecipesRequestBuilderNavigationMetadata: Record<Exclude<keyof Recip
     },
     importEscaped: {
         requestsMetadata: ImportRequestBuilderRequestsMetadata,
+    },
+    parseText: {
+        requestsMetadata: ParseTextRequestBuilderRequestsMetadata,
     },
     parseUrl: {
         requestsMetadata: ParseUrlRequestBuilderRequestsMetadata,

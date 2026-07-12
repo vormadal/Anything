@@ -1119,6 +1119,15 @@ export function createParseRecipeFromUrlRequestFromDiscriminatorValue(parseNode:
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ParseRecipeTextRequest}
+ */
+// @ts-ignore
+export function createParseRecipeTextRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoParseRecipeTextRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {PendingInviteResponse}
  */
 // @ts-ignore
@@ -2806,6 +2815,19 @@ export function deserializeIntoParseRecipeFromUrlRequest(parseRecipeFromUrlReque
 }
 /**
  * The deserialization information for the current model
+ * @param ParseRecipeTextRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoParseRecipeTextRequest(parseRecipeTextRequest: Partial<ParseRecipeTextRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "ingredientsText": n => { parseRecipeTextRequest.ingredientsText = n.getStringValue(); },
+        "name": n => { parseRecipeTextRequest.name = n.getStringValue(); },
+        "stepsText": n => { parseRecipeTextRequest.stepsText = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param PendingInviteResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -4299,6 +4321,20 @@ export interface ParseRecipeFromUrlRequest extends Parsable {
      */
     url?: string | null;
 }
+export interface ParseRecipeTextRequest extends Parsable {
+    /**
+     * The ingredientsText property
+     */
+    ingredientsText?: string | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The stepsText property
+     */
+    stepsText?: string | null;
+}
 export interface PendingInviteResponse extends Parsable {
     /**
      * The email property
@@ -5689,6 +5725,19 @@ export function serializeParsedStep(writer: SerializationWriter, parsedStep: Par
 export function serializeParseRecipeFromUrlRequest(writer: SerializationWriter, parseRecipeFromUrlRequest: Partial<ParseRecipeFromUrlRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!parseRecipeFromUrlRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("url", parseRecipeFromUrlRequest.url);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ParseRecipeTextRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeParseRecipeTextRequest(writer: SerializationWriter, parseRecipeTextRequest: Partial<ParseRecipeTextRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!parseRecipeTextRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("ingredientsText", parseRecipeTextRequest.ingredientsText);
+    writer.writeStringValue("name", parseRecipeTextRequest.name);
+    writer.writeStringValue("stepsText", parseRecipeTextRequest.stepsText);
 }
 /**
  * Serializes information the current object
