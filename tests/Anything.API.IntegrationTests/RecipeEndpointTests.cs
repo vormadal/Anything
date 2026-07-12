@@ -838,6 +838,49 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    // --- Parse from text ---
+
+    [Fact]
+    public async Task ParseText_ReturnsStructuredRecipe()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync("/api/recipes/parse-text",
+            new
+            {
+                name = "Pandekager",
+                ingredientsText = "250 g mel\n2 spsk sukker\n3 eggs",
+                stepsText = "Whisk the batter.\nFry thin pancakes."
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ParsedRecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        Assert.Equal("Pandekager", result.Name);
+        Assert.Equal(3, result.Ingredients.Count);
+        Assert.Equal("mel", result.Ingredients[0].Name);
+        Assert.Equal("g", result.Ingredients[0].Unit);
+        Assert.Equal(250m, result.Ingredients[0].Amount);
+        Assert.Equal("sukker", result.Ingredients[1].Name);
+        Assert.Equal("spsk", result.Ingredients[1].Unit);
+        Assert.Equal(2, result.Steps.Count);
+        Assert.Equal(1, result.Steps[0].Order);
+        Assert.Equal("Whisk the batter.", result.Steps[0].Text);
+    }
+
+    [Fact]
+    public async Task ParseText_WithAllFieldsBlank_ReturnsBadRequest()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync("/api/recipes/parse-text",
+            new { name = " ", ingredientsText = "", stepsText = (string?)null },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private async Task<TagDto> AddTagAsync(int recipeId, string name)
     {
         var client = await GetAuthenticatedHttpClientAsync();
@@ -858,4 +901,7 @@ public class RecipeEndpointTests : IntegrationTestBase
     private record RecipeTagExportItemDto(string RecipeName, List<string> Ingredients, List<string> Tags);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
+    private record ParsedRecipeDto(string Name, string? Link, List<ParsedIngredientDto> Ingredients, List<ParsedStepDto> Steps, string? ImageUrl);
+    private record ParsedIngredientDto(decimal? Amount, string? Unit, string Name);
+    private record ParsedStepDto(int Order, string Text);
 }

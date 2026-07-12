@@ -14,7 +14,7 @@ public class RecipeParserService(HttpClient httpClient) : IRecipeParserService
     {
         "cup", "cups", "tbsp", "tablespoon", "tablespoons", "tsp", "teaspoon", "teaspoons",
         "oz", "ounce", "ounces", "lb", "lbs", "pound", "pounds", "g", "gram", "grams",
-        "kg", "kilogram", "kilograms", "ml", "milliliter", "milliliters", "l", "liter", "liters",
+        "kg", "kilogram", "kilograms", "ml", "milliliter", "milliliters", "l", "liter", "liters", "dl",
         "clove", "cloves", "can", "cans", "package", "packages", "pkg", "bunch", "bunches",
         "slice", "slices", "piece", "pieces", "pinch", "handful", "dash",
         "head", "stalk", "stalks", "sprig", "sprigs",
@@ -42,6 +42,29 @@ public class RecipeParserService(HttpClient httpClient) : IRecipeParserService
 
         return null;
     }
+
+    public ParsedRecipeResponse ParseFromText(string? name, string? ingredientsText, string? stepsText)
+    {
+        var ingredients = SplitLines(ingredientsText)
+            .Select(ParseIngredient)
+            .ToList();
+
+        var order = 1;
+        var steps = SplitLines(stepsText)
+            .Select(line => new ParsedStep(order++, line))
+            .ToList();
+
+        var recipeName = string.IsNullOrWhiteSpace(name) ? "Untitled recipe" : name.Trim();
+
+        return new ParsedRecipeResponse(recipeName, null, ingredients, steps, null);
+    }
+
+    private static IEnumerable<string> SplitLines(string? text) =>
+        string.IsNullOrWhiteSpace(text)
+            ? []
+            : text.Split('\n')
+                .Select(line => line.Trim())
+                .Where(line => line.Length > 0);
 
     private static IEnumerable<string> ExtractJsonLdBlocks(string html)
     {

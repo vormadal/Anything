@@ -12,8 +12,9 @@ import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { Clock } from "lucide-react";
+import { PhotoImport } from "./PhotoImport";
 
-type Mode = "select" | "url" | "manual";
+type Mode = "select" | "url" | "manual" | "photo";
 
 const INPUT_CLASS =
   "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white";
@@ -113,6 +114,18 @@ export default function NewRecipePage() {
               </p>
             </button>
             <button
+              onClick={() => setMode("photo")}
+              className="p-5 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 cursor-pointer text-left space-y-2 transition-colors"
+            >
+              <div className="font-semibold text-gray-900 dark:text-white">
+                Scan from photo
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Take a photo of a recipe and we&apos;ll extract the text to get
+                you started.
+              </p>
+            </button>
+            <button
               onClick={() => setMode("manual")}
               className="p-5 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 cursor-pointer text-left space-y-2 transition-colors"
             >
@@ -134,8 +147,12 @@ export default function NewRecipePage() {
       <PageTitle>New Recipe</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          {mode === "url" ? "Import from URL" : "New Recipe"}
+          {mode === "url" && "Import from URL"}
+          {mode === "photo" && "Scan from photo"}
+          {mode === "manual" && "New Recipe"}
         </h2>
+
+        {mode === "photo" && <PhotoImport onBack={() => setMode("select")} />}
 
         {mode === "url" && (
           <form onSubmit={handleParse} className="space-y-4">

@@ -198,6 +198,75 @@ public class RecipeParserServiceTests
         var step = Assert.Single(result.Steps);
         Assert.Equal("Step name only", step.Text);
     }
+
+    // --- ParseFromText ---
+
+    private static RecipeParserService CreateTextService() =>
+        new(new HttpClient(new FakeHttpMessageHandler("")));
+
+    [Theory]
+    [InlineData("2 spsk smør", 2.0, "spsk", "smør")]
+    [InlineData("1 tsk salt", 1.0, "tsk", "salt")]
+    [InlineData("2 dl fløde", 2.0, "dl", "fløde")]
+    [InlineData("1 1/2 cups flour", 1.5, "cups", "flour")]
+    [InlineData("3 eggs", 3.0, null, "eggs")]
+    [InlineData("salt to taste", null, null, "salt to taste")]
+    public void ParseFromText_ParsesIngredientLine(
+        string line, double? expectedAmount, string? expectedUnit, string expectedName)
+    {
+        var result = CreateTextService().ParseFromText("T", line, null);
+
+        var parsed = Assert.Single(result.Ingredients);
+        Assert.Equal(expectedAmount.HasValue ? (decimal?)expectedAmount.Value : null, parsed.Amount);
+        Assert.Equal(expectedUnit, parsed.Unit);
+        Assert.Equal(expectedName, parsed.Name);
+    }
+
+    [Fact]
+    public void ParseFromText_SplitsLinesAndSkipsBlanks()
+    {
+        var result = CreateTextService().ParseFromText(
+            "Pandekager",
+            "250 g mel\r\n\r\n  5 dl mælk  \n3 eggs\n",
+            "Whisk the batter.\n\nRest for 30 minutes.\nFry thin pancakes.");
+
+        Assert.Equal("Pandekager", result.Name);
+        Assert.Null(result.Link);
+        Assert.Null(result.ImageUrl);
+
+        Assert.Equal(3, result.Ingredients.Count);
+        Assert.Equal("mel", result.Ingredients[0].Name);
+        Assert.Equal("g", result.Ingredients[0].Unit);
+        Assert.Equal(250m, result.Ingredients[0].Amount);
+        Assert.Equal("mælk", result.Ingredients[1].Name);
+        Assert.Equal("dl", result.Ingredients[1].Unit);
+
+        Assert.Equal(3, result.Steps.Count);
+        Assert.Equal(new[] { 1, 2, 3 }, result.Steps.Select(s => s.Order));
+        Assert.Equal("Whisk the batter.", result.Steps[0].Text);
+        Assert.Equal("Rest for 30 minutes.", result.Steps[1].Text);
+        Assert.Equal("Fry thin pancakes.", result.Steps[2].Text);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ParseFromText_WithBlankName_DefaultsToUntitled(string? name)
+    {
+        var result = CreateTextService().ParseFromText(name, "1 tsk salt", null);
+
+        Assert.Equal("Untitled recipe", result.Name);
+    }
+
+    [Fact]
+    public void ParseFromText_WithBlankBodies_ReturnsEmptyLists()
+    {
+        var result = CreateTextService().ParseFromText("Only a name", "  ", null);
+
+        Assert.Empty(result.Ingredients);
+        Assert.Empty(result.Steps);
+    }
 }
 
 file class FakeHttpMessageHandler(string content) : HttpMessageHandler

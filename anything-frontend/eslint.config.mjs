@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Test coverage reports
     "coverage/**",
+    // tesseract.js worker/core copies (created by scripts/copy-tesseract-assets.mjs)
+    "public/tesseract/**",
   ]),
 ]);
 

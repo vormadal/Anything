@@ -725,6 +725,25 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("recipes-empty.png", screenshotOptions);
   });
 
+  test("new recipe - mode selection", async ({ page }) => {
+    await page.goto("/recipes/new");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "recipes-new-mode-selection.png",
+      screenshotOptions
+    );
+  });
+
+  test("new recipe - scan from photo (pick phase)", async ({ page }) => {
+    await page.goto("/recipes/new");
+    await page.getByRole("button", { name: /scan from photo/i }).click();
+    await expect(page.getByText("Take or choose a photo")).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "recipes-new-photo-pick.png",
+      screenshotOptions
+    );
+  });
+
   // ---- Bills ----
 
   test("bills - with data", async ({ page }) => {
