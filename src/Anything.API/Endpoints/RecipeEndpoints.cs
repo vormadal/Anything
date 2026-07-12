@@ -94,6 +94,16 @@ public static class RecipeEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPost("/parse-text", async (ParseRecipeTextRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new ParseRecipeFromTextCommand(request.Name, request.IngredientsText, request.StepsText));
+        })
+        .WithName("ParseRecipeFromText")
+        .Produces<ParsedRecipeResponse>()
+        .Produces(400)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapPost("/{id}/reimport", async (int id, ReimportRecipeRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new ReimportRecipeCommand(
