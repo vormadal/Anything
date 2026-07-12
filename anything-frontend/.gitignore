@@ -23,6 +23,9 @@
 # production
 /build
 
+# tesseract.js worker/core copies (created by scripts/copy-tesseract-assets.mjs)
+/public/tesseract/
+
 # misc
 .DS_Store
 *.pem
