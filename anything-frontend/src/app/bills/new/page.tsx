@@ -12,11 +12,13 @@ import { ComboboxField } from "@/components/ui/combobox-field";
 import { CreateVendorDialog } from "@/components/CreateVendorDialog";
 import { CreateLocationDialog } from "@/components/CreateLocationDialog";
 import { toast } from "sonner";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function NewBillPage() {
   const router = useRouter();
   const { navigateBack } = useSmartBack();
   const createBill = useCreateBill();
+  const isOnline = useOnlineStatus();
   const { data: locations } = useLocations();
   const { data: vendors } = useVendors();
 
@@ -252,7 +254,8 @@ export default function NewBillPage() {
           <Button
             type="submit"
             className="flex-1"
-            disabled={createBill.isPending || !name.trim()}
+            disabled={createBill.isPending || !name.trim() || !isOnline}
+            title={isOnline ? undefined : "Adding a bill requires an internet connection"}
           >
             {createBill.isPending ? "Saving..." : "Add bill"}
           </Button>

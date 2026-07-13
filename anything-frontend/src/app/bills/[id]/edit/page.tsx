@@ -11,6 +11,7 @@ import { ComboboxField } from "@/components/ui/combobox-field";
 import { CreateVendorDialog } from "@/components/CreateVendorDialog";
 import { CreateLocationDialog } from "@/components/CreateLocationDialog";
 import { toast } from "sonner";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function EditBillPage() {
   const params = useParams();
@@ -41,6 +42,7 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
   const { data: locations } = useLocations();
   const { data: vendors } = useVendors();
   const updateBill = useUpdateBill();
+  const isOnline = useOnlineStatus();
 
   const [name, setName] = useState(bill.name);
   const [vendorId, setVendorId] = useState<number | undefined>(bill.vendorId);
@@ -240,7 +242,8 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
           <Button
             type="submit"
             className="flex-1"
-            disabled={updateBill.isPending || !name.trim()}
+            disabled={updateBill.isPending || !name.trim() || !isOnline}
+            title={isOnline ? undefined : "Saving a bill requires an internet connection"}
           >
             {updateBill.isPending ? "Saving..." : "Save changes"}
           </Button>

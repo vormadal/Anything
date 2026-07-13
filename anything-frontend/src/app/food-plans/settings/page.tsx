@@ -25,6 +25,7 @@ import {
   bitmaskToMonthSet,
   monthSetToBitmask,
 } from "@/lib/foodPlanUtils";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const SETTINGS_UPDATE_SUCCESS = "Settings updated";
 const SETTINGS_UPDATE_ERROR = "Failed to update settings. Please try again.";
@@ -98,6 +99,7 @@ function tuningFromSettings(settings: FoodPlanSettings | undefined): TuningValue
 
 function SettingsForm({ initialActiveDays }: { initialActiveDays: number }) {
   const updateSettings = useUpdateFoodPlanSettings();
+  const isOnline = useOnlineStatus();
   const [selectedDays, setSelectedDays] = useState<Set<number>>(
     () => bitmaskToDaySet(initialActiveDays)
   );
@@ -157,7 +159,8 @@ function SettingsForm({ initialActiveDays }: { initialActiveDays: number }) {
 
       <Button
         type="submit"
-        disabled={updateSettings.isPending || selectedDays.size === 0}
+        disabled={updateSettings.isPending || selectedDays.size === 0 || !isOnline}
+        title={isOnline ? undefined : "Saving settings requires an internet connection"}
         className="w-full"
       >
         {updateSettings.isPending ? "Saving..." : "Save Settings"}
@@ -168,6 +171,7 @@ function SettingsForm({ initialActiveDays }: { initialActiveDays: number }) {
 
 function SuggestionTuningForm({ settings }: { settings: FoodPlanSettings | undefined }) {
   const updateSettings = useUpdateFoodPlanSettings();
+  const isOnline = useOnlineStatus();
   const [values, setValues] = useState<TuningValues>(() => tuningFromSettings(settings));
 
   const activeDays = settings?.activeDays ?? DEFAULT_ACTIVE_DAYS;
@@ -224,13 +228,19 @@ function SuggestionTuningForm({ settings }: { settings: FoodPlanSettings | undef
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={updateSettings.isPending} className="flex-1">
+        <Button
+          type="submit"
+          disabled={updateSettings.isPending || !isOnline}
+          title={isOnline ? undefined : "Saving settings requires an internet connection"}
+          className="flex-1"
+        >
           {updateSettings.isPending ? "Saving..." : "Save Tuning"}
         </Button>
         <Button
           type="button"
           variant="outline"
-          disabled={updateSettings.isPending}
+          disabled={updateSettings.isPending || !isOnline}
+          title={isOnline ? undefined : "Saving settings requires an internet connection"}
           onClick={handleReset}
         >
           Reset to defaults
@@ -252,6 +262,7 @@ function SeasonalTagsSection() {
   const createRule = useCreateSeasonalTagRule();
   const updateRule = useUpdateSeasonalTagRule();
   const deleteRule = useDeleteSeasonalTagRule();
+  const isOnline = useOnlineStatus();
 
   const [editingRuleId, setEditingRuleId] = useState<number | null>(null);
   const [form, setForm] = useState(() => ({ ...EMPTY_RULE_FORM, months: new Set<number>() }));
@@ -363,7 +374,9 @@ function SeasonalTagsSection() {
               <button
                 type="button"
                 onClick={() => rule.id != null && handleDelete(rule.id)}
-                className="shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                disabled={!isOnline}
+                title={isOnline ? undefined : "Removing a seasonal tag requires an internet connection"}
+                className="shrink-0 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                 aria-label={`Remove seasonal tag ${rule.keyword}`}
               >
                 <X className="h-3.5 w-3.5" />
@@ -431,7 +444,8 @@ function SeasonalTagsSection() {
         <div className="flex gap-2">
           <Button
             type="submit"
-            disabled={isSaving || !form.keyword.trim() || form.months.size === 0}
+            disabled={isSaving || !form.keyword.trim() || form.months.size === 0 || !isOnline}
+            title={isOnline ? undefined : "Saving a seasonal tag requires an internet connection"}
             className="flex-1"
           >
             {editingRuleId != null ? "Update tag" : "Add tag"}

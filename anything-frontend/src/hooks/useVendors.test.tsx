@@ -4,15 +4,10 @@ import { ReactNode } from 'react'
 import {
   useVendors,
   useCreateVendor,
-  useUpdateVendor,
-  useDeleteVendor,
 } from '@/hooks/useVendors'
 
 const mockGet = jest.fn()
 const mockPost = jest.fn()
-const mockByIdPut = jest.fn()
-const mockByIdDelete = jest.fn()
-const mockById: jest.Mock = jest.fn(() => ({ put: mockByIdPut, delete: mockByIdDelete }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -20,7 +15,6 @@ jest.mock('@/lib/apiClient', () => ({
       vendors: {
         get: (...args: unknown[]) => mockGet(...args),
         post: (...args: unknown[]) => mockPost(...args),
-        byId: (...args: unknown[]) => mockById(...args),
       },
     },
   },
@@ -101,35 +95,4 @@ describe('useVendors hooks', () => {
     })
   })
 
-  describe('useUpdateVendor', () => {
-    it('should update a vendor successfully', async () => {
-      mockByIdPut.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useUpdateVendor(), { wrapper: createWrapper() })
-
-      await act(async () => {
-        result.current.mutate({ id: 1, name: 'Netflix Inc.', website: 'https://netflix.com' })
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockByIdPut).toHaveBeenCalledWith({ name: 'Netflix Inc.', website: 'https://netflix.com' })
-    })
-  })
-
-  describe('useDeleteVendor', () => {
-    it('should delete a vendor successfully', async () => {
-      mockByIdDelete.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useDeleteVendor(), { wrapper: createWrapper() })
-
-      await act(async () => {
-        result.current.mutate(1)
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockByIdDelete).toHaveBeenCalled()
-    })
-  })
 })

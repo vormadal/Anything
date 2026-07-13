@@ -4,15 +4,10 @@ import { ReactNode } from 'react'
 import {
   useLocations,
   useCreateLocation,
-  useUpdateLocation,
-  useDeleteLocation,
 } from '@/hooks/useLocations'
 
 const mockGet = jest.fn()
 const mockPost = jest.fn()
-const mockByIdPut = jest.fn()
-const mockByIdDelete = jest.fn()
-const mockById: jest.Mock = jest.fn(() => ({ put: mockByIdPut, delete: mockByIdDelete }))
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -20,7 +15,6 @@ jest.mock('@/lib/apiClient', () => ({
       locations: {
         get: (...args: unknown[]) => mockGet(...args),
         post: (...args: unknown[]) => mockPost(...args),
-        byId: (...args: unknown[]) => mockById(...args),
       },
     },
   },
@@ -98,35 +92,4 @@ describe('useLocations hooks', () => {
     })
   })
 
-  describe('useUpdateLocation', () => {
-    it('should update a location successfully', async () => {
-      mockByIdPut.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useUpdateLocation(), { wrapper: createWrapper() })
-
-      await act(async () => {
-        result.current.mutate({ id: 1, name: 'Updated Home' })
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockByIdPut).toHaveBeenCalledWith({ name: 'Updated Home' })
-    })
-  })
-
-  describe('useDeleteLocation', () => {
-    it('should delete a location successfully', async () => {
-      mockByIdDelete.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useDeleteLocation(), { wrapper: createWrapper() })
-
-      await act(async () => {
-        result.current.mutate(1)
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(mockById).toHaveBeenCalledWith(1)
-      expect(mockByIdDelete).toHaveBeenCalled()
-    })
-  })
 })

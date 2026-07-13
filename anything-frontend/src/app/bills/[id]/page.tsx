@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Image from "next/image";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("da-DK", {
@@ -128,6 +129,7 @@ export default function BillDetailPage() {
   const deleteAttachment = useDeleteBillAttachment();
   const downloadAttachment = useDownloadBillAttachment();
   const { setHeaderActions } = useHeaderActions();
+  const isOnline = useOnlineStatus();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showAddPrice, setShowAddPrice] = useState(false);
@@ -412,7 +414,8 @@ export default function BillDetailPage() {
                 type="submit"
                 size="sm"
                 className="flex-1"
-                disabled={addPrice.isPending}
+                disabled={addPrice.isPending || !isOnline}
+                title={isOnline ? undefined : "Adding a price entry requires an internet connection"}
               >
                 {addPrice.isPending ? "Saving..." : "Save"}
               </Button>
@@ -461,7 +464,9 @@ export default function BillDetailPage() {
                 <button
                   type="button"
                   onClick={() => handleDeletePrice(entry.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                  disabled={!isOnline}
+                  title={isOnline ? undefined : "Removing a price entry requires an internet connection"}
+                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                   aria-label="Delete price entry"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -484,7 +489,8 @@ export default function BillDetailPage() {
             size="sm"
             className="text-xs"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploadAttachment.isPending}
+            disabled={uploadAttachment.isPending || !isOnline}
+            title={isOnline ? undefined : "Uploading a file requires an internet connection"}
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
             {uploadAttachment.isPending ? "Uploading..." : "Add file"}
@@ -544,7 +550,9 @@ export default function BillDetailPage() {
                       <button
                         type="button"
                         onClick={() => downloadAttachment.mutate({ billId: bill.id!, attachmentId: att.id!, name: att.name! })}
-                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate text-left w-full block"
+                        disabled={!isOnline}
+                        title={isOnline ? undefined : "Downloading requires an internet connection"}
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate text-left w-full block disabled:opacity-50"
                       >
                         {att.name}
                       </button>
@@ -582,7 +590,12 @@ export default function BillDetailPage() {
                     className="flex-1 px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                   />
-                  <Button size="sm" onClick={() => void handleSaveAttachmentName()} disabled={updateAttachment.isPending}>
+                  <Button
+                    size="sm"
+                    onClick={() => void handleSaveAttachmentName()}
+                    disabled={updateAttachment.isPending || !isOnline}
+                    title={isOnline ? undefined : "Renaming an attachment requires an internet connection"}
+                  >
                     Save
                   </Button>
                 </div>
@@ -593,7 +606,8 @@ export default function BillDetailPage() {
                   size="sm"
                   className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                   onClick={() => void handleDeleteAttachment()}
-                  disabled={deleteAttachment.isPending}
+                  disabled={deleteAttachment.isPending || !isOnline}
+                  title={isOnline ? undefined : "Deleting an attachment requires an internet connection"}
                 >
                   <Trash2 className="h-4 w-4 mr-1" />
                   Delete attachment
@@ -611,7 +625,8 @@ export default function BillDetailPage() {
           size="sm"
           className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
           onClick={handleDelete}
-          disabled={deleteBill.isPending}
+          disabled={deleteBill.isPending || !isOnline}
+          title={isOnline ? undefined : "Deleting a bill requires an internet connection"}
         >
           <Trash2 className="h-4 w-4 mr-1" />
           Delete bill

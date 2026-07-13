@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useUploadRecipeImage } from "@/hooks/useRecipes";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface RecipeImageUploadProps {
   recipeId: number;
@@ -12,6 +13,7 @@ interface RecipeImageUploadProps {
 export function RecipeImageUpload({ recipeId, onSuccess }: RecipeImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { mutateAsync: uploadImage, isPending, error } = useUploadRecipeImage(recipeId);
+  const isOnline = useOnlineStatus();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,7 +39,8 @@ export function RecipeImageUpload({ recipeId, onSuccess }: RecipeImageUploadProp
       <Button
         type="button"
         size="sm"
-        disabled={isPending}
+        disabled={isPending || !isOnline}
+        title={isOnline ? undefined : "Uploading a photo requires an internet connection"}
         onClick={() => inputRef.current?.click()}
       >
         {isPending ? "Uploading..." : "Upload Photo"}

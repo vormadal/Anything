@@ -9,6 +9,7 @@ import { useMyPendingInvites, useAcceptHouseholdInvite, type PendingInvite } fro
 import { Home, Plus, Check, Users, ChevronRight, Bell } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function HouseholdsPage() {
   const { households, isLoading, selectedHouseholdId, setSelectedHouseholdId } =
@@ -16,6 +17,7 @@ export default function HouseholdsPage() {
   const createHousehold = useCreateHousehold();
   const { data: pendingInvites } = useMyPendingInvites();
   const acceptInvite = useAcceptHouseholdInvite();
+  const isOnline = useOnlineStatus();
   const [newName, setNewName] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [dismissedInvites, setDismissedInvites] = useState<number[]>([]);
@@ -76,7 +78,8 @@ export default function HouseholdsPage() {
                 <Button
                   size="sm"
                   onClick={() => handleAcceptInvite(invite)}
-                  disabled={acceptInvite.isPending}
+                  disabled={acceptInvite.isPending || !isOnline}
+                  title={isOnline ? undefined : "Accepting an invite requires an internet connection"}
                 >
                   {acceptInvite.isPending ? "Joining..." : "Accept"}
                 </Button>
@@ -106,7 +109,11 @@ export default function HouseholdsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Create your first household to get started
           </p>
-          <Button onClick={() => setShowCreate(true)}>
+          <Button
+            onClick={() => setShowCreate(true)}
+            disabled={!isOnline}
+            title={isOnline ? undefined : "Creating a household requires an internet connection"}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Create Household
           </Button>
@@ -182,7 +189,8 @@ export default function HouseholdsPage() {
                 <Button
                   type="submit"
                   size="sm"
-                  disabled={createHousehold.isPending}
+                  disabled={createHousehold.isPending || !isOnline}
+                  title={isOnline ? undefined : "Creating a household requires an internet connection"}
                 >
                   {createHousehold.isPending ? "Creating…" : "Create"}
                 </Button>
@@ -204,6 +212,8 @@ export default function HouseholdsPage() {
               variant="outline"
               className="w-full"
               onClick={() => setShowCreate(true)}
+              disabled={!isOnline}
+              title={isOnline ? undefined : "Creating a household requires an internet connection"}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Household

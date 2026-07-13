@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface CreateLocationDialogProps {
   initialName: string;
@@ -24,6 +25,7 @@ export function CreateLocationDialog({
 }: CreateLocationDialogProps) {
   const [name, setName] = useState(initialName);
   const createLocation = useCreateLocation();
+  const isOnline = useOnlineStatus();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,7 +65,8 @@ export function CreateLocationDialog({
             <Button
               type="submit"
               className="flex-1"
-              disabled={createLocation.isPending || !name.trim()}
+              disabled={createLocation.isPending || !name.trim() || !isOnline}
+              title={isOnline ? undefined : "Creating a location requires an internet connection"}
             >
               {createLocation.isPending ? "Creating..." : "Create"}
             </Button>

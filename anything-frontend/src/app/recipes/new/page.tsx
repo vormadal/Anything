@@ -13,6 +13,7 @@ import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { Clock } from "lucide-react";
 import { PhotoImport } from "./PhotoImport";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 type Mode = "select" | "url" | "manual" | "photo";
 
@@ -37,6 +38,7 @@ export default function NewRecipePage() {
   const parseFromUrl = useParseRecipeFromUrl();
   const router = useRouter();
   const { setLeftAction } = useHeaderActions();
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     setLeftAction({ type: "back", href: "/recipes" });
@@ -181,7 +183,8 @@ export default function NewRecipePage() {
                 />
                 <Button
                   type="submit"
-                  disabled={parseFromUrl.isPending || importRecipe.isPending || !urlInput.trim()}
+                  disabled={parseFromUrl.isPending || importRecipe.isPending || !urlInput.trim() || !isOnline}
+                  title={isOnline ? undefined : "Importing a recipe requires an internet connection"}
                   className="w-full sm:w-auto"
                 >
                   {parseFromUrl.isPending || importRecipe.isPending ? "Importing..." : "Import"}
@@ -287,7 +290,8 @@ export default function NewRecipePage() {
 
             <Button
               type="submit"
-              disabled={createRecipe.isPending}
+              disabled={createRecipe.isPending || !isOnline}
+              title={isOnline ? undefined : "Creating a recipe requires an internet connection"}
               className="w-full"
             >
               {createRecipe.isPending ? "Creating..." : "Create Recipe"}

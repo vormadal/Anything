@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface CreateVendorDialogProps {
   initialName: string;
@@ -25,6 +26,7 @@ export function CreateVendorDialog({
   const [name, setName] = useState(initialName);
   const [website, setWebsite] = useState("");
   const createVendor = useCreateVendor();
+  const isOnline = useOnlineStatus();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,7 +81,8 @@ export function CreateVendorDialog({
             <Button
               type="submit"
               className="flex-1"
-              disabled={createVendor.isPending || !name.trim()}
+              disabled={createVendor.isPending || !name.trim() || !isOnline}
+              title={isOnline ? undefined : "Creating a vendor requires an internet connection"}
             >
               {createVendor.isPending ? "Creating..." : "Create"}
             </Button>

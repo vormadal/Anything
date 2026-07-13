@@ -37,17 +37,20 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { SuggestionCategory } from "@/lib/api-client/models/index";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 function DraggableCategoryItem({
   category,
   onEdit,
   onDelete,
   isDeletePending,
+  isOnline,
 }: {
   category: SuggestionCategory;
   onEdit: (id: number, name: string) => void;
   onDelete: (id: number) => void;
   isDeletePending: boolean;
+  isOnline: boolean;
 }) {
   const {
     attributes,
@@ -68,8 +71,10 @@ function DraggableCategoryItem({
     <div ref={setNodeRef} style={style} className="flex items-center gap-2">
       <button
         type="button"
-        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none"
+        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="Drag to reorder"
+        disabled={!isOnline}
+        title={isOnline ? undefined : "Reordering requires an internet connection"}
         {...attributes}
         {...listeners}
       >
@@ -82,6 +87,8 @@ function DraggableCategoryItem({
             size="sm"
             variant="ghost"
             onClick={() => onEdit(category.id!, category.name ?? "")}
+            disabled={!isOnline}
+            title={isOnline ? undefined : "Editing a category requires an internet connection"}
             aria-label="Edit category"
           >
             <Pencil className="h-4 w-4" />
@@ -90,7 +97,8 @@ function DraggableCategoryItem({
             size="sm"
             variant="ghost"
             onClick={() => onDelete(category.id!)}
-            disabled={isDeletePending}
+            disabled={isDeletePending || !isOnline}
+            title={isOnline ? undefined : "Deleting a category requires an internet connection"}
             aria-label="Delete category"
             className="text-red-600 hover:text-red-700 dark:text-red-400"
           >
@@ -124,6 +132,7 @@ export default function CategoriesPage() {
   const reorderCategories = useReorderSuggestionCategories();
   const exportCategories = useExportSuggestionCategories();
   const importCategories = useImportSuggestionCategories();
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     if (householdId) {
@@ -236,7 +245,8 @@ export default function CategoriesPage() {
               size="sm"
               variant="outline"
               onClick={handleExport}
-              disabled={exportCategories.isPending}
+              disabled={exportCategories.isPending || !isOnline}
+              title={isOnline ? undefined : "Exporting categories requires an internet connection"}
               aria-label="Export categories"
             >
               <Download className="h-4 w-4 sm:mr-1" />
@@ -246,7 +256,8 @@ export default function CategoriesPage() {
               size="sm"
               variant="outline"
               onClick={handleImportClick}
-              disabled={importCategories.isPending}
+              disabled={importCategories.isPending || !isOnline}
+              title={isOnline ? undefined : "Importing categories requires an internet connection"}
               aria-label="Import categories"
             >
               <Upload className="h-4 w-4 sm:mr-1" />
@@ -255,6 +266,8 @@ export default function CategoriesPage() {
             <Button
               size="sm"
               onClick={() => setShowCreateForm((v) => !v)}
+              disabled={!isOnline}
+              title={isOnline ? undefined : "Creating a category requires an internet connection"}
               aria-label="Create category"
             >
               <Plus className="h-4 w-4 sm:mr-1" />
@@ -286,7 +299,8 @@ export default function CategoriesPage() {
               <Button
                 size="sm"
                 onClick={handleCreate}
-                disabled={!createName.trim() || createCategory.isPending}
+                disabled={!createName.trim() || createCategory.isPending || !isOnline}
+                title={isOnline ? undefined : "Creating a category requires an internet connection"}
                 aria-label="Save new category"
               >
                 Save
@@ -311,7 +325,8 @@ export default function CategoriesPage() {
               <Button
                 size="sm"
                 onClick={handleSaveEdit}
-                disabled={!editName.trim() || updateCategory.isPending}
+                disabled={!editName.trim() || updateCategory.isPending || !isOnline}
+                title={isOnline ? undefined : "Saving a category requires an internet connection"}
               >
                 Save
               </Button>
@@ -343,6 +358,7 @@ export default function CategoriesPage() {
                     onEdit={handleStartEdit}
                     onDelete={handleDelete}
                     isDeletePending={deleteCategory.isPending}
+                    isOnline={isOnline}
                   />
                 ))}
               </div>

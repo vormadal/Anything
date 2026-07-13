@@ -16,6 +16,7 @@ import {
 import { canManageHousehold } from "@/lib/roles";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { useHouseholdContext } from "@/context/HouseholdContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const SAMPLE_JSON = `{
   "recipes": [
@@ -72,6 +73,7 @@ export default function RecipeTagsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exportRecipeTags = useExportRecipeTags();
   const importRecipeTags = useImportRecipeTags();
+  const isOnline = useOnlineStatus();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -153,7 +155,8 @@ export default function RecipeTagsPage() {
             size="sm"
             variant="outline"
             onClick={handleExport}
-            disabled={exportRecipeTags.isPending}
+            disabled={exportRecipeTags.isPending || !isOnline}
+            title={isOnline ? undefined : "Exporting recipe tags requires an internet connection"}
             aria-label="Export recipe tags"
           >
             <Download className="h-4 w-4 sm:mr-1" />
@@ -163,7 +166,8 @@ export default function RecipeTagsPage() {
             size="sm"
             variant="outline"
             onClick={handleImportClick}
-            disabled={importRecipeTags.isPending}
+            disabled={importRecipeTags.isPending || !isOnline}
+            title={isOnline ? undefined : "Importing recipe tags requires an internet connection"}
             aria-label="Import recipe tags"
           >
             <Upload className="h-4 w-4 sm:mr-1" />

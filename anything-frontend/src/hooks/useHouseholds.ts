@@ -141,27 +141,6 @@ export function useDeleteHousehold() {
   });
 }
 
-export function useAddHouseholdMember() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: {
-      householdId: number;
-      userId: number;
-      role: string;
-    }) => {
-      await apiClient.api.households
-        .byId(data.householdId)
-        .members.post({ userId: data.userId, role: data.role });
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["households", variables.householdId],
-      });
-    },
-  });
-}
-
 export function useUpdateHouseholdMemberRole() {
   const queryClient = useQueryClient();
 
