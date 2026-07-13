@@ -43,6 +43,16 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
           shouldDehydrateQuery: shouldPersistQuery,
         },
       }}
+      // Restored queries keep their original dataUpdatedAt, so with a 60s
+      // staleTime they can read as "fresh" — and skip refetching — for up to
+      // a minute after a reload even though the persisted snapshot predates
+      // writes made just before the reload (a mutation's cache update can
+      // land after the persister's last throttled flush). Invalidating once
+      // restore completes forces every query to revalidate against the
+      // server instead of trusting a snapshot that may already be stale.
+      onSuccess={() => {
+        void queryClient.invalidateQueries();
+      }}
     >
       {children}
       <ReactQueryDevtools initialIsOpen={false} />
