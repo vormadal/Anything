@@ -71,6 +71,8 @@ export function useHouseholds() {
 }
 
 export function useHousehold(id: number | null) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ["households", id],
     queryFn: async (): Promise<HouseholdDetail> => {
@@ -79,6 +81,18 @@ export function useHousehold(id: number | null) {
       return mapDetail(result);
     },
     enabled: id !== null,
+    // Seed from the already-cached households list so navigating from the
+    // list to a household the user just saw doesn't flash a bare loading
+    // state. Members aren't part of the list response, so they arrive
+    // shortly after from the real fetch.
+    placeholderData: (): HouseholdDetail | undefined => {
+      if (id === null) return undefined;
+      const households = queryClient.getQueryData<Household[]>(["households"]);
+      const match = households?.find((h) => h.id === id);
+      return match
+        ? { id: match.id, name: match.name, createdOn: match.createdOn, members: [] }
+        : undefined;
+    },
   });
 }
 

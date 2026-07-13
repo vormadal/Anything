@@ -88,10 +88,22 @@ export function useTopRecipeTags(count = 10) {
 }
 
 export function useRecipe(id: number) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ["recipe", id],
     queryFn: () => apiClient.api.recipes.byId(id).get() as Promise<Recipe>,
     enabled: id > 0,
+    // Seed from an already-cached recipes list so navigating from a list to
+    // a recipe the user just saw doesn't flash a bare loading state.
+    placeholderData: () => {
+      const lists = queryClient.getQueriesData<Recipe[]>({ queryKey: ["recipes"] });
+      for (const [, data] of lists) {
+        const match = data?.find((r) => r.id === id);
+        if (match) return match;
+      }
+      return undefined;
+    },
   });
 }
 
