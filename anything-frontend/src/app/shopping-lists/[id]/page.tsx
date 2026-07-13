@@ -8,14 +8,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeleteShoppingList } from "@/hooks/useShoppingLists";
+import { useDeleteShoppingList, useShoppingList } from "@/hooks/useShoppingLists";
 import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
 import { EditListNameDialog } from "@/components/EditListNameDialog";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import type { ShoppingList } from "@/lib/api-client/models/index";
-import { apiClient } from "@/lib/apiClient";
-import { useQuery } from "@tanstack/react-query";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { Pencil, Trash2, MoreVertical, SquarePen } from "lucide-react";
@@ -39,11 +36,7 @@ export default function ShoppingListDetailPage() {
   const handleDeleteListRef = useRef<() => void>(() => undefined);
   const openEditNameDialogRef = useRef<() => void>(() => undefined);
 
-  const { data: list } = useQuery({
-    queryKey: ["shoppingList", listId],
-    queryFn: () => apiClient.api.checklists.byId(listId).get() as Promise<ShoppingList>,
-    enabled: listId > 0,
-  });
+  const { data: list } = useShoppingList(listId);
 
   const deleteList = useDeleteShoppingList();
   const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);

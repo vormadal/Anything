@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { ShoppingListResponse, ShoppingListItem, ShoppingListTemplateResponse } from "@/lib/api-client/models/index";
+import type { ShoppingList, ShoppingListResponse, ShoppingListItem, ShoppingListTemplateResponse } from "@/lib/api-client/models/index";
 import { isOffline } from "@/hooks/useOnlineStatus";
 import { isNetworkError } from "@/lib/offline/networkError";
 import {
@@ -19,6 +19,25 @@ export function useShoppingLists() {
     queryKey: ["shoppingLists"],
     queryFn: () =>
       apiClient.api.checklists.get() as unknown as Promise<ShoppingListResponse[]>,
+  });
+}
+
+export function useShoppingList(id: number) {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: ["shoppingList", id],
+    queryFn: () => apiClient.api.checklists.byId(id).get() as Promise<ShoppingList>,
+    enabled: id > 0,
+    // Seed from the already-cached shopping lists so navigating from the
+    // list to a list the user just saw doesn't flash a bare loading state.
+    placeholderData: (): ShoppingList | undefined => {
+      const lists = queryClient.getQueryData<ShoppingListResponse[]>(["shoppingLists"]);
+      const match = lists?.find((l) => l.id === id);
+      return match
+        ? { id: match.id, name: match.name, type: match.type, createdOn: match.createdOn }
+        : undefined;
+    },
   });
 }
 

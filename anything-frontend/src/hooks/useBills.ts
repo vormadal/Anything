@@ -93,11 +93,19 @@ export function useBillSummary() {
 }
 
 export function useBill(id: number) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ["bill", id],
     queryFn: () =>
       apiClient.api.bills.byId(id).get() as unknown as Promise<BillResponse>,
     enabled: !!id,
+    // Seed from the already-cached bills list so navigating from the list
+    // to a bill the user just saw doesn't flash a bare loading state.
+    placeholderData: () => {
+      const bills = queryClient.getQueryData<BillResponse[]>(["bills"]);
+      return bills?.find((b) => b.id === id);
+    },
   });
 }
 
