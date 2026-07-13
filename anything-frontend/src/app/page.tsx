@@ -10,10 +10,20 @@ import { DEFAULT_HOME_CARD_ORDER, HOME_CARD_REGISTRY, type HomeCardKey } from ".
 import { useHomeCardPreferences } from "@/hooks/useHomePreferences";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
+function HomeCardsSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse" aria-hidden="true">
+      <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+      <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+      <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+    </div>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
-  const { data: preferences } = useHomeCardPreferences();
+  const { data: preferences, isLoading: preferencesLoading } = useHomeCardPreferences();
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
@@ -44,10 +54,14 @@ export default function Home() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-6">
       <PageTitle>Anything</PageTitle>
-      {cardKeys.map((cardKey) => {
-        const Card = HOME_CARD_REGISTRY[cardKey].component;
-        return <Card key={cardKey} />;
-      })}
+      {preferencesLoading ? (
+        <HomeCardsSkeleton />
+      ) : (
+        cardKeys.map((cardKey) => {
+          const Card = HOME_CARD_REGISTRY[cardKey].component;
+          return <Card key={cardKey} />;
+        })
+      )}
     </div>
   );
 }
