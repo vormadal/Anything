@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, createMultipartBody } from "@/lib/apiClient";
-import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, UpdateBillPriceRequest, BillAttachmentResponse } from "@/lib/api-client/models/index";
+import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, BillAttachmentResponse } from "@/lib/api-client/models/index";
 
 // Re-export API model type so consumers can import it from this hook
 export type { BillAttachmentResponse };
@@ -226,35 +226,6 @@ export function useAddBillPrice() {
         notes: data.notes ?? null,
       };
       return apiClient.api.bills.byId(data.billId).priceHistory.post(body);
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["billPriceHistory", variables.billId] });
-      queryClient.invalidateQueries({ queryKey: ["bill", variables.billId] });
-      queryClient.invalidateQueries({ queryKey: ["bills"] });
-      queryClient.invalidateQueries({ queryKey: ["billSummary"] });
-    },
-  });
-}
-
-export function useUpdateBillPrice() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      billId: number;
-      historyId: number;
-      amount: number;
-      effectiveDate: string;
-      notes?: string;
-    }) => {
-      const body: UpdateBillPriceRequest = {
-        amount: data.amount,
-        effectiveDate: new Date(data.effectiveDate),
-        notes: data.notes ?? null,
-      };
-      return apiClient.api.bills
-        .byId(data.billId)
-        .priceHistory.byHistoryId(data.historyId)
-        .put(body);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billPriceHistory", variables.billId] });

@@ -428,4 +428,61 @@ describe('RecipeEditPage', () => {
       expect(mockPush).toHaveBeenCalledWith('/recipes/1')
     })
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables editing controls while offline', async () => {
+      mockIngredientsGet.mockResolvedValue([
+        { id: 5, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 },
+      ])
+      mockStepsGet.mockResolvedValue([
+        { id: 3, text: 'Preheat oven', order: 1, recipeId: 1 },
+      ])
+      setOnline(false)
+
+      render(<RecipeEditPage />)
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Flour')).toBeInTheDocument()
+      })
+
+      expect(screen.getByDisplayValue('Flour')).toBeDisabled()
+      expect(screen.getByDisplayValue('Preheat oven')).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Remove ingredient' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Remove step' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Add ingredient' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Add step' })).toBeDisabled()
+      expect(screen.getByPlaceholderText('Recipe name')).toBeDisabled()
+      expect(screen.getByPlaceholderText('Recipe link (optional)')).toBeDisabled()
+      expect(screen.getByPlaceholderText('Notes (optional)')).toBeDisabled()
+      expect(screen.getByPlaceholderText('Add a tag (e.g. vegetarian)').nextElementSibling).toBeDisabled()
+
+      await userEvent.setup().click(screen.getByRole('button', { name: 'More options' }))
+      const deleteMenuItem = await screen.findByRole('menuitem', { name: /Delete Recipe/i })
+      expect(deleteMenuItem).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('disables uploading and removing a photo while offline', async () => {
+      mockImagesGet.mockResolvedValue([
+        { id: 7, thumbnailUrl: 'https://example.com/img-thumb.jpg', originalUrl: 'https://example.com/img.jpg', recipeId: 1 },
+      ])
+      setOnline(false)
+
+      render(<RecipeEditPage />)
+
+      await waitFor(() => {
+        expect(screen.getAllByAltText('Recipe image').length).toBeGreaterThan(0)
+      })
+
+      expect(screen.getByRole('button', { name: 'Upload Photo' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Remove image' })).toBeDisabled()
+    })
+  })
 })

@@ -23,6 +23,7 @@ import { PageTitle } from "@/components/PageTitle";
 import { Switch } from "@/components/ui/switch";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { useHomeCardPreferences, useUpdateHomeCardPreferences } from "@/hooks/useHomePreferences";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { DEFAULT_HOME_CARD_ORDER, HOME_CARD_REGISTRY, type HomeCardKey } from "../HomeCards";
 
 interface CardPreference {
@@ -33,9 +34,11 @@ interface CardPreference {
 function DraggableCardRow({
   preference,
   onToggle,
+  isOnline,
 }: {
   preference: CardPreference;
   onToggle: (isVisible: boolean) => void;
+  isOnline: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: preference.cardKey,
@@ -57,8 +60,10 @@ function DraggableCardRow({
     >
       <button
         type="button"
-        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none"
+        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="Drag to reorder"
+        disabled={!isOnline}
+        title={isOnline ? undefined : "Reordering requires an internet connection"}
         {...attributes}
         {...listeners}
       >
@@ -68,6 +73,7 @@ function DraggableCardRow({
       <Switch
         checked={preference.isVisible}
         onCheckedChange={onToggle}
+        disabled={!isOnline}
         aria-label={`Show ${title} on home page`}
       />
     </div>
@@ -78,6 +84,7 @@ export default function HomePreferencesPage() {
   const { data, isLoading } = useHomeCardPreferences();
   const updatePreferences = useUpdateHomeCardPreferences();
   const { setLeftAction } = useHeaderActions();
+  const isOnline = useOnlineStatus();
   const [cards, setCards] = useState<CardPreference[] | null>(null);
 
   useEffect(() => {
@@ -149,6 +156,7 @@ export default function HomePreferencesPage() {
                   key={preference.cardKey}
                   preference={preference}
                   onToggle={(isVisible) => handleToggle(preference.cardKey, isVisible)}
+                  isOnline={isOnline}
                 />
               ))}
             </div>

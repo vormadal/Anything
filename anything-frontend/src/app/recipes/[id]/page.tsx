@@ -33,6 +33,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useCookingMode, type CookingSession } from "@/context/CookingModeContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 // Reads live cooking state from context so the button reflects current state
 // even when the header actions are only set once in a useEffect.
@@ -100,6 +101,7 @@ export default function RecipeDetailPage() {
 
   const deleteRecipe = useDeleteRecipe();
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
+  const isOnline = useOnlineStatus();
 
   const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
   const heroImageUrl = images?.[0]?.originalUrl ?? "";
@@ -181,13 +183,14 @@ export default function RecipeDetailPage() {
               <Pencil className="h-4 w-4" />
               Edit recipe
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setShoppingListDialogOpen(true)}>
+            <DropdownMenuItem onSelect={() => setShoppingListDialogOpen(true)} disabled={!isOnline}>
               <ShoppingCart className="h-4 w-4" />
               Add to Shopping List
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
               onSelect={() => setDeleteConfirmOpen(true)}
+              disabled={!isOnline}
             >
               <Trash2 className="h-4 w-4" />
               Delete Recipe
@@ -200,7 +203,7 @@ export default function RecipeDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [recipeId, setHeaderActions, setLeftAction]);
+  }, [recipeId, setHeaderActions, setLeftAction, isOnline]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -420,7 +423,8 @@ export default function RecipeDetailPage() {
                 <li key={list.id}>
                   <button
                     onClick={() => handleAddToShoppingList(list.id ?? 0)}
-                    disabled={addToShoppingList.isPending}
+                    disabled={addToShoppingList.isPending || !isOnline}
+                    title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
                     className="w-full text-left px-4 py-3 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     {list.name}
@@ -463,7 +467,8 @@ export default function RecipeDetailPage() {
             <Button
               variant="destructive"
               onClick={handleDeleteRecipe}
-              disabled={deleteRecipe.isPending}
+              disabled={deleteRecipe.isPending || !isOnline}
+              title={isOnline ? undefined : "Deleting a recipe requires an internet connection"}
             >
               Delete
             </Button>

@@ -25,6 +25,7 @@ import { PageTitle } from "@/components/PageTitle";
 import { useRouter } from "next/navigation";
 import { ShoppingCart, X, Settings, CalendarDays, Sparkles, Plus } from "lucide-react";
 import { bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { format, isSameDay, addDays as dateFnsAddDays } from "date-fns";
 import { da } from "date-fns/locale";
 
@@ -191,6 +192,7 @@ function DayManagementDialog({
   const deleteEntry = useDeleteFoodPlanEntry();
   const upsertNote = useUpsertFoodPlanNote();
   const deleteNote = useDeleteFoodPlanNote();
+  const isOnline = useOnlineStatus();
 
   const weekdayLabel = format(date, "EEEE", { locale: da });
   const dateLabelStr = format(date, "d. MMMM", { locale: da });
@@ -352,7 +354,9 @@ function DayManagementDialog({
                     )}
                     <button
                       onClick={() => handleDeleteEntry(entry.id ?? 0)}
-                      className="shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                      disabled={!isOnline}
+                      title={isOnline ? undefined : "Removing an entry requires an internet connection"}
+                      className="shrink-0 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                       aria-label="Remove entry"
                     >
                       <X className="h-3 w-3" />
@@ -418,7 +422,8 @@ function DayManagementDialog({
                           e.stopPropagation();
                           handleQuickAdd(s);
                         }}
-                        disabled={addEntry.isPending}
+                        disabled={addEntry.isPending || !isOnline}
+                        title={isOnline ? undefined : "Adding a meal requires an internet connection"}
                         className="shrink-0 rounded-full border border-gray-300 dark:border-gray-600 p-1 text-gray-500 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-300 disabled:opacity-50"
                         aria-label={`Add ${s.name}`}
                       >
@@ -439,7 +444,8 @@ function DayManagementDialog({
             <Button
               type="submit"
               className="w-full"
-              disabled={addEntry.isPending || !name.trim()}
+              disabled={addEntry.isPending || !name.trim() || !isOnline}
+              title={isOnline ? undefined : "Adding a meal requires an internet connection"}
             >
               {addEntry.isPending ? "Adding..." : "Add meal"}
             </Button>
@@ -477,7 +483,8 @@ function DayManagementDialog({
         <Button
           className="w-full"
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || !isOnline}
+          title={isOnline ? undefined : "Saving requires an internet connection"}
         >
           {isSaving ? "Saving..." : "Save"}
         </Button>
@@ -501,6 +508,7 @@ function AddToShoppingListDialog({
 }) {
   const { data: shoppingLists } = useShoppingLists();
   const addToShoppingList = useAddFoodPlanToShoppingList();
+  const isOnline = useOnlineStatus();
 
   const recipeEntries = (entries ?? []).filter((e) => e.recipeId != null);
   const uniqueRecipeIds = [...new Set(recipeEntries.map((e) => e.recipeId ?? 0))];
@@ -593,7 +601,8 @@ function AddToShoppingListDialog({
                 type="button"
                 className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-sm text-gray-800 dark:text-gray-200 disabled:opacity-50"
                 onClick={() => list.id != null && handleSelect(list.id)}
-                disabled={addToShoppingList.isPending}
+                disabled={addToShoppingList.isPending || !isOnline}
+                title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
               >
                 {list.name}
               </button>
@@ -647,6 +656,7 @@ export default function FoodPlanPage() {
     []
   );
   const { setHeaderActions } = useHeaderActions();
+  const isOnline = useOnlineStatus();
 
   const today = useMemo(() => {
     const d = new Date();
@@ -724,14 +734,15 @@ export default function FoodPlanPage() {
           size="icon"
           onClick={() => setShowShoppingListDialog(true)}
           aria-label="Add to shopping list"
-          title="Add all recipe ingredients to shopping list"
+          title={isOnline ? "Add all recipe ingredients to shopping list" : "Adding ingredients requires an internet connection"}
+          disabled={!isOnline}
         >
           <ShoppingCart className="h-5 w-5" />
         </Button>
       </div>
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions, router]);
+  }, [setHeaderActions, router, isOnline]);
 
   const selectedDayEntries = selectedDay ? getEntriesForDate(selectedDay) : [];
   const selectedDayNote = selectedDay ? getNoteForDate(selectedDay) : null;

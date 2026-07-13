@@ -141,33 +141,6 @@ export function useAddFoodPlanEntry() {
   });
 }
 
-export function useUpdateFoodPlanEntry() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      entryId,
-      name,
-      recipeId,
-      date,
-    }: {
-      entryId: number;
-      name: string;
-      recipeId?: number | null;
-      date: Date;
-    }) =>
-      apiClient.api.foodPlan.entries.byEntryId(entryId).put({
-        name,
-        recipeId,
-        date,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
-      queryClient.invalidateQueries({ queryKey: ["foodPlanSuggestions"] });
-    },
-  });
-}
-
 export function useDeleteFoodPlanEntry() {
   const queryClient = useQueryClient();
 

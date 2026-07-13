@@ -6,12 +6,14 @@ import { useCurrentUser, useUpdateProfile, useChangePassword, getUser } from "@/
 import { useState } from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/apiClient";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function ProfilePage() {
   const { data: user } = useCurrentUser();
 
   const updateProfile = useUpdateProfile();
   const changePassword = useChangePassword();
+  const isOnline = useOnlineStatus();
 
   const [name, setName] = useState(() => getUser()?.name ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -98,7 +100,8 @@ export default function ProfilePage() {
           </div>
           <Button
             type="submit"
-            disabled={updateProfile.isPending}
+            disabled={updateProfile.isPending || !isOnline}
+            title={isOnline ? undefined : "Saving your name requires an internet connection"}
             className="w-full sm:w-auto"
           >
             {updateProfile.isPending ? "Saving..." : "Save Name"}
@@ -165,7 +168,8 @@ export default function ProfilePage() {
           </div>
           <Button
             type="submit"
-            disabled={changePassword.isPending}
+            disabled={changePassword.isPending || !isOnline}
+            title={isOnline ? undefined : "Changing your password requires an internet connection"}
             className="w-full sm:w-auto"
           >
             {changePassword.isPending ? "Changing..." : "Change Password"}

@@ -64,6 +64,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import type { RecipeIngredient, RecipeStep } from "@/lib/api-client/models/index";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+
+const OFFLINE_TITLE = "Editing a recipe requires an internet connection";
 
 type SortableIngredientItemProps = Readonly<{
   id: number;
@@ -73,6 +76,7 @@ type SortableIngredientItemProps = Readonly<{
   onBlur: (id: number) => void;
   onDelete: (id: number) => void;
   isDeletePending: boolean;
+  isOnline: boolean;
 }>;
 
 function SortableIngredientItem({
@@ -83,6 +87,7 @@ function SortableIngredientItem({
   onBlur,
   onDelete,
   isDeletePending,
+  isOnline,
 }: SortableIngredientItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -91,8 +96,10 @@ function SortableIngredientItem({
     <li ref={setNodeRef} style={style} className="flex items-center gap-1 py-1">
       <button
         type="button"
-        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none shrink-0"
+        className="flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="Drag to reorder"
+        disabled={!isOnline}
+        title={isOnline ? undefined : "Reordering requires an internet connection"}
         {...attributes}
         {...listeners}
       >
@@ -105,6 +112,8 @@ function SortableIngredientItem({
         onBlur={() => onBlur(id)}
         placeholder="Ingredient name"
         aria-label="Ingredient name"
+        disabled={!isOnline}
+        title={isOnline ? undefined : OFFLINE_TITLE}
         className="flex-1 min-w-0 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
       />
       <input
@@ -114,6 +123,8 @@ function SortableIngredientItem({
         onBlur={() => onBlur(id)}
         placeholder="Qty"
         aria-label="Ingredient quantity"
+        disabled={!isOnline}
+        title={isOnline ? undefined : OFFLINE_TITLE}
         className="w-14 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
         step="any"
       />
@@ -128,13 +139,16 @@ function SortableIngredientItem({
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
+        disabled={!isOnline}
+        title={isOnline ? undefined : OFFLINE_TITLE}
         className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
       />
       <Button
         variant="ghost"
         size="icon"
         onClick={() => onDelete(id)}
-        disabled={isDeletePending}
+        disabled={isDeletePending || !isOnline}
+        title={isOnline ? undefined : OFFLINE_TITLE}
         aria-label="Remove ingredient"
         className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
       >
@@ -154,6 +168,7 @@ type SortableStepItemProps = Readonly<{
   onDelete: () => void;
   isDeletePending: boolean;
   showSaved?: boolean;
+  isOnline: boolean;
 }>;
 
 function SortableStepItem({
@@ -166,6 +181,7 @@ function SortableStepItem({
   onDelete,
   isDeletePending,
   showSaved,
+  isOnline,
 }: SortableStepItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id ?? 0 });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -174,8 +190,10 @@ function SortableStepItem({
     <li ref={setNodeRef} style={style} className="flex items-start gap-2">
       <button
         type="button"
-        className="flex items-center justify-center p-1 mt-0.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none shrink-0"
+        className="flex items-center justify-center p-1 mt-0.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing touch-none shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="Drag to reorder"
+        disabled={!isOnline}
+        title={isOnline ? undefined : "Reordering requires an internet connection"}
         {...attributes}
         {...listeners}
       >
@@ -191,6 +209,8 @@ function SortableStepItem({
           onChange={(e) => onTextChange(e.target.value)}
           onBlur={onBlur}
           onKeyDown={onKeyDown}
+          disabled={!isOnline}
+          title={isOnline ? undefined : OFFLINE_TITLE}
           className="w-full px-2 py-1 pr-7 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
         />
         <span
@@ -204,7 +224,8 @@ function SortableStepItem({
         variant="ghost"
         size="icon"
         onClick={onDelete}
-        disabled={isDeletePending}
+        disabled={isDeletePending || !isOnline}
+        title={isOnline ? undefined : OFFLINE_TITLE}
         aria-label="Remove step"
         className="h-7 w-7 mt-0.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0"
       >
@@ -257,6 +278,7 @@ export default function RecipeEditPage() {
   const { data: tags } = useRecipeTags(recipeId);
   const { data: recommendations } = useRecommendations();
   const { data: units } = useUnits();
+  const isOnline = useOnlineStatus();
 
   const effectiveEditName = editName ?? (recipe?.name ?? "");
   const effectiveEditLink = editLink ?? (recipe?.link ?? "");
@@ -563,7 +585,10 @@ export default function RecipeEditPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {recipe?.link && (
-              <DropdownMenuItem onSelect={() => setReimportDialogOpen(true)}>
+              <DropdownMenuItem
+                onSelect={() => setReimportDialogOpen(true)}
+                disabled={!isOnline}
+              >
                 <RefreshCw className="h-4 w-4" />
                 Reimport from URL
               </DropdownMenuItem>
@@ -571,6 +596,7 @@ export default function RecipeEditPage() {
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
               onSelect={() => setDeleteConfirmOpen(true)}
+              disabled={!isOnline}
             >
               <Trash2 className="h-4 w-4" />
               Delete Recipe
@@ -583,7 +609,7 @@ export default function RecipeEditPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [updateRecipe.isPending, recipe?.link, recipeId, setHeaderActions, setLeftAction]);
+  }, [updateRecipe.isPending, recipe?.link, recipeId, setHeaderActions, setLeftAction, isOnline]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -615,6 +641,8 @@ export default function RecipeEditPage() {
             value={effectiveEditName}
             onChange={(e) => setEditName(e.target.value)}
             placeholder="Recipe name"
+            disabled={!isOnline}
+            title={isOnline ? undefined : OFFLINE_TITLE}
             className="w-full bg-transparent text-white text-2xl font-bold placeholder-white/50 focus:outline-none border-b border-white/40 pb-0.5"
           />
         </div>
@@ -644,7 +672,8 @@ export default function RecipeEditPage() {
                   size="icon"
                   className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 hover:bg-red-600 text-white rounded-full"
                   onClick={() => handleDeleteImage(image.id ?? 0)}
-                  disabled={deleteImage.isPending}
+                  disabled={deleteImage.isPending || !isOnline}
+                  title={isOnline ? undefined : OFFLINE_TITLE}
                   aria-label="Remove image"
                 >
                   <Trash2 className="h-3 w-3" />
@@ -673,6 +702,8 @@ export default function RecipeEditPage() {
             value={effectiveEditLink}
             onChange={(e) => setEditLink(e.target.value)}
             placeholder="Recipe link (optional)"
+            disabled={!isOnline}
+            title={isOnline ? undefined : OFFLINE_TITLE}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
           />
           <textarea
@@ -680,6 +711,8 @@ export default function RecipeEditPage() {
             onChange={(e) => setEditNotes(e.target.value)}
             placeholder="Notes (optional)"
             rows={3}
+            disabled={!isOnline}
+            title={isOnline ? undefined : OFFLINE_TITLE}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm resize-none"
           />
           <div className="flex gap-2">
@@ -692,6 +725,8 @@ export default function RecipeEditPage() {
                 value={effectiveEditCookTimeMinutes}
                 onChange={(e) => setEditCookTimeMinutes(e.target.value)}
                 placeholder="Cook time (min)"
+                disabled={!isOnline}
+                title={isOnline ? undefined : OFFLINE_TITLE}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
               />
             </div>
@@ -703,11 +738,15 @@ export default function RecipeEditPage() {
                 value={effectiveEditServings}
                 onChange={(e) => setEditServings(e.target.value)}
                 placeholder="Servings"
+                disabled={!isOnline}
+                title={isOnline ? undefined : OFFLINE_TITLE}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
               />
               <select
                 value={effectiveEditServingsType}
                 onChange={(e) => setEditServingsType(e.target.value)}
+                disabled={!isOnline}
+                title={isOnline ? undefined : OFFLINE_TITLE}
                 className="px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                 aria-label="Servings type"
               >
@@ -734,7 +773,8 @@ export default function RecipeEditPage() {
                 <button
                   type="button"
                   onClick={() => handleDeleteTag(tag.id!)}
-                  disabled={deleteTag.isPending}
+                  disabled={deleteTag.isPending || !isOnline}
+                  title={isOnline ? undefined : OFFLINE_TITLE}
                   aria-label={`Remove tag ${tag.name}`}
                   className="ml-0.5 text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100"
                 >
@@ -756,7 +796,8 @@ export default function RecipeEditPage() {
               type="submit"
               variant="outline"
               size="sm"
-              disabled={!newTagName.trim() || addTag.isPending}
+              disabled={!newTagName.trim() || addTag.isPending || !isOnline}
+              title={isOnline ? undefined : OFFLINE_TITLE}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add
@@ -795,6 +836,7 @@ export default function RecipeEditPage() {
                         onBlur={handleIngredientBlur}
                         onDelete={handleDeleteIngredient}
                         isDeletePending={deleteIngredient.isPending}
+                        isOnline={isOnline}
                       />
                     );
                   })}
@@ -856,7 +898,13 @@ export default function RecipeEditPage() {
                 spellCheck={false}
                 className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
               />
-              <Button type="submit" size="icon" disabled={addIngredient.isPending} aria-label="Add ingredient">
+              <Button
+                type="submit"
+                size="icon"
+                disabled={addIngredient.isPending || !isOnline}
+                title={isOnline ? undefined : OFFLINE_TITLE}
+                aria-label="Add ingredient"
+              >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -918,6 +966,7 @@ export default function RecipeEditPage() {
                       }}
                       onDelete={() => handleDeleteStep(step.id ?? 0)}
                       isDeletePending={deleteStep.isPending}
+                      isOnline={isOnline}
                     />
                   ))}
                 </SortableContext>
@@ -941,7 +990,13 @@ export default function RecipeEditPage() {
                   <Check className="h-3.5 w-3.5 text-green-500" />
                 </span>
               </div>
-              <Button type="submit" size="icon" disabled={addStep.isPending} aria-label="Add step">
+              <Button
+                type="submit"
+                size="icon"
+                disabled={addStep.isPending || !isOnline}
+                title={isOnline ? undefined : OFFLINE_TITLE}
+                aria-label="Add step"
+              >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -965,7 +1020,8 @@ export default function RecipeEditPage() {
             <Button
               variant="destructive"
               onClick={handleDeleteRecipe}
-              disabled={deleteRecipe.isPending}
+              disabled={deleteRecipe.isPending || !isOnline}
+              title={isOnline ? undefined : OFFLINE_TITLE}
             >
               Delete
             </Button>
@@ -1034,7 +1090,12 @@ export default function RecipeEditPage() {
             </Button>
             <Button
               onClick={handleReimport}
-              disabled={reimportRecipe.isPending || (!reimportName && !reimportIngredients && !reimportSteps && !reimportImages)}
+              disabled={
+                reimportRecipe.isPending ||
+                (!reimportName && !reimportIngredients && !reimportSteps && !reimportImages) ||
+                !isOnline
+              }
+              title={isOnline ? undefined : OFFLINE_TITLE}
             >
               {reimportRecipe.isPending ? "Importing…" : "Reimport"}
             </Button>

@@ -409,4 +409,30 @@ describe("CategoriesPage (household config)", () => {
       });
     });
   });
+
+  describe("offline", () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, "onLine", { configurable: true, value });
+    }
+
+    afterEach(() => {
+      setOnline(true);
+    });
+
+    it("disables export, import, create, edit, delete, and reorder while offline", async () => {
+      mockCategoriesGet.mockResolvedValue([{ id: 1, name: "Beverages", sortOrder: 0 }]);
+      setOnline(false);
+
+      renderWithClient(<CategoriesPage />);
+
+      await waitFor(() => expect(screen.getByText("Beverages")).toBeInTheDocument());
+
+      expect(screen.getByRole("button", { name: "Export categories" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Import categories" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Create category" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Edit category" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Delete category" })).toBeDisabled();
+      expect(screen.getByLabelText("Drag to reorder")).toBeDisabled();
+    });
+  });
 });

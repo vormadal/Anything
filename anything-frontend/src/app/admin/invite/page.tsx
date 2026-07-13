@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Copy, Link, Trash2 } from "lucide-react";
 import type { InviteResponse } from "@/lib/api-client/models/index";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function AdminInvitePage() {
   const [email, setEmail] = useState("");
@@ -17,6 +18,7 @@ export default function AdminInvitePage() {
   const [inviteData, setInviteData] = useState<{ email: string; url: string } | null>(null);
   const createInvite = useCreateInvite();
   const deleteInvite = useDeleteInvite();
+  const isOnline = useOnlineStatus();
   const { data: invites, isLoading: invitesLoading } = useInvites();
   const { data: user } = useCurrentUser();
   const { data: households } = useHouseholds();
@@ -104,7 +106,12 @@ export default function AdminInvitePage() {
               placeholder="user@example.com"
               required
             />
-            <Button type="submit" disabled={createInvite.isPending} className="w-full sm:w-auto">
+            <Button
+              type="submit"
+              disabled={createInvite.isPending || !isOnline}
+              title={isOnline ? undefined : "Creating an invite requires an internet connection"}
+              className="w-full sm:w-auto"
+            >
               {createInvite.isPending ? "Creating..." : "Create Link"}
             </Button>
           </div>
@@ -183,7 +190,8 @@ export default function AdminInvitePage() {
                       size="sm"
                       aria-label={`Delete invite for ${invite.email}`}
                       onClick={() => handleDelete(inviteId)}
-                      disabled={deleteInvite.isPending}
+                      disabled={deleteInvite.isPending || !isOnline}
+                      title={isOnline ? undefined : "Deleting an invite requires an internet connection"}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>

@@ -4,6 +4,7 @@ import { useIsAuthenticated } from "@/hooks/useAuth";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useIsRestoring } from "@tanstack/react-query";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   // useSyncExternalStore is the recommended SSR-safe hydration check:
@@ -14,6 +15,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     () => false
   );
   const isAuthenticated = useIsAuthenticated();
+  // The offline query cache restores from IndexedDB asynchronously (see
+  // QueryProvider's PersistQueryClientProvider). Holding the loading state
+  // until it finishes means HouseholdProvider and every page below it always
+  // mount with the persisted cache already hydrated, instead of racing it and
+  // rendering an empty state on a cold, offline app open.
+  const isRestoring = useIsRestoring();
   useRealtimeSync();
   const router = useRouter();
   const pathname = usePathname();
@@ -53,8 +60,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const isPublicPath = pathname === "/login" || pathname.startsWith("/register") || pathname.startsWith("/shared");
 
-  // Show loading while hydrating or while redirecting unauthenticated users
-  if (!isHydrated || (!isAuthenticated && !isPublicPath)) {
+  // Show loading while hydrating, while the offline cache restores, or while
+  // redirecting unauthenticated users
+  if (!isHydrated || isRestoring || (!isAuthenticated && !isPublicPath)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

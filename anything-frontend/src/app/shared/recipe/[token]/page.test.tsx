@@ -128,4 +128,31 @@ describe('SharedRecipePage', () => {
     await userEvent.click(screen.getByText('Copy to my recipes'))
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/recipes/99'))
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables Copy to my recipes while offline', async () => {
+      setupSharedRecipe({
+        ...mockRecipe,
+        isTargeted: true,
+        targetEmail: 'alice@example.com',
+      })
+      mockIsAuthenticated = () => true
+      mockGetUser = () => ({ email: 'alice@example.com', name: 'Alice', role: 'User' })
+      mockHouseholds = [{ id: 5, name: 'Alice Home', createdOn: '2025-01-01', role: 'Owner' }]
+      setOnline(false)
+
+      render(<SharedRecipePage />)
+      await waitFor(() => expect(screen.getByText('Copy to my recipes')).toBeInTheDocument())
+
+      expect(screen.getByText('Copy to my recipes')).toBeDisabled()
+    })
+  })
 })

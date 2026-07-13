@@ -160,4 +160,24 @@ describe('EditBillPage', () => {
 
     expect(mockBack).toHaveBeenCalled()
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables Save changes while offline', async () => {
+      mockBillByIdGet.mockResolvedValue(mockBill)
+      setOnline(false)
+
+      render(<EditBillPage />)
+
+      await waitFor(() => expect(screen.getByText('Save changes')).toBeInTheDocument())
+      expect(screen.getByText('Save changes')).toBeDisabled()
+    })
+  })
 })

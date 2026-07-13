@@ -11,6 +11,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Camera } from "lucide-react";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 type Phase = "pick" | "ocr" | "review";
 
@@ -33,6 +34,7 @@ export function PhotoImport({ onBack }: { readonly onBack: () => void }) {
   const parseText = useParseRecipeFromText();
   const importRecipe = useImportRecipe();
   const router = useRouter();
+  const isOnline = useOnlineStatus();
 
   const handleFileSelected = async (file: File | undefined) => {
     if (!file) return;
@@ -217,8 +219,10 @@ export function PhotoImport({ onBack }: { readonly onBack: () => void }) {
         disabled={
           parseText.isPending ||
           importRecipe.isPending ||
-          (!name.trim() && !ingredientsText.trim() && !stepsText.trim())
+          (!name.trim() && !ingredientsText.trim() && !stepsText.trim()) ||
+          !isOnline
         }
+        title={isOnline ? undefined : "Importing a recipe requires an internet connection"}
         className="w-full"
       >
         {parseText.isPending || importRecipe.isPending

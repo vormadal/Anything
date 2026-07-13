@@ -40,6 +40,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function HouseholdDetailPage() {
   const params = useParams();
@@ -60,6 +61,7 @@ export default function HouseholdDetailPage() {
   const updateMemberRole = useUpdateHouseholdMemberRole();
   const router = useRouter();
   const { setHeaderActions, setLeftAction } = useHeaderActions();
+  const isOnline = useOnlineStatus();
 
   const [showRename, setShowRename] = useState(false);
   const [newName, setNewName] = useState("");
@@ -83,6 +85,8 @@ export default function HouseholdDetailPage() {
             setShowRename(true);
           }}
           aria-label="Rename household"
+          disabled={!isOnline}
+          title={isOnline ? undefined : "Renaming a household requires an internet connection"}
         >
           <Pencil className="h-5 w-5" />
         </Button>
@@ -92,7 +96,7 @@ export default function HouseholdDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [setHeaderActions, setLeftAction, household, canManage]);
+  }, [setHeaderActions, setLeftAction, household, canManage, isOnline]);
 
   const handleRename = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,6 +247,8 @@ export default function HouseholdDetailPage() {
               size="sm"
               className="text-xs"
               onClick={() => setShowInvite(true)}
+              disabled={!isOnline}
+              title={isOnline ? undefined : "Inviting a member requires an internet connection"}
             >
               <UserPlus className="h-3.5 w-3.5 mr-1" />
               Invite member
@@ -262,6 +268,7 @@ export default function HouseholdDetailPage() {
               onChangeRole={handleChangeRole}
               removePending={removeMember.isPending}
               roleChangePending={updateMemberRole.isPending}
+              isOnline={isOnline}
             />
           ))}
           {/* Then regular members */}
@@ -275,6 +282,7 @@ export default function HouseholdDetailPage() {
               onChangeRole={handleChangeRole}
               removePending={removeMember.isPending}
               roleChangePending={updateMemberRole.isPending}
+              isOnline={isOnline}
             />
           ))}
         </div>
@@ -366,6 +374,8 @@ export default function HouseholdDetailPage() {
                 setDeleteConfirmName("");
                 setShowDeleteHousehold(true);
               }}
+              disabled={!isOnline}
+              title={isOnline ? undefined : "Deleting a household requires an internet connection"}
             >
               Delete
             </Button>
@@ -394,7 +404,12 @@ export default function HouseholdDetailPage() {
               className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               autoFocus
             />
-            <Button type="submit" className="w-full" disabled={createInvite.isPending}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={createInvite.isPending || !isOnline}
+              title={isOnline ? undefined : "Creating an invite requires an internet connection"}
+            >
               {createInvite.isPending ? "Creating..." : "Create Invite Link"}
             </Button>
           </form>
@@ -463,7 +478,12 @@ export default function HouseholdDetailPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={updateHousehold.isPending}>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={updateHousehold.isPending || !isOnline}
+                title={isOnline ? undefined : "Renaming a household requires an internet connection"}
+              >
                 {updateHousehold.isPending ? "Saving..." : "Save"}
               </Button>
             </div>
@@ -495,7 +515,8 @@ export default function HouseholdDetailPage() {
               variant="destructive"
               size="sm"
               onClick={handleRemoveMember}
-              disabled={removeMember.isPending}
+              disabled={removeMember.isPending || !isOnline}
+              title={isOnline ? undefined : "Removing a member requires an internet connection"}
             >
               {removeMember.isPending ? "Removing..." : "Remove"}
             </Button>
@@ -539,7 +560,8 @@ export default function HouseholdDetailPage() {
               variant="destructive"
               size="sm"
               onClick={handleDeleteHousehold}
-              disabled={deleteHousehold.isPending || deleteConfirmName !== household.name}
+              disabled={deleteHousehold.isPending || deleteConfirmName !== household.name || !isOnline}
+              title={isOnline ? undefined : "Deleting a household requires an internet connection"}
             >
               {deleteHousehold.isPending ? "Deleting..." : "Delete Household"}
             </Button>
@@ -599,6 +621,7 @@ function MemberRow({
   onChangeRole,
   removePending,
   roleChangePending,
+  isOnline,
 }: {
   member: HouseholdMember;
   canManage: boolean;
@@ -607,6 +630,7 @@ function MemberRow({
   onChangeRole: (member: HouseholdMember, role: string) => void;
   removePending: boolean;
   roleChangePending: boolean;
+  isOnline: boolean;
 }) {
   const isOwner = member.role === HOUSEHOLD_ROLES.OWNER;
   // Only an Owner can change roles; the Owner row itself is changed via transfer
@@ -632,7 +656,8 @@ function MemberRow({
         <select
           value={member.role}
           onChange={(e) => onChangeRole(member, e.target.value)}
-          disabled={roleChangePending}
+          disabled={roleChangePending || !isOnline}
+          title={isOnline ? undefined : "Changing a member's role requires an internet connection"}
           aria-label={`Change role for ${member.name}`}
           className="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-700 dark:text-white flex-shrink-0"
         >
@@ -649,7 +674,8 @@ function MemberRow({
         <button
           type="button"
           onClick={() => onRemove(member)}
-          disabled={removePending}
+          disabled={removePending || !isOnline}
+          title={isOnline ? undefined : "Removing a member requires an internet connection"}
           className="p-1.5 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
           aria-label={`Remove ${member.name}`}
         >

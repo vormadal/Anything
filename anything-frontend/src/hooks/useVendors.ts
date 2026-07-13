@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { CreateVendorRequest, UpdateVendorRequest } from "@/lib/api-client/models/index";
+import type { CreateVendorRequest } from "@/lib/api-client/models/index";
 
 export interface Vendor {
   id: number;
@@ -34,34 +34,3 @@ export function useCreateVendor() {
   });
 }
 
-export function useUpdateVendor() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      name,
-      website,
-    }: {
-      id: number;
-      name: string;
-      website?: string;
-    }) => {
-      const body: UpdateVendorRequest = { name, website: website ?? null };
-      return apiClient.api.vendors.byId(id).put(body);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendors"] });
-    },
-  });
-}
-
-export function useDeleteVendor() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      apiClient.api.vendors.byId(id).delete(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendors"] });
-    },
-  });
-}

@@ -17,6 +17,7 @@ import {
   type ShareExpiry,
   type RecipeShareResponse,
 } from "@/hooks/useRecipeShares";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const EXPIRY_OPTIONS: { label: string; value: ShareExpiry }[] = [
   { label: "1 week", value: "OneWeek" },
@@ -70,9 +71,10 @@ interface ShareListItemProps {
   share: RecipeShareResponse;
   onRevoke: () => void;
   isRevoking: boolean;
+  isOnline: boolean;
 }
 
-function ShareListItem({ share, onRevoke, isRevoking }: ShareListItemProps) {
+function ShareListItem({ share, onRevoke, isRevoking, isOnline }: ShareListItemProps) {
   const fullUrl = buildFullUrl(share.shareUrl);
   return (
     <div className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -90,7 +92,8 @@ function ShareListItem({ share, onRevoke, isRevoking }: ShareListItemProps) {
       <button
         type="button"
         onClick={onRevoke}
-        disabled={isRevoking}
+        disabled={isRevoking || !isOnline}
+        title={isOnline ? undefined : "Revoking a share link requires an internet connection"}
         className="shrink-0 p-2 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         aria-label="Revoke share link"
       >
@@ -145,6 +148,7 @@ export function ShareRecipeDialog({ recipeId, open, onOpenChange }: Props) {
   const { data: shares = [] } = useRecipeShares(recipeId);
   const createShare = useCreateRecipeShare(recipeId);
   const revokeShare = useRevokeRecipeShare(recipeId);
+  const isOnline = useOnlineStatus();
 
   const publicShares = shares.filter((s) => s.targetEmail === null);
   const userShares = shares.filter((s) => s.targetEmail !== null);
@@ -226,7 +230,8 @@ export function ShareRecipeDialog({ recipeId, open, onOpenChange }: Props) {
             <ExpiryPicker value={publicExpiry} onChange={setPublicExpiry} />
             <Button
               onClick={handleCreatePublicLink}
-              disabled={createShare.isPending}
+              disabled={createShare.isPending || !isOnline}
+              title={isOnline ? undefined : "Generating a link requires an internet connection"}
               className="w-full"
             >
               Generate link
@@ -256,6 +261,7 @@ export function ShareRecipeDialog({ recipeId, open, onOpenChange }: Props) {
                     share={s}
                     onRevoke={() => handleRevoke(s.id)}
                     isRevoking={revokeShare.isPending}
+                    isOnline={isOnline}
                   />
                 ))}
               </div>
@@ -280,7 +286,8 @@ export function ShareRecipeDialog({ recipeId, open, onOpenChange }: Props) {
             <ExpiryPicker value={userExpiry} onChange={setUserExpiry} />
             <Button
               onClick={handleCreateUserLink}
-              disabled={createShare.isPending || !userEmail.trim()}
+              disabled={createShare.isPending || !userEmail.trim() || !isOnline}
+              title={isOnline ? undefined : "Generating a link requires an internet connection"}
               className="w-full"
             >
               Generate link
@@ -315,6 +322,7 @@ export function ShareRecipeDialog({ recipeId, open, onOpenChange }: Props) {
                     share={s}
                     onRevoke={() => handleRevoke(s.id)}
                     isRevoking={revokeShare.isPending}
+                    isOnline={isOnline}
                   />
                 ))}
               </div>

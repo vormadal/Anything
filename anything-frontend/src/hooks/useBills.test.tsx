@@ -9,7 +9,6 @@ import {
   useBillAttachments,
   useCreateBill,
   useUpdateBill,
-  useUpdateBillPrice,
   useDeleteBill,
   useAddBillPrice,
   useDeleteBillPrice,
@@ -288,59 +287,6 @@ describe('useBills hooks', () => {
       expect(mockBillById).toHaveBeenCalledWith(1)
       expect(mockPriceHistoryById).toHaveBeenCalledWith(2)
       expect(mockPriceHistoryByIdDelete).toHaveBeenCalled()
-    })
-  })
-
-  describe('useUpdateBillPrice', () => {
-    it('should update a price entry successfully', async () => {
-      mockPriceHistoryByIdPut.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useUpdateBillPrice(), { wrapper: createWrapper() })
-
-      await act(async () => {
-        result.current.mutate({ billId: 1, historyId: 2, amount: 119, effectiveDate: '2025-06-01T00:00:00Z' })
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(mockBillById).toHaveBeenCalledWith(1)
-      expect(mockPriceHistoryById).toHaveBeenCalledWith(2)
-      expect(mockPriceHistoryByIdPut).toHaveBeenCalledWith(expect.objectContaining({ amount: 119, effectiveDate: new Date('2025-06-01T00:00:00Z') }))
-    })
-
-    it('should invalidate related query caches on success', async () => {
-      mockPriceHistoryByIdPut.mockResolvedValueOnce(undefined)
-      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } })
-      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
-
-      const wrapper = ({ children }: { children: ReactNode }) => (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      )
-      wrapper.displayName = 'TestQueryClientWrapper'
-
-      const { result } = renderHook(() => useUpdateBillPrice(), { wrapper })
-
-      await act(async () => {
-        result.current.mutate({ billId: 1, historyId: 3, amount: 99, effectiveDate: '2025-01-01T00:00:00Z' })
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['billPriceHistory', 1] }))
-      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['bill', 1] }))
-      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['bills'] }))
-      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['billSummary'] }))
-    })
-
-    it('should handle update error', async () => {
-      mockPriceHistoryByIdPut.mockRejectedValueOnce(new Error('Server error'))
-
-      const { result } = renderHook(() => useUpdateBillPrice(), { wrapper: createWrapper() })
-
-      result.current.mutate({ billId: 1, historyId: 2, amount: 99, effectiveDate: '2025-01-01T00:00:00Z' })
-
-      await waitFor(() => expect(result.current.isError).toBe(true))
-      expect(result.current.error).toBeTruthy()
     })
   })
 

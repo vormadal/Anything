@@ -5,7 +5,7 @@ React Query hooks for all API interactions. One file per feature domain.
 ## Structure
 
 - `use{Feature}.ts` — query + mutation hooks (e.g., `useBills.ts`, `useRecipes.ts`, `useShoppingLists.ts`)
-  - Domains: Auth, Bills, FoodPlans, Households, Inventory (Boxes/Items/StorageUnits), Locations, Recipes, Recommendations, ShoppingLists, Somethings, SuggestionCategories, Vendors
+  - Domains: Auth, Bills, FoodPlans, Households, Locations, Recipes, Recommendations, ShoppingLists, SuggestionCategories, Vendors
 - Dialog-state hooks: `useAddToFoodPlanDialog.ts`, `useEditListNameDialog.ts`
 - Utility hooks: `useSmartBack.ts` (history-aware back navigation), `useRealtimeSync.ts` (SSE subscription)
 - Offline hooks: `useOnlineStatus.ts` (`navigator.onLine` via `useSyncExternalStore`, plus a non-hook `isOffline()` for use inside `mutationFn`), `useOfflineSync.ts` (mounted once from `AppLayout`; replays the outbox on `online`/focus/visibilitychange — see `src/lib/agent.md`'s "Offline support" section for the full picture)

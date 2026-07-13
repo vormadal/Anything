@@ -6,7 +6,6 @@ import {
   useUpdateFoodPlanSettings,
   useFoodPlanEntries,
   useAddFoodPlanEntry,
-  useUpdateFoodPlanEntry,
   useDeleteFoodPlanEntry,
   useAddFoodPlanToShoppingList,
   useFoodPlanNotes,
@@ -193,30 +192,6 @@ describe('useFoodPlans hooks', () => {
 
       expect(mockEntriesPost).toHaveBeenCalledWith({
         name: 'Salad',
-        recipeId: undefined,
-        date,
-      })
-    })
-  })
-
-  describe('useUpdateFoodPlanEntry', () => {
-    it('should update a food plan entry successfully', async () => {
-      mockEntriesItemPut.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useUpdateFoodPlanEntry(), {
-        wrapper: createWrapper(),
-      })
-
-      const date = new Date('2026-03-11T00:00:00Z')
-      await act(async () => {
-        result.current.mutate({ entryId: 2, name: 'Updated Salad', date })
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(mockEntriesItemById).toHaveBeenCalledWith(2)
-      expect(mockEntriesItemPut).toHaveBeenCalledWith({
-        name: 'Updated Salad',
         recipeId: undefined,
         date,
       })

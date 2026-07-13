@@ -352,4 +352,26 @@ describe('HouseholdDetailPage', () => {
       expect(mockDeleteMutateAsync).not.toHaveBeenCalled()
     })
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables invite, remove-member, role-select, and delete-household controls', async () => {
+      setOnline(false)
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByRole('button', { name: /invite member/i }))
+
+      expect(screen.getByRole('button', { name: /invite member/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /^delete$/i })).toBeDisabled()
+      expect(screen.getByLabelText(/change role for bob/i)).toBeDisabled()
+      expect(screen.getByLabelText(/remove bob/i)).toBeDisabled()
+      expect(screen.getByRole('button', { name: /rename household/i })).toBeDisabled()
+    })
+  })
 })

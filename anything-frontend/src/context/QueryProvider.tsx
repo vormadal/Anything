@@ -1,9 +1,9 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useEffect, useState } from "react";
-import { persistQueryClient } from "@tanstack/query-persist-client-core";
+import { useState } from "react";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import {
   createOfflinePersister,
   shouldPersistQuery,
@@ -31,23 +31,21 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         },
       })
   );
-
-  useEffect(() => {
-    const [unsubscribe] = persistQueryClient({
-      queryClient,
-      persister: createOfflinePersister(),
-      buster: OFFLINE_CACHE_BUSTER,
-      dehydrateOptions: {
-        shouldDehydrateQuery: shouldPersistQuery,
-      },
-    });
-    return unsubscribe;
-  }, [queryClient]);
+  const [persister] = useState(() => createOfflinePersister());
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        buster: OFFLINE_CACHE_BUSTER,
+        dehydrateOptions: {
+          shouldDehydrateQuery: shouldPersistQuery,
+        },
+      }}
+    >
       {children}
       <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

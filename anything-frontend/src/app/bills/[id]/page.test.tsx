@@ -285,4 +285,30 @@ describe('BillDetailPage', () => {
       expect(screen.getByText('Auto')).toBeInTheDocument()
     })
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables adding a price entry, uploading a file, and deleting the bill', async () => {
+      mockBillByIdGet.mockResolvedValue(mockBill)
+      mockPriceHistoryGet.mockResolvedValue(mockPriceHistory)
+      setOnline(false)
+
+      render(<BillDetailPage />)
+
+      await waitFor(() => expect(screen.getByText('Delete bill')).toBeInTheDocument())
+
+      fireEvent.click(screen.getByText('Add entry'))
+      expect(screen.getByPlaceholderText('Amount').closest('form')?.querySelector('button[type="submit"]')).toBeDisabled()
+      expect(screen.getByText('Add file')).toBeDisabled()
+      expect(screen.getByText('Delete bill')).toBeDisabled()
+      expect(screen.getAllByLabelText('Delete price entry')[0]).toBeDisabled()
+    })
+  })
 })

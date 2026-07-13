@@ -9,6 +9,7 @@ import { useSharedRecipe, useCloneSharedRecipe } from "@/hooks/useRecipeShares";
 import { useIsAuthenticated } from "@/hooks/useAuth";
 import { useHouseholds } from "@/hooks/useHouseholds";
 import { getUser } from "@/hooks/useAuth";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function SharedRecipePage() {
   const params = useParams();
@@ -19,6 +20,7 @@ export default function SharedRecipePage() {
   const { data: recipe, isLoading, isError } = useSharedRecipe(token);
   const { data: households = [] } = useHouseholds();
   const cloneRecipe = useCloneSharedRecipe(token);
+  const isOnline = useOnlineStatus();
 
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<number | null>(null);
 
@@ -212,7 +214,8 @@ export default function SharedRecipePage() {
             )}
             <Button
               onClick={handleClone}
-              disabled={cloneRecipe.isPending || !effectiveHouseholdId}
+              disabled={cloneRecipe.isPending || !effectiveHouseholdId || !isOnline}
+              title={isOnline ? undefined : "Copying a recipe requires an internet connection"}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
             >
               {cloneRecipe.isPending ? "Copying…" : "Copy to my recipes"}
