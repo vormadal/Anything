@@ -151,5 +151,33 @@ describe('HouseholdsPage', () => {
     expect(screen.getByText(/no households yet/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /create household/i })).toBeInTheDocument()
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables creating a household while offline', () => {
+      mockUseHouseholdContext.mockReturnValue({
+        households: [],
+        isLoading: false,
+        selectedHouseholdId: null,
+        setSelectedHouseholdId: jest.fn(),
+      })
+      setOnline(false)
+      render(<HouseholdsPage />)
+      expect(screen.getByRole('button', { name: /create household/i })).toBeDisabled()
+    })
+
+    it('disables the Add Household button while offline', () => {
+      setOnline(false)
+      render(<HouseholdsPage />)
+      expect(screen.getByRole('button', { name: /add household/i })).toBeDisabled()
+    })
+  })
 })
 

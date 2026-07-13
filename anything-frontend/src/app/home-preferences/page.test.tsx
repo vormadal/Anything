@@ -148,4 +148,30 @@ describe('HomePreferencesPage', () => {
       })
     })
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables the visibility toggles and drag handles while offline', async () => {
+      setOnline(false)
+      render(<HomePreferencesPage />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Lists')).toBeInTheDocument()
+      })
+
+      for (const toggle of screen.getAllByRole('switch')) {
+        expect(toggle).toBeDisabled()
+      }
+      for (const handle of screen.getAllByLabelText('Drag to reorder')) {
+        expect(handle).toBeDisabled()
+      }
+    })
+  })
 })

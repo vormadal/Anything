@@ -114,4 +114,22 @@ describe('NewBillPage', () => {
 
     expect(mockNavigateBack).toHaveBeenCalledWith('/bills')
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables Add bill while offline', async () => {
+      setOnline(false)
+      render(<NewBillPage />)
+
+      await waitFor(() => expect(screen.getByText('Add bill')).toBeInTheDocument())
+      expect(screen.getByText('Add bill')).toBeDisabled()
+    })
+  })
 })

@@ -1397,5 +1397,36 @@ describe('FoodPlanPage', () => {
 
     expect(mockScrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }))
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables adding/removing entries and saving in the day dialog', async () => {
+      mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pancakes', 0)])
+      const user = userEvent.setup()
+      setOnline(false)
+
+      render(<FoodPlanPage />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Pancakes')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByRole('button', { name: /i dag/ }))
+
+      const dialog = screen.getByPlaceholderText('Meal name...').closest<HTMLElement>('div[class*="rounded-xl"]')!
+      expect(within(dialog).getByRole('button', { name: 'Remove entry' })).toBeDisabled()
+
+      await user.type(screen.getByPlaceholderText('Meal name...'), 'Burger')
+      expect(screen.getByRole('button', { name: 'Add meal' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    })
+  })
 })
 

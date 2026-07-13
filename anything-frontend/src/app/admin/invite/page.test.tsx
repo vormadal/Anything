@@ -342,4 +342,31 @@ describe("AdminInvitePage", () => {
       expect(toast.success).toHaveBeenCalledWith("Invite deleted");
     });
   });
+
+  describe("offline", () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, "onLine", { configurable: true, value });
+    }
+
+    afterEach(() => {
+      setOnline(true);
+    });
+
+    it("disables creating and deleting invites while offline", async () => {
+      const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      mockInvitesGet.mockResolvedValue([
+        { id: 42, email: "todelete@test.com", expiresAt: future, createdOn: new Date(), isUsed: false, isExpired: false },
+      ]);
+      setOnline(false);
+
+      renderWithClient(<AdminInvitePage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("todelete@test.com")).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole("button", { name: "Create Link" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Delete invite for todelete@test.com" })).toBeDisabled();
+    });
+  });
 });

@@ -352,4 +352,32 @@ describe('FoodPlanSettingsPage', () => {
     })
     expect(toast.success).toHaveBeenCalledWith('Seasonal tag removed')
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables settings, tuning, and seasonal-tag controls while offline', async () => {
+      mockRulesGet.mockResolvedValue([
+        { id: 7, keyword: 'jul', matchPrefix: false, months: 1 << 11, boost: 15 },
+      ])
+      setOnline(false)
+
+      render(<FoodPlanSettingsPage />)
+
+      await waitFor(() => {
+        expect(screen.getByText('jul')).toBeInTheDocument()
+      })
+
+      expect(screen.getByRole('button', { name: 'Save Settings' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Save Tuning' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Reset to defaults' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Remove seasonal tag jul' })).toBeDisabled()
+    })
+  })
 })

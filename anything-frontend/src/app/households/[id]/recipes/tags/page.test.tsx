@@ -210,4 +210,29 @@ describe("RecipeTagsPage (household config)", () => {
       );
     });
   });
+
+  describe("offline", () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, "onLine", { configurable: true, value });
+    }
+
+    afterEach(() => {
+      setOnline(true);
+    });
+
+    it("disables export and import while offline", async () => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+      setOnline(false);
+
+      renderWithClient(<RecipeTagsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Export recipe tags" })).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole("button", { name: "Export recipe tags" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Import recipe tags" })).toBeDisabled();
+    });
+  });
 });

@@ -340,4 +340,35 @@ describe('RecipeDetailPage', () => {
       expect(toast.error).toHaveBeenCalledWith('Failed to add ingredients to shopping list. Please try again.')
     })
   })
+
+  describe('offline', () => {
+    function setOnline(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+    }
+
+    afterEach(() => {
+      setOnline(true)
+    })
+
+    it('disables Delete Recipe and Add to Shopping List while offline', async () => {
+      const user = userEvent.setup()
+      setOnline(false)
+
+      render(<RecipeDetailPage />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByRole('button', { name: 'More options' }))
+      expect(await screen.findByRole('menuitem', { name: /Delete Recipe/i })).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      )
+      expect(screen.getByRole('menuitem', { name: /Add to Shopping List/i })).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      )
+    })
+  })
 })
