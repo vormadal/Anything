@@ -119,22 +119,37 @@ describe('Home Page Integration Tests', () => {
     setOnline(true)
   })
 
-  it('should render "Today\'s Menu" heading when hour is before 18', () => {
+  it('should render "Today\'s Menu" heading when hour is before 18', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
-    expect(screen.getByText("Today's Menu")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Today's Menu")).toBeInTheDocument()
+    })
   })
 
-  it('should render "Tomorrow\'s Menu" heading when hour is 18 or later', () => {
+  it('should render "Tomorrow\'s Menu" heading when hour is 18 or later', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T18:00:00'))
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
-    expect(screen.getByText("Tomorrow's Menu")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Tomorrow's Menu")).toBeInTheDocument()
+    })
+  })
+
+  it('should not render the default card set before preferences have loaded', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockImplementation(() => new Promise(() => {}))
+
+    render(<Home />)
+
+    expect(screen.queryByText("Today's Menu")).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Lists' })).not.toBeInTheDocument()
   })
 
   it('should show "no meals planned" message when no entries for today', async () => {
@@ -513,10 +528,10 @@ describe('Home Page Integration Tests', () => {
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: 'Lists' })).not.toBeInTheDocument()
+      expect(screen.getByText("Today's Menu")).toBeInTheDocument()
     })
 
-    expect(screen.getByText("Today's Menu")).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Lists' })).not.toBeInTheDocument()
   })
 
   // ------- Offline mode: edit options disabled -------

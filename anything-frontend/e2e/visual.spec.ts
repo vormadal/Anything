@@ -511,6 +511,17 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-note-without-meals.png", screenshotOptions);
   });
 
+  test("home page - loading skeleton", async ({ page }) => {
+    // Hold card preferences pending so we capture the skeleton shown before
+    // the customisation is known, instead of the default card set.
+    await page.route("**/api/home/card-preferences**", () => {
+      // intentionally hang to show loading state
+    });
+    await page.goto("/");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page).toHaveScreenshot("home-loading-skeleton.png", screenshotOptions);
+  });
+
   test("home preferences - reorder and toggle cards", async ({ page }) => {
     // Reordered (Lists first) with Bills hidden, to showcase the drag handles and toggles.
     await page.route("**/api/home/card-preferences**", (route) => {
