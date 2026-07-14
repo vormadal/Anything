@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, createMultipartBody } from "@/lib/apiClient";
 import type {
   Recipe,
+  RecipeListItemResponse,
+  RecipeDetailResponse,
   RecipeIngredient,
   RecipeStep,
   RecipeImageResponse,
@@ -17,6 +19,7 @@ import type {
 
 // Re-export API model types that consumers import from this hook
 export type { ParsedRecipeResponse, ParsedIngredient, ParsedStep, RecipeTag };
+export type { RecipeListItemResponse, RecipeDetailResponse };
 export type { ExportRecipeTagsResponse, ImportRecipeTagsRequest };
 
 export interface TopTag {
@@ -60,11 +63,11 @@ export function useRecipes(search?: string, tag?: string) {
     // after creating a recipe) so newly created recipes show without a manual
     // refresh — see issue #571.
     refetchOnMount: "always",
-    queryFn: async (): Promise<Recipe[]> => {
+    queryFn: async (): Promise<RecipeListItemResponse[]> => {
       const recipes = await apiClient.api.recipes.get({
         queryParameters: { search, tag },
       });
-      return (recipes ?? []) as Recipe[];
+      return (recipes ?? []) as RecipeListItemResponse[];
     },
   });
 }
@@ -95,15 +98,40 @@ export function useRecipe(id: number) {
     queryFn: () => apiClient.api.recipes.byId(id).get() as Promise<Recipe>,
     enabled: id > 0,
     // Seed from an already-cached recipes list so navigating from a list to
-    // a recipe the user just saw doesn't flash a bare loading state.
-    placeholderData: () => {
-      const lists = queryClient.getQueriesData<Recipe[]>({ queryKey: ["recipes"] });
+    // a recipe the user just saw doesn't flash a bare loading state. The list
+    // items are RecipeListItemResponse, so map the fields the two share; the
+    // rest (e.g. servingsType) arrives shortly after from the real fetch.
+    placeholderData: (): Recipe | undefined => {
+      const lists = queryClient.getQueriesData<RecipeListItemResponse[]>({ queryKey: ["recipes"] });
       for (const [, data] of lists) {
         const match = data?.find((r) => r.id === id);
-        if (match) return match;
+        if (match) {
+          return {
+            id: match.id,
+            name: match.name,
+            link: match.link,
+            notes: match.notes,
+            cookTimeMinutes: match.cookTimeMinutes,
+            servings: match.servings,
+            createdOn: match.createdOn,
+          };
+        }
       }
       return undefined;
     },
+  });
+}
+
+export function useRecipeDetails(recipeId: number) {
+  return useQuery({
+    queryKey: ["recipeDetails", recipeId],
+    // Refetch whenever the detail page is re-entered (e.g. returning from the
+    // edit page) so edits made via the granular hooks show without a manual
+    // refresh — mirrors useRecipes' refetchOnMount for issue #571.
+    refetchOnMount: "always",
+    queryFn: () =>
+      apiClient.api.recipes.byId(recipeId).details.get() as Promise<RecipeDetailResponse>,
+    enabled: recipeId > 0,
   });
 }
 

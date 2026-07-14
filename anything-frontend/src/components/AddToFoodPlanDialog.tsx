@@ -4,11 +4,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAddFoodPlanEntry } from "@/hooks/useFoodPlans";
 import { toast } from "sonner";
-import type { Recipe } from "@/lib/api-client/models/index";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 
 interface AddToFoodPlanDialogProps {
-  recipe: Recipe;
+  // Only the id and name are needed, so accept any recipe-like shape (list item,
+  // detail response, or full recipe).
+  recipe: { id?: number | null; name?: string | null };
   onClose: () => void;
 }
 

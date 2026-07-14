@@ -1,6 +1,7 @@
 "use client";
 
-import { useRecipes, useTopRecipeTags, useRecipeImages, useRecipeTags } from "@/hooks/useRecipes";
+import { useRecipes, useTopRecipeTags } from "@/hooks/useRecipes";
+import type { RecipeListItemResponse } from "@/hooks/useRecipes";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,20 +12,17 @@ import { Search, X, CookingPot, Plus, CalendarPlus, Clock, Users, Package, Layer
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
-import type { Recipe } from "@/lib/api-client/models/index";
 
 const MAX_VISIBLE_TAGS = 3;
 
-function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }) {
-  const { data: images } = useRecipeImages(recipe.id!);
-  const { data: tags } = useRecipeTags(recipe.id!);
-  const firstImage = images?.[0];
-  const imageUrl = firstImage?.thumbnailUrl ?? null;
+function RecipeCard({ recipe, onClick }: { recipe: RecipeListItemResponse; onClick: () => void }) {
+  const imageUrl = recipe.thumbnailUrl ?? null;
   const [imgError, setImgError] = useState(false);
   const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
 
-  const visibleTags = tags?.slice(0, MAX_VISIBLE_TAGS) ?? [];
-  const extraTagCount = (tags?.length ?? 0) - visibleTags.length;
+  const tags = recipe.tags ?? [];
+  const visibleTags = tags.slice(0, MAX_VISIBLE_TAGS);
+  const extraTagCount = tags.length - visibleTags.length;
 
   return (
     <div className="relative overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all">
@@ -79,10 +77,10 @@ function RecipeCard({ recipe, onClick }: { recipe: Recipe; onClick: () => void }
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {visibleTags.map((tag) => (
                   <span
-                    key={tag.id}
+                    key={tag}
                     className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm"
                   >
-                    {tag.name}
+                    {tag}
                   </span>
                 ))}
                 {extraTagCount > 0 && (
