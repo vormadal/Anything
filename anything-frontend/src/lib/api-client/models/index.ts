@@ -1137,6 +1137,15 @@ export function createPendingInviteResponseFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RecipeDetailResponse}
+ */
+// @ts-ignore
+export function createRecipeDetailResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRecipeDetailResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {Recipe}
  */
 // @ts-ignore
@@ -1178,6 +1187,15 @@ export interface CreateRecipeIngredientRequest extends Parsable {
      * The unit property
      */
     unit?: string | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RecipeListItemResponse}
+ */
+// @ts-ignore
+export function createRecipeListItemResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRecipeListItemResponse;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -2866,6 +2884,28 @@ export function deserializeIntoRecipe(recipe: Partial<Recipe> | undefined = {}) 
 }
 /**
  * The deserialization information for the current model
+ * @param RecipeDetailResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRecipeDetailResponse(recipeDetailResponse: Partial<RecipeDetailResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "cookTimeMinutes": n => { recipeDetailResponse.cookTimeMinutes = n.getNumberValue(); },
+        "createdOn": n => { recipeDetailResponse.createdOn = n.getDateValue(); },
+        "id": n => { recipeDetailResponse.id = n.getNumberValue(); },
+        "images": n => { recipeDetailResponse.images = n.getCollectionOfObjectValues<RecipeImageResponse>(createRecipeImageResponseFromDiscriminatorValue); },
+        "ingredients": n => { recipeDetailResponse.ingredients = n.getCollectionOfObjectValues<RecipeIngredient>(createRecipeIngredientFromDiscriminatorValue); },
+        "link": n => { recipeDetailResponse.link = n.getStringValue(); },
+        "name": n => { recipeDetailResponse.name = n.getStringValue(); },
+        "notes": n => { recipeDetailResponse.notes = n.getStringValue(); },
+        "servings": n => { recipeDetailResponse.servings = n.getNumberValue(); },
+        "servingsType": n => { recipeDetailResponse.servingsType = n.getStringValue(); },
+        "steps": n => { recipeDetailResponse.steps = n.getCollectionOfObjectValues<RecipeStep>(createRecipeStepFromDiscriminatorValue); },
+        "tags": n => { recipeDetailResponse.tags = n.getCollectionOfObjectValues<RecipeTag>(createRecipeTagFromDiscriminatorValue); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param RecipeImageResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -2898,6 +2938,26 @@ export function deserializeIntoRecipeIngredient(recipeIngredient: Partial<Recipe
         "recipeId": n => { recipeIngredient.recipeId = n.getNumberValue(); },
         "sortOrder": n => { recipeIngredient.sortOrder = n.getNumberValue(); },
         "unit": n => { recipeIngredient.unit = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RecipeListItemResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRecipeListItemResponse(recipeListItemResponse: Partial<RecipeListItemResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "cookTimeMinutes": n => { recipeListItemResponse.cookTimeMinutes = n.getNumberValue(); },
+        "createdOn": n => { recipeListItemResponse.createdOn = n.getDateValue(); },
+        "id": n => { recipeListItemResponse.id = n.getNumberValue(); },
+        "link": n => { recipeListItemResponse.link = n.getStringValue(); },
+        "name": n => { recipeListItemResponse.name = n.getStringValue(); },
+        "notes": n => { recipeListItemResponse.notes = n.getStringValue(); },
+        "servings": n => { recipeListItemResponse.servings = n.getNumberValue(); },
+        "servingsType": n => { recipeListItemResponse.servingsType = n.getStringValue(); },
+        "tags": n => { recipeListItemResponse.tags = n.getCollectionOfPrimitiveValues<string>(); },
+        "thumbnailUrl": n => { recipeListItemResponse.thumbnailUrl = n.getStringValue(); },
     }
 }
 /**
@@ -4411,6 +4471,56 @@ export interface Recipe extends Parsable {
      */
     servingsType?: ServingsType | null;
 }
+export interface RecipeDetailResponse extends Parsable {
+    /**
+     * The cookTimeMinutes property
+     */
+    cookTimeMinutes?: number | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The images property
+     */
+    images?: RecipeImageResponse[] | null;
+    /**
+     * The ingredients property
+     */
+    ingredients?: RecipeIngredient[] | null;
+    /**
+     * The link property
+     */
+    link?: string | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The servings property
+     */
+    servings?: number | null;
+    /**
+     * The servingsType property
+     */
+    servingsType?: string | null;
+    /**
+     * The steps property
+     */
+    steps?: RecipeStep[] | null;
+    /**
+     * The tags property
+     */
+    tags?: RecipeTag[] | null;
+}
 export interface RecipeImageResponse extends Parsable {
     /**
      * The createdOn property
@@ -4478,6 +4588,48 @@ export interface RecipeIngredient extends Parsable {
      * The unit property
      */
     unit?: string | null;
+}
+export interface RecipeListItemResponse extends Parsable {
+    /**
+     * The cookTimeMinutes property
+     */
+    cookTimeMinutes?: number | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The link property
+     */
+    link?: string | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The servings property
+     */
+    servings?: number | null;
+    /**
+     * The servingsType property
+     */
+    servingsType?: string | null;
+    /**
+     * The tags property
+     */
+    tags?: string[] | null;
+    /**
+     * The thumbnailUrl property
+     */
+    thumbnailUrl?: string | null;
 }
 export interface RecipeMultiplier extends Parsable {
     /**
@@ -5780,6 +5932,28 @@ export function serializeRecipe(writer: SerializationWriter, recipe: Partial<Rec
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RecipeDetailResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRecipeDetailResponse(writer: SerializationWriter, recipeDetailResponse: Partial<RecipeDetailResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!recipeDetailResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("cookTimeMinutes", recipeDetailResponse.cookTimeMinutes);
+    writer.writeDateValue("createdOn", recipeDetailResponse.createdOn);
+    writer.writeNumberValue("id", recipeDetailResponse.id);
+    writer.writeCollectionOfObjectValues<RecipeImageResponse>("images", recipeDetailResponse.images, serializeRecipeImageResponse);
+    writer.writeCollectionOfObjectValues<RecipeIngredient>("ingredients", recipeDetailResponse.ingredients, serializeRecipeIngredient);
+    writer.writeStringValue("link", recipeDetailResponse.link);
+    writer.writeStringValue("name", recipeDetailResponse.name);
+    writer.writeStringValue("notes", recipeDetailResponse.notes);
+    writer.writeNumberValue("servings", recipeDetailResponse.servings);
+    writer.writeStringValue("servingsType", recipeDetailResponse.servingsType);
+    writer.writeCollectionOfObjectValues<RecipeStep>("steps", recipeDetailResponse.steps, serializeRecipeStep);
+    writer.writeCollectionOfObjectValues<RecipeTag>("tags", recipeDetailResponse.tags, serializeRecipeTag);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param RecipeImageResponse The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -5812,6 +5986,26 @@ export function serializeRecipeIngredient(writer: SerializationWriter, recipeIng
     writer.writeNumberValue("recipeId", recipeIngredient.recipeId);
     writer.writeNumberValue("sortOrder", recipeIngredient.sortOrder);
     writer.writeStringValue("unit", recipeIngredient.unit);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RecipeListItemResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRecipeListItemResponse(writer: SerializationWriter, recipeListItemResponse: Partial<RecipeListItemResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!recipeListItemResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("cookTimeMinutes", recipeListItemResponse.cookTimeMinutes);
+    writer.writeDateValue("createdOn", recipeListItemResponse.createdOn);
+    writer.writeNumberValue("id", recipeListItemResponse.id);
+    writer.writeStringValue("link", recipeListItemResponse.link);
+    writer.writeStringValue("name", recipeListItemResponse.name);
+    writer.writeStringValue("notes", recipeListItemResponse.notes);
+    writer.writeNumberValue("servings", recipeListItemResponse.servings);
+    writer.writeStringValue("servingsType", recipeListItemResponse.servingsType);
+    writer.writeCollectionOfPrimitiveValues<string>("tags", recipeListItemResponse.tags);
+    writer.writeStringValue("thumbnailUrl", recipeListItemResponse.thumbnailUrl);
 }
 /**
  * Serializes information the current object
