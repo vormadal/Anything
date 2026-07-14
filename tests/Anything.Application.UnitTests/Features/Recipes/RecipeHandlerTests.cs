@@ -241,13 +241,19 @@ public class GetRecipesHandlerTests
     private readonly IRepository<Recipe> _repo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeTag> _tagRepo = Substitute.For<IRepository<RecipeTag>>();
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
+    private readonly IRepository<RecipeImage> _imageRepo = Substitute.For<IRepository<RecipeImage>>();
+    private readonly IImageStorageService _imageStorageService = Substitute.For<IImageStorageService>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     public GetRecipesHandlerTests()
     {
         _tagRepo.Query().Returns(new List<RecipeTag>().AsAsyncQueryable());
         _ingredientRepo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
+        _imageRepo.Query().Returns(new List<RecipeImage>().AsAsyncQueryable());
     }
+
+    private GetRecipesHandler CreateHandler() =>
+        new(_repo, _tagRepo, _ingredientRepo, _imageRepo, _imageStorageService, _householdContext);
 
     [Fact]
     public async Task Handle_ReturnsOnlyNonDeletedRecipes()
@@ -258,10 +264,38 @@ public class GetRecipesHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetRecipesHandler(_repo, _tagRepo, _ingredientRepo, _householdContext).Handle(new GetRecipesQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetRecipesQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Pasta", result[0].Name);
+        // No image or tags for this recipe -> null thumbnail, empty tag list.
+        Assert.Null(result[0].ThumbnailUrl);
+        Assert.Empty(result[0].Tags);
+    }
+
+    [Fact]
+    public async Task Handle_EmbedsTagNamesAndThumbnailForEachRecipe()
+    {
+        _repo.Query().Returns(new List<Recipe>
+        {
+            new() { Id = 1, Name = "Pasta" }
+        }.AsAsyncQueryable());
+        _tagRepo.Query().Returns(new List<RecipeTag>
+        {
+            new() { Id = 1, RecipeId = 1, Name = "italian" },
+            new() { Id = 2, RecipeId = 1, Name = "quick" }
+        }.AsAsyncQueryable());
+        _imageRepo.Query().Returns(new List<RecipeImage>
+        {
+            new() { Id = 1, RecipeId = 1, StorageKey = "key-1", CreatedOn = DateTime.UtcNow }
+        }.AsAsyncQueryable());
+        _imageStorageService.GetImageUrl("key-1", 300, 300, "fill").Returns("https://cdn/thumb.jpg");
+
+        var result = await CreateHandler().Handle(new GetRecipesQuery(), TestContext.Current.CancellationToken);
+
+        var recipe = Assert.Single(result);
+        Assert.Equal(new[] { "italian", "quick" }, recipe.Tags);
+        Assert.Equal("https://cdn/thumb.jpg", recipe.ThumbnailUrl);
     }
 }
 

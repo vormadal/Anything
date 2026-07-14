@@ -264,6 +264,36 @@ describe('useFoodPlans hooks', () => {
         recipeMultipliers,
       })
     })
+
+    it('invalidates the shopping-list caches so added items show up', async () => {
+      mockAddToShoppingListPost.mockResolvedValueOnce(undefined)
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false, gcTime: 0 },
+          mutations: { retry: false },
+        },
+      })
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      )
+
+      const { result } = renderHook(() => useAddFoodPlanToShoppingList(), { wrapper })
+
+      await act(async () => {
+        result.current.mutate({
+          shoppingListId: 5,
+          startDate: new Date('2026-03-09T00:00:00Z'),
+          endDate: new Date('2026-03-15T00:00:00Z'),
+        })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['shoppingLists'] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['shoppingListItems'] })
+    })
   })
 
   describe('useFoodPlanNotes', () => {

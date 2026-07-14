@@ -6,6 +6,8 @@ import { createHttpValidationProblemDetailsFromDiscriminatorValue, createRecipeF
 // @ts-ignore
 import { AddToShoppingListRequestBuilderRequestsMetadata, type AddToShoppingListRequestBuilder } from './addToShoppingList/index';
 // @ts-ignore
+import { DetailsRequestBuilderRequestsMetadata, type DetailsRequestBuilder } from './details/index';
+// @ts-ignore
 import { ImagesRequestBuilderNavigationMetadata, ImagesRequestBuilderRequestsMetadata, type ImagesRequestBuilder } from './images/index';
 // @ts-ignore
 import { IngredientsRequestBuilderNavigationMetadata, IngredientsRequestBuilderRequestsMetadata, type IngredientsRequestBuilder } from './ingredients/index';
@@ -28,6 +30,10 @@ export interface RecipesItemRequestBuilder extends BaseRequestBuilder<RecipesIte
      * The addToShoppingList property
      */
     get addToShoppingList(): AddToShoppingListRequestBuilder;
+    /**
+     * The details property
+     */
+    get details(): DetailsRequestBuilder;
     /**
      * The images property
      */
@@ -94,6 +100,9 @@ export const RecipesItemRequestBuilderUriTemplate = "{+baseurl}/api/recipes/{id}
 export const RecipesItemRequestBuilderNavigationMetadata: Record<Exclude<keyof RecipesItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
     addToShoppingList: {
         requestsMetadata: AddToShoppingListRequestBuilderRequestsMetadata,
+    },
+    details: {
+        requestsMetadata: DetailsRequestBuilderRequestsMetadata,
     },
     images: {
         requestsMetadata: ImagesRequestBuilderRequestsMetadata,

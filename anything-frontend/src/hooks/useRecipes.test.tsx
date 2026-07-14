@@ -4,6 +4,7 @@ import { ReactNode } from 'react'
 import {
   useRecipes,
   useRecipe,
+  useRecipeDetails,
   useTopRecipeTags,
   useCreateRecipe,
   useUpdateRecipe,
@@ -60,6 +61,8 @@ const mockTagsPost = jest.fn()
 const mockTagsItemDelete = jest.fn()
 const mockTagsItemById: jest.Mock = jest.fn(() => ({ delete: mockTagsItemDelete }))
 const mockTags = { get: mockTagsGet, post: mockTagsPost, byTagId: mockTagsItemById }
+const mockDetailsGet = jest.fn()
+const mockDetails = { get: mockDetailsGet }
 const mockById: jest.Mock = jest.fn(() => ({
   get: mockGet,
   put: mockPut,
@@ -70,6 +73,7 @@ const mockById: jest.Mock = jest.fn(() => ({
   addToShoppingList: mockAddToShoppingList,
   tags: mockTags,
   reimport: mockReimport,
+  details: mockDetails,
 }))
 
 const mockParseUrlPost = jest.fn()
@@ -556,6 +560,39 @@ describe('useRecipes hooks', () => {
 
       expect(result.current.fetchStatus).toBe('idle')
       expect(mockGet).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useRecipeDetails', () => {
+    it('should fetch the aggregate recipe detail from the details endpoint', async () => {
+      const mockData = {
+        id: 1,
+        name: 'Pasta',
+        ingredients: [{ id: 1, name: 'Flour' }],
+        steps: [{ id: 1, text: 'Mix' }],
+        images: [],
+        tags: [{ id: 1, name: 'italian' }],
+      }
+      mockDetailsGet.mockResolvedValueOnce(mockData)
+
+      const { result } = renderHook(() => useRecipeDetails(1), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual(mockData)
+      expect(mockById).toHaveBeenCalledWith(1)
+      expect(mockDetailsGet).toHaveBeenCalled()
+    })
+
+    it('should not fetch when id is 0', () => {
+      const { result } = renderHook(() => useRecipeDetails(0), {
+        wrapper: createWrapper(),
+      })
+
+      expect(result.current.fetchStatus).toBe('idle')
+      expect(mockDetailsGet).not.toHaveBeenCalled()
     })
   })
 

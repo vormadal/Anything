@@ -74,7 +74,7 @@ export function useHousehold(id: number | null) {
   const queryClient = useQueryClient();
 
   return useQuery({
-    queryKey: ["households", id],
+    queryKey: ["household", id],
     queryFn: async (): Promise<HouseholdDetail> => {
       const result = await apiClient.api.households.byId(id as number).get();
       if (!result) throw new Error("Household not found");
@@ -122,8 +122,11 @@ export function useUpdateHousehold() {
     mutationFn: async (data: { id: number; name: string }) => {
       await apiClient.api.households.byId(data.id).put({ name: data.name });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["households"] });
+      // The detail key is now decoupled from the list key, so refresh the
+      // open household detail explicitly (previously covered by prefix match).
+      queryClient.invalidateQueries({ queryKey: ["household", variables.id] });
     },
   });
 }
@@ -157,7 +160,7 @@ export function useUpdateHouseholdMemberRole() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["households", variables.householdId],
+        queryKey: ["household", variables.householdId],
       });
       queryClient.invalidateQueries({ queryKey: ["households"] });
     },
@@ -176,7 +179,7 @@ export function useRemoveHouseholdMember() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["households", variables.householdId],
+        queryKey: ["household", variables.householdId],
       });
     },
   });

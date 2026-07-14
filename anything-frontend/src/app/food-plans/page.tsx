@@ -19,7 +19,7 @@ import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import type { FoodPlanEntry, Recipe } from "@/lib/api-client/models/index";
+import type { FoodPlanEntry, RecipeListItemResponse } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { useRouter } from "next/navigation";
@@ -177,7 +177,7 @@ function DayManagementDialog({
   date: Date;
   entries: FoodPlanEntry[];
   note: FoodPlanNote | null;
-  recipes: Recipe[] | undefined;
+  recipes: RecipeListItemResponse[] | undefined;
   onClose: () => void;
   showSuggestionsOnOpen?: boolean;
 }) {
@@ -209,7 +209,7 @@ function DayManagementDialog({
   const showNoRecipesHint =
     showSuggestions && !name.trim() && topSuggestions.length === 0 && recipes?.length === 0;
 
-  const handleSelectSuggestion = (recipe: Recipe) => {
+  const handleSelectSuggestion = (recipe: RecipeListItemResponse) => {
     setName(recipe.name ?? "");
     setSelectedRecipeId(recipe.id ?? null);
     setShowSuggestions(false);
@@ -503,7 +503,7 @@ function AddToShoppingListDialog({
   startDate: Date;
   endDate: Date;
   entries: FoodPlanEntry[] | undefined;
-  recipes: Recipe[] | undefined;
+  recipes: RecipeListItemResponse[] | undefined;
   onClose: () => void;
 }) {
   const { data: shoppingLists } = useShoppingLists();

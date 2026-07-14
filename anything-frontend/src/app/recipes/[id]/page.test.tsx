@@ -5,19 +5,13 @@ import RecipeDetailPage from './page'
 import { toast } from 'sonner'
 
 // Mock the apiClient module
-const mockRecipeGet = jest.fn()
-const mockIngredientsGet = jest.fn()
-const mockStepsGet = jest.fn()
-const mockImagesGet = jest.fn()
+const mockDetailsGet = jest.fn()
 const mockAddToShoppingListPost = jest.fn()
 const mockRecipeDelete = jest.fn()
 
 const mockById: jest.Mock = jest.fn(() => ({
-  get: mockRecipeGet,
   delete: mockRecipeDelete,
-  ingredients: { get: mockIngredientsGet },
-  steps: { get: mockStepsGet },
-  images: { get: mockImagesGet },
+  details: { get: mockDetailsGet },
   addToShoppingList: { post: mockAddToShoppingListPost },
 }))
 
@@ -80,14 +74,22 @@ jest.mock('sonner', () => ({
 
 const mockRecipe = { id: 1, name: 'Test Recipe', createdOn: '2024-01-01T00:00:00Z' }
 
+// The detail page loads everything from one aggregate endpoint; build a
+// RecipeDetailResponse-shaped object with optional overrides.
+const buildDetail = (overrides: Record<string, unknown> = {}) => ({
+  ...mockRecipe,
+  ingredients: [],
+  steps: [],
+  images: [],
+  tags: [],
+  ...overrides,
+})
+
 describe('RecipeDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockRecipeGet.mockResolvedValue(mockRecipe)
+    mockDetailsGet.mockResolvedValue(buildDetail())
     mockRecipeDelete.mockResolvedValue(undefined)
-    mockIngredientsGet.mockResolvedValue([])
-    mockStepsGet.mockResolvedValue([])
-    mockImagesGet.mockResolvedValue([])
   })
 
   it('should render back button', () => {
@@ -97,7 +99,7 @@ describe('RecipeDetailPage', () => {
   })
 
   it('should display loading state', () => {
-    mockRecipeGet.mockImplementation(() => new Promise(() => { // Promise that never resolves to simulate loading state
+    mockDetailsGet.mockImplementation(() => new Promise(() => { // Promise that never resolves to simulate loading state
     }))
 
     render(<RecipeDetailPage />)
@@ -106,7 +108,7 @@ describe('RecipeDetailPage', () => {
   })
 
   it('should display error state when recipe fetch fails', async () => {
-    mockRecipeGet.mockRejectedValue(new Error('API error'))
+    mockDetailsGet.mockRejectedValue(new Error('API error'))
 
     render(<RecipeDetailPage />)
 
@@ -124,10 +126,9 @@ describe('RecipeDetailPage', () => {
   })
 
   it('should display recipe link when present and it is a safe URL', async () => {
-    mockRecipeGet.mockResolvedValue({
-      ...mockRecipe,
+    mockDetailsGet.mockResolvedValue(buildDetail({
       link: 'https://example.com/recipe',
-    })
+    }))
 
     render(<RecipeDetailPage />)
 
@@ -139,10 +140,9 @@ describe('RecipeDetailPage', () => {
   })
 
   it('should display recipe notes when present', async () => {
-    mockRecipeGet.mockResolvedValue({
-      ...mockRecipe,
+    mockDetailsGet.mockResolvedValue(buildDetail({
       notes: 'These are my recipe notes',
-    })
+    }))
 
     render(<RecipeDetailPage />)
 
@@ -292,9 +292,9 @@ describe('RecipeDetailPage', () => {
 
   it('should add to shopping list when button clicked', async () => {
     const user = userEvent.setup()
-    mockIngredientsGet.mockResolvedValue([
-      { id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 },
-    ])
+    mockDetailsGet.mockResolvedValue(buildDetail({
+      ingredients: [{ id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 }],
+    }))
     mockAddToShoppingListPost.mockResolvedValueOnce(undefined)
 
     render(<RecipeDetailPage />)
@@ -319,9 +319,9 @@ describe('RecipeDetailPage', () => {
 
   it('should show error when add to shopping list fails', async () => {
     const user = userEvent.setup()
-    mockIngredientsGet.mockResolvedValue([
-      { id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 },
-    ])
+    mockDetailsGet.mockResolvedValue(buildDetail({
+      ingredients: [{ id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 }],
+    }))
     mockAddToShoppingListPost.mockRejectedValueOnce(new Error('Server error'))
 
     render(<RecipeDetailPage />)

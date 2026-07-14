@@ -26,12 +26,15 @@ public static class RecipeEndpoints
     {
         var group = app.MapGroup("/api/recipes");
 
+        // Returns RecipeListItemResponse items — each carries the primary image
+        // thumbnail URL and tag names inline so the list page renders a card from
+        // one response instead of a per-card image + tag request.
         group.MapGet("/", async ([AsParameters] RecipesQueryParameters parameters, IMediator mediator) =>
         {
             return await mediator.Send(new GetRecipesQuery(parameters.Search, parameters.Tag));
         })
         .WithName("GetRecipes")
-        .Produces<List<Recipe>>()
+        .Produces<List<RecipeListItemResponse>>()
         .RequireAuthorization();
 
         group.MapGet("/tags", async (int? count, IMediator mediator) =>
@@ -68,6 +71,17 @@ public static class RecipeEndpoints
         })
         .WithName("GetRecipeById")
         .Produces<Recipe>()
+        .Produces(404)
+        .RequireAuthorization();
+
+        // Aggregate for the detail page: recipe + ingredients + steps + images +
+        // tags in one response (the detail page previously fired five requests).
+        group.MapGet("/{id}/details", async (int id, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetRecipeDetailsQuery(id));
+        })
+        .WithName("GetRecipeDetails")
+        .Produces<RecipeDetailResponse>()
         .Produces(404)
         .RequireAuthorization();
 

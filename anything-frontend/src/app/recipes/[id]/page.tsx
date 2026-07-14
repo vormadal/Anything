@@ -17,13 +17,9 @@ import {
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import {
-  useRecipe,
-  useRecipeIngredients,
-  useRecipeSteps,
-  useRecipeImages,
+  useRecipeDetails,
   useDeleteRecipe,
   useAddIngredientsToShoppingList,
-  useRecipeTags,
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
@@ -92,12 +88,16 @@ export default function RecipeDetailPage() {
   const [multiplier, setMultiplier] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  const { data: recipe, isLoading, error } = useRecipe(recipeId);
-  const { data: ingredients } = useRecipeIngredients(recipeId);
-  const { data: steps } = useRecipeSteps(recipeId);
-  const { data: images } = useRecipeImages(recipeId);
-  const { data: tags } = useRecipeTags(recipeId);
-  const { data: shoppingLists } = useShoppingLists();
+  // One aggregate request for the recipe plus its ingredients, steps, images
+  // and tags (instead of five separate queries).
+  const { data: detail, isLoading, error } = useRecipeDetails(recipeId);
+  const recipe = detail;
+  const ingredients = detail?.ingredients;
+  const steps = detail?.steps;
+  const images = detail?.images;
+  const tags = detail?.tags;
+  // Only needed for the "add to shopping list" dialog — fetch lazily when it opens.
+  const { data: shoppingLists } = useShoppingLists(shoppingListDialogOpen);
 
   const deleteRecipe = useDeleteRecipe();
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);

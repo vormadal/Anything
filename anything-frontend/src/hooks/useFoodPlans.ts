@@ -177,6 +177,10 @@ export function useAddFoodPlanToShoppingList() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["foodPlanEntries"] });
+      // Items were added to a shopping list, so its cached list/items go stale
+      // (mirrors useAddIngredientsToShoppingList in useRecipes.ts).
+      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingListItems"] });
     },
   });
 }
