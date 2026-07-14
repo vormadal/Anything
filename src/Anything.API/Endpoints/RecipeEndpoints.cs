@@ -26,6 +26,9 @@ public static class RecipeEndpoints
     {
         var group = app.MapGroup("/api/recipes");
 
+        // Returns RecipeListItemResponse items — each carries the primary image
+        // thumbnail URL and tag names inline so the list page renders a card from
+        // one response instead of a per-card image + tag request.
         group.MapGet("/", async ([AsParameters] RecipesQueryParameters parameters, IMediator mediator) =>
         {
             return await mediator.Send(new GetRecipesQuery(parameters.Search, parameters.Tag));
