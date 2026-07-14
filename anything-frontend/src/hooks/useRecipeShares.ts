@@ -17,7 +17,7 @@ export interface RecipeShareResponse {
   isClaimed: boolean;
 }
 
-export interface SharedIngredient {
+interface SharedIngredient {
   name: string;
   amount: number | null;
   unit: string | null;
@@ -25,12 +25,12 @@ export interface SharedIngredient {
   sortOrder: number;
 }
 
-export interface SharedStep {
+interface SharedStep {
   description: string;
   sortOrder: number;
 }
 
-export interface SharedRecipeResponse {
+interface SharedRecipeResponse {
   recipeId: number;
   recipeName: string;
   notes: string | null;

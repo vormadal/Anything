@@ -21,7 +21,7 @@ export function isTempItemId(id: number): boolean {
   return id < 0;
 }
 
-export interface AddItemPayload {
+interface AddItemPayload {
   name: string;
   amount: number | null;
   unit: string | null;

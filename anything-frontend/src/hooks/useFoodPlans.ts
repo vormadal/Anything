@@ -22,7 +22,7 @@ export function useFoodPlanSettings() {
   });
 }
 
-export interface UpdateFoodPlanSettingsInput {
+interface UpdateFoodPlanSettingsInput {
   activeDays: number;
   suggestionRotationWeight?: number;
   suggestionFavoritesWeight?: number;
@@ -64,7 +64,7 @@ export function useSeasonalTagRules() {
   });
 }
 
-export interface SeasonalTagRuleInput {
+interface SeasonalTagRuleInput {
   keyword: string;
   matchPrefix: boolean;
   months: number;

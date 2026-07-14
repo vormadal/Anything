@@ -9,8 +9,7 @@ Shared utilities and the generated API client.
   - Regenerate with `npm run generate:api` (API must be running)
   - Import types from `@/lib/api-client/models/index`
 - `foodPlanUtils.ts` — date/slot helpers for the food plan calendar
-- `householdUtils.ts` — household membership/role helpers
-- `roles.ts` — role name constants (`HouseholdRoles`, `UserRoles`)
+- `roles.ts` — household role constants (`HOUSEHOLD_ROLES`) and role-check helpers (`isAdmin`, `canManageHousehold`, `isHouseholdOwner`)
 - `utils.ts` — generic helpers (class merging via `cn()`, etc.)
 - `offline/` — offline-first read caching for the whole app, plus a write outbox scoped to shopping list / general checklist items only (see below)
 

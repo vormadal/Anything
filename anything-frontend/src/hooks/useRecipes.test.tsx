@@ -102,10 +102,6 @@ jest.mock('@/lib/apiClient', () => ({
   HOUSEHOLD_HEADER: 'X-Household-Id',
 }))
 
-jest.mock('@/lib/householdUtils', () => ({
-  getHouseholdHeader: () => ({}),
-}))
-
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {

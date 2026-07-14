@@ -23,7 +23,7 @@ export interface HouseholdMember {
   joinedOn: string;
 }
 
-export interface HouseholdDetail {
+interface HouseholdDetail {
   id: number;
   name: string;
   createdOn: string;

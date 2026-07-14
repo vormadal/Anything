@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useState } from "react";
 
-export type LeftAction = { type: "menu" } | { type: "back"; href: string };
+type LeftAction = { type: "menu" } | { type: "back"; href: string };
 
 type PageActionsContextType = {
   headerActions: React.ReactNode;
