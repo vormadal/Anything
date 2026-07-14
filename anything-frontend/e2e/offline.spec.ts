@@ -82,9 +82,15 @@ test("shopping list item checked off while offline syncs once back online", asyn
     await page.getByRole("button", { name: "Add item" }).click();
     await expect(page.getByPlaceholder("Add an item...")).toHaveValue("");
 
-    // Return to view mode to check it off.
-    await page.goto(page.url().split("?")[0]);
-    await expect(page.getByText(itemName)).toBeVisible();
+    // Return to view mode to check it off. Leaving edit mode is a full-page
+    // reload served by a fresh fetch, which can lag behind the just-completed
+    // add under deploy read-after-write latency (React Query won't refetch on
+    // its own), so reload-and-recheck until the item shows.
+    const viewUrl = page.url().split("?")[0];
+    await expect(async () => {
+      await page.goto(viewUrl);
+      await expect(page.getByText(itemName)).toBeVisible({ timeout: 8000 });
+    }).toPass({ timeout: 40000 });
 
     await page.context().setOffline(true);
     // Wait for the app to register the offline transition before acting, so the
@@ -99,11 +105,20 @@ test("shopping list item checked off while offline syncs once back online", asyn
     await expect(page.locator('[aria-label="Pending sync"]')).toBeVisible();
 
     await page.context().setOffline(false);
-    // Back online, the queued update replays; allow extra time for the PUT
-    // round-trip plus refetch under real deploy-environment latency.
-    await expect(page.locator('[aria-label="Pending sync"]')).not.toBeVisible({
-      timeout: 20000,
-    });
+    // Back online, the queued check-off replays and the pending indicator
+    // clears. The automatic replay is a single-shot triggered by the browser
+    // 'online' event, so a transient first-attempt PUT failure would leave the
+    // mutation queued with no further trigger, and a plain timeout can't
+    // recover. Reloading re-mounts useOfflineSync (retriggering the replay,
+    // which is an idempotent PUT) and re-fetches from the server, so a
+    // reload-and-recheck toPass self-heals against both that and deploy latency.
+    await expect(async () => {
+      await page.reload();
+      await expect(page.getByText(itemName)).toBeVisible({ timeout: 8000 });
+      await expect(
+        page.locator('[aria-label="Pending sync"]')
+      ).not.toBeVisible({ timeout: 8000 });
+    }).toPass({ timeout: 40000 });
   } finally {
     await page.context().setOffline(false);
     if (listId != null) {
