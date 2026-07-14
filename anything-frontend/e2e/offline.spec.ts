@@ -40,8 +40,12 @@ test("shopping list item added while offline syncs once back online", async ({
     await page.context().setOffline(false);
 
     // Back online, useOfflineSync replays the queued add and the pending
-    // indicator clears once it resolves to a real server-assigned id.
-    await expect(page.locator('[aria-label="Pending sync"]')).not.toBeVisible();
+    // indicator clears once it resolves to a real server-assigned id. Allow
+    // extra time: the replay is a full POST round-trip plus refetch, which can
+    // exceed the default 10s under real deploy-environment latency.
+    await expect(page.locator('[aria-label="Pending sync"]')).not.toBeVisible({
+      timeout: 20000,
+    });
 
     // Reload to confirm the item was actually persisted server-side, not just
     // held in the local optimistic cache.
@@ -83,6 +87,10 @@ test("shopping list item checked off while offline syncs once back online", asyn
     await expect(page.getByText(itemName)).toBeVisible();
 
     await page.context().setOffline(true);
+    // Wait for the app to register the offline transition before acting, so the
+    // check mutation takes the clean enqueue path (isOffline() true) instead of
+    // racing a real request that has to fail before it can be queued.
+    await expect(page.getByText(/you're offline/i)).toBeVisible();
 
     await page.getByRole("button", { name: "Check item" }).click();
 
@@ -91,7 +99,11 @@ test("shopping list item checked off while offline syncs once back online", asyn
     await expect(page.locator('[aria-label="Pending sync"]')).toBeVisible();
 
     await page.context().setOffline(false);
-    await expect(page.locator('[aria-label="Pending sync"]')).not.toBeVisible();
+    // Back online, the queued update replays; allow extra time for the PUT
+    // round-trip plus refetch under real deploy-environment latency.
+    await expect(page.locator('[aria-label="Pending sync"]')).not.toBeVisible({
+      timeout: 20000,
+    });
   } finally {
     await page.context().setOffline(false);
     if (listId != null) {
