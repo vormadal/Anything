@@ -128,27 +128,6 @@ export function useRegister() {
   });
 }
 
-// Refresh token
-export async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    return null;
-  }
-
-  try {
-    const data = await apiClient.api.auth.refresh.post({ refreshToken });
-    if (!data) {
-      clearTokens();
-      return null;
-    }
-    setTokens(data.accessToken ?? "", data.refreshToken ?? "");
-    return data.accessToken ?? null;
-  } catch {
-    clearTokens();
-    return null;
-  }
-}
-
 // Create invite (admin only)
 export function useCreateInvite() {
   const queryClient = useQueryClient();

@@ -7,7 +7,7 @@
  * /tessdata (see scripts/copy-tesseract-assets.mjs and public/tessdata).
  */
 
-export interface ClassifiedRecipeText {
+interface ClassifiedRecipeText {
   name: string;
   ingredientsText: string;
   stepsText: string;

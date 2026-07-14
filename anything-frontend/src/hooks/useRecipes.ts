@@ -19,7 +19,7 @@ import type {
 export type { ParsedRecipeResponse, ParsedIngredient, ParsedStep, RecipeTag };
 export type { ExportRecipeTagsResponse, ImportRecipeTagsRequest };
 
-export interface TopTag {
+interface TopTag {
   name: string;
   count: number;
 }
@@ -319,7 +319,7 @@ export function useDeleteRecipeStep(recipeId: number) {
   });
 }
 
-export interface ImportRecipePayload {
+interface ImportRecipePayload {
   name: string;
   link?: string | null;
   notes?: string | null;
@@ -345,7 +345,7 @@ export function useParseRecipeFromUrl() {
   });
 }
 
-export interface ParseRecipeTextPayload {
+interface ParseRecipeTextPayload {
   name?: string | null;
   ingredientsText?: string | null;
   stepsText?: string | null;
@@ -554,7 +554,7 @@ export function useImportRecipeTags() {
   });
 }
 
-export interface ReimportRecipePayload {
+interface ReimportRecipePayload {
   importName: boolean;
   importIngredients: boolean;
   importSteps: boolean;

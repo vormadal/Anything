@@ -56,7 +56,7 @@ export interface BillResponse {
   modifiedOn?: string;
 }
 
-export interface BillSummaryResponse {
+interface BillSummaryResponse {
   totalBills: number;
   totalMonthlyEquivalent: number;
   automatedCount: number;
@@ -65,7 +65,7 @@ export interface BillSummaryResponse {
   totalCurrentYearAmount: number;
 }
 
-export interface BillPriceHistoryResponse {
+interface BillPriceHistoryResponse {
   id: number;
   billId: number;
   amount: number;
