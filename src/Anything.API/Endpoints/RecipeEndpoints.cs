@@ -71,6 +71,17 @@ public static class RecipeEndpoints
         .Produces(404)
         .RequireAuthorization();
 
+        // Aggregate for the detail page: recipe + ingredients + steps + images +
+        // tags in one response (the detail page previously fired five requests).
+        group.MapGet("/{id}/details", async (int id, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetRecipeDetailsQuery(id));
+        })
+        .WithName("GetRecipeDetails")
+        .Produces<RecipeDetailResponse>()
+        .Produces(404)
+        .RequireAuthorization();
+
         group.MapPost("/", async (CreateRecipeRequest request, IMediator mediator) =>
         {
             var result = await mediator.Send(new CreateRecipeCommand(
