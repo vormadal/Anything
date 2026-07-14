@@ -14,11 +14,12 @@ import {
   type UpdateItemPayload,
 } from "@/lib/offline/outbox";
 
-export function useShoppingLists() {
+export function useShoppingLists(enabled = true) {
   return useQuery({
     queryKey: ["shoppingLists"],
     queryFn: () =>
       apiClient.api.checklists.get() as unknown as Promise<ShoppingListResponse[]>,
+    enabled,
   });
 }
 

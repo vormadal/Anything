@@ -31,7 +31,7 @@ public static class RecipeEndpoints
             return await mediator.Send(new GetRecipesQuery(parameters.Search, parameters.Tag));
         })
         .WithName("GetRecipes")
-        .Produces<List<Recipe>>()
+        .Produces<List<RecipeListItemResponse>>()
         .RequireAuthorization();
 
         group.MapGet("/tags", async (int? count, IMediator mediator) =>

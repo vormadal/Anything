@@ -614,6 +614,30 @@ public class RecipeEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetRecipes_ListEmbedsTagsInline()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var recipe = await CreateRecipeAsync("Tagged List Recipe", null, null);
+        await AddTagAsync(recipe.Id, "vegetarian");
+        await AddTagAsync(recipe.Id, "quick");
+        await CreateRecipeAsync("Untagged Recipe", null, null);
+
+        var listResponse = await client.GetAsync("/api/recipes", TestContext.Current.CancellationToken);
+        var list = await listResponse.Content.ReadFromJsonAsync<RecipeListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(list);
+
+        var tagged = Assert.Single(list, r => r.Id == recipe.Id);
+        Assert.NotNull(tagged.Tags);
+        Assert.Equal(new[] { "quick", "vegetarian" }, tagged.Tags.OrderBy(t => t));
+        // No image uploaded, so the thumbnail is null rather than a broken URL.
+        Assert.Null(tagged.ThumbnailUrl);
+
+        var untagged = Assert.Single(list, r => r.Name == "Untagged Recipe");
+        Assert.NotNull(untagged.Tags);
+        Assert.Empty(untagged.Tags);
+    }
+
+    [Fact]
     public async Task Tags_NotFoundScenarios()
     {
         var client = await GetAuthenticatedHttpClientAsync();
@@ -892,6 +916,7 @@ public class RecipeEndpointTests : IntegrationTestBase
     }
 
     private record RecipeDto(int Id, string? Name, string? Link, string? Notes, int? CookTimeMinutes, int? Servings, string? ServingsType);
+    private record RecipeListItemDto(int Id, string? Name, int? CookTimeMinutes, int? Servings, string? ServingsType, string? ThumbnailUrl, List<string>? Tags);
     private record IngredientDto(int Id, int RecipeId, string? Name, decimal? Amount, string? Unit, string? Group);
     private record StepDto(int Id, int RecipeId, string? Text, int Order);
     private record RecipeImageDto(int Id, int RecipeId, string ThumbnailUrl, string MediumUrl, string OriginalUrl, DateTime CreatedOn);

@@ -97,7 +97,8 @@ export default function RecipeDetailPage() {
   const { data: steps } = useRecipeSteps(recipeId);
   const { data: images } = useRecipeImages(recipeId);
   const { data: tags } = useRecipeTags(recipeId);
-  const { data: shoppingLists } = useShoppingLists();
+  // Only needed for the "add to shopping list" dialog — fetch lazily when it opens.
+  const { data: shoppingLists } = useShoppingLists(shoppingListDialogOpen);
 
   const deleteRecipe = useDeleteRecipe();
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
