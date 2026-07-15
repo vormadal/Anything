@@ -50,6 +50,21 @@ public class UpdateRecommendationHandlerTests
         Assert.Equal(now.UtcDateTime, entity.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task Handle_UpdatesIncludeInSuggestions()
+    {
+        var entity = new ShoppingListRecommendation { Id = 1, Name = "Boneless chicken breasts", IncludeInSuggestions = false };
+        _repo.Query().Returns(new List<ShoppingListRecommendation> { entity }.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(
+            new UpdateRecommendationCommand(1, "Boneless chicken breasts", null, 5, IncludeInSuggestions: true),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.True(entity.IncludeInSuggestions);
+        Assert.Equal(5, entity.CategoryId);
+    }
 }
 
 public class DeleteRecommendationHandlerTests
@@ -101,5 +116,21 @@ public class GetAllRecommendationsHandlerTests
         var result = await new GetAllRecommendationsHandler(_repo, _householdContext).Handle(new GetAllRecommendationsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task Handle_WhenSuggestableOnly_ExcludesHidden()
+    {
+        _repo.Query().Returns(new List<ShoppingListRecommendation>
+        {
+            new() { Id = 1, Name = "Bread", IncludeInSuggestions = true },
+            new() { Id = 2, Name = "Boneless chicken breasts", IncludeInSuggestions = false }
+        }.AsAsyncQueryable());
+
+        var result = await new GetAllRecommendationsHandler(_repo, _householdContext)
+            .Handle(new GetAllRecommendationsQuery(SuggestableOnly: true), TestContext.Current.CancellationToken);
+
+        Assert.Single(result);
+        Assert.Equal("Bread", result[0].Name);
     }
 }

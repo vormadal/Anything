@@ -8,4 +8,5 @@ public record UpdateRecommendationRequest(
     string Name,
     [StringLength(50, ErrorMessage = "PreferredUnit must be at most 50 characters.")]
     string? PreferredUnit = null,
-    int? CategoryId = null);
+    int? CategoryId = null,
+    bool IncludeInSuggestions = true);

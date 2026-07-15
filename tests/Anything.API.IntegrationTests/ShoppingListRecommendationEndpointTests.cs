@@ -267,6 +267,31 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         Assert.DoesNotContain(uncat, r => r.Name == "Yogurt");
     }
 
+    [Fact]
+    public async Task UpdateRecommendation_CanHideAndPromoteInSuggestions()
+    {
+        var rec = await CreateRecommendationAsync("Paprika");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        // Hide it from the suggestions feed.
+        await client.PutAsJsonAsync($"/api/shopping-list-recommendations/{rec.Id}",
+            new { name = "Paprika", preferredUnit = (string?)null, categoryId = (int?)null, includeInSuggestions = false });
+
+        var hiddenResponse = await client.GetAsync("/api/shopping-list-recommendations");
+        var hidden = await hiddenResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(hidden);
+        Assert.DoesNotContain(hidden, r => r.Name == "Paprika");
+
+        // Promote it back into suggestions.
+        await client.PutAsJsonAsync($"/api/shopping-list-recommendations/{rec.Id}",
+            new { name = "Paprika", preferredUnit = (string?)null, categoryId = (int?)null, includeInSuggestions = true });
+
+        var promotedResponse = await client.GetAsync("/api/shopping-list-recommendations");
+        var promoted = await promotedResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(promoted);
+        Assert.Contains(promoted, r => r.Name == "Paprika");
+    }
+
     // --- GET /api/shopping-list-recommendations/export ---
 
     [Fact]
@@ -506,7 +531,7 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);
-    private record RecommendationDto(int Id, string? Name, int? CategoryId = null);
+    private record RecommendationDto(int Id, string? Name, int? CategoryId = null, bool IncludeInSuggestions = true);
     private record CategoryDto(int Id, string Name, int SortOrder);
     private record ExportDto(List<ExportRecommendationItem> Recommendations);
     private record ExportRecommendationItem(string Name, string? PreferredUnit, string? Category);

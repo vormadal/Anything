@@ -70,8 +70,10 @@ public class AddRecipeToShoppingListHandler(
         {
             ShoppingListHelpers.MergeOrAddItem(shoppingListItemRepository, existingItems,
                 command.ShoppingListId, name, amount, unit, recipe.Name, timeProvider.GetUtcNow().UtcDateTime);
+            // Recipe ingredient names are seeded hidden: they can be categorized so the item
+            // sorts correctly, but they must not clutter the add-box autocomplete suggestions.
             ShoppingListHelpers.AddRecommendationIfNotExists(recommendationRepository, existingRecommendations,
-                householdContext.HouseholdId, name, timeProvider.GetUtcNow().UtcDateTime);
+                householdContext.HouseholdId, name, timeProvider.GetUtcNow().UtcDateTime, includeInSuggestions: false);
         }
 
         try
