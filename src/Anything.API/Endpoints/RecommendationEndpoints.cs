@@ -16,7 +16,7 @@ public static class RecommendationEndpoints
 
         group.MapGet("/", async (IMediator mediator) =>
         {
-            return await mediator.Send(new GetAllRecommendationsQuery());
+            return await mediator.Send(new GetAllRecommendationsQuery(SuggestableOnly: true));
         })
         .WithName("GetRecommendations")
         .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
@@ -60,7 +60,7 @@ public static class RecommendationEndpoints
 
         group.MapPut("/{id}", async (int id, [FromBody] UpdateRecommendationRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateRecommendationCommand(id, request.Name, request.PreferredUnit, request.CategoryId));
+            return await mediator.Send(new UpdateRecommendationCommand(id, request.Name, request.PreferredUnit, request.CategoryId, request.IncludeInSuggestions));
         })
         .WithName("UpdateRecommendation")
         .Produces(StatusCodes.Status204NoContent)

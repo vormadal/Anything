@@ -152,7 +152,21 @@ describe('useRecommendations hooks', () => {
       })
 
       expect(mockItemById).toHaveBeenCalledWith(1)
-      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Milk', preferredUnit: 'L', categoryId: null })
+      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Milk', preferredUnit: 'L', categoryId: null, includeInSuggestions: true })
+    })
+
+    it('forwards includeInSuggestions when hiding a recommendation from suggestions', async () => {
+      mockPutFn.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useUpdateRecommendation(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({ id: 4, name: 'Boneless chicken breasts', categoryId: 2, includeInSuggestions: false })
+      })
+
+      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Boneless chicken breasts', preferredUnit: null, categoryId: 2, includeInSuggestions: false })
     })
 
     it('handles update error', async () => {

@@ -23,7 +23,8 @@ internal static class ShoppingListHelpers
         HashSet<string> existingNames,
         int householdId,
         string name,
-        DateTime createdOn)
+        DateTime createdOn,
+        bool includeInSuggestions = true)
     {
         var nameKey = name.ToLower();
         if (!existingNames.Contains(nameKey))
@@ -32,6 +33,7 @@ internal static class ShoppingListHelpers
             {
                 HouseholdId = householdId,
                 Name = name,
+                IncludeInSuggestions = includeInSuggestions,
                 CreatedOn = createdOn
             });
             existingNames.Add(nameKey);

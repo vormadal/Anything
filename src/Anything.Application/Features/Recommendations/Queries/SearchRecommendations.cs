@@ -10,12 +10,15 @@ namespace Anything.Application.Features.Recommendations.Queries;
 
 /// <summary>
 /// Ranked, typo-tolerant search over a household's shopping-list recommendations.
-/// Backs the item-suggestion typeahead and the recommendations admin search.
+/// Backs the item-suggestion typeahead.
 /// </summary>
 /// <remarks>
 /// Substring matches rank first, then trigram word-similarity closeness, so a
 /// mistyped query still returns the intended recommendation. A blank search
 /// returns the alphabetical list capped at <see cref="SearchRecommendationsQuery.Limit"/>.
+/// Only suggestable recommendations are returned — recipe-seeded recommendations
+/// (<see cref="ShoppingListRecommendation.IncludeInSuggestions"/> false) carry a
+/// category for sorting but must never surface in this typeahead.
 /// </remarks>
 public record SearchRecommendationsQuery(string? Search = null, int Limit = 20)
     : IRequest<List<ShoppingListRecommendation>>;
@@ -30,7 +33,8 @@ public class SearchRecommendationsHandler(
     public async Task<List<ShoppingListRecommendation>> Handle(SearchRecommendationsQuery query, CancellationToken ct = default)
     {
         var limit = Math.Clamp(query.Limit, 1, MaxLimit);
-        var baseQuery = repository.Query().Where(r => r.HouseholdId == householdContext.HouseholdId);
+        var baseQuery = repository.Query()
+            .Where(r => r.HouseholdId == householdContext.HouseholdId && r.IncludeInSuggestions);
 
         if (string.IsNullOrWhiteSpace(query.Search))
         {

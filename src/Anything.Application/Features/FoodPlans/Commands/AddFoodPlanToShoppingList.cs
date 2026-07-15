@@ -100,8 +100,10 @@ public class AddFoodPlanToShoppingListHandler(
                 command.ShoppingListId, name, amount, unit,
                 string.IsNullOrEmpty(addedByRecipe) ? null : addedByRecipe,
                 timeProvider.GetUtcNow().UtcDateTime);
+            // Recipe ingredient names are seeded hidden: categorizable for sorting, but kept
+            // out of the add-box autocomplete suggestions.
             ShoppingListHelpers.AddRecommendationIfNotExists(recommendationRepository, existingRecommendations,
-                householdContext.HouseholdId, name, timeProvider.GetUtcNow().UtcDateTime);
+                householdContext.HouseholdId, name, timeProvider.GetUtcNow().UtcDateTime, includeInSuggestions: false);
         }
 
         // Mark entries as added to shopping list

@@ -180,11 +180,13 @@ const mockSeasonalTagRules = [
 ];
 
 const mockRecommendations = [
-  { id: 1, name: "Milk", isApproved: true, preferredUnit: null, categoryId: null },
-  { id: 2, name: "Bread", isApproved: true, preferredUnit: "loaves", categoryId: null },
-  { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null },
+  { id: 1, name: "Milk", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true },
+  { id: 2, name: "Bread", isApproved: true, preferredUnit: "loaves", categoryId: null, includeInSuggestions: true },
+  { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null, includeInSuggestions: true },
   // Not present on list 1's mock items, so its suggestion is never filtered out.
-  { id: 4, name: "Butter", isApproved: true, preferredUnit: null, categoryId: null },
+  { id: 4, name: "Butter", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true },
+  // Recipe-seeded: categorizable for sorting but hidden from autocomplete suggestions.
+  { id: 5, name: "Boneless chicken breasts", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: false },
 ];
 
 // Optimal string alignment (Damerau) edit distance — used by the /search mock to
@@ -407,10 +409,12 @@ async function setupApiMocks(page: Page) {
   );
   // Registered after the list route so it takes precedence for /search. Simulates
   // the backend's ranked, typo-tolerant search: a substring match or an anagram
-  // (adjacent-transposition typo, e.g. "mlik" -> "Milk") surfaces the item.
+  // (adjacent-transposition typo, e.g. "mlik" -> "Milk") surfaces the item. Hidden
+  // (recipe-seeded) recommendations are excluded, mirroring the real endpoint.
   await page.route("**/api/shopping-list-recommendations/search**", (route) => {
     const query = (new URL(route.request().url()).searchParams.get("query") ?? "").toLowerCase();
     const matches = mockRecommendations.filter((r) => {
+      if (r.includeInSuggestions === false) return false;
       const name = (r.name ?? "").toLowerCase();
       return name.includes(query) || editDistanceForMock(query, name) <= 1;
     });
@@ -922,6 +926,22 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "household-suggestions-with-data.png",
+      screenshotOptions
+    );
+  });
+
+  test("household suggestions page - editing a hidden recipe item", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions");
+    await page.waitForLoadState("networkidle");
+    // Open edit on the recipe-seeded (hidden) recommendation to reveal the
+    // "Show in autocomplete suggestions" toggle, unchecked for a hidden item.
+    const row = page.locator("li", { hasText: "Boneless chicken breasts" });
+    await row.getByRole("button", { name: "Edit suggestion" }).click();
+    await expect(
+      page.getByText("Show in autocomplete suggestions")
+    ).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "household-suggestions-edit-hidden.png",
       screenshotOptions
     );
   });

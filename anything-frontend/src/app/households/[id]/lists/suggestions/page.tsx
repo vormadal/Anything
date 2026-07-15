@@ -33,6 +33,7 @@ type Recommendation = {
   name?: string | null;
   preferredUnit?: string | null;
   categoryId?: number | null;
+  includeInSuggestions?: boolean | null;
 };
 
 type RecommendationRowProps = {
@@ -43,10 +44,12 @@ type RecommendationRowProps = {
   editName: string;
   editPreferredUnit: string;
   editCategoryId: number | null;
+  editIncludeInSuggestions: boolean;
   onEditNameChange: (value: string) => void;
   onEditPreferredUnitChange: (value: string) => void;
   onEditCategoryIdChange: (value: number | null) => void;
-  onStartEdit: (rec: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null }) => void;
+  onEditIncludeInSuggestionsChange: (value: boolean) => void;
+  onStartEdit: (rec: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null; includeInSuggestions?: boolean | null }) => void;
   onCancelEdit: () => void;
   onSaveEdit: (id: number) => void;
   onDelete: (id: number) => void;
@@ -62,9 +65,11 @@ function RecommendationRow({
   editName,
   editPreferredUnit,
   editCategoryId,
+  editIncludeInSuggestions,
   onEditNameChange,
   onEditPreferredUnitChange,
   onEditCategoryIdChange,
+  onEditIncludeInSuggestionsChange,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
@@ -73,6 +78,7 @@ function RecommendationRow({
   isUpdatePending,
 }: RecommendationRowProps) {
   const categoryName = categories.find((c) => c.id === rec.categoryId)?.name;
+  const isHidden = rec.includeInSuggestions === false;
 
   return (
     <li className="flex flex-col gap-2 p-3 border border-gray-200 dark:border-gray-700 rounded-md">
@@ -105,6 +111,15 @@ function RecommendationRow({
               </option>
             ))}
           </select>
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={editIncludeInSuggestions}
+              onChange={(e) => onEditIncludeInSuggestionsChange(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 dark:border-gray-600"
+            />
+            Show in autocomplete suggestions
+          </label>
           <div className="flex gap-2 justify-end">
             <Button size="sm" variant="outline" onClick={onCancelEdit}>Cancel</Button>
             <Button size="sm" onClick={() => onSaveEdit(rec.id!)} disabled={isUpdatePending}>Save</Button>
@@ -120,6 +135,11 @@ function RecommendationRow({
             {categoryName && (
               <span className="text-xs text-blue-600 dark:text-blue-400">{categoryName}</span>
             )}
+            {isHidden && (
+              <span className="mt-1 inline-flex w-fit items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300">
+                From recipe · not suggested
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {showUncategorizedMarker && !rec.categoryId && (
@@ -133,7 +153,7 @@ function RecommendationRow({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => onStartEdit({ id: rec.id!, name: rec.name ?? "", preferredUnit: rec.preferredUnit, categoryId: rec.categoryId })}
+              onClick={() => onStartEdit({ id: rec.id!, name: rec.name ?? "", preferredUnit: rec.preferredUnit, categoryId: rec.categoryId, includeInSuggestions: rec.includeInSuggestions })}
               aria-label="Edit suggestion"
             >
               <Pencil className="h-4 w-4" />
@@ -170,6 +190,7 @@ export default function SuggestionsPage() {
   const [editName, setEditName] = useState("");
   const [editPreferredUnit, setEditPreferredUnit] = useState("");
   const [editCategoryId, setEditCategoryId] = useState<number | null>(null);
+  const [editIncludeInSuggestions, setEditIncludeInSuggestions] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -217,11 +238,12 @@ export default function SuggestionsPage() {
   const safePage = Math.min(currentPage, totalPages);
   const pagedList = filteredList.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const handleStartEdit = ({ id, name, preferredUnit, categoryId }: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null }) => {
+  const handleStartEdit = ({ id, name, preferredUnit, categoryId, includeInSuggestions }: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null; includeInSuggestions?: boolean | null }) => {
     setEditingId(id);
     setEditName(name);
     setEditPreferredUnit(preferredUnit ?? "");
     setEditCategoryId(categoryId ?? null);
+    setEditIncludeInSuggestions(includeInSuggestions !== false);
   };
 
   const handleCancelEdit = () => {
@@ -236,6 +258,7 @@ export default function SuggestionsPage() {
         name: editName.trim(),
         preferredUnit: editPreferredUnit.trim() || null,
         categoryId: editCategoryId,
+        includeInSuggestions: editIncludeInSuggestions,
       });
       setEditingId(null);
       toast.success("Suggestion updated.");
@@ -472,9 +495,11 @@ export default function SuggestionsPage() {
                 editName={editName}
                 editPreferredUnit={editPreferredUnit}
                 editCategoryId={editCategoryId}
+                editIncludeInSuggestions={editIncludeInSuggestions}
                 onEditNameChange={setEditName}
                 onEditPreferredUnitChange={setEditPreferredUnit}
                 onEditCategoryIdChange={setEditCategoryId}
+                onEditIncludeInSuggestionsChange={setEditIncludeInSuggestions}
                 onStartEdit={handleStartEdit}
                 onCancelEdit={handleCancelEdit}
                 onSaveEdit={handleSaveEdit}

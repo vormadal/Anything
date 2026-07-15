@@ -545,6 +545,75 @@ public class RecipeEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task AddToShoppingList_SeedsHiddenRecommendations_NotShownAsSuggestions()
+    {
+        var recipe = await CreateRecipeAsync("Curry", null, null);
+        await AddIngredientAsync(recipe.Id, "Boneless chicken breasts", 500, "g", null);
+
+        var listId = await CreateShoppingListAsync("My List");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
+            new { shoppingListId = listId }, TestContext.Current.CancellationToken);
+
+        // The recipe ingredient name must NOT surface in the add-box autocomplete feed...
+        var suggestionsResponse = await client.GetAsync("/api/shopping-list-recommendations", TestContext.Current.CancellationToken);
+        var suggestions = await suggestionsResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(suggestions);
+        Assert.DoesNotContain(suggestions, r => r.Name == "Boneless chicken breasts");
+
+        // ...but it IS present (uncategorized) in the management views so it can be categorized.
+        var allResponse = await client.GetAsync("/api/shopping-list-recommendations/all", TestContext.Current.CancellationToken);
+        var all = await allResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(all);
+        Assert.Contains(all, r => r.Name == "Boneless chicken breasts");
+
+        var uncatResponse = await client.GetAsync("/api/shopping-list-recommendations/uncategorized", TestContext.Current.CancellationToken);
+        var uncat = await uncatResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(uncat);
+        Assert.Contains(uncat, r => r.Name == "Boneless chicken breasts");
+    }
+
+    [Fact]
+    public async Task AddToShoppingList_HiddenRecommendation_CanBeCategorizedAndSortsTheItem()
+    {
+        var recipe = await CreateRecipeAsync("Salad", null, null);
+        await AddIngredientAsync(recipe.Id, "Cherry tomatoes", 1, "punnet", null);
+
+        var listId = await CreateShoppingListAsync("My List");
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        await client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/add-to-shopping-list",
+            new { shoppingListId = listId }, TestContext.Current.CancellationToken);
+
+        // Create a category and assign it to the (hidden) recipe recommendation.
+        var catResponse = await client.PostAsJsonAsync("/api/suggestion-categories",
+            new { name = "Produce" }, TestContext.Current.CancellationToken);
+        var category = await catResponse.Content.ReadFromJsonAsync<CategoryDto>(JsonOptions, TestContext.Current.CancellationToken);
+
+        var allResponse = await client.GetAsync("/api/shopping-list-recommendations/all", TestContext.Current.CancellationToken);
+        var all = await allResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        var rec = all!.First(r => r.Name == "Cherry tomatoes");
+
+        var updateResponse = await client.PutAsJsonAsync($"/api/shopping-list-recommendations/{rec.Id}",
+            new { name = "Cherry tomatoes", preferredUnit = (string?)null, categoryId = category!.Id, includeInSuggestions = false },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        // Categorizing it must not leak it into suggestions.
+        var suggestionsResponse = await client.GetAsync("/api/shopping-list-recommendations", TestContext.Current.CancellationToken);
+        var suggestions = await suggestionsResponse.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(suggestions);
+        Assert.DoesNotContain(suggestions, r => r.Name == "Cherry tomatoes");
+
+        // The item still resolves (read-time join) so it is returned for the list.
+        var itemsResponse = await client.GetAsync($"/api/checklists/{listId}/items", TestContext.Current.CancellationToken);
+        var items = await itemsResponse.Content.ReadFromJsonAsync<ShoppingListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(items);
+        Assert.Contains(items, i => i.Name == "Cherry tomatoes");
+    }
+
+    [Fact]
     public async Task AddToShoppingList_NotFoundScenarios()
     {
         var client = await GetAuthenticatedHttpClientAsync();
@@ -1009,6 +1078,8 @@ public class RecipeEndpointTests : IntegrationTestBase
     private record RecipeTagExportItemDto(string RecipeName, List<string> Ingredients, List<string> Tags);
     private record ShoppingListDto(int Id, string? Name);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
+    private record RecommendationDto(int Id, string? Name, int? CategoryId = null, bool IncludeInSuggestions = true);
+    private record CategoryDto(int Id, string Name, int SortOrder);
     private record ParsedRecipeDto(string Name, string? Link, List<ParsedIngredientDto> Ingredients, List<ParsedStepDto> Steps, string? ImageUrl);
     private record ParsedIngredientDto(decimal? Amount, string? Unit, string Name);
     private record ParsedStepDto(int Order, string Text);

@@ -161,6 +161,18 @@ describe("SuggestionsPage (household config)", () => {
       });
     });
 
+    it("shows the hidden badge for recipe-seeded items not in suggestions", async () => {
+      mockAllGet.mockResolvedValue([
+        { id: 4, name: "Boneless chicken breasts", preferredUnit: null, categoryId: null, includeInSuggestions: false },
+      ]);
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("From recipe · not suggested")).toBeInTheDocument();
+      });
+    });
+
     it("shows category name for categorized items", async () => {
       mockCategoriesGet.mockResolvedValue([{ id: 5, name: "Dairy", sortOrder: 0 }]);
       mockAllGet.mockResolvedValue([
@@ -361,6 +373,28 @@ describe("SuggestionsPage (household config)", () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith("Failed to update suggestion.");
+      });
+    });
+
+    it("promotes a hidden item into suggestions via the toggle", async () => {
+      const user = userEvent.setup();
+      mockAllGet.mockResolvedValue([
+        { id: 4, name: "Boneless chicken breasts", preferredUnit: null, categoryId: null, includeInSuggestions: false },
+      ]);
+      mockUpdatePut.mockResolvedValueOnce(undefined);
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByText("Boneless chicken breasts")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Edit suggestion" }));
+
+      const toggle = screen.getByRole("checkbox", { name: /Show in autocomplete suggestions/ });
+      expect(toggle).not.toBeChecked();
+      await user.click(toggle);
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => {
+        expect(mockUpdatePut).toHaveBeenCalledWith(4, expect.objectContaining({ includeInSuggestions: true }));
       });
     });
 
