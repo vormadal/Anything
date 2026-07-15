@@ -385,6 +385,18 @@ async function setupApiMocks(page: Page) {
   await page.route("**/api/shopping-list-recommendations**", (route) =>
     route.fulfill({ json: mockRecommendations })
   );
+  // Registered after the list route so it takes precedence for /search. Simulates
+  // the backend's ranked, typo-tolerant search: a substring match or an anagram
+  // (adjacent-transposition typo, e.g. "mlik" -> "Milk") surfaces the item.
+  await page.route("**/api/shopping-list-recommendations/search**", (route) => {
+    const query = (new URL(route.request().url()).searchParams.get("query") ?? "").toLowerCase();
+    const sortChars = (value: string) => value.split("").sort().join("");
+    const matches = mockRecommendations.filter((r) => {
+      const name = (r.name ?? "").toLowerCase();
+      return name.includes(query) || sortChars(name) === sortChars(query);
+    });
+    route.fulfill({ json: matches });
+  });
   await page.route("**/api/suggestion-categories/export**", (route) =>
     route.fulfill({ json: { categories: [] } })
   );
@@ -659,6 +671,22 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "list-detail-general-edit-ordering.png",
+      screenshotOptions
+    );
+  });
+
+  test("shopping list - typo-tolerant item suggestions", async ({ page }) => {
+    await page.goto("/lists/1");
+    await page.waitForSelector('[aria-label="Edit list"]');
+    await page.getByRole("button", { name: "Edit list" }).click();
+
+    // A mistyped query ("mlik") still surfaces the "Milk" recommendation via the
+    // ranked, typo-tolerant backend search.
+    await page.getByPlaceholder("Add an item...").fill("mlik");
+    await page.getByRole("button", { name: "Milk" }).waitFor();
+
+    await expect(page).toHaveScreenshot(
+      "list-detail-typo-suggestions.png",
       screenshotOptions
     );
   });

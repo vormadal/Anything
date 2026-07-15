@@ -9,8 +9,9 @@ import {
   useUpdateShoppingListItem,
   useRemoveShoppingListItem,
 } from "@/hooks/useShoppingLists";
-import { useRecommendations } from "@/hooks/useRecommendations";
+import { useRecommendationSearch } from "@/hooks/useRecommendations";
 import { useUnits } from "@/hooks/useUnits";
+import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
 import { usePendingItemIds } from "@/lib/offline/outboxStore";
@@ -41,18 +42,21 @@ export function ShoppingListEditMode({ listId }: Props) {
   const addItem = useAddShoppingListItem(listId);
   const updateItem = useUpdateShoppingListItem(listId);
   const removeItem = useRemoveShoppingListItem(listId);
-  const { data: recommendations } = useRecommendations();
   const { data: units } = useUnits();
   const pendingItemIds = usePendingItemIds(listId);
 
+  // Ranked, typo-tolerant suggestions from the server (debounced), rather than
+  // loading the whole recommendation list and filtering it in the browser.
+  const debouncedName = useDebounce(newItemName, 250);
+  const { data: searchResults } = useRecommendationSearch(debouncedName);
+
   const filteredSuggestions =
-    recommendations?.filter(
-      (r) =>
-        r.name &&
-        newItemName.trim().length > 0 &&
-        r.name.toLowerCase().includes(newItemName.toLowerCase()) &&
-        !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase())
-    ) ?? [];
+    newItemName.trim().length > 0
+      ? (searchResults ?? []).filter(
+          (r) =>
+            r.name && !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase())
+        )
+      : [];
 
   const parseAmount = (value: string): number | null => {
     const parsed = parseFloat(value);
