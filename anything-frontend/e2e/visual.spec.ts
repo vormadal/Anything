@@ -183,7 +183,27 @@ const mockRecommendations = [
   { id: 1, name: "Milk", isApproved: true, preferredUnit: null, categoryId: null },
   { id: 2, name: "Bread", isApproved: true, preferredUnit: "loaves", categoryId: null },
   { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null },
+  // Not present on list 1's mock items, so its suggestion is never filtered out.
+  { id: 4, name: "Butter", isApproved: true, preferredUnit: null, categoryId: null },
 ];
+
+// Optimal string alignment (Damerau) edit distance — used by the /search mock to
+// mimic the backend's typo tolerance (a single edit, incl. transposition).
+function editDistanceForMock(a: string, b: string): number {
+  const d = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return d[a.length][b.length];
+}
 
 const mockUnits = [
   { id: 1, name: "g", householdId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
@@ -385,6 +405,17 @@ async function setupApiMocks(page: Page) {
   await page.route("**/api/shopping-list-recommendations**", (route) =>
     route.fulfill({ json: mockRecommendations })
   );
+  // Registered after the list route so it takes precedence for /search. Simulates
+  // the backend's ranked, typo-tolerant search: a substring match or an anagram
+  // (adjacent-transposition typo, e.g. "mlik" -> "Milk") surfaces the item.
+  await page.route("**/api/shopping-list-recommendations/search**", (route) => {
+    const query = (new URL(route.request().url()).searchParams.get("query") ?? "").toLowerCase();
+    const matches = mockRecommendations.filter((r) => {
+      const name = (r.name ?? "").toLowerCase();
+      return name.includes(query) || editDistanceForMock(query, name) <= 1;
+    });
+    route.fulfill({ json: matches });
+  });
   await page.route("**/api/suggestion-categories/export**", (route) =>
     route.fulfill({ json: { categories: [] } })
   );
@@ -659,6 +690,24 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "list-detail-general-edit-ordering.png",
+      screenshotOptions
+    );
+  });
+
+  test("shopping list - typo-tolerant item suggestions", async ({ page }) => {
+    // Baseline regenerated from scratch after correcting the scenario below.
+    await page.goto("/lists/1");
+    await page.waitForSelector('[aria-label="Edit list"]');
+    await page.getByRole("button", { name: "Edit list" }).click();
+
+    // "buttr" is a typo for the "Butter" recommendation (which is not already on
+    // this list), so the ranked, typo-tolerant search still surfaces it in the
+    // suggestion dropdown.
+    await page.getByPlaceholder("Add an item...").fill("buttr");
+    await page.getByRole("button", { name: "Butter" }).waitFor();
+
+    await expect(page).toHaveScreenshot(
+      "list-detail-typo-suggestions.png",
       screenshotOptions
     );
   });

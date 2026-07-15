@@ -21,6 +21,7 @@ import { useRouter, useParams } from "next/navigation";
 import { X, Pencil, Plus, Search, Download, Upload, Sparkles } from "lucide-react";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useHeaderActions } from "@/context/PageActionsContext";
+import { fuzzyRank } from "@/lib/fuzzy";
 
 type UnitRowProps = {
   unit: MeasurementUnit;
@@ -128,12 +129,10 @@ export default function UnitsPage() {
     return () => setLeftAction({ type: "menu" });
   }, [setLeftAction, householdId]);
 
-  const filteredList = useMemo(() => {
-    const list = units ?? [];
-    if (!searchQuery.trim()) return list;
-    const q = searchQuery.toLowerCase();
-    return list.filter((u) => u.name?.toLowerCase().includes(q));
-  }, [units, searchQuery]);
+  const filteredList = useMemo(
+    () => fuzzyRank(units ?? [], searchQuery, (u) => u.name ?? ""),
+    [units, searchQuery]
+  );
 
   if (
     user &&

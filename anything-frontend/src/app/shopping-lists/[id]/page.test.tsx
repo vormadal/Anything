@@ -33,6 +33,9 @@ jest.mock('@/lib/apiClient', () => ({
       },
       shoppingListRecommendations: {
         get: jest.fn().mockResolvedValue([]),
+        search: {
+          get: jest.fn().mockResolvedValue([]),
+        },
       },
     },
   },
@@ -770,7 +773,7 @@ describe('ShoppingListDetailPage', () => {
     const user = userEvent.setup()
     mockItemsGet.mockResolvedValue([])
     jest.mocked(
-      (await import('@/lib/apiClient')).apiClient.api.shoppingListRecommendations.get
+      (await import('@/lib/apiClient')).apiClient.api.shoppingListRecommendations.search.get
     ).mockResolvedValue([{ id: 1, name: 'Milk', preferredUnit: 'l' }])
 
     render(<ShoppingListDetailPage />)

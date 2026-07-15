@@ -1,6 +1,8 @@
+using Anything.Application.Common;
 using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Search;
 using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.EntityFrameworkCore;
@@ -35,18 +37,46 @@ public class GetRecipesHandler(
                     .Any(t => t.RecipeId == r.Id && t.DeletedOn == null && t.Name.ToLower() == tag));
         }
 
+        List<Recipe> recipes;
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var search = query.Search.ToLower();
-            baseQuery = baseQuery.Where(r =>
-                r.Name.ToLower().Contains(search) ||
-                tagRepository.Query()
-                    .Any(t => t.RecipeId == r.Id && t.DeletedOn == null && t.Name.ToLower().Contains(search)) ||
-                ingredientRepository.Query()
-                    .Any(i => i.RecipeId == r.Id && i.DeletedOn == null && i.Name.ToLower().Contains(search)));
+            var search = FuzzySearch.Normalize(query.Search);
+            // Rank by relevance and tolerate typos: an exact/substring name match
+            // ranks first, then fuzzy (trigram) name closeness, then tag matches,
+            // then ingredient matches. Trigram similarity is case-insensitive, so
+            // even a mistyped query (e.g. "chickn") still clears the threshold.
+            recipes = await baseQuery
+                .Select(r => new
+                {
+                    Recipe = r,
+                    NameContains = r.Name.ToLower().Contains(search),
+                    // word_similarity scores the search term against the closest
+                    // extent within the (possibly multi-word) name, so a typo like
+                    // "chickn" still matches "Chicken Curry" — plain similarity()
+                    // would be penalised by the length difference.
+                    NameSimilarity = PgTrigramFunctions.WordSimilarity(search, r.Name),
+                    TagMatch = tagRepository.Query()
+                        .Any(t => t.RecipeId == r.Id && t.DeletedOn == null && t.Name.ToLower().Contains(search)),
+                    IngredientMatch = ingredientRepository.Query()
+                        .Any(i => i.RecipeId == r.Id && i.DeletedOn == null && i.Name.ToLower().Contains(search)),
+                })
+                .Where(x => x.NameContains
+                    || x.NameSimilarity > FuzzySearch.SimilarityThreshold
+                    || x.TagMatch
+                    || x.IngredientMatch)
+                .OrderByDescending(x => x.NameContains)
+                .ThenByDescending(x => x.NameSimilarity)
+                .ThenByDescending(x => x.TagMatch)
+                .ThenByDescending(x => x.IngredientMatch)
+                .ThenBy(x => x.Recipe.Name)
+                .Select(x => x.Recipe)
+                .ToListAsync(ct);
+        }
+        else
+        {
+            recipes = await baseQuery.ToListAsync(ct);
         }
 
-        var recipes = await baseQuery.ToListAsync(ct);
         var recipeIds = recipes.Select(r => r.Id).ToList();
 
         // Batch-load tags and images for every result recipe in one query each

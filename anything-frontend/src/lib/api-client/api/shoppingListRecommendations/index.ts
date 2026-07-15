@@ -12,6 +12,8 @@ import { ImportRequestBuilderRequestsMetadata, type ImportRequestBuilder } from 
 // @ts-ignore
 import { ShoppingListRecommendationsItemRequestBuilderRequestsMetadata, type ShoppingListRecommendationsItemRequestBuilder } from './item/index';
 // @ts-ignore
+import { SearchRequestBuilderRequestsMetadata, type SearchRequestBuilder } from './search/index';
+// @ts-ignore
 import { type UncategorizedRequestBuilder, UncategorizedRequestBuilderRequestsMetadata } from './uncategorized/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
@@ -32,6 +34,10 @@ export interface ShoppingListRecommendationsRequestBuilder extends BaseRequestBu
      * The import property
      */
     get importEscaped(): ImportRequestBuilder;
+    /**
+     * The search property
+     */
+    get search(): SearchRequestBuilder;
     /**
      * The uncategorized property
      */
@@ -86,6 +92,9 @@ export const ShoppingListRecommendationsRequestBuilderNavigationMetadata: Record
     },
     importEscaped: {
         requestsMetadata: ImportRequestBuilderRequestsMetadata,
+    },
+    search: {
+        requestsMetadata: SearchRequestBuilderRequestsMetadata,
     },
     uncategorized: {
         requestsMetadata: UncategorizedRequestBuilderRequestsMetadata,

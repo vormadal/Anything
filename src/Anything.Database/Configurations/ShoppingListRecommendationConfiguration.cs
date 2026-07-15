@@ -12,6 +12,8 @@ public class ShoppingListRecommendationConfiguration : IEntityTypeConfiguration<
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.Property(e => e.PreferredUnit).HasMaxLength(50);
         builder.HasIndex(e => new { e.HouseholdId, e.Name }).IsUnique();
+        // GIN trigram index powering fuzzy (similarity) name search.
+        builder.HasIndex(e => e.Name).HasMethod("gin").HasOperators("gin_trgm_ops");
         builder.HasOne<Household>()
             .WithMany()
             .HasForeignKey(e => e.HouseholdId)
