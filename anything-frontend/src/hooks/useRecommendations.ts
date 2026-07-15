@@ -54,8 +54,8 @@ export function useUpdateRecommendation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, name, preferredUnit, categoryId }: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null }) =>
-      apiClient.api.shoppingListRecommendations.byId(id).put({ name, preferredUnit: preferredUnit ?? null, categoryId: categoryId ?? null }),
+    mutationFn: ({ id, name, preferredUnit, categoryId, includeInSuggestions = true }: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null; includeInSuggestions?: boolean }) =>
+      apiClient.api.shoppingListRecommendations.byId(id).put({ name, preferredUnit: preferredUnit ?? null, categoryId: categoryId ?? null, includeInSuggestions }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
     },

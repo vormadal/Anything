@@ -180,9 +180,11 @@ const mockSeasonalTagRules = [
 ];
 
 const mockRecommendations = [
-  { id: 1, name: "Milk", isApproved: true, preferredUnit: null, categoryId: null },
-  { id: 2, name: "Bread", isApproved: true, preferredUnit: "loaves", categoryId: null },
-  { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null },
+  { id: 1, name: "Milk", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true },
+  { id: 2, name: "Bread", isApproved: true, preferredUnit: "loaves", categoryId: null, includeInSuggestions: true },
+  { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null, includeInSuggestions: true },
+  // Recipe-seeded: categorizable for sorting but hidden from autocomplete suggestions.
+  { id: 4, name: "Boneless chicken breasts", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: false },
 ];
 
 const mockUnits = [
@@ -873,6 +875,22 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "household-suggestions-with-data.png",
+      screenshotOptions
+    );
+  });
+
+  test("household suggestions page - editing a hidden recipe item", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions");
+    await page.waitForLoadState("networkidle");
+    // Open edit on the recipe-seeded (hidden) recommendation to reveal the
+    // "Show in autocomplete suggestions" toggle, unchecked for a hidden item.
+    const row = page.locator("li", { hasText: "Boneless chicken breasts" });
+    await row.getByRole("button", { name: "Edit suggestion" }).click();
+    await expect(
+      page.getByText("Show in autocomplete suggestions")
+    ).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "household-suggestions-edit-hidden.png",
       screenshotOptions
     );
   });
