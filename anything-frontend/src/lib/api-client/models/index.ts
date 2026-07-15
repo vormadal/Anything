@@ -3297,6 +3297,7 @@ export function deserializeIntoShoppingListRecommendation(shoppingListRecommenda
         "createdOn": n => { shoppingListRecommendation.createdOn = n.getDateValue(); },
         "householdId": n => { shoppingListRecommendation.householdId = n.getNumberValue(); },
         "id": n => { shoppingListRecommendation.id = n.getNumberValue(); },
+        "includeInSuggestions": n => { shoppingListRecommendation.includeInSuggestions = n.getBooleanValue(); },
         "modifiedOn": n => { shoppingListRecommendation.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingListRecommendation.name = n.getStringValue(); },
         "preferredUnit": n => { shoppingListRecommendation.preferredUnit = n.getStringValue(); },
@@ -3619,6 +3620,7 @@ export function deserializeIntoUpdateRecipeStepRequest(updateRecipeStepRequest: 
 export function deserializeIntoUpdateRecommendationRequest(updateRecommendationRequest: Partial<UpdateRecommendationRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "categoryId": n => { updateRecommendationRequest.categoryId = n.getNumberValue(); },
+        "includeInSuggestions": n => { updateRecommendationRequest.includeInSuggestions = n.getBooleanValue(); },
         "name": n => { updateRecommendationRequest.name = n.getStringValue(); },
         "preferredUnit": n => { updateRecommendationRequest.preferredUnit = n.getStringValue(); },
     }
@@ -6345,6 +6347,7 @@ export function serializeShoppingListRecommendation(writer: SerializationWriter,
     writer.writeDateValue("createdOn", shoppingListRecommendation.createdOn);
     writer.writeNumberValue("householdId", shoppingListRecommendation.householdId);
     writer.writeNumberValue("id", shoppingListRecommendation.id);
+    writer.writeBooleanValue("includeInSuggestions", shoppingListRecommendation.includeInSuggestions);
     writer.writeDateValue("modifiedOn", shoppingListRecommendation.modifiedOn);
     writer.writeStringValue("name", shoppingListRecommendation.name);
     writer.writeStringValue("preferredUnit", shoppingListRecommendation.preferredUnit);
@@ -6667,6 +6670,7 @@ export function serializeUpdateRecipeStepRequest(writer: SerializationWriter, up
 export function serializeUpdateRecommendationRequest(writer: SerializationWriter, updateRecommendationRequest: Partial<UpdateRecommendationRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateRecommendationRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("categoryId", updateRecommendationRequest.categoryId);
+    writer.writeBooleanValue("includeInSuggestions", updateRecommendationRequest.includeInSuggestions);
     writer.writeStringValue("name", updateRecommendationRequest.name);
     writer.writeStringValue("preferredUnit", updateRecommendationRequest.preferredUnit);
 }
@@ -6979,6 +6983,10 @@ export interface ShoppingListRecommendation extends Parsable {
      * The id property
      */
     id?: number | null;
+    /**
+     * The includeInSuggestions property
+     */
+    includeInSuggestions?: boolean | null;
     /**
      * The modifiedOn property
      */
@@ -7355,6 +7363,10 @@ export interface UpdateRecommendationRequest extends Parsable {
      * The categoryId property
      */
     categoryId?: number | null;
+    /**
+     * The includeInSuggestions property
+     */
+    includeInSuggestions?: boolean | null;
     /**
      * The name property
      */
