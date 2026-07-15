@@ -18,6 +18,23 @@ export function useRecommendations() {
   });
 }
 
+/**
+ * Ranked, typo-tolerant recommendation search backed by the server so the full
+ * recommendation list is never loaded client-side just to filter it. Disabled
+ * until there is a non-blank query.
+ */
+export function useRecommendationSearch(query: string) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ["shoppingListRecommendations", "search", trimmed],
+    enabled: trimmed.length > 0,
+    queryFn: () =>
+      apiClient.api.shoppingListRecommendations.search.get({
+        queryParameters: { query: trimmed },
+      }) as Promise<ShoppingListRecommendation[]>,
+  });
+}
+
 export function useAllRecommendations(categoryId?: number) {
   return useQuery({
     queryKey: ["shoppingListRecommendations", "all", categoryId],

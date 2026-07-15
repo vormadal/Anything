@@ -738,6 +738,56 @@ public class RecipeEndpointTests : IntegrationTestBase
         Assert.Empty(untagged.Tags);
     }
 
+    // --- Search: relevance ranking + typo tolerance ---
+
+    [Fact]
+    public async Task GetRecipes_Search_RanksNameMatchAboveTagAndIngredientMatch()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var nameMatch = await CreateRecipeAsync("Tomato Soup", null, null);
+
+        // Identical non-matching names so the only ranking difference between these
+        // two is tag-match vs ingredient-match (name similarity ties).
+        var tagMatch = await CreateRecipeAsync("Zzz Placeholder Dish", null, null);
+        await AddTagAsync(tagMatch.Id, "tomato");
+
+        var ingredientMatch = await CreateRecipeAsync("Zzz Placeholder Dish", null, null);
+        await AddIngredientAsync(ingredientMatch.Id, "Tomato", 2, null, null);
+
+        var response = await client.GetAsync("/api/recipes?search=tomato", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var list = await response.Content.ReadFromJsonAsync<RecipeListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(list);
+
+        var ids = list.Select(r => r.Id).ToList();
+        Assert.Contains(nameMatch.Id, ids);
+        Assert.Contains(tagMatch.Id, ids);
+        Assert.Contains(ingredientMatch.Id, ids);
+
+        // Name match first, then tag match, then ingredient match.
+        Assert.True(ids.IndexOf(nameMatch.Id) < ids.IndexOf(tagMatch.Id));
+        Assert.True(ids.IndexOf(tagMatch.Id) < ids.IndexOf(ingredientMatch.Id));
+    }
+
+    [Fact]
+    public async Task GetRecipes_Search_ToleratesTypoInName()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var recipe = await CreateRecipeAsync("Chicken Curry", null, null);
+        await CreateRecipeAsync("Beef Stew", null, null);
+
+        // "chickn" is a typo for "chicken" — substring LIKE would return nothing,
+        // trigram word-similarity still matches.
+        var response = await client.GetAsync("/api/recipes?search=chickn", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var list = await response.Content.ReadFromJsonAsync<RecipeListItemDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(list);
+
+        Assert.Contains(list, r => r.Id == recipe.Id);
+        Assert.DoesNotContain(list, r => r.Name == "Beef Stew");
+    }
+
     [Fact]
     public async Task Tags_NotFoundScenarios()
     {

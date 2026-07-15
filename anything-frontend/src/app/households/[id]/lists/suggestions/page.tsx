@@ -22,6 +22,7 @@ import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight, Download, Upload } 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import type { SuggestionCategory } from "@/lib/api-client/models/index";
+import { fuzzyRank } from "@/lib/fuzzy";
 
 const PAGE_SIZE = 20;
 
@@ -219,11 +220,10 @@ export default function SuggestionsPage() {
   );
   const isLoading = activeTab === "uncategorized" ? isLoadingUncategorized : isLoadingAll;
 
-  const filteredList = useMemo(() => {
-    if (!searchQuery.trim()) return currentList;
-    const q = searchQuery.toLowerCase();
-    return currentList.filter((r) => r.name?.toLowerCase().includes(q));
-  }, [currentList, searchQuery]);
+  const filteredList = useMemo(
+    () => fuzzyRank(currentList, searchQuery, (r) => r.name ?? ""),
+    [currentList, searchQuery]
+  );
 
   if (
     user &&

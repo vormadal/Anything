@@ -66,7 +66,15 @@ Object.defineProperty(window, 'IntersectionObserver', {
 function mockRecipesFetch(recipes: unknown[]) {
   mockFetch.mockImplementation((url: string) => {
     if ((url as string).includes('/api/recipes')) {
-      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(recipes) } as Response)
+      // Simulate the backend recipe search: when a `search` term is present the
+      // API returns only matching recipes (the client no longer filters locally).
+      const search = new URL(url as string, 'http://localhost').searchParams.get('search')
+      const payload = search
+        ? (recipes as { name?: string }[]).filter((r) =>
+            (r?.name ?? '').toLowerCase().includes(search.toLowerCase())
+          )
+        : recipes
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(payload) } as Response)
     }
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([]) } as Response)
   })

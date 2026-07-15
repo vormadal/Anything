@@ -10,6 +10,8 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
+        // GIN trigram index powering fuzzy (similarity) name search.
+        builder.HasIndex(e => e.Name).HasMethod("gin").HasOperators("gin_trgm_ops");
         builder.HasOne<Household>()
             .WithMany()
             .HasForeignKey(e => e.HouseholdId)

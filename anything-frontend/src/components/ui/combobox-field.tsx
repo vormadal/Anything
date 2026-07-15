@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { X, Check, Plus } from "lucide-react";
+import { fuzzyRank } from "@/lib/fuzzy";
 
 interface ComboboxItem {
   id: number;
@@ -32,7 +33,7 @@ export function ComboboxField({
   const selectedItem = items.find((i) => i.id === value);
 
   const filtered = query.trim()
-    ? items.filter((i) => i.name.toLowerCase().includes(query.toLowerCase()))
+    ? fuzzyRank(items, query, (i) => i.name)
     : items.slice(0, INITIAL_DISPLAY_COUNT);
 
   const exactMatch = items.some(
