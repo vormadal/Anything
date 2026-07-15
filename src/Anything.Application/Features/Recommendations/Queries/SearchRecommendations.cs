@@ -12,6 +12,11 @@ namespace Anything.Application.Features.Recommendations.Queries;
 /// Ranked, typo-tolerant search over a household's shopping-list recommendations.
 /// Backs the item-suggestion typeahead and the recommendations admin search.
 /// </summary>
+/// <remarks>
+/// Substring matches rank first, then trigram word-similarity closeness, so a
+/// mistyped query still returns the intended recommendation. A blank search
+/// returns the alphabetical list capped at <see cref="SearchRecommendationsQuery.Limit"/>.
+/// </remarks>
 public record SearchRecommendationsQuery(string? Search = null, int Limit = 20)
     : IRequest<List<ShoppingListRecommendation>>;
 
