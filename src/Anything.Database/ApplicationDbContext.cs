@@ -1,4 +1,5 @@
 using Anything.Core.Entities;
+using Anything.Core.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Database;
@@ -47,6 +48,13 @@ public class ApplicationDbContext : DbContext
         // typo-tolerant name search. Backed by GIN trigram indexes declared on the
         // searched name columns in their entity configurations.
         modelBuilder.HasPostgresExtension("pg_trgm");
+        // Map the pg_trgm word_similarity() function so it can be used for
+        // relevance-ranked, typo-tolerant name search inside LINQ queries.
+        modelBuilder.HasDbFunction(
+            typeof(PgTrigramFunctions).GetMethod(
+                nameof(PgTrigramFunctions.WordSimilarity),
+                [typeof(string), typeof(string)])!)
+            .HasName("word_similarity");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }

@@ -1,6 +1,7 @@
 using Anything.Application.Common;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Search;
 using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +42,7 @@ public class SearchRecommendationsHandler(
                 NameContains = r.Name.ToLower().Contains(search),
                 // word_similarity scores the search term against the closest extent
                 // within the name, so a typo ("tomatoe") still matches "Tomato".
-                NameSimilarity = EF.Functions.TrigramsWordSimilarity(search, r.Name),
+                NameSimilarity = PgTrigramFunctions.WordSimilarity(search, r.Name),
             })
             .Where(x => x.NameContains || x.NameSimilarity > FuzzySearch.SimilarityThreshold)
             .OrderByDescending(x => x.NameContains)

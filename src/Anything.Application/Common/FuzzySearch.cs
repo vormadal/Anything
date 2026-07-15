@@ -2,9 +2,9 @@ namespace Anything.Application.Common;
 
 /// <summary>
 /// Shared constants and helpers for Postgres <c>pg_trgm</c>-based fuzzy search.
-/// Handlers rank candidates with <see cref="Microsoft.EntityFrameworkCore.EF.Functions"/>
-/// <c>TrigramsWordSimilarity</c> and keep rows whose similarity clears
-/// <see cref="SimilarityThreshold"/> (or that contain the search term as a substring).
+/// Handlers rank candidates with <see cref="Anything.Core.Search.PgTrigramFunctions.WordSimilarity"/>
+/// and keep rows whose similarity clears <see cref="SimilarityThreshold"/>
+/// (or that contain the search term as a substring).
 /// </summary>
 public static class FuzzySearch
 {

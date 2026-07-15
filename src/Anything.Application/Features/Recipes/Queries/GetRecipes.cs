@@ -2,6 +2,7 @@ using Anything.Application.Common;
 using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
+using Anything.Core.Search;
 using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.EntityFrameworkCore;
@@ -53,7 +54,7 @@ public class GetRecipesHandler(
                     // extent within the (possibly multi-word) name, so a typo like
                     // "chickn" still matches "Chicken Curry" — plain similarity()
                     // would be penalised by the length difference.
-                    NameSimilarity = EF.Functions.TrigramsWordSimilarity(search, r.Name),
+                    NameSimilarity = PgTrigramFunctions.WordSimilarity(search, r.Name),
                     TagMatch = tagRepository.Query()
                         .Any(t => t.RecipeId == r.Id && t.DeletedOn == null && t.Name.ToLower().Contains(search)),
                     IngredientMatch = ingredientRepository.Query()
