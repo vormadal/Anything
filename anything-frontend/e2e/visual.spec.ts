@@ -676,6 +676,11 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("shopping list - typo-tolerant item suggestions", async ({ page }) => {
+    // Serve items without "Milk" so the Milk recommendation isn't filtered out as
+    // already-present — the suggestion dropdown (not a list row) is what we assert.
+    await page.route(/\/api\/checklists\/1\/items/, (route) =>
+      route.fulfill({ json: mockShoppingListItems.filter((i) => i.name !== "Milk") })
+    );
     await page.goto("/lists/1");
     await page.waitForSelector('[aria-label="Edit list"]');
     await page.getByRole("button", { name: "Edit list" }).click();
