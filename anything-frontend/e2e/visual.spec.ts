@@ -695,6 +695,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("shopping list - typo-tolerant item suggestions", async ({ page }) => {
+    // Baseline regenerated from scratch after correcting the scenario below.
     await page.goto("/lists/1");
     await page.waitForSelector('[aria-label="Edit list"]');
     await page.getByRole("button", { name: "Edit list" }).click();
