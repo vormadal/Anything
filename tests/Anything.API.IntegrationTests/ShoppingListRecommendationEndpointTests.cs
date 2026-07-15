@@ -503,6 +503,69 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 
+    // --- GET /api/shopping-list-recommendations/search ---
+
+    [Fact]
+    public async Task SearchRecommendations_RanksSubstringMatchesFirst()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        await CreateRecommendationAsync("Milk");
+        await CreateRecommendationAsync("Oat milk");
+        await CreateRecommendationAsync("Butter");
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/search?query=milk");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var results = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(results);
+
+        var names = results.Select(r => r.Name).ToList();
+        Assert.Contains("Milk", names);
+        Assert.Contains("Oat milk", names);
+        Assert.DoesNotContain("Butter", names);
+        // Prefix match ("Milk") ranks before the mid-string match ("Oat milk").
+        Assert.True(names.IndexOf("Milk") < names.IndexOf("Oat milk"));
+    }
+
+    [Fact]
+    public async Task SearchRecommendations_ToleratesTypo()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        await CreateRecommendationAsync("Tomato");
+        await CreateRecommendationAsync("Cucumber");
+
+        // "tomatoe" is a common misspelling; substring LIKE would miss it.
+        var response = await client.GetAsync("/api/shopping-list-recommendations/search?query=tomatoe");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var results = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(results);
+
+        Assert.Contains(results, r => r.Name == "Tomato");
+        Assert.DoesNotContain(results, r => r.Name == "Cucumber");
+    }
+
+    [Fact]
+    public async Task SearchRecommendations_BlankQuery_ReturnsAlphabeticalList()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        await CreateRecommendationAsync("Banana");
+        await CreateRecommendationAsync("Apple");
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/search");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var results = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(results);
+
+        var names = results.Select(r => r.Name).ToList();
+        Assert.True(names.IndexOf("Apple") < names.IndexOf("Banana"));
+    }
+
+    [Fact]
+    public async Task SearchRecommendations_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync("/api/shopping-list-recommendations/search?query=milk");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);

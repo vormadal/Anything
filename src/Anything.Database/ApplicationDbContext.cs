@@ -43,6 +43,10 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        // Enables trigram similarity (similarity(), % operator) used for fuzzy,
+        // typo-tolerant name search. Backed by GIN trigram indexes declared on the
+        // searched name columns in their entity configurations.
+        modelBuilder.HasPostgresExtension("pg_trgm");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }

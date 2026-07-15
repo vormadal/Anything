@@ -17,6 +17,7 @@ import {
 } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import type { FoodPlanEntry, RecipeListItemResponse } from "@/lib/api-client/models/index";
@@ -198,9 +199,13 @@ function DayManagementDialog({
   const dateLabelStr = format(date, "d. MMMM", { locale: da });
   const dateStr = toDateInputValue(date);
 
-  const suggestions = name.trim()
-    ? (recipes ?? []).filter((r) => r.name?.toLowerCase().includes(name.toLowerCase()))
-    : [];
+  // Typed search delegates to the backend recipe search (relevance-ranked and
+  // typo-tolerant) rather than substring-filtering the in-memory recipe list.
+  // While the field is empty the query key matches the parent's cached
+  // useRecipes(), so no extra request is made until the user types.
+  const debouncedName = useDebounce(name.trim(), 250);
+  const { data: searchResults } = useRecipes(debouncedName || undefined);
+  const suggestions = debouncedName ? (searchResults ?? []) : [];
 
   // Ranked suggestions from the backend, shown while the input is empty.
   const { data: rankedSuggestions } = useFoodPlanSuggestions(dateStr);

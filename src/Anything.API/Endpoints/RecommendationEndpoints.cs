@@ -32,6 +32,16 @@ public static class RecommendationEndpoints
         .RequireAuthorization()
         .RequireHouseholdManager();
 
+        // Ranked, typo-tolerant search backing the item-suggestion typeahead and
+        // the recommendations admin search — avoids loading the whole list client-side.
+        group.MapGet("/search", async ([FromQuery] string? query, [FromQuery] int? limit, IMediator mediator) =>
+        {
+            return await mediator.Send(new SearchRecommendationsQuery(query, limit ?? 20));
+        })
+        .WithName("SearchRecommendations")
+        .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
+        .RequireAuthorization();
+
         group.MapGet("/all", async ([FromQuery] int? categoryId, IMediator mediator) =>
         {
             return await mediator.Send(new GetAllRecommendationsQuery(categoryId));
