@@ -99,6 +99,7 @@ public static class RecommendationEndpoints
             return await mediator.Send(new DeleteRecommendationsForListCommand(shoppingListId));
         })
         .WithName("DeleteRecommendationsForList")
+        .WithSummary("Remove all suggestions that belong specifically to a single shopping list. Shared suggestions are left untouched.")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
         .RequireAuthorization()
