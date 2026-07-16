@@ -18,4 +18,14 @@ public static class PgTrigramFunctions
     public static float WordSimilarity(string source, string target) =>
         throw new InvalidOperationException(
             "PgTrigramFunctions.WordSimilarity is only usable inside an EF Core query.");
+
+    /// <summary>
+    /// Maps to Postgres <c>similarity(a, b)</c>: the symmetric trigram similarity
+    /// between the two whole strings (penalised by length difference). Preferred
+    /// over <see cref="WordSimilarity"/> for pairwise duplicate detection, where
+    /// both sides are full names of comparable length ("Tomatoe" vs "Tomato").
+    /// </summary>
+    public static float Similarity(string a, string b) =>
+        throw new InvalidOperationException(
+            "PgTrigramFunctions.Similarity is only usable inside an EF Core query.");
 }
