@@ -7,7 +7,7 @@ import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useBillSummary } from "@/hooks/useBills";
 import { useRouter } from "next/navigation";
-import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand } from "lucide-react";
+import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 import { CreateListDialog } from "@/components/CreateListDialog";
@@ -281,7 +281,51 @@ export function BillsCard() {
   );
 }
 
+export function QuickCreateCard() {
+  const router = useRouter();
+  const [isCreatingList, setIsCreatingList] = useState(false);
+  const isOnline = useOnlineStatus();
+  const offlineTitle = isOnline ? undefined : "Creating requires an internet connection";
+
+  const actions: { label: string; icon: typeof Plus; onClick: () => void }[] = [
+    { label: "List", icon: ListChecks, onClick: () => setIsCreatingList(true) },
+    { label: "Recipe", icon: BookOpen, onClick: () => router.push("/recipes/new") },
+    { label: "Bill", icon: Receipt, onClick: () => router.push("/bills/new") },
+    { label: "Meal", icon: UtensilsCrossed, onClick: () => router.push("/food-plans") },
+  ];
+
+  return (
+    <section>
+      <CreateListDialog
+        open={isCreatingList}
+        onOpenChange={setIsCreatingList}
+        onCreated={(listId) => router.push(`/lists/${listId}`)}
+      />
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="h-5 w-5 text-amber-500" />
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Create</h2>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {actions.map(({ label, icon: Icon, onClick }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={onClick}
+            disabled={!isOnline}
+            title={offlineTitle}
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-3 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700/50"
+          >
+            <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            {label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export const HOME_CARD_KEYS = {
+  QuickCreate: "quickcreate",
   FoodPlan: "foodplan",
   Bills: "bills",
   Lists: "lists",
@@ -290,12 +334,14 @@ export const HOME_CARD_KEYS = {
 export type HomeCardKey = (typeof HOME_CARD_KEYS)[keyof typeof HOME_CARD_KEYS];
 
 export const HOME_CARD_REGISTRY: Record<HomeCardKey, { title: string; component: React.ComponentType }> = {
+  [HOME_CARD_KEYS.QuickCreate]: { title: "Quick Create", component: QuickCreateCard },
   [HOME_CARD_KEYS.FoodPlan]: { title: "Menu of the Day", component: FoodPlanCard },
   [HOME_CARD_KEYS.Lists]: { title: "Lists", component: ListsCard },
   [HOME_CARD_KEYS.Bills]: { title: "Bills", component: BillsCard },
 };
 
 export const DEFAULT_HOME_CARD_ORDER: HomeCardKey[] = [
+  HOME_CARD_KEYS.QuickCreate,
   HOME_CARD_KEYS.FoodPlan,
   HOME_CARD_KEYS.Lists,
   HOME_CARD_KEYS.Bills,

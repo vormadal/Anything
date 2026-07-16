@@ -603,4 +603,81 @@ describe('Home Page Integration Tests', () => {
 
     await waitFor(() => { expect(screen.getByText('Groceries')).toBeInTheDocument() })
   })
+
+  // ------- Quick Create card -------
+  const quickCreateVisible = [{ cardKey: 'quickcreate', sortOrder: 0, isVisible: true }]
+
+  it('should render the Quick Create card with all four create actions when visible', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(quickCreateVisible)
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Quick Create' })).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'List' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Recipe' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bill' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Meal' })).toBeInTheDocument()
+  })
+
+  it('should navigate to the recipe, bill and meal create flows from Quick Create', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(quickCreateVisible)
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Recipe' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Recipe' }))
+    expect(mockPush).toHaveBeenCalledWith('/recipes/new')
+
+    await user.click(screen.getByRole('button', { name: 'Bill' }))
+    expect(mockPush).toHaveBeenCalledWith('/bills/new')
+
+    await user.click(screen.getByRole('button', { name: 'Meal' }))
+    expect(mockPush).toHaveBeenCalledWith('/food-plans')
+  })
+
+  it('should open the create list dialog from the Quick Create card', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(quickCreateVisible)
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'List' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    expect(screen.getByText('Create a list')).toBeInTheDocument()
+  })
+
+  it('should disable the Quick Create actions while offline', async () => {
+    setOnline(false)
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(quickCreateVisible)
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Recipe' })).toBeDisabled()
+    })
+    expect(screen.getByRole('button', { name: 'List' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Bill' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Meal' })).toBeDisabled()
+  })
 })

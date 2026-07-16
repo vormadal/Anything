@@ -527,6 +527,27 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-with-data.png", screenshotOptions);
   });
 
+  test("home page - quick create card", async ({ page }) => {
+    // Show the Quick Create card (List / Recipe / Bill / Meal shortcuts) on top.
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "quickcreate", sortOrder: 0, isVisible: true },
+            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
+            { cardKey: "lists", sortOrder: 2, isVisible: true },
+            { cardKey: "bills", sortOrder: 3, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("home-quick-create-card.png", screenshotOptions);
+  });
+
   test("home page - empty state", async ({ page }) => {
     // Override to return empty collections
     await page.route("**/api/food-plan/entries**", (route) =>
