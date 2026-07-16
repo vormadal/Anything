@@ -82,8 +82,8 @@ public class AddFoodPlanToShoppingListHandler(
             .ToListAsync(ct);
 
         var ingredientNamesLower = grouped.Select(g => g.Name.ToLower()).ToHashSet();
-        var existingRecommendations = await ShoppingListHelpers.GetExistingRecommendationNamesAsync(
-            recommendationRepository, householdContext.HouseholdId, ingredientNamesLower, ct);
+        var existingRecommendations = await ShoppingListHelpers.GetExistingRecommendationNames(
+            recommendationRepository, householdContext.HouseholdId, command.ShoppingListId, ingredientNamesLower, ct);
 
         foreach (var (name, amount, unit, addedByRecipe) in grouped)
         {
@@ -103,7 +103,7 @@ public class AddFoodPlanToShoppingListHandler(
             // Recipe ingredient names are seeded hidden: categorizable for sorting, but kept
             // out of the add-box autocomplete suggestions.
             ShoppingListHelpers.AddRecommendationIfNotExists(recommendationRepository, existingRecommendations,
-                householdContext.HouseholdId, name, timeProvider.GetUtcNow().UtcDateTime, includeInSuggestions: false);
+                householdContext.HouseholdId, command.ShoppingListId, name, timeProvider.GetUtcNow().UtcDateTime, includeInSuggestions: false);
         }
 
         // Mark entries as added to shopping list

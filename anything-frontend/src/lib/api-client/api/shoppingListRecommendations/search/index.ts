@@ -24,11 +24,12 @@ export interface SearchRequestBuilder extends BaseRequestBuilder<SearchRequestBu
 export interface SearchRequestBuilderGetQueryParameters {
     limit?: number;
     query?: string;
+    shoppingListId?: number;
 }
 /**
  * Uri template for the request builder.
  */
-export const SearchRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/search{?limit*,query*}";
+export const SearchRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/search{?limit*,query*,shoppingListId*}";
 /**
  * Metadata for all the requests in the request builder.
  */

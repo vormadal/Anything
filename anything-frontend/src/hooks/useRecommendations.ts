@@ -22,26 +22,53 @@ export function useRecommendations() {
  * Ranked, typo-tolerant recommendation search backed by the server so the full
  * recommendation list is never loaded client-side just to filter it. Disabled
  * until there is a non-blank query.
+ *
+ * When `shoppingListId` is given, the typeahead is scoped to that list's own
+ * suggestions plus the household's shared (all-list) ones.
  */
-export function useRecommendationSearch(query: string) {
+export function useRecommendationSearch(query: string, shoppingListId?: number) {
   const trimmed = query.trim();
   return useQuery({
-    queryKey: ["shoppingListRecommendations", "search", trimmed],
+    queryKey: ["shoppingListRecommendations", "search", trimmed, shoppingListId ?? null],
     enabled: trimmed.length > 0,
     queryFn: () =>
       apiClient.api.shoppingListRecommendations.search.get({
-        queryParameters: { query: trimmed },
+        queryParameters: { query: trimmed, ...(shoppingListId !== undefined ? { shoppingListId } : {}) },
       }) as Promise<ShoppingListRecommendation[]>,
   });
 }
 
-export function useAllRecommendations(categoryId?: number) {
+export interface RecommendationFilters {
+  categoryId?: number;
+  shoppingListId?: number;
+  sharedOnly?: boolean;
+  uncategorized?: boolean;
+  includeInSuggestions?: boolean;
+}
+
+export function useAllRecommendations(filters: RecommendationFilters = {}) {
+  const { categoryId, shoppingListId, sharedOnly, uncategorized, includeInSuggestions } = filters;
+  const hasFilters =
+    categoryId !== undefined ||
+    shoppingListId !== undefined ||
+    sharedOnly !== undefined ||
+    uncategorized !== undefined ||
+    includeInSuggestions !== undefined;
+
   return useQuery({
-    queryKey: ["shoppingListRecommendations", "all", categoryId],
+    queryKey: ["shoppingListRecommendations", "all", categoryId ?? null, shoppingListId ?? null, sharedOnly ?? null, uncategorized ?? null, includeInSuggestions ?? null],
     queryFn: () =>
       apiClient.api.shoppingListRecommendations.all.get(
-        categoryId !== undefined
-          ? { queryParameters: { categoryId } }
+        hasFilters
+          ? {
+              queryParameters: {
+                ...(categoryId !== undefined ? { categoryId } : {}),
+                ...(shoppingListId !== undefined ? { shoppingListId } : {}),
+                ...(sharedOnly !== undefined ? { sharedOnly } : {}),
+                ...(uncategorized !== undefined ? { uncategorized } : {}),
+                ...(includeInSuggestions !== undefined ? { includeInSuggestions } : {}),
+              },
+            }
           : undefined
       ) as Promise<ShoppingListRecommendation[]>,
   });
@@ -59,8 +86,8 @@ export function useCreateRecommendation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ name, preferredUnit }: { name: string; preferredUnit?: string | null }) =>
-      apiClient.api.shoppingListRecommendations.post({ name, preferredUnit: preferredUnit ?? null }),
+    mutationFn: ({ name, preferredUnit, shoppingListId }: { name: string; preferredUnit?: string | null; shoppingListId?: number | null }) =>
+      apiClient.api.shoppingListRecommendations.post({ name, preferredUnit: preferredUnit ?? null, shoppingListId: shoppingListId ?? null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
     },
@@ -71,8 +98,8 @@ export function useUpdateRecommendation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, name, preferredUnit, categoryId, includeInSuggestions = true }: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null; includeInSuggestions?: boolean }) =>
-      apiClient.api.shoppingListRecommendations.byId(id).put({ name, preferredUnit: preferredUnit ?? null, categoryId: categoryId ?? null, includeInSuggestions }),
+    mutationFn: ({ id, name, preferredUnit, categoryId, includeInSuggestions = true, shoppingListId }: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null; includeInSuggestions?: boolean; shoppingListId?: number | null }) =>
+      apiClient.api.shoppingListRecommendations.byId(id).put({ name, preferredUnit: preferredUnit ?? null, categoryId: categoryId ?? null, includeInSuggestions, shoppingListId: shoppingListId ?? null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
     },
@@ -85,6 +112,22 @@ export function useDeleteRecommendation() {
   return useMutation({
     mutationFn: (id: number) =>
       apiClient.api.shoppingListRecommendations.byId(id).delete(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
+    },
+  });
+}
+
+/**
+ * Removes every suggestion that belongs specifically to a single list. Shared
+ * (all-list) suggestions are left untouched.
+ */
+export function useDeleteRecommendationsForList() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (shoppingListId: number) =>
+      apiClient.api.shoppingListRecommendations.byList.byShoppingListId(shoppingListId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
     },

@@ -3,30 +3,44 @@
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/PageTitle";
 import { ExportSuggestionsDialog } from "@/components/ExportSuggestionsDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useCurrentUser } from "@/hooks/useAuth";
 import {
   useAllRecommendations,
-  useUncategorizedRecommendations,
   useDeleteRecommendation,
   useUpdateRecommendation,
   useCreateRecommendation,
   useExportRecommendations,
   useImportRecommendations,
+  useDeleteRecommendationsForList,
+  type RecommendationFilters,
 } from "@/hooks/useRecommendations";
 import { useSuggestionCategories } from "@/hooks/useSuggestionCategories";
+import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { canManageHousehold } from "@/lib/roles";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
-import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight, Download, Upload } from "lucide-react";
+import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight, Download, Upload, Trash2 } from "lucide-react";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import type { SuggestionCategory } from "@/lib/api-client/models/index";
 import { fuzzyRank } from "@/lib/fuzzy";
 
 const PAGE_SIZE = 20;
+const SHOPPING_LIST_TYPE = 1;
 
-type Tab = "all" | "uncategorized";
+// Special sentinel values for the list filter dropdown.
+const LIST_FILTER_ALL = "all";
+const LIST_FILTER_SHARED = "shared";
+
+type SuggestionVisibility = "all" | "shown" | "hidden";
 
 type Recommendation = {
   id?: number | null;
@@ -34,11 +48,14 @@ type Recommendation = {
   preferredUnit?: string | null;
   categoryId?: number | null;
   includeInSuggestions?: boolean | null;
+  shoppingListId?: number | null;
 };
 
 type RecommendationRowProps = {
   rec: Recommendation;
   categories: SuggestionCategory[];
+  listLabel: string;
+  isShared: boolean;
   showUncategorizedMarker: boolean;
   editingId: number | null;
   editName: string;
@@ -60,6 +77,8 @@ type RecommendationRowProps = {
 function RecommendationRow({
   rec,
   categories,
+  listLabel,
+  isShared,
   showUncategorizedMarker,
   editingId,
   editName,
@@ -135,6 +154,15 @@ function RecommendationRow({
             {categoryName && (
               <span className="text-xs text-blue-600 dark:text-blue-400">{categoryName}</span>
             )}
+            <span
+              className={`mt-1 inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs ${
+                isShared
+                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                  : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+              }`}
+            >
+              {listLabel}
+            </span>
             {isHidden && (
               <span className="mt-1 inline-flex w-fit items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300">
                 From recipe · not suggested
@@ -183,7 +211,9 @@ export default function SuggestionsPage() {
   const { getHouseholdRole, isLoading: householdsLoading } = useHouseholdContext();
   const { setLeftAction } = useHeaderActions();
 
-  const [activeTab, setActiveTab] = useState<Tab>("all");
+  const [listFilter, setListFilter] = useState<string>(LIST_FILTER_ALL);
+  const [uncategorizedOnly, setUncategorizedOnly] = useState(false);
+  const [visibilityFilter, setVisibilityFilter] = useState<SuggestionVisibility>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -193,19 +223,46 @@ export default function SuggestionsPage() {
   const [editIncludeInSuggestions, setEditIncludeInSuggestions] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createPreferredUnit, setCreatePreferredUnit] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: allRecs, isLoading: isLoadingAll } = useAllRecommendations();
-  const { data: uncategorizedRecs, isLoading: isLoadingUncategorized } = useUncategorizedRecommendations();
+  const selectedListId = /^\d+$/.test(listFilter) ? Number(listFilter) : undefined;
+
+  const filters: RecommendationFilters = useMemo(
+    () => ({
+      shoppingListId: selectedListId,
+      sharedOnly: listFilter === LIST_FILTER_SHARED ? true : undefined,
+      uncategorized: uncategorizedOnly ? true : undefined,
+      includeInSuggestions:
+        visibilityFilter === "shown" ? true : visibilityFilter === "hidden" ? false : undefined,
+    }),
+    [selectedListId, listFilter, uncategorizedOnly, visibilityFilter]
+  );
+
+  const { data: recs, isLoading } = useAllRecommendations(filters);
   const { data: categories = [] } = useSuggestionCategories();
+  const { data: allLists = [] } = useShoppingLists();
   const deleteRecommendation = useDeleteRecommendation();
   const updateRecommendation = useUpdateRecommendation();
   const createRecommendation = useCreateRecommendation();
   const exportRecommendations = useExportRecommendations();
   const importRecommendations = useImportRecommendations();
+  const deleteForList = useDeleteRecommendationsForList();
+
+  const shoppingLists = useMemo(
+    () => allLists.filter((l) => l.type === SHOPPING_LIST_TYPE),
+    [allLists]
+  );
+  const listNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const l of allLists) {
+      if (l.id != null) map.set(l.id, l.name ?? `List #${l.id}`);
+    }
+    return map;
+  }, [allLists]);
 
   useEffect(() => {
     if (householdId) {
@@ -214,11 +271,7 @@ export default function SuggestionsPage() {
     return () => setLeftAction({ type: "menu" });
   }, [setLeftAction, householdId]);
 
-  const currentList = useMemo(
-    () => (activeTab === "uncategorized" ? (uncategorizedRecs ?? []) : (allRecs ?? [])),
-    [activeTab, uncategorizedRecs, allRecs]
-  );
-  const isLoading = activeTab === "uncategorized" ? isLoadingUncategorized : isLoadingAll;
+  const currentList = useMemo(() => recs ?? [], [recs]);
 
   const filteredList = useMemo(
     () => fuzzyRank(currentList, searchQuery, (r) => r.name ?? ""),
@@ -238,6 +291,13 @@ export default function SuggestionsPage() {
   const safePage = Math.min(currentPage, totalPages);
   const pagedList = filteredList.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+  const selectedListName = selectedListId != null ? listNameById.get(selectedListId) : undefined;
+
+  const listLabelFor = (rec: Recommendation): { label: string; isShared: boolean } => {
+    if (rec.shoppingListId == null) return { label: "Shared", isShared: true };
+    return { label: listNameById.get(rec.shoppingListId) ?? `List #${rec.shoppingListId}`, isShared: false };
+  };
+
   const handleStartEdit = ({ id, name, preferredUnit, categoryId, includeInSuggestions }: { id: number; name: string; preferredUnit?: string | null; categoryId?: number | null; includeInSuggestions?: boolean | null }) => {
     setEditingId(id);
     setEditName(name);
@@ -252,6 +312,8 @@ export default function SuggestionsPage() {
 
   const handleSaveEdit = async (id: number) => {
     if (!editName.trim()) return;
+    // Preserve the recommendation's list scope when editing other fields.
+    const existing = currentList.find((r) => r.id === id);
     try {
       await updateRecommendation.mutateAsync({
         id,
@@ -259,6 +321,7 @@ export default function SuggestionsPage() {
         preferredUnit: editPreferredUnit.trim() || null,
         categoryId: editCategoryId,
         includeInSuggestions: editIncludeInSuggestions,
+        shoppingListId: existing?.shoppingListId ?? null,
       });
       setEditingId(null);
       toast.success("Suggestion updated.");
@@ -282,6 +345,8 @@ export default function SuggestionsPage() {
       await createRecommendation.mutateAsync({
         name: createName.trim(),
         preferredUnit: createPreferredUnit.trim() || null,
+        // When a specific list is selected, new suggestions attach to it; otherwise shared.
+        shoppingListId: selectedListId ?? null,
       });
       setCreateName("");
       setCreatePreferredUnit("");
@@ -298,9 +363,9 @@ export default function SuggestionsPage() {
     setShowCreateForm(false);
   };
 
-  const handleExport = async (uncategorizedOnly: boolean) => {
+  const handleExport = async (uncategorized: boolean) => {
     try {
-      await exportRecommendations.mutateAsync({ uncategorizedOnly });
+      await exportRecommendations.mutateAsync({ uncategorizedOnly: uncategorized });
       setShowExportDialog(false);
       toast.success("Suggestions exported.");
     } catch {
@@ -332,21 +397,33 @@ export default function SuggestionsPage() {
     }
   };
 
-  const handleTabChange = (tab: Tab) => {
-    setActiveTab(tab);
-    setShowExportDialog(false);
-    setSearchQuery("");
+  const handleClearList = async () => {
+    if (selectedListId == null) return;
+    try {
+      await deleteForList.mutateAsync(selectedListId);
+      setShowClearDialog(false);
+      toast.success("List suggestions removed.");
+    } catch {
+      toast.error("Failed to remove list suggestions.");
+    }
+  };
+
+  const handleListFilterChange = (value: string) => {
+    setListFilter(value);
     setCurrentPage(1);
     setEditingId(null);
-    setShowCreateForm(false);
-    setCreateName("");
-    setCreatePreferredUnit("");
   };
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     setCurrentPage(1);
   };
+
+  const emptyMessage = searchQuery.trim()
+    ? "No suggestions match your search."
+    : uncategorizedOnly
+    ? "No uncategorized suggestions."
+    : "No suggestions yet.";
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
@@ -419,6 +496,9 @@ export default function SuggestionsPage() {
               placeholder="Preferred unit (optional)"
               className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {selectedListName ? `Adds to: ${selectedListName}` : "Adds as: Shared (all lists)"}
+            </p>
             <div className="flex gap-2 justify-end">
               <Button size="sm" variant="outline" onClick={handleCancelCreate}>Cancel</Button>
               <Button
@@ -433,32 +513,70 @@ export default function SuggestionsPage() {
           </div>
         )}
 
-        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
-          <button
-            onClick={() => handleTabChange("all")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              activeTab === "all"
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => handleTabChange("uncategorized")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              activeTab === "uncategorized"
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            }`}
-          >
-            Uncategorized
-            {(uncategorizedRecs?.length ?? 0) > 0 && (
-              <span className="ml-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 text-xs font-semibold px-1.5 py-0.5 rounded-full">
-                {uncategorizedRecs?.length}
-              </span>
+        {/* Filter bar */}
+        <div className="flex flex-col gap-3 mb-4">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <label className="flex-1 flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">List</span>
+              <select
+                value={listFilter}
+                onChange={(e) => handleListFilterChange(e.target.value)}
+                aria-label="Filter by list"
+                className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value={LIST_FILTER_ALL}>All lists</option>
+                <option value={LIST_FILTER_SHARED}>Shared (all lists)</option>
+                {shoppingLists.map((l) => (
+                  <option key={l.id} value={String(l.id)}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex-1 flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Autocomplete</span>
+              <select
+                value={visibilityFilter}
+                onChange={(e) => {
+                  setVisibilityFilter(e.target.value as SuggestionVisibility);
+                  setCurrentPage(1);
+                }}
+                aria-label="Filter by autocomplete visibility"
+                className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="all">All</option>
+                <option value="shown">In autocomplete</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </label>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={uncategorizedOnly}
+                onChange={(e) => {
+                  setUncategorizedOnly(e.target.checked);
+                  setCurrentPage(1);
+                }}
+                className="h-4 w-4 rounded border-gray-300 dark:border-gray-600"
+              />
+              Uncategorized only
+            </label>
+            {selectedListId != null && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowClearDialog(true)}
+                disabled={deleteForList.isPending}
+                className="text-red-600 hover:text-red-700 dark:text-red-400"
+                aria-label="Remove all suggestions for this list"
+              >
+                <Trash2 className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Clear list</span>
+              </Button>
             )}
-          </button>
+          </div>
         </div>
 
         <div className="relative mb-4">
@@ -476,38 +594,37 @@ export default function SuggestionsPage() {
         {isLoading ? (
           <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">Loading...</p>
         ) : pagedList.length === 0 ? (
-          <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">
-            {searchQuery.trim()
-              ? "No suggestions match your search."
-              : activeTab === "uncategorized"
-              ? "No uncategorized suggestions."
-              : "No suggestions yet."}
-          </p>
+          <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">{emptyMessage}</p>
         ) : (
           <ul className="space-y-2">
-            {pagedList.map((rec) => (
-              <RecommendationRow
-                key={rec.id}
-                rec={rec}
-                categories={categories}
-                showUncategorizedMarker={activeTab !== "uncategorized"}
-                editingId={editingId}
-                editName={editName}
-                editPreferredUnit={editPreferredUnit}
-                editCategoryId={editCategoryId}
-                editIncludeInSuggestions={editIncludeInSuggestions}
-                onEditNameChange={setEditName}
-                onEditPreferredUnitChange={setEditPreferredUnit}
-                onEditCategoryIdChange={setEditCategoryId}
-                onEditIncludeInSuggestionsChange={setEditIncludeInSuggestions}
-                onStartEdit={handleStartEdit}
-                onCancelEdit={handleCancelEdit}
-                onSaveEdit={handleSaveEdit}
-                onDelete={handleDelete}
-                isDeletePending={deleteRecommendation.isPending}
-                isUpdatePending={updateRecommendation.isPending}
-              />
-            ))}
+            {pagedList.map((rec) => {
+              const { label, isShared } = listLabelFor(rec);
+              return (
+                <RecommendationRow
+                  key={rec.id}
+                  rec={rec}
+                  categories={categories}
+                  listLabel={label}
+                  isShared={isShared}
+                  showUncategorizedMarker={!uncategorizedOnly}
+                  editingId={editingId}
+                  editName={editName}
+                  editPreferredUnit={editPreferredUnit}
+                  editCategoryId={editCategoryId}
+                  editIncludeInSuggestions={editIncludeInSuggestions}
+                  onEditNameChange={setEditName}
+                  onEditPreferredUnitChange={setEditPreferredUnit}
+                  onEditCategoryIdChange={setEditCategoryId}
+                  onEditIncludeInSuggestionsChange={setEditIncludeInSuggestions}
+                  onStartEdit={handleStartEdit}
+                  onCancelEdit={handleCancelEdit}
+                  onSaveEdit={handleSaveEdit}
+                  onDelete={handleDelete}
+                  isDeletePending={deleteRecommendation.isPending}
+                  isUpdatePending={updateRecommendation.isPending}
+                />
+              );
+            })}
           </ul>
         )}
 
@@ -537,6 +654,31 @@ export default function SuggestionsPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <DialogContent aria-describedby="clear-list-description">
+          <DialogHeader>
+            <DialogTitle>Remove all suggestions for this list?</DialogTitle>
+          </DialogHeader>
+          <p id="clear-list-description" className="text-sm text-gray-600 dark:text-gray-400">
+            This removes every suggestion that belongs specifically to
+            {selectedListName ? ` “${selectedListName}”` : " this list"}. Shared suggestions
+            (shown in every list) are kept.
+          </p>
+          <DialogFooter className="flex gap-2 sm:flex-row flex-col">
+            <Button variant="outline" onClick={() => setShowClearDialog(false)} disabled={deleteForList.isPending}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleClearList}
+              disabled={deleteForList.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Remove suggestions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

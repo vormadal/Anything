@@ -37,19 +37,45 @@ public class GetShoppingListItemsHandler(
         else
         {
             var householdId = householdContext.HouseholdId;
-            items = await (
-                from item in itemRepository.Query()
-                where item.ShoppingListId == query.ShoppingListId && item.CompletedOn == null
-                join rec in recommendationRepository.Query()
-                            .Where(r => r.HouseholdId == householdId)
-                    on item.Name.ToLower() equals rec.Name.ToLower() into recs
-                from rec in recs.DefaultIfEmpty()
-                join cat in categoryRepository.Query().Where(c => c.DeletedOn == null)
-                    on (int?)rec.CategoryId equals cat.Id into cats
-                from cat in cats.DefaultIfEmpty()
-                orderby item.IsChecked, (int?)cat.SortOrder, item.CreatedOn
-                select item
-            ).ToListAsync(ct);
+            var listItems = await itemRepository.Query()
+                .Where(item => item.ShoppingListId == query.ShoppingListId && item.CompletedOn == null)
+                .ToListAsync(ct);
+
+            // Names can now match both a shared (null-list) and this list's own recommendation,
+            // so resolve a single category per name in memory (preferring the list-specific one)
+            // instead of joining — a SQL join would duplicate the item row.
+            var relevantRecs = await recommendationRepository.Query()
+                .Where(r => r.HouseholdId == householdId
+                            && r.CategoryId != null
+                            && (r.ShoppingListId == query.ShoppingListId || r.ShoppingListId == null))
+                .Select(r => new { r.Name, r.ShoppingListId, r.CategoryId })
+                .ToListAsync(ct);
+
+            var categorySortOrders = await categoryRepository.Query()
+                .Where(c => c.DeletedOn == null && c.HouseholdId == householdId)
+                .ToDictionaryAsync(c => c.Id, c => c.SortOrder, ct);
+
+            var sortOrderByName = relevantRecs
+                .GroupBy(r => r.Name.ToLower())
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        // List-specific wins over shared when both carry a category.
+                        var best = g.OrderByDescending(r => r.ShoppingListId != null).First();
+                        return best.CategoryId is int categoryId && categorySortOrders.TryGetValue(categoryId, out var sortOrder)
+                            ? (int?)sortOrder
+                            : null;
+                    });
+
+            // Uncategorized items sort last, matching the previous SQL ordering (Postgres NULLS LAST).
+            items = listItems
+                .OrderBy(item => item.IsChecked)
+                .ThenBy(item => sortOrderByName.TryGetValue(item.Name.ToLower(), out var sortOrder) && sortOrder.HasValue
+                    ? sortOrder.Value
+                    : int.MaxValue)
+                .ThenBy(item => item.CreatedOn)
+                .ToList();
         }
 
         return Results.Ok(items);

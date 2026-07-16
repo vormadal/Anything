@@ -23,11 +23,15 @@ export interface AllRequestBuilder extends BaseRequestBuilder<AllRequestBuilder>
 }
 export interface AllRequestBuilderGetQueryParameters {
     categoryId?: number;
+    includeInSuggestions?: boolean;
+    sharedOnly?: boolean;
+    shoppingListId?: number;
+    uncategorized?: boolean;
 }
 /**
  * Uri template for the request builder.
  */
-export const AllRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/all{?categoryId*}";
+export const AllRequestBuilderUriTemplate = "{+baseurl}/api/shopping-list-recommendations/all{?categoryId*,includeInSuggestions*,sharedOnly*,shoppingListId*,uncategorized*}";
 /**
  * Metadata for all the requests in the request builder.
  */

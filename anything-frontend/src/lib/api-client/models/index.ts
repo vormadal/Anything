@@ -1321,6 +1321,10 @@ export interface CreateRecommendationRequest extends Parsable {
      * The preferredUnit property
      */
     preferredUnit?: string | null;
+    /**
+     * The shoppingListId property
+     */
+    shoppingListId?: number | null;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -2253,6 +2257,7 @@ export function deserializeIntoCreateRecommendationRequest(createRecommendationR
     return {
         "name": n => { createRecommendationRequest.name = n.getStringValue(); },
         "preferredUnit": n => { createRecommendationRequest.preferredUnit = n.getStringValue(); },
+        "shoppingListId": n => { createRecommendationRequest.shoppingListId = n.getNumberValue(); },
     }
 }
 /**
@@ -3301,6 +3306,8 @@ export function deserializeIntoShoppingListRecommendation(shoppingListRecommenda
         "modifiedOn": n => { shoppingListRecommendation.modifiedOn = n.getDateValue(); },
         "name": n => { shoppingListRecommendation.name = n.getStringValue(); },
         "preferredUnit": n => { shoppingListRecommendation.preferredUnit = n.getStringValue(); },
+        "shoppingList": n => { shoppingListRecommendation.shoppingList = n.getObjectValue<ShoppingList>(createShoppingListFromDiscriminatorValue); },
+        "shoppingListId": n => { shoppingListRecommendation.shoppingListId = n.getNumberValue(); },
     }
 }
 /**
@@ -3623,6 +3630,7 @@ export function deserializeIntoUpdateRecommendationRequest(updateRecommendationR
         "includeInSuggestions": n => { updateRecommendationRequest.includeInSuggestions = n.getBooleanValue(); },
         "name": n => { updateRecommendationRequest.name = n.getStringValue(); },
         "preferredUnit": n => { updateRecommendationRequest.preferredUnit = n.getStringValue(); },
+        "shoppingListId": n => { updateRecommendationRequest.shoppingListId = n.getNumberValue(); },
     }
 }
 /**
@@ -5301,6 +5309,7 @@ export function serializeCreateRecommendationRequest(writer: SerializationWriter
     if (!createRecommendationRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", createRecommendationRequest.name);
     writer.writeStringValue("preferredUnit", createRecommendationRequest.preferredUnit);
+    writer.writeNumberValue("shoppingListId", createRecommendationRequest.shoppingListId);
 }
 /**
  * Serializes information the current object
@@ -6351,6 +6360,8 @@ export function serializeShoppingListRecommendation(writer: SerializationWriter,
     writer.writeDateValue("modifiedOn", shoppingListRecommendation.modifiedOn);
     writer.writeStringValue("name", shoppingListRecommendation.name);
     writer.writeStringValue("preferredUnit", shoppingListRecommendation.preferredUnit);
+    writer.writeObjectValue<ShoppingList>("shoppingList", shoppingListRecommendation.shoppingList, serializeShoppingList);
+    writer.writeNumberValue("shoppingListId", shoppingListRecommendation.shoppingListId);
 }
 /**
  * Serializes information the current object
@@ -6673,6 +6684,7 @@ export function serializeUpdateRecommendationRequest(writer: SerializationWriter
     writer.writeBooleanValue("includeInSuggestions", updateRecommendationRequest.includeInSuggestions);
     writer.writeStringValue("name", updateRecommendationRequest.name);
     writer.writeStringValue("preferredUnit", updateRecommendationRequest.preferredUnit);
+    writer.writeNumberValue("shoppingListId", updateRecommendationRequest.shoppingListId);
 }
 /**
  * Serializes information the current object
@@ -6999,6 +7011,14 @@ export interface ShoppingListRecommendation extends Parsable {
      * The preferredUnit property
      */
     preferredUnit?: string | null;
+    /**
+     * The shoppingList property
+     */
+    shoppingList?: ShoppingList | null;
+    /**
+     * The shoppingListId property
+     */
+    shoppingListId?: number | null;
 }
 export interface ShoppingListResponse extends Parsable {
     /**
@@ -7375,6 +7395,10 @@ export interface UpdateRecommendationRequest extends Parsable {
      * The preferredUnit property
      */
     preferredUnit?: string | null;
+    /**
+     * The shoppingListId property
+     */
+    shoppingListId?: number | null;
 }
 export interface UpdateShoppingListItemRequest extends Parsable {
     /**

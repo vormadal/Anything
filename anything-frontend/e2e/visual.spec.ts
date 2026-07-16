@@ -180,13 +180,17 @@ const mockSeasonalTagRules = [
 ];
 
 const mockRecommendations = [
-  { id: 1, name: "Milk", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true },
-  { id: 2, name: "Bread", isApproved: true, preferredUnit: "loaves", categoryId: null, includeInSuggestions: true },
-  { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null, includeInSuggestions: true },
+  // shoppingListId null = shared across every list; a number scopes it to one list.
+  { id: 1, name: "Milk", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true, shoppingListId: null },
+  { id: 2, name: "Bread", isApproved: true, preferredUnit: "loaves", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+  { id: 3, name: "Eggs", isApproved: false, preferredUnit: null, categoryId: null, includeInSuggestions: true, shoppingListId: null },
   // Not present on list 1's mock items, so its suggestion is never filtered out.
-  { id: 4, name: "Butter", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true },
+  { id: 4, name: "Butter", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true, shoppingListId: null },
   // Recipe-seeded: categorizable for sorting but hidden from autocomplete suggestions.
-  { id: 5, name: "Boneless chicken breasts", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: false },
+  { id: 5, name: "Boneless chicken breasts", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: false, shoppingListId: null },
+  // List-specific suggestions: each shows its list's badge in the management UI.
+  { id: 6, name: "Sausages", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true, shoppingListId: 1 },
+  { id: 7, name: "Balloons", isApproved: true, preferredUnit: null, categoryId: null, includeInSuggestions: true, shoppingListId: 2 },
 ];
 
 // Optimal string alignment (Damerau) edit distance — used by the /search mock to
@@ -419,6 +423,25 @@ async function setupApiMocks(page: Page) {
       return name.includes(query) || editDistanceForMock(query, name) <= 1;
     });
     route.fulfill({ json: matches });
+  });
+  // Management list: mirrors the backend's list-scope + visibility filters so the
+  // filter bar shows realistic results (a list sees its own + shared suggestions).
+  await page.route("**/api/shopping-list-recommendations/all**", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const listId = params.get("shoppingListId");
+    const sharedOnly = params.get("sharedOnly") === "true";
+    const uncategorized = params.get("uncategorized") === "true";
+    const includeInSuggestions = params.get("includeInSuggestions");
+    let items = mockRecommendations;
+    if (sharedOnly) {
+      items = items.filter((r) => r.shoppingListId == null);
+    } else if (listId != null) {
+      items = items.filter((r) => r.shoppingListId === Number(listId) || r.shoppingListId == null);
+    }
+    if (uncategorized) items = items.filter((r) => r.categoryId == null);
+    if (includeInSuggestions === "true") items = items.filter((r) => r.includeInSuggestions);
+    else if (includeInSuggestions === "false") items = items.filter((r) => !r.includeInSuggestions);
+    route.fulfill({ json: items });
   });
   await page.route("**/api/suggestion-categories/export**", (route) =>
     route.fulfill({ json: { categories: [] } })
@@ -954,6 +977,21 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "household-suggestions-empty.png",
+      screenshotOptions
+    );
+  });
+
+  test("household suggestions page - filtered by a single list", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions");
+    await page.waitForLoadState("networkidle");
+    // Scope to one list: shows that list's own + shared suggestions, the list
+    // badges, and the "Clear list" action for removing the list's own suggestions.
+    await page.getByLabel("Filter by list").selectOption("1");
+    await expect(
+      page.getByRole("button", { name: "Remove all suggestions for this list" })
+    ).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "household-suggestions-filtered-by-list.png",
       screenshotOptions
     );
   });

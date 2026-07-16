@@ -20,3 +20,4 @@ End-to-end integration tests that spin up the real API against a containerised P
 - Tests register/login a user via `AuthEndpoints` to get a bearer token before calling protected routes.
 - Use unique names per test (e.g., `$"Test {Guid.NewGuid()}"`) to avoid state bleed between tests.
 - Requires Docker to run: `dotnet test tests/Anything.API.IntegrationTests/...`
+- Shopping-list recommendations are list-scoped via a nullable `ShoppingListId` (`null` = shared across all lists). `ShoppingListRecommendationEndpointTests` covers the list/shared/uncategorized/visibility filters on `GET /all`, per-list vs shared seeding, and `DELETE /by-list/{id}` (manager gating + foreign-list rejection).

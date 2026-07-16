@@ -134,13 +134,11 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AddShoppingListItem_DoesNotCreateDuplicateRecommendation()
+    public async Task AddShoppingListItem_DoesNotCreateDuplicateRecommendation_SameList()
     {
         var listId = await CreateShoppingListAsync("Test List");
         await AddShoppingListItemAsync(listId, "Eggs");
-
-        var listId2 = await CreateShoppingListAsync("Test List 2");
-        await AddShoppingListItemAsync(listId2, "eggs"); // lowercase - same item
+        await AddShoppingListItemAsync(listId, "eggs"); // lowercase - same item, same list
 
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.GetAsync("/api/shopping-list-recommendations/all");
@@ -148,6 +146,44 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
 
         Assert.NotNull(result);
         Assert.Single(result.Where(r => r.Name!.ToLower() == "eggs"));
+    }
+
+    [Fact]
+    public async Task AddShoppingListItem_CreatesSeparateRecommendationsPerList()
+    {
+        var listId = await CreateShoppingListAsync("Groceries");
+        await AddShoppingListItemAsync(listId, "Nails");
+
+        var listId2 = await CreateShoppingListAsync("Hardware");
+        await AddShoppingListItemAsync(listId2, "Nails");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync("/api/shopping-list-recommendations/all");
+        var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+
+        Assert.NotNull(result);
+        var nails = result.Where(r => r.Name == "Nails").ToList();
+        // Each list builds its own suggestion pool, so the same name yields two list-specific rows.
+        Assert.Equal(2, nails.Count);
+        Assert.Contains(nails, r => r.ShoppingListId == listId);
+        Assert.Contains(nails, r => r.ShoppingListId == listId2);
+    }
+
+    [Fact]
+    public async Task AddShoppingListItem_DoesNotDuplicateSharedRecommendation()
+    {
+        // A shared (null-list) recommendation already covers the name; adding it on a list must not re-create it.
+        await CreateRecommendationAsync("Shared Milk");
+        var listId = await CreateShoppingListAsync("Test List");
+        await AddShoppingListItemAsync(listId, "Shared Milk");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync("/api/shopping-list-recommendations/all");
+        var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+
+        Assert.NotNull(result);
+        Assert.Single(result.Where(r => r.Name == "Shared Milk"));
+        Assert.Null(result.Single(r => r.Name == "Shared Milk").ShoppingListId);
     }
 
     [Fact]
@@ -614,10 +650,131 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         Assert.Contains(blankResults, r => r.Name == "Zesty Lime");
     }
 
+    [Fact]
+    public async Task SearchRecommendations_WithShoppingListId_ReturnsOwnAndShared_ExcludesOtherList()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var listA = await CreateShoppingListAsync("List A");
+        var listB = await CreateShoppingListAsync("List B");
+        await AddShoppingListItemAsync(listA, "Alpha Own");
+        await AddShoppingListItemAsync(listB, "Beta Own");
+        await CreateRecommendationAsync("Gamma Shared"); // shared (null list)
+
+        var response = await client.GetAsync($"/api/shopping-list-recommendations/search?shoppingListId={listA}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var results = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(results);
+
+        Assert.Contains(results, r => r.Name == "Alpha Own");
+        Assert.Contains(results, r => r.Name == "Gamma Shared");
+        Assert.DoesNotContain(results, r => r.Name == "Beta Own");
+    }
+
+    // --- GET /api/shopping-list-recommendations/all filters ---
+
+    [Fact]
+    public async Task GetAllRecommendations_SharedOnly_ExcludesListSpecific()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var listId = await CreateShoppingListAsync("Filter List");
+        await AddShoppingListItemAsync(listId, "ListSpecificItem");
+        await CreateRecommendationAsync("SharedItem");
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/all?sharedOnly=true");
+        var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+
+        Assert.NotNull(result);
+        Assert.Contains(result, r => r.Name == "SharedItem");
+        Assert.DoesNotContain(result, r => r.Name == "ListSpecificItem");
+    }
+
+    [Fact]
+    public async Task GetAllRecommendations_IncludeInSuggestionsFalse_ReturnsOnlyHidden()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        await CreateRecommendationAsync("ShownItem");
+        var hidden = await CreateRecommendationAsync("HiddenItem");
+        await client.PutAsJsonAsync($"/api/shopping-list-recommendations/{hidden.Id}",
+            new { name = "HiddenItem", preferredUnit = (string?)null, categoryId = (int?)null, includeInSuggestions = false });
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/all?includeInSuggestions=false");
+        var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+
+        Assert.NotNull(result);
+        Assert.Contains(result, r => r.Name == "HiddenItem");
+        Assert.DoesNotContain(result, r => r.Name == "ShownItem");
+    }
+
+    // --- POST/PUT with ShoppingListId ---
+
+    [Fact]
+    public async Task CreateRecommendation_WithShoppingListId_AssignsList()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var listId = await CreateShoppingListAsync("Assign List");
+
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations",
+            new { name = "Assigned", preferredUnit = (string?)null, shoppingListId = listId });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<RecommendationDto>(JsonOptions);
+        Assert.Equal(listId, created!.ShoppingListId);
+    }
+
+    [Fact]
+    public async Task CreateRecommendation_WithForeignListId_ReturnsNotFound()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations",
+            new { name = "BadList", preferredUnit = (string?)null, shoppingListId = 999999 });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- DELETE /api/shopping-list-recommendations/by-list/{shoppingListId} ---
+
+    [Fact]
+    public async Task DeleteRecommendationsForList_RemovesOnlyThatListsOwn()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var listA = await CreateShoppingListAsync("Del List A");
+        var listB = await CreateShoppingListAsync("Del List B");
+        await AddShoppingListItemAsync(listA, "AOwn1");
+        await AddShoppingListItemAsync(listA, "AOwn2");
+        await AddShoppingListItemAsync(listB, "BOwn1");
+        await CreateRecommendationAsync("DelShared");
+
+        var deleteResponse = await client.DeleteAsync($"/api/shopping-list-recommendations/by-list/{listA}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/all");
+        var result = await response.Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.DoesNotContain(result, r => r.Name == "AOwn1");
+        Assert.DoesNotContain(result, r => r.Name == "AOwn2");
+        Assert.Contains(result, r => r.Name == "BOwn1");
+        Assert.Contains(result, r => r.Name == "DelShared");
+    }
+
+    [Fact]
+    public async Task DeleteRecommendationsForList_RequiresAdminRole()
+    {
+        var listId = await CreateShoppingListAsync("Guarded List");
+        var userClient = await GetUserHttpClientAsync();
+        var response = await userClient.DeleteAsync($"/api/shopping-list-recommendations/by-list/{listId}");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteRecommendationsForList_ReturnsNotFoundForForeignList()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.DeleteAsync("/api/shopping-list-recommendations/by-list/999999");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);
-    private record RecommendationDto(int Id, string? Name, int? CategoryId = null, bool IncludeInSuggestions = true);
+    private record RecommendationDto(int Id, string? Name, int? CategoryId = null, bool IncludeInSuggestions = true, int? ShoppingListId = null);
     private record CategoryDto(int Id, string Name, int SortOrder);
     private record ExportDto(List<ExportRecommendationItem> Recommendations);
     private record ExportRecommendationItem(string Name, string? PreferredUnit, string? Category);

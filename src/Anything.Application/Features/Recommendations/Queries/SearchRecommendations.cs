@@ -19,8 +19,13 @@ namespace Anything.Application.Features.Recommendations.Queries;
 /// Only suggestable recommendations are returned — recipe-seeded recommendations
 /// (<see cref="ShoppingListRecommendation.IncludeInSuggestions"/> false) carry a
 /// category for sorting but must never surface in this typeahead.
+///
+/// When <paramref name="ShoppingListId"/> is set, only that list's own suggestions
+/// plus the household's shared (null-list) suggestions are returned, so each list
+/// has its own typeahead. When null, all household suggestions are searched (the
+/// recipe-ingredient autocomplete, which isn't tied to a single list).
 /// </remarks>
-public record SearchRecommendationsQuery(string? Search = null, int Limit = 20)
+public record SearchRecommendationsQuery(string? Search = null, int Limit = 20, int? ShoppingListId = null)
     : IRequest<List<ShoppingListRecommendation>>;
 
 public class SearchRecommendationsHandler(
@@ -35,6 +40,10 @@ public class SearchRecommendationsHandler(
         var limit = Math.Clamp(query.Limit, 1, MaxLimit);
         var baseQuery = repository.Query()
             .Where(r => r.HouseholdId == householdContext.HouseholdId && r.IncludeInSuggestions);
+
+        // A list's typeahead shows its own suggestions plus the shared (null-list) ones.
+        if (query.ShoppingListId.HasValue)
+            baseQuery = baseQuery.Where(r => r.ShoppingListId == query.ShoppingListId || r.ShoppingListId == null);
 
         if (string.IsNullOrWhiteSpace(query.Search))
         {

@@ -71,7 +71,7 @@ public class AddShoppingListItemHandlerTests
             i.Unit == "liters"));
 
         _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
-            r.Name == "Milk"));
+            r.Name == "Milk" && r.ShoppingListId == 1));
 
         await _unitCatalog.Received(1).EnsureUnit("liters", Arg.Any<CancellationToken>());
 

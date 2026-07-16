@@ -51,14 +51,17 @@ public class AddShoppingListItemHandler(
         if (!isGeneral)
         {
             var nameNormalized = command.Name.Trim();
+            // A suggestion already covers this name if it's this list's own or a shared (null-list) one.
             var exists = await recommendationRepository.Query()
                 .AnyAsync(r => r.HouseholdId == householdContext.HouseholdId
+                               && (r.ShoppingListId == command.ShoppingListId || r.ShoppingListId == null)
                                && r.Name.ToLower() == nameNormalized.ToLower(), ct);
             if (!exists)
             {
                 recommendationRepository.Add(new ShoppingListRecommendation
                 {
                     HouseholdId = householdContext.HouseholdId,
+                    ShoppingListId = command.ShoppingListId,
                     Name = nameNormalized,
                     CreatedOn = timeProvider.GetUtcNow().UtcDateTime
                 });

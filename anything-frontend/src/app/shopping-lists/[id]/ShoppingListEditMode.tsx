@@ -48,7 +48,8 @@ export function ShoppingListEditMode({ listId }: Props) {
   // Ranked, typo-tolerant suggestions from the server (debounced), rather than
   // loading the whole recommendation list and filtering it in the browser.
   const debouncedName = useDebounce(newItemName, 250);
-  const { data: searchResults } = useRecommendationSearch(debouncedName);
+  // Scope the typeahead to this list's own suggestions plus the shared ones.
+  const { data: searchResults } = useRecommendationSearch(debouncedName, listId);
 
   const filteredSuggestions =
     newItemName.trim().length > 0
