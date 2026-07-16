@@ -443,6 +443,21 @@ async function setupApiMocks(page: Page) {
     else if (includeInSuggestions === "false") items = items.filter((r) => !r.includeInSuggestions);
     route.fulfill({ json: items });
   });
+  // Duplicate-review groups for the "Find duplicates" merge dialog. Registered
+  // after the catch-all so it wins for /duplicates. Two typo groups over names
+  // NOT already in mockRecommendations, so the dialog stands on its own.
+  await page.route("**/api/shopping-list-recommendations/duplicates**", (route) =>
+    route.fulfill({ json: [
+      { members: [
+        { id: 201, name: "Tomato", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+        { id: 202, name: "Tomatoe", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+      ] },
+      { members: [
+        { id: 203, name: "Yoghurt", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+        { id: 204, name: "Yogurt", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+      ] },
+    ] })
+  );
   await page.route("**/api/suggestion-categories/export**", (route) =>
     route.fulfill({ json: { categories: [] } })
   );
@@ -992,6 +1007,19 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     ).toBeVisible();
     await expect(page).toHaveScreenshot(
       "household-suggestions-filtered-by-list.png",
+      screenshotOptions
+    );
+  });
+
+  test("household suggestions page - find duplicates dialog", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions");
+    await page.waitForLoadState("networkidle");
+    // Open the duplicate-review dialog: it groups near-duplicate names and lets
+    // a manager pick the one to keep and merge the rest into it.
+    await page.getByRole("button", { name: "Find duplicate suggestions" }).click();
+    await expect(page.getByText("Group 1 of 2")).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "household-suggestions-merge-duplicates.png",
       screenshotOptions
     );
   });

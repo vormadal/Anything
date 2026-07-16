@@ -10,6 +10,8 @@ import {
   useUpdateRecommendation,
   useExportRecommendations,
   useImportRecommendations,
+  useFindDuplicateRecommendations,
+  useMergeRecommendations,
 } from '@/hooks/useRecommendations'
 
 const mockGet = jest.fn()
@@ -22,6 +24,8 @@ const mockByListDelete = jest.fn()
 const mockByShoppingListId: jest.Mock = jest.fn(() => ({ delete: mockByListDelete }))
 const mockExportGet = jest.fn()
 const mockImportPost = jest.fn()
+const mockDuplicatesGet = jest.fn()
+const mockMergePost = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -34,6 +38,8 @@ jest.mock('@/lib/apiClient', () => ({
         byList: { byShoppingListId: (...args: unknown[]) => mockByShoppingListId(...args) },
         exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
         importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
+        duplicates: { get: (...args: unknown[]) => mockDuplicatesGet(...args) },
+        merge: { post: (...args: unknown[]) => mockMergePost(...args) },
       },
     },
   },
@@ -279,6 +285,54 @@ describe('useRecommendations hooks', () => {
       expect(mockExportGet).toHaveBeenCalledWith({
         queryParameters: { uncategorizedOnly: true },
       })
+    })
+  })
+
+  describe('useFindDuplicateRecommendations', () => {
+    it('fetches duplicate groups', async () => {
+      const groups = [
+        { members: [{ id: 1, name: 'Tomato' }, { id: 2, name: 'Tomatoe' }] },
+      ]
+      mockDuplicatesGet.mockResolvedValueOnce(groups)
+
+      const { result } = renderHook(() => useFindDuplicateRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(result.current.data).toEqual(groups)
+      expect(mockDuplicatesGet).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('useMergeRecommendations', () => {
+    it('posts the merge payload', async () => {
+      mockMergePost.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useMergeRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      const payload = { targetId: 1, sourceIds: [2, 3], name: 'Tomato', categoryId: null }
+      await act(async () => {
+        await result.current.mutateAsync(payload)
+      })
+
+      expect(mockMergePost).toHaveBeenCalledWith(payload)
+    })
+
+    it('handles merge error', async () => {
+      mockMergePost.mockRejectedValueOnce(new Error('Conflict'))
+
+      const { result } = renderHook(() => useMergeRecommendations(), {
+        wrapper: createWrapper(),
+      })
+
+      await expect(
+        act(async () => {
+          await result.current.mutateAsync({ targetId: 1, sourceIds: [2] })
+        })
+      ).rejects.toThrow('Conflict')
     })
   })
 

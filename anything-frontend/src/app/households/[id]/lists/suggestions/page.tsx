@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/PageTitle";
 import { ExportSuggestionsDialog } from "@/components/ExportSuggestionsDialog";
+import { MergeDuplicatesDialog } from "@/components/MergeDuplicatesDialog";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +28,7 @@ import { canManageHousehold } from "@/lib/roles";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
-import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight, Download, Upload, Trash2 } from "lucide-react";
+import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight, Download, Upload, Trash2, Combine } from "lucide-react";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import type { SuggestionCategory } from "@/lib/api-client/models/index";
@@ -223,6 +224,7 @@ export default function SuggestionsPage() {
   const [editIncludeInSuggestions, setEditIncludeInSuggestions] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createPreferredUnit, setCreatePreferredUnit] = useState("");
@@ -456,6 +458,15 @@ export default function SuggestionsPage() {
             </Button>
             <Button
               size="sm"
+              variant="outline"
+              onClick={() => setShowMergeDialog(true)}
+              aria-label="Find duplicate suggestions"
+            >
+              <Combine className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Duplicates</span>
+            </Button>
+            <Button
+              size="sm"
               onClick={() => setShowCreateForm((v) => !v)}
               aria-label="Create suggestion"
             >
@@ -478,6 +489,7 @@ export default function SuggestionsPage() {
           onExportAll={() => handleExport(false)}
           onExportUncategorized={() => handleExport(true)}
         />
+        <MergeDuplicatesDialog open={showMergeDialog} onOpenChange={setShowMergeDialog} />
 
         {showCreateForm && (
           <div className="mb-4 p-3 border border-blue-200 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/20 flex flex-col gap-2">
