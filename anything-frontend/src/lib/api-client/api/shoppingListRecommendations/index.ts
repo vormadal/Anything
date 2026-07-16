@@ -6,6 +6,8 @@ import { createHttpValidationProblemDetailsFromDiscriminatorValue, createShoppin
 // @ts-ignore
 import { AllRequestBuilderRequestsMetadata, type AllRequestBuilder } from './all/index';
 // @ts-ignore
+import { ByListRequestBuilderNavigationMetadata, type ByListRequestBuilder } from './byList/index';
+// @ts-ignore
 import { ExportRequestBuilderRequestsMetadata, type ExportRequestBuilder } from './exportEscaped/index';
 // @ts-ignore
 import { ImportRequestBuilderRequestsMetadata, type ImportRequestBuilder } from './importEscaped/index';
@@ -26,6 +28,10 @@ export interface ShoppingListRecommendationsRequestBuilder extends BaseRequestBu
      * The all property
      */
     get all(): AllRequestBuilder;
+    /**
+     * The byList property
+     */
+    get byList(): ByListRequestBuilder;
     /**
      * The export property
      */
@@ -86,6 +92,9 @@ export const ShoppingListRecommendationsRequestBuilderNavigationMetadata: Record
     },
     all: {
         requestsMetadata: AllRequestBuilderRequestsMetadata,
+    },
+    byList: {
+        navigationMetadata: ByListRequestBuilderNavigationMetadata,
     },
     exportEscaped: {
         requestsMetadata: ExportRequestBuilderRequestsMetadata,
