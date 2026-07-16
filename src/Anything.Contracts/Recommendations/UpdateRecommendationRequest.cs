@@ -13,6 +13,10 @@ namespace Anything.Contracts.Recommendations;
 /// names are hidden (false) so they can carry a category without cluttering suggestions; set true
 /// to promote one back into suggestions.
 /// </param>
+/// <param name="ShoppingListId">
+/// The list this suggestion belongs to. <c>null</c> makes it shared across every shopping list in
+/// the household; a non-null value restricts it to that one list.
+/// </param>
 public record UpdateRecommendationRequest(
     [Required(ErrorMessage = "Name is required.")]
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 200 characters.")]
@@ -20,4 +24,5 @@ public record UpdateRecommendationRequest(
     [StringLength(50, ErrorMessage = "PreferredUnit must be at most 50 characters.")]
     string? PreferredUnit = null,
     int? CategoryId = null,
-    bool IncludeInSuggestions = true);
+    bool IncludeInSuggestions = true,
+    int? ShoppingListId = null);

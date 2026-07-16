@@ -4,6 +4,15 @@ public class ShoppingListRecommendation
 {
     public int Id { get; set; }
     public int HouseholdId { get; set; }
+
+    /// <summary>
+    /// The list this suggestion belongs to. <c>null</c> means the suggestion is
+    /// shared across every shopping list in the household (the legacy/global scope):
+    /// shared suggestions surface in every list's autocomplete, while a non-null
+    /// value restricts the suggestion to that one list.
+    /// </summary>
+    public int? ShoppingListId { get; set; }
+    public ShoppingList? ShoppingList { get; set; }
     public required string Name { get; set; }
     public string? PreferredUnit { get; set; }
     public int? CategoryId { get; set; }

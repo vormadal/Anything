@@ -24,27 +24,41 @@ public static class RecommendationEndpoints
 
         group.MapPost("/", async ([FromBody] CreateRecommendationRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new CreateRecommendationCommand(request.Name, request.PreferredUnit));
+            return await mediator.Send(new CreateRecommendationCommand(request.Name, request.PreferredUnit, request.ShoppingListId));
         })
         .WithName("CreateRecommendation")
         .Produces<ShoppingListRecommendation>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status404NotFound)
         .WithParameterValidation()
         .RequireAuthorization()
         .RequireHouseholdManager();
 
         // Ranked, typo-tolerant search backing the item-suggestion typeahead and
         // the recommendations admin search — avoids loading the whole list client-side.
-        group.MapGet("/search", async ([FromQuery] string? query, [FromQuery] int? limit, IMediator mediator) =>
+        // shoppingListId scopes results to that list's own suggestions plus the shared ones.
+        group.MapGet("/search", async ([FromQuery] string? query, [FromQuery] int? limit, [FromQuery] int? shoppingListId, IMediator mediator) =>
         {
-            return await mediator.Send(new SearchRecommendationsQuery(query, limit ?? 20));
+            return await mediator.Send(new SearchRecommendationsQuery(query, limit ?? 20, shoppingListId));
         })
         .WithName("SearchRecommendations")
         .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
         .RequireAuthorization();
 
-        group.MapGet("/all", async ([FromQuery] int? categoryId, IMediator mediator) =>
+        group.MapGet("/all", async (
+            [FromQuery] int? categoryId,
+            [FromQuery] int? shoppingListId,
+            [FromQuery] bool? sharedOnly,
+            [FromQuery] bool? uncategorized,
+            [FromQuery] bool? includeInSuggestions,
+            IMediator mediator) =>
         {
-            return await mediator.Send(new GetAllRecommendationsQuery(categoryId));
+            return await mediator.Send(new GetAllRecommendationsQuery(
+                categoryId,
+                SuggestableOnly: false,
+                ShoppingListId: shoppingListId,
+                SharedOnly: sharedOnly ?? false,
+                Uncategorized: uncategorized,
+                IncludeInSuggestions: includeInSuggestions));
         })
         .WithName("GetAllRecommendations")
         .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
@@ -60,7 +74,7 @@ public static class RecommendationEndpoints
 
         group.MapPut("/{id}", async (int id, [FromBody] UpdateRecommendationRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateRecommendationCommand(id, request.Name, request.PreferredUnit, request.CategoryId, request.IncludeInSuggestions));
+            return await mediator.Send(new UpdateRecommendationCommand(id, request.Name, request.PreferredUnit, request.CategoryId, request.IncludeInSuggestions, request.ShoppingListId));
         })
         .WithName("UpdateRecommendation")
         .Produces(StatusCodes.Status204NoContent)
@@ -74,6 +88,17 @@ public static class RecommendationEndpoints
             return await mediator.Send(new DeleteRecommendationCommand(id));
         })
         .WithName("DeleteRecommendation")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound)
+        .RequireAuthorization()
+        .RequireHouseholdManager();
+
+        // Clears a single list's own suggestions; shared (all-list) suggestions are left in place.
+        group.MapDelete("/by-list/{shoppingListId}", async (int shoppingListId, IMediator mediator) =>
+        {
+            return await mediator.Send(new DeleteRecommendationsForListCommand(shoppingListId));
+        })
+        .WithName("DeleteRecommendationsForList")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
         .RequireAuthorization()

@@ -6,14 +6,18 @@ namespace Anything.Application.Features.ShoppingLists;
 
 internal static class ShoppingListHelpers
 {
-    internal static async Task<HashSet<string>> GetExistingRecommendationNamesAsync(
+    internal static async Task<HashSet<string>> GetExistingRecommendationNames(
         IRepository<ShoppingListRecommendation> repository,
         int householdId,
+        int? shoppingListId,
         HashSet<string> namesLower,
         CancellationToken ct)
     {
+        // A name is already covered for this list if a matching row is this list's own or shared (null-list).
         return await repository.Query()
-            .Where(r => r.HouseholdId == householdId && namesLower.Contains(r.Name.ToLower()))
+            .Where(r => r.HouseholdId == householdId
+                        && (r.ShoppingListId == shoppingListId || r.ShoppingListId == null)
+                        && namesLower.Contains(r.Name.ToLower()))
             .Select(r => r.Name.ToLower())
             .ToHashSetAsync(ct);
     }
@@ -22,6 +26,7 @@ internal static class ShoppingListHelpers
         IRepository<ShoppingListRecommendation> repository,
         HashSet<string> existingNames,
         int householdId,
+        int? shoppingListId,
         string name,
         DateTime createdOn,
         bool includeInSuggestions = true)
@@ -32,6 +37,7 @@ internal static class ShoppingListHelpers
             repository.Add(new ShoppingListRecommendation
             {
                 HouseholdId = householdId,
+                ShoppingListId = shoppingListId,
                 Name = name,
                 IncludeInSuggestions = includeInSuggestions,
                 CreatedOn = createdOn

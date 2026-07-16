@@ -210,7 +210,7 @@ public class AddRecipeToShoppingListHandlerTests
         await handler.Handle(new AddRecipeToShoppingListCommand(1, 10), TestContext.Current.CancellationToken);
 
         _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r =>
-            r.Name == "Basil"));
+            r.Name == "Basil" && r.ShoppingListId == 10 && !r.IncludeInSuggestions));
     }
 
     [Fact]
