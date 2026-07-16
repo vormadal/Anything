@@ -1,20 +1,24 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithClient } from "@/__tests__/utils/test-utils";
 import SuggestionsPage from "./page";
 import { toast } from "sonner";
 
 const mockAllGet = jest.fn();
-const mockUncategorizedGet = jest.fn();
 const mockCategoriesGet = jest.fn();
+const mockChecklistsGet = jest.fn();
 const mockDeleteFn = jest.fn();
 const mockUpdatePut = jest.fn();
 const mockCreatePost = jest.fn();
 const mockExportGet = jest.fn();
 const mockImportPost = jest.fn();
+const mockByListDelete = jest.fn();
 const mockItemById = jest.fn((id: number) => ({
   delete: (...args: unknown[]) => mockDeleteFn(id, ...args),
   put: (...args: unknown[]) => mockUpdatePut(id, ...args),
+}));
+const mockByShoppingListId = jest.fn((id: number) => ({
+  delete: (...args: unknown[]) => mockByListDelete(id, ...args),
 }));
 
 jest.mock("@/lib/apiClient", () => ({
@@ -22,14 +26,17 @@ jest.mock("@/lib/apiClient", () => ({
     api: {
       shoppingListRecommendations: {
         all: { get: (...args: unknown[]) => mockAllGet(...args) },
-        uncategorized: { get: (...args: unknown[]) => mockUncategorizedGet(...args) },
         post: (...args: unknown[]) => mockCreatePost(...args),
         byId: (id: number) => mockItemById(id),
+        byList: { byShoppingListId: (id: number) => mockByShoppingListId(id) },
         exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
         importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
       },
       suggestionCategories: {
         get: (...args: unknown[]) => mockCategoriesGet(...args),
+      },
+      checklists: {
+        get: (...args: unknown[]) => mockChecklistsGet(...args),
       },
     },
   },
@@ -67,7 +74,10 @@ describe("SuggestionsPage (household config)", () => {
     jest.clearAllMocks();
     localStorage.clear();
     mockCategoriesGet.mockResolvedValue([]);
-    mockUncategorizedGet.mockResolvedValue([]);
+    mockChecklistsGet.mockResolvedValue([
+      { id: 7, name: "Groceries", type: 1 },
+      { id: 8, name: "Hardware", type: 1 },
+    ]);
     // Default: current user is a household manager (Owner).
     mockGetHouseholdRole.mockReturnValue("Owner");
   });
@@ -105,7 +115,7 @@ describe("SuggestionsPage (household config)", () => {
       localStorage.setItem("accessToken", "test-token");
     });
 
-    it("shows empty message for All tab", async () => {
+    it("shows empty message by default", async () => {
       mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<SuggestionsPage />);
@@ -115,13 +125,14 @@ describe("SuggestionsPage (household config)", () => {
       });
     });
 
-    it("shows empty message for Uncategorized tab", async () => {
+    it("shows uncategorized empty message when the uncategorized filter is on", async () => {
       const user = userEvent.setup();
       mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<SuggestionsPage />);
 
-      await user.click(screen.getByRole("button", { name: /Uncategorized/ }));
+      await waitFor(() => expect(screen.getByText("No suggestions yet.")).toBeInTheDocument());
+      await user.click(screen.getByRole("checkbox", { name: /Uncategorized only/ }));
 
       await waitFor(() => {
         expect(screen.getByText("No uncategorized suggestions.")).toBeInTheDocument();
@@ -135,10 +146,10 @@ describe("SuggestionsPage (household config)", () => {
       localStorage.setItem("accessToken", "test-token");
     });
 
-    it("shows suggestions in the All tab", async () => {
+    it("shows suggestions", async () => {
       mockAllGet.mockResolvedValue([
-        { id: 1, name: "Milk", preferredUnit: "L", categoryId: null },
-        { id: 2, name: "Bread", preferredUnit: null, categoryId: 5 },
+        { id: 1, name: "Milk", preferredUnit: "L", categoryId: null, shoppingListId: null },
+        { id: 2, name: "Bread", preferredUnit: null, categoryId: 5, shoppingListId: 7 },
       ]);
 
       renderWithClient(<SuggestionsPage />);
@@ -149,9 +160,24 @@ describe("SuggestionsPage (household config)", () => {
       });
     });
 
+    it("shows a Shared badge for shared suggestions and a list badge for list-specific ones", async () => {
+      mockAllGet.mockResolvedValue([
+        { id: 1, name: "Milk", preferredUnit: null, categoryId: null, shoppingListId: null },
+        { id: 2, name: "Nails", preferredUnit: null, categoryId: null, shoppingListId: 8 },
+      ]);
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByText("Milk")).toBeInTheDocument());
+      const milkRow = screen.getByText("Milk").closest("li")!;
+      expect(within(milkRow).getByText("Shared")).toBeInTheDocument();
+      const nailsRow = screen.getByText("Nails").closest("li")!;
+      expect(within(nailsRow).getByText("Hardware")).toBeInTheDocument();
+    });
+
     it("shows Uncategorized marker for items without category", async () => {
       mockAllGet.mockResolvedValue([
-        { id: 1, name: "Eggs", preferredUnit: null, categoryId: null },
+        { id: 1, name: "Eggs", preferredUnit: null, categoryId: null, shoppingListId: null },
       ]);
 
       renderWithClient(<SuggestionsPage />);
@@ -163,7 +189,7 @@ describe("SuggestionsPage (household config)", () => {
 
     it("shows the hidden badge for recipe-seeded items not in suggestions", async () => {
       mockAllGet.mockResolvedValue([
-        { id: 4, name: "Boneless chicken breasts", preferredUnit: null, categoryId: null, includeInSuggestions: false },
+        { id: 4, name: "Boneless chicken breasts", preferredUnit: null, categoryId: null, includeInSuggestions: false, shoppingListId: null },
       ]);
 
       renderWithClient(<SuggestionsPage />);
@@ -176,7 +202,7 @@ describe("SuggestionsPage (household config)", () => {
     it("shows category name for categorized items", async () => {
       mockCategoriesGet.mockResolvedValue([{ id: 5, name: "Dairy", sortOrder: 0 }]);
       mockAllGet.mockResolvedValue([
-        { id: 1, name: "Yogurt", preferredUnit: null, categoryId: 5 },
+        { id: 1, name: "Yogurt", preferredUnit: null, categoryId: 5, shoppingListId: null },
       ]);
 
       renderWithClient(<SuggestionsPage />);
@@ -185,37 +211,96 @@ describe("SuggestionsPage (household config)", () => {
         expect(screen.getByText("Dairy")).toBeInTheDocument();
       });
     });
+  });
 
-    it("shows uncategorized count badge on tab", async () => {
+  describe("Filters", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("requests only shared suggestions when the shared filter is selected", async () => {
+      const user = userEvent.setup();
       mockAllGet.mockResolvedValue([]);
-      mockUncategorizedGet.mockResolvedValue([
-        { id: 1, name: "Uncateg1", categoryId: null },
-        { id: 2, name: "Uncateg2", categoryId: null },
-      ]);
 
       renderWithClient(<SuggestionsPage />);
 
+      await waitFor(() => expect(screen.getByLabelText("Filter by list")).toBeInTheDocument());
+      await user.selectOptions(screen.getByLabelText("Filter by list"), "shared");
+
       await waitFor(() => {
-        expect(screen.getByText("2")).toBeInTheDocument();
+        expect(mockAllGet).toHaveBeenCalledWith({ queryParameters: { sharedOnly: true } });
       });
     });
 
-    it("hides uncategorized chip on uncategorized tab", async () => {
+    it("scopes suggestions to a list when a list is selected", async () => {
       const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([{ id: 1, name: "Eggs", preferredUnit: null, categoryId: null }]);
-      mockUncategorizedGet.mockResolvedValue([{ id: 1, name: "Eggs", preferredUnit: null, categoryId: null }]);
+      mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<SuggestionsPage />);
 
+      await screen.findByRole("option", { name: "Groceries" });
+      await user.selectOptions(screen.getByLabelText("Filter by list"), "7");
+
       await waitFor(() => {
-        expect(screen.getByText("Eggs")).toBeInTheDocument();
-        expect(screen.getByRole("img", { name: "Uncategorized" })).toBeInTheDocument();
+        expect(mockAllGet).toHaveBeenCalledWith({ queryParameters: { shoppingListId: 7 } });
       });
+    });
 
-      await user.click(screen.getByRole("button", { name: /Uncategorized/ }));
+    it("requests only hidden suggestions when the autocomplete filter is Hidden", async () => {
+      const user = userEvent.setup();
+      mockAllGet.mockResolvedValue([]);
+
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByLabelText("Filter by autocomplete visibility")).toBeInTheDocument());
+      await user.selectOptions(screen.getByLabelText("Filter by autocomplete visibility"), "hidden");
 
       await waitFor(() => {
-        expect(screen.queryByRole("img", { name: "Uncategorized" })).not.toBeInTheDocument();
+        expect(mockAllGet).toHaveBeenCalledWith({ queryParameters: { includeInSuggestions: false } });
+      });
+    });
+  });
+
+  describe("Clear list suggestions", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("only offers Clear list when a specific list is selected", async () => {
+      const user = userEvent.setup();
+      mockAllGet.mockResolvedValue([]);
+
+      renderWithClient(<SuggestionsPage />);
+
+      await screen.findByRole("option", { name: "Groceries" });
+      expect(screen.queryByRole("button", { name: "Remove all suggestions for this list" })).not.toBeInTheDocument();
+
+      await user.selectOptions(screen.getByLabelText("Filter by list"), "7");
+
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Remove all suggestions for this list" })).toBeInTheDocument()
+      );
+    });
+
+    it("clears a list's suggestions after confirming", async () => {
+      const user = userEvent.setup();
+      mockAllGet.mockResolvedValue([]);
+      mockByListDelete.mockResolvedValueOnce(undefined);
+
+      renderWithClient(<SuggestionsPage />);
+
+      await screen.findByRole("option", { name: "Groceries" });
+      await user.selectOptions(screen.getByLabelText("Filter by list"), "7");
+
+      await user.click(screen.getByRole("button", { name: "Remove all suggestions for this list" }));
+      await user.click(screen.getByRole("button", { name: "Remove suggestions" }));
+
+      await waitFor(() => {
+        expect(mockByShoppingListId).toHaveBeenCalledWith(7);
+        expect(mockByListDelete).toHaveBeenCalled();
+        expect(toast.success).toHaveBeenCalledWith("List suggestions removed.");
       });
     });
   });
@@ -228,7 +313,7 @@ describe("SuggestionsPage (household config)", () => {
 
     it("deletes a suggestion successfully", async () => {
       const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([{ id: 1, name: "Butter", categoryId: null }]);
+      mockAllGet.mockResolvedValue([{ id: 1, name: "Butter", categoryId: null, shoppingListId: null }]);
       mockDeleteFn.mockResolvedValueOnce(undefined);
 
       renderWithClient(<SuggestionsPage />);
@@ -244,7 +329,7 @@ describe("SuggestionsPage (household config)", () => {
 
     it("shows error toast when delete fails", async () => {
       const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([{ id: 1, name: "Butter", categoryId: null }]);
+      mockAllGet.mockResolvedValue([{ id: 1, name: "Butter", categoryId: null, shoppingListId: null }]);
       mockDeleteFn.mockRejectedValueOnce(new Error("Server error"));
 
       renderWithClient(<SuggestionsPage />);
@@ -275,7 +360,7 @@ describe("SuggestionsPage (household config)", () => {
       expect(screen.getByPlaceholderText("Name")).toBeInTheDocument();
     });
 
-    it("creates a suggestion successfully", async () => {
+    it("creates a shared suggestion by default", async () => {
       const user = userEvent.setup();
       mockCreatePost.mockResolvedValueOnce({ id: 10, name: "Cheese" });
 
@@ -287,8 +372,25 @@ describe("SuggestionsPage (household config)", () => {
       await user.click(screen.getByRole("button", { name: "Save new suggestion" }));
 
       await waitFor(() => {
-        expect(mockCreatePost).toHaveBeenCalledWith({ name: "Cheese", preferredUnit: null });
+        expect(mockCreatePost).toHaveBeenCalledWith({ name: "Cheese", preferredUnit: null, shoppingListId: null });
         expect(toast.success).toHaveBeenCalledWith("Suggestion created.");
+      });
+    });
+
+    it("creates a list-specific suggestion when a list is selected", async () => {
+      const user = userEvent.setup();
+      mockCreatePost.mockResolvedValueOnce({ id: 11, name: "Screws" });
+
+      renderWithClient(<SuggestionsPage />);
+
+      await screen.findByRole("option", { name: "Hardware" });
+      await user.selectOptions(screen.getByLabelText("Filter by list"), "8");
+      await user.click(screen.getByRole("button", { name: "Create suggestion" }));
+      await user.type(screen.getByPlaceholderText("Name"), "Screws");
+      await user.click(screen.getByRole("button", { name: "Save new suggestion" }));
+
+      await waitFor(() => {
+        expect(mockCreatePost).toHaveBeenCalledWith({ name: "Screws", preferredUnit: null, shoppingListId: 8 });
       });
     });
 
@@ -329,7 +431,7 @@ describe("SuggestionsPage (household config)", () => {
 
     it("shows edit form when clicking edit button", async () => {
       const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([{ id: 1, name: "Tomato", preferredUnit: "kg", categoryId: null }]);
+      mockAllGet.mockResolvedValue([{ id: 1, name: "Tomato", preferredUnit: "kg", categoryId: null, shoppingListId: null }]);
 
       renderWithClient(<SuggestionsPage />);
 
@@ -339,9 +441,9 @@ describe("SuggestionsPage (household config)", () => {
       expect(screen.getByDisplayValue("Tomato")).toBeInTheDocument();
     });
 
-    it("saves edit successfully", async () => {
+    it("saves edit successfully, preserving the list scope", async () => {
       const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([{ id: 1, name: "Tomato", preferredUnit: null, categoryId: null }]);
+      mockAllGet.mockResolvedValue([{ id: 1, name: "Tomato", preferredUnit: null, categoryId: null, shoppingListId: 7 }]);
       mockUpdatePut.mockResolvedValueOnce(undefined);
 
       renderWithClient(<SuggestionsPage />);
@@ -355,14 +457,14 @@ describe("SuggestionsPage (household config)", () => {
       await user.click(screen.getByRole("button", { name: "Save" }));
 
       await waitFor(() => {
-        expect(mockUpdatePut).toHaveBeenCalledWith(1, expect.objectContaining({ name: "Cherry Tomato" }));
+        expect(mockUpdatePut).toHaveBeenCalledWith(1, expect.objectContaining({ name: "Cherry Tomato", shoppingListId: 7 }));
         expect(toast.success).toHaveBeenCalledWith("Suggestion updated.");
       });
     });
 
     it("shows error toast when edit fails", async () => {
       const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([{ id: 1, name: "Tomato", preferredUnit: null, categoryId: null }]);
+      mockAllGet.mockResolvedValue([{ id: 1, name: "Tomato", preferredUnit: null, categoryId: null, shoppingListId: null }]);
       mockUpdatePut.mockRejectedValueOnce(new Error("Server error"));
 
       renderWithClient(<SuggestionsPage />);
@@ -379,7 +481,7 @@ describe("SuggestionsPage (household config)", () => {
     it("promotes a hidden item into suggestions via the toggle", async () => {
       const user = userEvent.setup();
       mockAllGet.mockResolvedValue([
-        { id: 4, name: "Boneless chicken breasts", preferredUnit: null, categoryId: null, includeInSuggestions: false },
+        { id: 4, name: "Boneless chicken breasts", preferredUnit: null, categoryId: null, includeInSuggestions: false, shoppingListId: null },
       ]);
       mockUpdatePut.mockResolvedValueOnce(undefined);
 
@@ -400,7 +502,7 @@ describe("SuggestionsPage (household config)", () => {
 
     it("cancels edit without saving", async () => {
       const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([{ id: 1, name: "Tomato", preferredUnit: null, categoryId: null }]);
+      mockAllGet.mockResolvedValue([{ id: 1, name: "Tomato", preferredUnit: null, categoryId: null, shoppingListId: null }]);
 
       renderWithClient(<SuggestionsPage />);
 
@@ -422,9 +524,9 @@ describe("SuggestionsPage (household config)", () => {
     it("filters suggestions by search query", async () => {
       const user = userEvent.setup();
       mockAllGet.mockResolvedValue([
-        { id: 1, name: "Apple", categoryId: null },
-        { id: 2, name: "Banana", categoryId: null },
-        { id: 3, name: "Apricot", categoryId: null },
+        { id: 1, name: "Apple", categoryId: null, shoppingListId: null },
+        { id: 2, name: "Banana", categoryId: null, shoppingListId: null },
+        { id: 3, name: "Apricot", categoryId: null, shoppingListId: null },
       ]);
 
       renderWithClient(<SuggestionsPage />);
@@ -441,7 +543,7 @@ describe("SuggestionsPage (household config)", () => {
 
     it("shows no-results message when search yields nothing", async () => {
       const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([{ id: 1, name: "Apple", categoryId: null }]);
+      mockAllGet.mockResolvedValue([{ id: 1, name: "Apple", categoryId: null, shoppingListId: null }]);
 
       renderWithClient(<SuggestionsPage />);
 
@@ -450,27 +552,6 @@ describe("SuggestionsPage (household config)", () => {
 
       await waitFor(() => {
         expect(screen.getByText("No suggestions match your search.")).toBeInTheDocument();
-      });
-    });
-
-    it("resets search on tab switch", async () => {
-      const user = userEvent.setup();
-      mockAllGet.mockResolvedValue([
-        { id: 1, name: "Apple", categoryId: null },
-        { id: 2, name: "Banana", categoryId: null },
-      ]);
-
-      renderWithClient(<SuggestionsPage />);
-
-      await waitFor(() => expect(screen.getByText("Apple")).toBeInTheDocument());
-      await user.type(screen.getByRole("textbox", { name: "Search suggestions" }), "app");
-      await waitFor(() => expect(screen.queryByText("Banana")).not.toBeInTheDocument());
-
-      await user.click(screen.getByRole("button", { name: /Uncategorized/ }));
-      await user.click(screen.getByRole("button", { name: "All" }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Banana")).toBeInTheDocument();
       });
     });
   });

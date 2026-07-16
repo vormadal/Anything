@@ -4,7 +4,9 @@ import { ReactNode } from 'react'
 import {
   useRecommendations,
   useAllRecommendations,
+  useRecommendationSearch,
   useDeleteRecommendation,
+  useDeleteRecommendationsForList,
   useUpdateRecommendation,
   useExportRecommendations,
   useImportRecommendations,
@@ -12,9 +14,12 @@ import {
 
 const mockGet = jest.fn()
 const mockAllGet = jest.fn()
+const mockSearchGet = jest.fn()
 const mockDeleteFn = jest.fn()
 const mockPutFn = jest.fn()
 const mockItemById: jest.Mock = jest.fn(() => ({ delete: mockDeleteFn, put: mockPutFn }))
+const mockByListDelete = jest.fn()
+const mockByShoppingListId: jest.Mock = jest.fn(() => ({ delete: mockByListDelete }))
 const mockExportGet = jest.fn()
 const mockImportPost = jest.fn()
 
@@ -24,7 +29,9 @@ jest.mock('@/lib/apiClient', () => ({
       shoppingListRecommendations: {
         get: (...args: unknown[]) => mockGet(...args),
         all: { get: (...args: unknown[]) => mockAllGet(...args) },
+        search: { get: (...args: unknown[]) => mockSearchGet(...args) },
         byId: (...args: unknown[]) => mockItemById(...args),
+        byList: { byShoppingListId: (...args: unknown[]) => mockByShoppingListId(...args) },
         exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
         importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
       },
@@ -106,6 +113,63 @@ describe('useRecommendations hooks', () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true))
     })
+
+    it('passes list and visibility filters as query parameters', async () => {
+      mockAllGet.mockResolvedValueOnce([])
+
+      const { result } = renderHook(
+        () => useAllRecommendations({ shoppingListId: 7, uncategorized: true, includeInSuggestions: false }),
+        { wrapper: createWrapper() }
+      )
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(mockAllGet).toHaveBeenCalledWith({
+        queryParameters: { shoppingListId: 7, uncategorized: true, includeInSuggestions: false },
+      })
+    })
+
+    it('passes sharedOnly when the shared filter is selected', async () => {
+      mockAllGet.mockResolvedValueOnce([])
+
+      const { result } = renderHook(() => useAllRecommendations({ sharedOnly: true }), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(mockAllGet).toHaveBeenCalledWith({ queryParameters: { sharedOnly: true } })
+    })
+  })
+
+  describe('useRecommendationSearch', () => {
+    it('scopes the search to a list when shoppingListId is given', async () => {
+      mockSearchGet.mockResolvedValueOnce([])
+
+      const { result } = renderHook(() => useRecommendationSearch('mil', 7), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(mockSearchGet).toHaveBeenCalledWith({
+        queryParameters: { query: 'mil', shoppingListId: 7 },
+      })
+    })
+  })
+
+  describe('useDeleteRecommendationsForList', () => {
+    it('calls delete on the by-list endpoint with the list id', async () => {
+      mockByListDelete.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useDeleteRecommendationsForList(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync(7)
+      })
+
+      expect(mockByShoppingListId).toHaveBeenCalledWith(7)
+      expect(mockByListDelete).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('useDeleteRecommendation', () => {
@@ -152,7 +216,7 @@ describe('useRecommendations hooks', () => {
       })
 
       expect(mockItemById).toHaveBeenCalledWith(1)
-      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Milk', preferredUnit: 'L', categoryId: null, includeInSuggestions: true })
+      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Milk', preferredUnit: 'L', categoryId: null, includeInSuggestions: true, shoppingListId: null })
     })
 
     it('forwards includeInSuggestions when hiding a recommendation from suggestions', async () => {
@@ -166,7 +230,21 @@ describe('useRecommendations hooks', () => {
         await result.current.mutateAsync({ id: 4, name: 'Boneless chicken breasts', categoryId: 2, includeInSuggestions: false })
       })
 
-      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Boneless chicken breasts', preferredUnit: null, categoryId: 2, includeInSuggestions: false })
+      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Boneless chicken breasts', preferredUnit: null, categoryId: 2, includeInSuggestions: false, shoppingListId: null })
+    })
+
+    it('forwards shoppingListId when scoping a recommendation to a list', async () => {
+      mockPutFn.mockResolvedValueOnce(undefined)
+
+      const { result } = renderHook(() => useUpdateRecommendation(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({ id: 5, name: 'Milk', shoppingListId: 7 })
+      })
+
+      expect(mockPutFn).toHaveBeenCalledWith({ name: 'Milk', preferredUnit: null, categoryId: null, includeInSuggestions: true, shoppingListId: 7 })
     })
 
     it('handles update error', async () => {
