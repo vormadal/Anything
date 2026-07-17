@@ -12,10 +12,19 @@ public class ShoppingListRecommendationConfiguration : IEntityTypeConfiguration<
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.Property(e => e.PreferredUnit).HasMaxLength(50);
         builder.Property(e => e.IncludeInSuggestions).HasDefaultValue(true);
-        // Uniqueness is per (household, list, name). NULLS NOT DISTINCT keeps a shared
-        // (null-list) name unique per household while still allowing one shared row and one
-        // per-list row to coexist for the same name.
-        builder.HasIndex(e => new { e.HouseholdId, e.ShoppingListId, e.Name }).IsUnique().AreNullsDistinct(false);
+        // Uniqueness is per (household, list, name), scoped by two partial indexes rather than
+        // a single NULLS NOT DISTINCT index (PG15+ only, and the e2e/production Postgres may be
+        // older): one enforces uniqueness among list-specific rows, the other among shared
+        // (null-list) rows per household. Together they keep a shared name unique per household
+        // while still letting one shared row and one per-list row coexist for the same name.
+        builder.HasIndex(e => new { e.HouseholdId, e.ShoppingListId, e.Name })
+            .IsUnique()
+            .HasDatabaseName("IX_ShoppingListRecommendations_HouseholdId_ShoppingListId_Name")
+            .HasFilter("\"ShoppingListId\" IS NOT NULL");
+        builder.HasIndex(e => new { e.HouseholdId, e.Name })
+            .IsUnique()
+            .HasDatabaseName("IX_ShoppingListRecommendations_HouseholdId_Name_Shared")
+            .HasFilter("\"ShoppingListId\" IS NULL");
         // Speeds up the per-list filter/delete queries.
         builder.HasIndex(e => e.ShoppingListId);
         // GIN trigram index powering fuzzy (similarity) name search.
