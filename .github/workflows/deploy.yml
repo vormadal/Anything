@@ -29,10 +29,10 @@ jobs:
           -a anything-e2e
           --appToken ${{ secrets.CAPROVER_E2E_APP_TOKEN }}
       - name: Verify e2e deploy
-        env:
-          APP_NAME: anything-e2e
-          CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
-        run: node .github/scripts/verify-deploy.js
+        uses: ./.github/actions/verify-caprover-deploy
+        with:
+          app-name: anything-e2e
+          caprover-password: ${{ secrets.CAPROVER_PASSWORD }}
 
   e2e-tests:
     runs-on: ubuntu-latest
@@ -109,7 +109,7 @@ jobs:
           -a anything
           --appToken ${{ secrets.CAPROVER_APP_TOKEN }}
       - name: Verify production deploy
-        env:
-          APP_NAME: anything
-          CAPROVER_PASSWORD: ${{ secrets.CAPROVER_PASSWORD }}
-        run: node .github/scripts/verify-deploy.js
+        uses: ./.github/actions/verify-caprover-deploy
+        with:
+          app-name: anything
+          caprover-password: ${{ secrets.CAPROVER_PASSWORD }}
