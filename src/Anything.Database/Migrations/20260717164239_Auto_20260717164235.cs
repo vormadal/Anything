@@ -5,7 +5,7 @@
 namespace Anything.Database.Migrations
 {
     /// <inheritdoc />
-    public partial class Auto_20260716103302 : Migration
+    public partial class Auto_20260717164235 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -21,11 +21,18 @@ namespace Anything.Database.Migrations
                 nullable: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_ShoppingListRecommendations_HouseholdId_Name_Shared",
+                table: "ShoppingListRecommendations",
+                columns: new[] { "HouseholdId", "Name" },
+                unique: true,
+                filter: "\"ShoppingListId\" IS NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ShoppingListRecommendations_HouseholdId_ShoppingListId_Name",
                 table: "ShoppingListRecommendations",
                 columns: new[] { "HouseholdId", "ShoppingListId", "Name" },
-                unique: true)
-                .Annotation("Npgsql:NullsDistinct", false);
+                unique: true,
+                filter: "\"ShoppingListId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ShoppingListRecommendations_ShoppingListId",
@@ -46,6 +53,10 @@ namespace Anything.Database.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_ShoppingListRecommendations_ShoppingLists_ShoppingListId",
+                table: "ShoppingListRecommendations");
+
+            migrationBuilder.DropIndex(
+                name: "IX_ShoppingListRecommendations_HouseholdId_Name_Shared",
                 table: "ShoppingListRecommendations");
 
             migrationBuilder.DropIndex(

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anything.Database.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260716103306_Auto_20260716103302")]
-    partial class Auto_20260716103302
+    [Migration("20260717164239_Auto_20260717164235")]
+    partial class Auto_20260717164235
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1064,10 +1064,15 @@ namespace Anything.Database.Migrations
 
                     b.HasIndex("ShoppingListId");
 
-                    b.HasIndex("HouseholdId", "ShoppingListId", "Name")
-                        .IsUnique();
+                    b.HasIndex("HouseholdId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ShoppingListRecommendations_HouseholdId_Name_Shared")
+                        .HasFilter("\"ShoppingListId\" IS NULL");
 
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("HouseholdId", "ShoppingListId", "Name"), false);
+                    b.HasIndex("HouseholdId", "ShoppingListId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ShoppingListRecommendations_HouseholdId_ShoppingListId_Name")
+                        .HasFilter("\"ShoppingListId\" IS NOT NULL");
 
                     b.ToTable("ShoppingListRecommendations");
                 });
