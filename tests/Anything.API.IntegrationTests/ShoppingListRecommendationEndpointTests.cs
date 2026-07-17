@@ -795,6 +795,32 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task FindDuplicates_DoesNotGroupItemsSharingOnlyAModifierWord()
+    {
+        // "Frosne" = frozen, "rejer" = shrimp: frozen shrimp is a different product
+        // from the peas ("ærter"), and must not be pulled into their group just because
+        // it shares the modifier word "Frosne" with "Frosne ærter".
+        var client = await GetAuthenticatedHttpClientAsync();
+        await CreateRecommendationAsync("Ærter");
+        await CreateRecommendationAsync("Friske ærter");
+        await CreateRecommendationAsync("Frosne ærter");
+        await CreateRecommendationAsync("frosne ekstra fine ærter");
+        await CreateRecommendationAsync("Frosne rejer");
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/duplicates");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var groups = await response.Content.ReadFromJsonAsync<DuplicateGroupDto[]>(JsonOptions);
+        Assert.NotNull(groups);
+
+        // Whichever group(s) the peas variants land in, the frozen shrimp must not share one.
+        var shrimpGroup = groups.FirstOrDefault(g => g.Members.Any(m => m.Name == "Frosne rejer"));
+        if (shrimpGroup is not null)
+        {
+            Assert.DoesNotContain(shrimpGroup.Members, m => m.Name != null && m.Name.Contains("ærter"));
+        }
+    }
+
+    [Fact]
     public async Task FindDuplicates_WhenNoSimilarNames_ReturnsEmpty()
     {
         var client = await GetAuthenticatedHttpClientAsync();

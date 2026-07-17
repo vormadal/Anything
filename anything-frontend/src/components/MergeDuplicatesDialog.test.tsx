@@ -95,6 +95,46 @@ describe("MergeDuplicatesDialog", () => {
     );
   });
 
+  it("excludes a deselected member from the merge", async () => {
+    const user = userEvent.setup();
+    mockMergeMutateAsync.mockResolvedValueOnce(undefined);
+    mockDuplicatesData = [
+      {
+        members: [
+          { id: 10, name: "Frosne ærter", categoryId: null, shoppingListId: null },
+          { id: 11, name: "Friske ærter", categoryId: null, shoppingListId: null },
+          { id: 12, name: "Frosne rejer", categoryId: null, shoppingListId: null },
+        ],
+      },
+    ];
+    renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
+
+    await screen.findByText("Group 1 of 1");
+    // "Frosne rejer" (frozen shrimp) doesn't belong with the peas — uncheck it.
+    await user.click(screen.getByRole("checkbox", { name: "Include Frosne rejer" }));
+    await user.click(screen.getByRole("button", { name: "Merge" }));
+
+    await waitFor(() =>
+      expect(mockMergeMutateAsync).toHaveBeenCalledWith({
+        targetId: 10,
+        sourceIds: [11],
+        name: "Frosne ærter",
+        categoryId: null,
+      })
+    );
+  });
+
+  it("disables Merge when fewer than two members are selected", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
+
+    await screen.findByText("Group 1 of 2");
+    // Deselecting one of the two members leaves only the kept target — nothing to merge.
+    await user.click(screen.getByRole("checkbox", { name: "Include Tomatoe" }));
+
+    expect(screen.getByRole("button", { name: "Merge" })).toBeDisabled();
+  });
+
   it("shows an empty state when there are no duplicates", async () => {
     mockDuplicatesData = [];
     renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);

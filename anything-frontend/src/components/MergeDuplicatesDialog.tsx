@@ -56,18 +56,50 @@ function DuplicateGroupEditor({
   const [keepId, setKeepId] = useState<number | null>(initial?.id ?? null);
   const [name, setName] = useState(initial?.name ?? "");
   const [categoryId, setCategoryId] = useState<number | null>(initial?.categoryId ?? null);
+  // Members included in this merge. Defaults to all, so the common typo case still
+  // merges the whole group in one click; uncheck any that don't belong to exclude them.
+  const [selected, setSelected] = useState<Set<number>>(
+    () => new Set(group.map((m) => m.id).filter((id): id is number => id != null))
+  );
 
-  const handlePickKeep = (member: ShoppingListRecommendation) => {
+  const applyKeep = (member: ShoppingListRecommendation) => {
     setKeepId(member.id ?? null);
     setName(member.name ?? "");
     setCategoryId(member.categoryId ?? null);
   };
 
+  const handlePickKeep = (member: ShoppingListRecommendation) => {
+    applyKeep(member);
+    // Picking a member as "keep" implicitly includes it in the merge.
+    if (member.id != null) {
+      setSelected((prev) => new Set(prev).add(member.id!));
+    }
+  };
+
+  const handleToggleSelected = (member: ShoppingListRecommendation, include: boolean) => {
+    if (member.id == null) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (include) {
+        next.add(member.id!);
+      } else {
+        next.delete(member.id!);
+        // The kept target must always stay selected: if it was deselected, hand "keep"
+        // to the first still-selected member so name/category stay meaningful.
+        if (keepId === member.id) {
+          const fallback = group.find((m) => m.id != null && next.has(m.id));
+          if (fallback) applyKeep(fallback);
+        }
+      }
+      return next;
+    });
+  };
+
+  const canMerge = selected.size >= 2 && keepId != null && selected.has(keepId) && !!name.trim();
+
   const handleMerge = () => {
-    if (keepId == null || !name.trim()) return;
-    const sourceIds = group
-      .map((m) => m.id)
-      .filter((id): id is number => id != null && id !== keepId);
+    if (!canMerge || keepId == null) return;
+    const sourceIds = [...selected].filter((id) => id !== keepId);
     if (sourceIds.length === 0) return;
     onMerge({ targetId: keepId, sourceIds, name: name.trim(), categoryId });
   };
@@ -79,31 +111,49 @@ function DuplicateGroupEditor({
           Group {groupNumber} of {totalGroups}
         </p>
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Keep</legend>
+          <legend className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+            Include the items to merge, and pick the one to keep
+          </legend>
           {group.map((member) => {
             const categoryName = categories.find((c) => c.id === member.categoryId)?.name;
+            const isSelected = member.id != null && selected.has(member.id);
             return (
-              <label
+              <div
                 key={member.id}
                 className="flex items-center gap-2 rounded-md border border-gray-200 p-2 text-sm dark:border-gray-700"
               >
                 <input
-                  type="radio"
-                  name="keep-recommendation"
-                  checked={keepId === member.id}
-                  onChange={() => handlePickKeep(member)}
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={(e) => handleToggleSelected(member, e.target.checked)}
+                  aria-label={`Include ${member.name}`}
                   className="h-4 w-4"
                 />
-                <span className="min-w-0 flex-1 truncate text-gray-900 dark:text-white">
-                  {member.name}
-                </span>
+                <label className="flex min-w-0 flex-1 items-center gap-2">
+                  <input
+                    type="radio"
+                    name="keep-recommendation"
+                    checked={keepId === member.id}
+                    onChange={() => handlePickKeep(member)}
+                    disabled={!isSelected}
+                    aria-label={`Keep ${member.name}`}
+                    className="h-4 w-4 disabled:opacity-40"
+                  />
+                  <span
+                    className={`min-w-0 flex-1 truncate ${
+                      isSelected ? "text-gray-900 dark:text-white" : "text-gray-400 line-through dark:text-gray-500"
+                    }`}
+                  >
+                    {member.name}
+                  </span>
+                </label>
                 {categoryName && (
                   <span className="shrink-0 text-xs text-blue-600 dark:text-blue-400">{categoryName}</span>
                 )}
                 <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                   {scopeLabel(member)}
                 </span>
-              </label>
+              </div>
             );
           })}
         </fieldset>
@@ -142,7 +192,7 @@ function DuplicateGroupEditor({
         <Button variant="outline" onClick={onSkip} disabled={isPending}>
           Skip
         </Button>
-        <Button onClick={handleMerge} disabled={isPending || keepId == null || !name.trim()}>
+        <Button onClick={handleMerge} disabled={isPending || !canMerge}>
           Merge
         </Button>
       </DialogFooter>
@@ -257,7 +307,8 @@ export function MergeDuplicatesDialog({ open, onOpenChange }: MergeDuplicatesDia
           <DialogTitle>Find duplicate suggestions</DialogTitle>
         </DialogHeader>
         <p id="merge-duplicates-description" className="text-sm text-gray-600 dark:text-gray-400">
-          Similar suggestions are grouped below. Pick the one to keep, then merge the rest into it.
+          Similar suggestions are grouped below. Uncheck any that don&apos;t belong, pick the one
+          to keep, then merge the rest into it. Leftover similar items reappear as a new group.
         </p>
         {open && <MergeDuplicatesContent onClose={() => onOpenChange(false)} />}
       </DialogContent>

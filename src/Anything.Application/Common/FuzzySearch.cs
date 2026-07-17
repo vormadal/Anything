@@ -19,8 +19,17 @@ public static class FuzzySearch
     /// Minimum symmetric trigram similarity (0..1) for two recommendation names to
     /// be treated as near-duplicates in the "find duplicates" merge flow. Stricter
     /// than <see cref="SimilarityThreshold"/> so unrelated names don't get grouped.
+    /// <para>
+    /// Typo pairs (e.g. "Tomato"/"Tomatoe") score high (~0.6–0.8) and still group;
+    /// names that merely share one common word (e.g. "Frosne ærter" vs "Frosne rejer",
+    /// where "Frosne" = frozen) score in the mid range (~0.3–0.5) and are trimmed here.
+    /// This is only a best-effort filter: symmetric trigram similarity cannot reliably
+    /// separate a shared <em>modifier</em> word from a shared <em>noun</em> (a shared
+    /// modifier can even outweigh a shared noun), so the manual per-item selection in the
+    /// merge dialog is the definitive control over what actually gets merged.
+    /// </para>
     /// </summary>
-    public const double DuplicateSimilarityThreshold = 0.4;
+    public const double DuplicateSimilarityThreshold = 0.5;
 
     /// <summary>
     /// Normalizes a search term for case-insensitive substring comparisons
