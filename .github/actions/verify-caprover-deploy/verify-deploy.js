@@ -71,10 +71,14 @@ function callCaproverApi(path, method, data) {
     path,
     "--method",
     method || "GET",
+    // The `caprover` CLI's `api` command prompts interactively for this
+    // value when it's omitted (no `when: false` guard on it), which fails
+    // immediately in non-interactive CI. Always pass it explicitly, even
+    // when there's nothing to send, so the call never falls back to a
+    // prompt.
+    "--data",
+    JSON.stringify(data ?? {}),
   ];
-  if (data !== undefined) {
-    args.push("--data", JSON.stringify(data));
-  }
 
   const result = spawnSync("caprover", args, { encoding: "utf-8" });
   if (result.status !== 0) {
