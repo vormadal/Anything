@@ -72,6 +72,39 @@ public static class RecommendationEndpoints
         .Produces<List<ShoppingListRecommendation>>(StatusCodes.Status200OK)
         .RequireAuthorization();
 
+        // Scans the household for near-duplicate suggestion names (typos, plurals) and
+        // returns them clustered into groups so a manager can merge each group.
+        group.MapGet("/duplicates", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new FindDuplicateRecommendationsQuery());
+        })
+        .WithName("FindDuplicateRecommendations")
+        .WithSummary("Find groups of near-duplicate suggestions that can be merged.")
+        .Produces<List<DuplicateRecommendationGroup>>(StatusCodes.Status200OK)
+        .RequireAuthorization();
+
+        // Keeps the target suggestion and deletes the sources, optionally applying a
+        // canonical name/category/unit. Existing items (linked only by name) are untouched.
+        group.MapPost("/merge", async ([FromBody] MergeRecommendationsRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new MergeRecommendationsCommand(
+                request.TargetId,
+                request.SourceIds,
+                request.Name,
+                request.CategoryId,
+                request.PreferredUnit,
+                request.IncludeInSuggestions));
+        })
+        .WithName("MergeRecommendations")
+        .WithSummary("Merge one or more duplicate suggestions into a single canonical one.")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status409Conflict)
+        .WithParameterValidation()
+        .RequireAuthorization()
+        .RequireHouseholdManager();
+
         group.MapPut("/{id}", async (int id, [FromBody] UpdateRecommendationRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new UpdateRecommendationCommand(id, request.Name, request.PreferredUnit, request.CategoryId, request.IncludeInSuggestions, request.ShoppingListId));

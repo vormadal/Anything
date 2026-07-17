@@ -6,9 +6,16 @@ import type {
   ShoppingListRecommendation,
   ExportRecommendationsResponse,
   ImportRecommendationsRequest,
+  DuplicateRecommendationGroup,
+  MergeRecommendationsRequest,
 } from "@/lib/api-client/models/index";
 
-export type { ExportRecommendationsResponse, ImportRecommendationsRequest };
+export type {
+  ExportRecommendationsResponse,
+  ImportRecommendationsRequest,
+  DuplicateRecommendationGroup,
+  MergeRecommendationsRequest,
+};
 
 export function useRecommendations() {
   return useQuery({
@@ -79,6 +86,34 @@ export function useUncategorizedRecommendations() {
     queryKey: ["shoppingListRecommendations", "uncategorized"],
     queryFn: () =>
       apiClient.api.shoppingListRecommendations.uncategorized.get() as Promise<ShoppingListRecommendation[]>,
+  });
+}
+
+/**
+ * Scans the household's suggestions for near-duplicate names (typos, plurals)
+ * and returns them clustered into groups so a manager can merge each group.
+ */
+export function useFindDuplicateRecommendations() {
+  return useQuery({
+    queryKey: ["shoppingListRecommendations", "duplicates"],
+    queryFn: () =>
+      apiClient.api.shoppingListRecommendations.duplicates.get() as Promise<DuplicateRecommendationGroup[]>,
+  });
+}
+
+/**
+ * Merges one or more duplicate suggestions into a single canonical one: the
+ * target is kept (optionally renamed / recategorised) and the sources are removed.
+ */
+export function useMergeRecommendations() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: MergeRecommendationsRequest) =>
+      apiClient.api.shoppingListRecommendations.merge.post(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
+    },
   });
 }
 

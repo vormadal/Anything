@@ -8,11 +8,15 @@ import { AllRequestBuilderRequestsMetadata, type AllRequestBuilder } from './all
 // @ts-ignore
 import { ByListRequestBuilderNavigationMetadata, type ByListRequestBuilder } from './byList/index';
 // @ts-ignore
+import { DuplicatesRequestBuilderRequestsMetadata, type DuplicatesRequestBuilder } from './duplicates/index';
+// @ts-ignore
 import { ExportRequestBuilderRequestsMetadata, type ExportRequestBuilder } from './exportEscaped/index';
 // @ts-ignore
 import { ImportRequestBuilderRequestsMetadata, type ImportRequestBuilder } from './importEscaped/index';
 // @ts-ignore
 import { ShoppingListRecommendationsItemRequestBuilderRequestsMetadata, type ShoppingListRecommendationsItemRequestBuilder } from './item/index';
+// @ts-ignore
+import { MergeRequestBuilderRequestsMetadata, type MergeRequestBuilder } from './merge/index';
 // @ts-ignore
 import { SearchRequestBuilderRequestsMetadata, type SearchRequestBuilder } from './search/index';
 // @ts-ignore
@@ -33,6 +37,10 @@ export interface ShoppingListRecommendationsRequestBuilder extends BaseRequestBu
      */
     get byList(): ByListRequestBuilder;
     /**
+     * The duplicates property
+     */
+    get duplicates(): DuplicatesRequestBuilder;
+    /**
      * The export property
      */
     get exportEscaped(): ExportRequestBuilder;
@@ -40,6 +48,10 @@ export interface ShoppingListRecommendationsRequestBuilder extends BaseRequestBu
      * The import property
      */
     get importEscaped(): ImportRequestBuilder;
+    /**
+     * The merge property
+     */
+    get merge(): MergeRequestBuilder;
     /**
      * The search property
      */
@@ -96,11 +108,17 @@ export const ShoppingListRecommendationsRequestBuilderNavigationMetadata: Record
     byList: {
         navigationMetadata: ByListRequestBuilderNavigationMetadata,
     },
+    duplicates: {
+        requestsMetadata: DuplicatesRequestBuilderRequestsMetadata,
+    },
     exportEscaped: {
         requestsMetadata: ExportRequestBuilderRequestsMetadata,
     },
     importEscaped: {
         requestsMetadata: ImportRequestBuilderRequestsMetadata,
+    },
+    merge: {
+        requestsMetadata: MergeRequestBuilderRequestsMetadata,
     },
     search: {
         requestsMetadata: SearchRequestBuilderRequestsMetadata,

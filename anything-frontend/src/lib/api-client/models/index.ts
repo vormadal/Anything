@@ -734,6 +734,15 @@ export function createCreateVendorRequestFromDiscriminatorValue(parseNode: Parse
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {DuplicateRecommendationGroup}
+ */
+// @ts-ignore
+export function createDuplicateRecommendationGroupFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoDuplicateRecommendationGroup;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {ExportRecipeTagsResponse}
  */
 // @ts-ignore
@@ -1079,6 +1088,15 @@ export function createLoginResponseFromDiscriminatorValue(parseNode: ParseNode |
 // @ts-ignore
 export function createMeasurementUnitFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoMeasurementUnit;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {MergeRecommendationsRequest}
+ */
+// @ts-ignore
+export function createMergeRecommendationsRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoMergeRecommendationsRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -2344,6 +2362,17 @@ export function deserializeIntoCreateVendorRequest(createVendorRequest: Partial<
 }
 /**
  * The deserialization information for the current model
+ * @param DuplicateRecommendationGroup The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoDuplicateRecommendationGroup(duplicateRecommendationGroup: Partial<DuplicateRecommendationGroup> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "members": n => { duplicateRecommendationGroup.members = n.getCollectionOfObjectValues<ShoppingListRecommendation>(createShoppingListRecommendationFromDiscriminatorValue); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param ExportRecipeTagsResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -2783,6 +2812,22 @@ export function deserializeIntoMeasurementUnit(measurementUnit: Partial<Measurem
         "id": n => { measurementUnit.id = n.getNumberValue(); },
         "modifiedOn": n => { measurementUnit.modifiedOn = n.getDateValue(); },
         "name": n => { measurementUnit.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param MergeRecommendationsRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoMergeRecommendationsRequest(mergeRecommendationsRequest: Partial<MergeRecommendationsRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "categoryId": n => { mergeRecommendationsRequest.categoryId = n.getNumberValue(); },
+        "includeInSuggestions": n => { mergeRecommendationsRequest.includeInSuggestions = n.getBooleanValue(); },
+        "name": n => { mergeRecommendationsRequest.name = n.getStringValue(); },
+        "preferredUnit": n => { mergeRecommendationsRequest.preferredUnit = n.getStringValue(); },
+        "sourceIds": n => { mergeRecommendationsRequest.sourceIds = n.getCollectionOfPrimitiveValues<number>(); },
+        "targetId": n => { mergeRecommendationsRequest.targetId = n.getNumberValue(); },
     }
 }
 /**
@@ -3745,6 +3790,12 @@ export function deserializeIntoVendor(vendor: Partial<Vendor> | undefined = {}) 
         "website": n => { vendor.website = n.getStringValue(); },
     }
 }
+export interface DuplicateRecommendationGroup extends Parsable {
+    /**
+     * The members property
+     */
+    members?: ShoppingListRecommendation[] | null;
+}
 export interface ExportRecipeTagsResponse extends Parsable {
     /**
      * The recipes property
@@ -4338,6 +4389,32 @@ export interface MeasurementUnit extends Parsable {
      * The name property
      */
     name?: string | null;
+}
+export interface MergeRecommendationsRequest extends Parsable {
+    /**
+     * The categoryId property
+     */
+    categoryId?: number | null;
+    /**
+     * The includeInSuggestions property
+     */
+    includeInSuggestions?: boolean | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The preferredUnit property
+     */
+    preferredUnit?: string | null;
+    /**
+     * The sourceIds property
+     */
+    sourceIds?: number[] | null;
+    /**
+     * The targetId property
+     */
+    targetId?: number | null;
 }
 export interface ParsedIngredient extends Parsable {
     /**
@@ -5395,6 +5472,17 @@ export function serializeCreateVendorRequest(writer: SerializationWriter, create
 }
 /**
  * Serializes information the current object
+ * @param DuplicateRecommendationGroup The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeDuplicateRecommendationGroup(writer: SerializationWriter, duplicateRecommendationGroup: Partial<DuplicateRecommendationGroup> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!duplicateRecommendationGroup || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfObjectValues<ShoppingListRecommendation>("members", duplicateRecommendationGroup.members, serializeShoppingListRecommendation);
+}
+/**
+ * Serializes information the current object
  * @param ExportRecipeTagsResponse The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
@@ -5837,6 +5925,22 @@ export function serializeMeasurementUnit(writer: SerializationWriter, measuremen
     writer.writeNumberValue("id", measurementUnit.id);
     writer.writeDateValue("modifiedOn", measurementUnit.modifiedOn);
     writer.writeStringValue("name", measurementUnit.name);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param MergeRecommendationsRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeMergeRecommendationsRequest(writer: SerializationWriter, mergeRecommendationsRequest: Partial<MergeRecommendationsRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!mergeRecommendationsRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("categoryId", mergeRecommendationsRequest.categoryId);
+    writer.writeBooleanValue("includeInSuggestions", mergeRecommendationsRequest.includeInSuggestions);
+    writer.writeStringValue("name", mergeRecommendationsRequest.name);
+    writer.writeStringValue("preferredUnit", mergeRecommendationsRequest.preferredUnit);
+    writer.writeCollectionOfPrimitiveValues<number>("sourceIds", mergeRecommendationsRequest.sourceIds);
+    writer.writeNumberValue("targetId", mergeRecommendationsRequest.targetId);
 }
 /**
  * Serializes information the current object

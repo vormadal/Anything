@@ -34,7 +34,7 @@ public class GetHomeCardPreferencesHandlerTests
 
         Assert.Equal(HomeCardKeys.All, result.Select(r => r.CardKey).ToList());
         Assert.All(result, r => Assert.True(r.IsVisible));
-        Assert.Equal([0, 1, 2], result.Select(r => r.SortOrder).ToList());
+        Assert.Equal(Enumerable.Range(0, HomeCardKeys.All.Count).ToList(), result.Select(r => r.SortOrder).ToList());
     }
 
     [Fact]

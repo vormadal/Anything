@@ -771,6 +771,121 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // --- GET /api/shopping-list-recommendations/duplicates ---
+
+    [Fact]
+    public async Task FindDuplicates_GroupsSimilarNames()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        await CreateRecommendationAsync("Tomato");
+        await CreateRecommendationAsync("Tomatoe"); // typo — trigram-similar to "Tomato"
+        await CreateRecommendationAsync("Cucumber");
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/duplicates");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var groups = await response.Content.ReadFromJsonAsync<DuplicateGroupDto[]>(JsonOptions);
+        Assert.NotNull(groups);
+
+        var tomatoGroup = Assert.Single(groups, g => g.Members.Any(m => m.Name == "Tomato"));
+        var names = tomatoGroup.Members.Select(m => m.Name).ToList();
+        Assert.Contains("Tomato", names);
+        Assert.Contains("Tomatoe", names);
+        // The unrelated name is not clustered with anything.
+        Assert.DoesNotContain(groups, g => g.Members.Any(m => m.Name == "Cucumber"));
+    }
+
+    [Fact]
+    public async Task FindDuplicates_WhenNoSimilarNames_ReturnsEmpty()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        await CreateRecommendationAsync("Apple");
+        await CreateRecommendationAsync("Zebra");
+
+        var response = await client.GetAsync("/api/shopping-list-recommendations/duplicates");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var groups = await response.Content.ReadFromJsonAsync<DuplicateGroupDto[]>(JsonOptions);
+        Assert.NotNull(groups);
+        Assert.Empty(groups);
+    }
+
+    [Fact]
+    public async Task FindDuplicates_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync("/api/shopping-list-recommendations/duplicates");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // --- POST /api/shopping-list-recommendations/merge ---
+
+    [Fact]
+    public async Task MergeRecommendations_KeepsTargetAndRemovesSources()
+    {
+        var target = await CreateRecommendationAsync("Tomato");
+        var source = await CreateRecommendationAsync("Tomatoe");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var mergeResponse = await client.PostAsJsonAsync("/api/shopping-list-recommendations/merge",
+            new { targetId = target.Id, sourceIds = new[] { source.Id } });
+        Assert.Equal(HttpStatusCode.NoContent, mergeResponse.StatusCode);
+
+        var all = await (await client.GetAsync("/api/shopping-list-recommendations/all"))
+            .Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(all);
+        Assert.Contains(all, r => r.Id == target.Id && r.Name == "Tomato");
+        Assert.DoesNotContain(all, r => r.Id == source.Id);
+    }
+
+    [Fact]
+    public async Task MergeRecommendations_AppliesCanonicalNameToTarget()
+    {
+        // The typo is the target here; the merge renames it to the good spelling.
+        var target = await CreateRecommendationAsync("Tomatoe");
+        var source = await CreateRecommendationAsync("Tomatos");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var mergeResponse = await client.PostAsJsonAsync("/api/shopping-list-recommendations/merge",
+            new { targetId = target.Id, sourceIds = new[] { source.Id }, name = "Tomato" });
+        Assert.Equal(HttpStatusCode.NoContent, mergeResponse.StatusCode);
+
+        var all = await (await client.GetAsync("/api/shopping-list-recommendations/all"))
+            .Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(all);
+        Assert.Contains(all, r => r.Id == target.Id && r.Name == "Tomato");
+        Assert.DoesNotContain(all, r => r.Id == source.Id);
+        Assert.Single(all.Where(r => r.Name == "Tomato"));
+    }
+
+    [Fact]
+    public async Task MergeRecommendations_TargetInSources_ReturnsBadRequest()
+    {
+        var rec = await CreateRecommendationAsync("Alpha");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations/merge",
+            new { targetId = rec.Id, sourceIds = new[] { rec.Id } });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task MergeRecommendations_ForeignSource_ReturnsNotFound()
+    {
+        var target = await CreateRecommendationAsync("Beta");
+
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations/merge",
+            new { targetId = target.Id, sourceIds = new[] { 999999 } });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task MergeRecommendations_RequiresAdminRole()
+    {
+        var userClient = await GetUserHttpClientAsync();
+        var response = await userClient.PostAsJsonAsync("/api/shopping-list-recommendations/merge",
+            new { targetId = 1, sourceIds = new[] { 2 } });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);
@@ -778,4 +893,5 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     private record CategoryDto(int Id, string Name, int SortOrder);
     private record ExportDto(List<ExportRecommendationItem> Recommendations);
     private record ExportRecommendationItem(string Name, string? PreferredUnit, string? Category);
+    private record DuplicateGroupDto(List<RecommendationDto> Members);
 }

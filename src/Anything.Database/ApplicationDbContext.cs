@@ -55,6 +55,13 @@ public class ApplicationDbContext : DbContext
                 nameof(PgTrigramFunctions.WordSimilarity),
                 [typeof(string), typeof(string)])!)
             .HasName("word_similarity");
+        // Map the pg_trgm similarity() function for symmetric, pairwise name
+        // comparison — used to detect near-duplicate recommendations to merge.
+        modelBuilder.HasDbFunction(
+            typeof(PgTrigramFunctions).GetMethod(
+                nameof(PgTrigramFunctions.Similarity),
+                [typeof(string), typeof(string)])!)
+            .HasName("similarity");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }
