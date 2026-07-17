@@ -1047,9 +1047,6 @@ namespace Anything.Database.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int?>("ShoppingListId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
@@ -1059,17 +1056,8 @@ namespace Anything.Database.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Name"), "gin");
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Name"), new[] { "gin_trgm_ops" });
 
-                    b.HasIndex("ShoppingListId");
-
                     b.HasIndex("HouseholdId", "Name")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ShoppingListRecommendations_HouseholdId_Name_Shared")
-                        .HasFilter("\"ShoppingListId\" IS NULL");
-
-                    b.HasIndex("HouseholdId", "ShoppingListId", "Name")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ShoppingListRecommendations_HouseholdId_ShoppingListId_Name")
-                        .HasFilter("\"ShoppingListId\" IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("ShoppingListRecommendations");
                 });
@@ -1542,14 +1530,7 @@ namespace Anything.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Anything.Core.Entities.ShoppingList", "ShoppingList")
-                        .WithMany()
-                        .HasForeignKey("ShoppingListId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.Navigation("Category");
-
-                    b.Navigation("ShoppingList");
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.Something", b =>
