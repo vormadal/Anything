@@ -1,0 +1,80 @@
+name: Verify CapRover deploy
+description: >
+  Waits for a CapRover app build to finish, then verifies the app actually
+  starts serving traffic by polling its HTTP endpoint (catches containers
+  that build fine but crash on startup, e.g. a failed DB migration). On any
+  failure, prints both the CapRover build logs and the live container logs
+  so the workflow output has everything needed to diagnose it. Requires the
+  `caprover` CLI to already be on PATH (e.g. `npm install -g caprover`) and
+  Node.js 18+.
+
+inputs:
+  app-name:
+    description: CapRover app name to verify.
+    required: true
+  caprover-url:
+    description: CapRover instance URL.
+    required: false
+    default: https://captain.caprover.vormadal.com
+  caprover-password:
+    description: CapRover login password.
+    required: true
+  skip-health-check:
+    description: >
+      Set to "true" to skip the HTTP startup check entirely (e.g. for apps
+      with no HTTP interface). Apps registered with "notExposeAsWebApp" in
+      CapRover are skipped automatically regardless of this input.
+    required: false
+    default: "false"
+  health-check-url:
+    description: >
+      Full URL to poll for a successful HTTP response. If not set, it is
+      derived from the app's CapRover custom domain (or its default
+      "<app-name>.<root-domain>" subdomain) plus health-check-path.
+    required: false
+    default: ""
+  health-check-path:
+    description: >
+      Path appended to the derived app URL when health-check-url is not
+      set.
+    required: false
+    default: /health
+  max-build-retries:
+    description: Max polling attempts while waiting for the build to finish.
+    required: false
+    default: "60"
+  build-retry-interval-ms:
+    description: Delay in ms between build polling attempts.
+    required: false
+    default: "10000"
+  max-health-retries:
+    description: Max polling attempts while waiting for a healthy response.
+    required: false
+    default: "30"
+  health-retry-interval-ms:
+    description: Delay in ms between health-check polling attempts.
+    required: false
+    default: "5000"
+  health-check-timeout-ms:
+    description: Per-request timeout in ms for each health-check attempt.
+    required: false
+    default: "10000"
+
+runs:
+  using: composite
+  steps:
+    - name: Verify deploy
+      shell: bash
+      run: node "${{ github.action_path }}/verify-deploy.js"
+      env:
+        APP_NAME: ${{ inputs.app-name }}
+        CAPROVER_URL: ${{ inputs.caprover-url }}
+        CAPROVER_PASSWORD: ${{ inputs.caprover-password }}
+        SKIP_HEALTH_CHECK: ${{ inputs.skip-health-check }}
+        HEALTH_CHECK_URL: ${{ inputs.health-check-url }}
+        HEALTH_CHECK_PATH: ${{ inputs.health-check-path }}
+        MAX_RETRIES: ${{ inputs.max-build-retries }}
+        RETRY_INTERVAL_MS: ${{ inputs.build-retry-interval-ms }}
+        HEALTH_CHECK_MAX_RETRIES: ${{ inputs.max-health-retries }}
+        HEALTH_CHECK_RETRY_INTERVAL_MS: ${{ inputs.health-retry-interval-ms }}
+        HEALTH_CHECK_TIMEOUT_MS: ${{ inputs.health-check-timeout-ms }}
