@@ -912,6 +912,116 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    // --- DELETE /api/shopping-list-recommendations/shared ---
+
+    [Fact]
+    public async Task DeleteSharedRecommendations_RemovesOnlyShared()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var listId = await CreateShoppingListAsync("Keep List");
+        await client.PostAsJsonAsync("/api/shopping-list-recommendations",
+            new { name = "ListOwn", preferredUnit = (string?)null, shoppingListId = listId });
+        await CreateRecommendationAsync("Shared1");
+        await CreateRecommendationAsync("Shared2");
+
+        var deleteResponse = await client.DeleteAsync("/api/shopping-list-recommendations/shared");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var result = await (await client.GetAsync("/api/shopping-list-recommendations/all"))
+            .Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.DoesNotContain(result, r => r.Name == "Shared1");
+        Assert.DoesNotContain(result, r => r.Name == "Shared2");
+        Assert.Contains(result, r => r.Name == "ListOwn" && r.ShoppingListId == listId);
+    }
+
+    [Fact]
+    public async Task DeleteSharedRecommendations_RequiresAdminRole()
+    {
+        var userClient = await GetUserHttpClientAsync();
+        var response = await userClient.DeleteAsync("/api/shopping-list-recommendations/shared");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    // --- POST /api/shopping-list-recommendations/transfer ---
+
+    [Fact]
+    public async Task TransferRecommendations_MovesSharedToList()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var listId = await CreateShoppingListAsync("Target List");
+        await CreateRecommendationAsync("Milk");
+        await CreateRecommendationAsync("Bread");
+
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations/transfer",
+            new { fromShoppingListId = (int?)null, toShoppingListId = listId });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<TransferResponseDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Moved);
+        Assert.Equal(0, result.Dropped);
+
+        var all = await (await client.GetAsync("/api/shopping-list-recommendations/all"))
+            .Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(all);
+        Assert.Contains(all, r => r.Name == "Milk" && r.ShoppingListId == listId);
+        Assert.Contains(all, r => r.Name == "Bread" && r.ShoppingListId == listId);
+        // Nothing left in the shared scope.
+        Assert.DoesNotContain(all, r => r.ShoppingListId == null);
+    }
+
+    [Fact]
+    public async Task TransferRecommendations_DropsDestinationDuplicates()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var listId = await CreateShoppingListAsync("Dup List");
+        await CreateRecommendationAsync("Milk"); // shared
+        await client.PostAsJsonAsync("/api/shopping-list-recommendations",
+            new { name = "Milk", preferredUnit = (string?)null, shoppingListId = listId }); // list-specific
+
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations/transfer",
+            new { fromShoppingListId = (int?)null, toShoppingListId = listId });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<TransferResponseDto>(JsonOptions);
+        Assert.NotNull(result);
+        Assert.Equal(0, result!.Moved);
+        Assert.Equal(1, result.Dropped);
+
+        var all = await (await client.GetAsync("/api/shopping-list-recommendations/all"))
+            .Content.ReadFromJsonAsync<RecommendationDto[]>(JsonOptions);
+        Assert.NotNull(all);
+        var milks = all!.Where(r => r.Name == "Milk").ToList();
+        Assert.Single(milks);
+        Assert.Equal(listId, milks[0].ShoppingListId);
+    }
+
+    [Fact]
+    public async Task TransferRecommendations_SameScope_ReturnsBadRequest()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations/transfer",
+            new { fromShoppingListId = (int?)null, toShoppingListId = (int?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task TransferRecommendations_ForeignList_ReturnsNotFound()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/shopping-list-recommendations/transfer",
+            new { fromShoppingListId = (int?)null, toShoppingListId = 999999 });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task TransferRecommendations_RequiresAdminRole()
+    {
+        var userClient = await GetUserHttpClientAsync();
+        var response = await userClient.PostAsJsonAsync("/api/shopping-list-recommendations/transfer",
+            new { fromShoppingListId = (int?)null, toShoppingListId = 1 });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string InviteUrl, string Token);
     private record ShoppingListDto(int Id, string Name);
@@ -920,4 +1030,5 @@ public class ShoppingListRecommendationEndpointTests : IntegrationTestBase
     private record ExportDto(List<ExportRecommendationItem> Recommendations);
     private record ExportRecommendationItem(string Name, string? PreferredUnit, string? Category);
     private record DuplicateGroupDto(List<RecommendationDto> Members);
+    private record TransferResponseDto(int Moved, int Dropped);
 }

@@ -8,4 +8,5 @@ internal static class RecommendationErrors
     internal const string MergeTargetInSources = "The suggestion to keep cannot also be one of the merged suggestions.";
     internal const string MergeMembersNotFound = "One or more suggestions to merge were not found.";
     internal const string MergeNameConflict = "Another suggestion with the chosen name already exists for this list.";
+    internal const string TransferSameScope = "The source and destination are the same — nothing to move.";
 }

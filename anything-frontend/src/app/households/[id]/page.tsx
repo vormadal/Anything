@@ -309,7 +309,7 @@ export default function HouseholdDetailPage() {
                 onClick={(href) => router.push(href)}
               />
               <ConfigCard
-                href={`/households/${householdId}/lists/suggestions/categories`}
+                href={`/households/${householdId}/lists/suggestions?tab=categories`}
                 icon={Tag}
                 title="Suggestion Categories"
                 description="Organise suggestions into categories"

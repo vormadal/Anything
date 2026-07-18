@@ -7,8 +7,6 @@ import {
   useUpdateSuggestionCategory,
   useDeleteSuggestionCategory,
   useReorderSuggestionCategories,
-  useExportSuggestionCategories,
-  useImportSuggestionCategories,
 } from '@/hooks/useSuggestionCategories'
 
 const mockGetFn = jest.fn()
@@ -135,41 +133,6 @@ describe('useSuggestionCategories hooks', () => {
       })
 
       expect(mockReorderPutFn).toHaveBeenCalledWith({ ids: [3, 1, 2] })
-    })
-  })
-
-  describe('useExportSuggestionCategories', () => {
-    it('fetches export data through the generated client', async () => {
-      mockExportGet.mockResolvedValueOnce({ categories: [] })
-      global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
-      global.URL.revokeObjectURL = jest.fn()
-
-      const { result } = renderHook(() => useExportSuggestionCategories(), {
-        wrapper: createWrapper(),
-      })
-
-      await act(async () => {
-        await result.current.mutateAsync()
-      })
-
-      expect(mockExportGet).toHaveBeenCalled()
-    })
-  })
-
-  describe('useImportSuggestionCategories', () => {
-    it('posts the import payload through the generated client', async () => {
-      mockImportPost.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useImportSuggestionCategories(), {
-        wrapper: createWrapper(),
-      })
-
-      const payload = { categories: [{ name: 'Frozen' }] }
-      await act(async () => {
-        await result.current.mutateAsync(payload)
-      })
-
-      expect(mockImportPost).toHaveBeenCalledWith(payload)
     })
   })
 })

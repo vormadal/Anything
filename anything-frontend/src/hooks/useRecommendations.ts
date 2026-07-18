@@ -4,17 +4,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type {
   ShoppingListRecommendation,
-  ExportRecommendationsResponse,
-  ImportRecommendationsRequest,
   DuplicateRecommendationGroup,
   MergeRecommendationsRequest,
+  TransferRecommendationsResponse,
 } from "@/lib/api-client/models/index";
 
 export type {
-  ExportRecommendationsResponse,
-  ImportRecommendationsRequest,
   DuplicateRecommendationGroup,
   MergeRecommendationsRequest,
+  TransferRecommendationsResponse,
 };
 
 export function useRecommendations() {
@@ -169,34 +167,35 @@ export function useDeleteRecommendationsForList() {
   });
 }
 
-export function useExportRecommendations() {
-  return useMutation({
-    mutationFn: async ({ uncategorizedOnly = false }: { uncategorizedOnly?: boolean } = {}) => {
-      const data = await apiClient.api.shoppingListRecommendations.exportEscaped.get({
-        queryParameters: { uncategorizedOnly },
-      });
-      if (!data) throw new Error("Export failed");
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "recommendations.json";
-      anchor.click();
-      URL.revokeObjectURL(url);
-    },
-  });
-}
-
-export function useImportRecommendations() {
+/**
+ * Removes every shared (all-list) suggestion for the household. List-specific
+ * suggestions are left untouched.
+ */
+export function useDeleteSharedRecommendations() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: ImportRecommendationsRequest) => {
-      await apiClient.api.shoppingListRecommendations.importEscaped.post(data);
-    },
+    mutationFn: () => apiClient.api.shoppingListRecommendations.shared.delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
-      queryClient.invalidateQueries({ queryKey: ["suggestionCategories"] });
     },
   });
 }
+
+/**
+ * Bulk-moves every suggestion from one scope to another (null = shared). A moved
+ * suggestion whose name already exists in the destination scope is dropped, not
+ * duplicated. Returns how many were moved vs dropped.
+ */
+export function useTransferRecommendations() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fromShoppingListId, toShoppingListId }: { fromShoppingListId: number | null; toShoppingListId: number | null }) =>
+      apiClient.api.shoppingListRecommendations.transfer.post({ fromShoppingListId, toShoppingListId }) as Promise<TransferRecommendationsResponse>,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
+    },
+  });
+}
+

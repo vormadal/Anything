@@ -1,6 +1,7 @@
 using Anything.Application.Features.Recommendations.Commands;
 using Anything.Application.Features.Recommendations.Queries;
 using Anything.Application.UnitTests.Helpers;
+using Anything.Contracts.Recommendations;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -343,5 +344,101 @@ public class SearchRecommendationsListScopeTests
 
         Assert.Equal(2, result.Count);
         Assert.DoesNotContain(result, r => r.Name == "OtherList");
+    }
+}
+
+public class DeleteSharedRecommendationsHandlerTests
+{
+    private readonly IRepository<ShoppingListRecommendation> _repo = Substitute.For<IRepository<ShoppingListRecommendation>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+
+    private DeleteSharedRecommendationsHandler CreateHandler() => new(_repo, _householdContext, _unitOfWork);
+
+    [Fact]
+    public async Task Handle_RemovesOnlySharedSuggestions()
+    {
+        var sharedA = new ShoppingListRecommendation { Id = 1, Name = "Milk", ShoppingListId = null };
+        var sharedB = new ShoppingListRecommendation { Id = 2, Name = "Bread", ShoppingListId = null };
+        var listOwn = new ShoppingListRecommendation { Id = 3, Name = "Nails", ShoppingListId = 7 };
+        _repo.Query().Returns(new List<ShoppingListRecommendation> { sharedA, sharedB, listOwn }.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new DeleteSharedRecommendationsCommand(), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        _repo.Received(1).Remove(sharedA);
+        _repo.Received(1).Remove(sharedB);
+        _repo.DidNotReceive().Remove(listOwn);
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+}
+
+public class TransferRecommendationsHandlerTests
+{
+    private readonly IRepository<ShoppingListRecommendation> _repo = Substitute.For<IRepository<ShoppingListRecommendation>>();
+    private readonly IRepository<ShoppingList> _listRepo = Substitute.For<IRepository<ShoppingList>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+
+    private TransferRecommendationsHandler CreateHandler() => new(_repo, _listRepo, _householdContext, _unitOfWork, _timeProvider);
+
+    public TransferRecommendationsHandlerTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero));
+        _listRepo.Query().Returns(new List<ShoppingList> { new() { Id = 7, HouseholdId = 0, Name = "Groceries" } }.AsAsyncQueryable());
+    }
+
+    [Fact]
+    public async Task Handle_SameScope_ReturnsBadRequest()
+    {
+        var result = await CreateHandler().Handle(new TransferRecommendationsCommand(null, null), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+        _repo.DidNotReceive().Remove(Arg.Any<ShoppingListRecommendation>());
+        await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_ForeignDestination_ReturnsNotFound()
+    {
+        var result = await CreateHandler().Handle(new TransferRecommendationsCommand(null, 999), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_MovesSharedToList()
+    {
+        var milk = new ShoppingListRecommendation { Id = 1, Name = "Milk", ShoppingListId = null };
+        var bread = new ShoppingListRecommendation { Id = 2, Name = "Bread", ShoppingListId = null };
+        _repo.Query().Returns(new List<ShoppingListRecommendation> { milk, bread }.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new TransferRecommendationsCommand(null, 7), TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<TransferRecommendationsResponse>>(result);
+        Assert.Equal(2, ok.Value!.Moved);
+        Assert.Equal(0, ok.Value.Dropped);
+        Assert.Equal(7, milk.ShoppingListId);
+        Assert.Equal(7, bread.ShoppingListId);
+        _repo.DidNotReceive().Remove(Arg.Any<ShoppingListRecommendation>());
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_DropsSourceWhenDestinationHasSameName()
+    {
+        var sharedMilk = new ShoppingListRecommendation { Id = 1, Name = "Milk", ShoppingListId = null };
+        var listMilk = new ShoppingListRecommendation { Id = 2, Name = "Milk", ShoppingListId = 7 };
+        _repo.Query().Returns(new List<ShoppingListRecommendation> { sharedMilk, listMilk }.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new TransferRecommendationsCommand(null, 7), TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<TransferRecommendationsResponse>>(result);
+        Assert.Equal(0, ok.Value!.Moved);
+        Assert.Equal(1, ok.Value.Dropped);
+        _repo.Received(1).Remove(sharedMilk);
+        _repo.DidNotReceive().Remove(listMilk);
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
 }

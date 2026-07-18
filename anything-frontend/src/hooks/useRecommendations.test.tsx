@@ -8,8 +8,8 @@ import {
   useDeleteRecommendation,
   useDeleteRecommendationsForList,
   useUpdateRecommendation,
-  useExportRecommendations,
-  useImportRecommendations,
+  useDeleteSharedRecommendations,
+  useTransferRecommendations,
   useFindDuplicateRecommendations,
   useMergeRecommendations,
 } from '@/hooks/useRecommendations'
@@ -26,6 +26,8 @@ const mockExportGet = jest.fn()
 const mockImportPost = jest.fn()
 const mockDuplicatesGet = jest.fn()
 const mockMergePost = jest.fn()
+const mockSharedDelete = jest.fn()
+const mockTransferPost = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -40,6 +42,8 @@ jest.mock('@/lib/apiClient', () => ({
         importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
         duplicates: { get: (...args: unknown[]) => mockDuplicatesGet(...args) },
         merge: { post: (...args: unknown[]) => mockMergePost(...args) },
+        shared: { delete: (...args: unknown[]) => mockSharedDelete(...args) },
+        transfer: { post: (...args: unknown[]) => mockTransferPost(...args) },
       },
     },
   },
@@ -268,23 +272,37 @@ describe('useRecommendations hooks', () => {
     })
   })
 
-  describe('useExportRecommendations', () => {
-    it('fetches export data with the uncategorizedOnly filter', async () => {
-      mockExportGet.mockResolvedValueOnce({ recommendations: [] })
-      global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
-      global.URL.revokeObjectURL = jest.fn()
+  describe('useDeleteSharedRecommendations', () => {
+    it('deletes shared suggestions', async () => {
+      mockSharedDelete.mockResolvedValueOnce(undefined)
 
-      const { result } = renderHook(() => useExportRecommendations(), {
+      const { result } = renderHook(() => useDeleteSharedRecommendations(), {
         wrapper: createWrapper(),
       })
 
       await act(async () => {
-        await result.current.mutateAsync({ uncategorizedOnly: true })
+        await result.current.mutateAsync()
       })
 
-      expect(mockExportGet).toHaveBeenCalledWith({
-        queryParameters: { uncategorizedOnly: true },
+      expect(mockSharedDelete).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('useTransferRecommendations', () => {
+    it('posts the from/to scope and returns the counts', async () => {
+      mockTransferPost.mockResolvedValueOnce({ moved: 3, dropped: 1 })
+
+      const { result } = renderHook(() => useTransferRecommendations(), {
+        wrapper: createWrapper(),
       })
+
+      let response: { moved?: number | null; dropped?: number | null } | undefined
+      await act(async () => {
+        response = await result.current.mutateAsync({ fromShoppingListId: null, toShoppingListId: 7 })
+      })
+
+      expect(mockTransferPost).toHaveBeenCalledWith({ fromShoppingListId: null, toShoppingListId: 7 })
+      expect(response).toEqual({ moved: 3, dropped: 1 })
     })
   })
 
@@ -336,20 +354,4 @@ describe('useRecommendations hooks', () => {
     })
   })
 
-  describe('useImportRecommendations', () => {
-    it('posts the import payload', async () => {
-      mockImportPost.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useImportRecommendations(), {
-        wrapper: createWrapper(),
-      })
-
-      const payload = { recommendations: [{ name: 'Milk', preferredUnit: 'L' }] }
-      await act(async () => {
-        await result.current.mutateAsync(payload)
-      })
-
-      expect(mockImportPost).toHaveBeenCalledWith(payload)
-    })
-  })
 })
