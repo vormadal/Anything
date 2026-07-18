@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { CountBadge } from "@/components/ui/count-badge";
 import { PageTitle } from "@/components/PageTitle";
 import { ExportSuggestionsDialog } from "@/components/ExportSuggestionsDialog";
 import { MergeDuplicatesDialog } from "@/components/MergeDuplicatesDialog";
@@ -20,6 +21,7 @@ import {
   useExportRecommendations,
   useImportRecommendations,
   useDeleteRecommendationsForList,
+  useFindDuplicateRecommendations,
   type RecommendationFilters,
 } from "@/hooks/useRecommendations";
 import { useSuggestionCategories } from "@/hooks/useSuggestionCategories";
@@ -253,6 +255,12 @@ export default function SuggestionsPage() {
   const exportRecommendations = useExportRecommendations();
   const importRecommendations = useImportRecommendations();
   const deleteForList = useDeleteRecommendationsForList();
+  const { data: duplicateGroups } = useFindDuplicateRecommendations();
+
+  const duplicateGroupCount = useMemo(
+    () => (duplicateGroups ?? []).filter((g) => (g.members ?? []).length > 0).length,
+    [duplicateGroups]
+  );
 
   const shoppingLists = useMemo(
     () => allLists.filter((l) => l.type === SHOPPING_LIST_TYPE),
@@ -461,9 +469,15 @@ export default function SuggestionsPage() {
               variant="outline"
               onClick={() => setShowMergeDialog(true)}
               aria-label="Find duplicate suggestions"
+              className={
+                duplicateGroupCount > 0
+                  ? "border-amber-400 text-amber-700 hover:text-amber-800 dark:border-amber-500 dark:text-amber-300"
+                  : undefined
+              }
             >
               <Combine className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Duplicates</span>
+              <CountBadge count={duplicateGroupCount} />
             </Button>
             <Button
               size="sm"
@@ -488,6 +502,7 @@ export default function SuggestionsPage() {
           isPending={exportRecommendations.isPending}
           onExportAll={() => handleExport(false)}
           onExportUncategorized={() => handleExport(true)}
+          categoryNames={categories.map((c) => c.name ?? "").filter(Boolean)}
         />
         <MergeDuplicatesDialog open={showMergeDialog} onOpenChange={setShowMergeDialog} />
 

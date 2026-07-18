@@ -12,6 +12,7 @@ const mockUpdatePut = jest.fn();
 const mockCreatePost = jest.fn();
 const mockExportGet = jest.fn();
 const mockImportPost = jest.fn();
+const mockDuplicatesGet = jest.fn();
 const mockByListDelete = jest.fn();
 const mockItemById = jest.fn((id: number) => ({
   delete: (...args: unknown[]) => mockDeleteFn(id, ...args),
@@ -31,6 +32,7 @@ jest.mock("@/lib/apiClient", () => ({
         byList: { byShoppingListId: (id: number) => mockByShoppingListId(id) },
         exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
         importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
+        duplicates: { get: (...args: unknown[]) => mockDuplicatesGet(...args) },
       },
       suggestionCategories: {
         get: (...args: unknown[]) => mockCategoriesGet(...args),
@@ -74,6 +76,7 @@ describe("SuggestionsPage (household config)", () => {
     jest.clearAllMocks();
     localStorage.clear();
     mockCategoriesGet.mockResolvedValue([]);
+    mockDuplicatesGet.mockResolvedValue([]);
     mockChecklistsGet.mockResolvedValue([
       { id: 7, name: "Groceries", type: 1 },
       { id: 8, name: "Hardware", type: 1 },
@@ -712,6 +715,36 @@ describe("SuggestionsPage (household config)", () => {
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith("Failed to import suggestions.");
       });
+    });
+  });
+
+  describe("Duplicate count badge", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+      mockAllGet.mockResolvedValue([]);
+    });
+
+    it("shows the duplicate group count on the Duplicates button", async () => {
+      mockDuplicatesGet.mockResolvedValue([
+        { members: [{ id: 1, name: "Tomato" }, { id: 2, name: "Tomatoe" }] },
+        { members: [{ id: 3, name: "Yoghurt" }, { id: 4, name: "Yogurt" }] },
+      ]);
+
+      renderWithClient(<SuggestionsPage />);
+
+      const duplicatesButton = await screen.findByRole("button", { name: "Find duplicate suggestions" });
+      await waitFor(() => expect(within(duplicatesButton).getByText("2")).toBeInTheDocument());
+    });
+
+    it("shows no count when there are no duplicates", async () => {
+      mockDuplicatesGet.mockResolvedValue([]);
+
+      renderWithClient(<SuggestionsPage />);
+
+      const duplicatesButton = await screen.findByRole("button", { name: "Find duplicate suggestions" });
+      // CountBadge renders nothing at zero, so the button holds only its label.
+      expect(within(duplicatesButton).queryByText(/^\d+$/)).not.toBeInTheDocument();
     });
   });
 });

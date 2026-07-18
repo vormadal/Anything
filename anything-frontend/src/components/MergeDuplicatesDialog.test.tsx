@@ -49,12 +49,38 @@ describe("MergeDuplicatesDialog", () => {
     ];
   });
 
-  it("shows the first duplicate group with progress", async () => {
+  it("opens on an overview listing every duplicate group", async () => {
     renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
 
-    expect(await screen.findByText("Group 1 of 2")).toBeInTheDocument();
-    expect(screen.getByText("Tomato")).toBeInTheDocument();
-    expect(screen.getByText("Tomatoe")).toBeInTheDocument();
+    expect(await screen.findByText("2 groups to review — pick one to merge.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tomato, Tomatoe/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Yoghurt, Yogurt/ })).toBeInTheDocument();
+    // The editor is not shown until a group is picked.
+    expect(screen.queryByText(/Group 1 of/)).not.toBeInTheDocument();
+  });
+
+  it("enters the editor for the group the user picks, with its number", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
+
+    await user.click(await screen.findByRole("button", { name: /Yoghurt, Yogurt/ }));
+
+    expect(await screen.findByText("Group 2 of 2")).toBeInTheDocument();
+    expect(screen.getByText("Yoghurt")).toBeInTheDocument();
+    expect(screen.getByText("Yogurt")).toBeInTheDocument();
+  });
+
+  it("returns to the overview via Back without resolving the group", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
+
+    await user.click(await screen.findByRole("button", { name: /Tomato, Tomatoe/ }));
+    await screen.findByText("Group 1 of 2");
+    await user.click(screen.getByRole("button", { name: "Back" }));
+
+    // Both groups still listed on the overview.
+    expect(await screen.findByText("2 groups to review — pick one to merge.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tomato, Tomatoe/ })).toBeInTheDocument();
   });
 
   it("merges the group into the default-kept member", async () => {
@@ -62,6 +88,7 @@ describe("MergeDuplicatesDialog", () => {
     mockMergeMutateAsync.mockResolvedValueOnce(undefined);
     renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
 
+    await user.click(await screen.findByRole("button", { name: /Tomato, Tomatoe/ }));
     await screen.findByText("Group 1 of 2");
     await user.click(screen.getByRole("button", { name: "Merge" }));
 
@@ -80,6 +107,7 @@ describe("MergeDuplicatesDialog", () => {
     mockMergeMutateAsync.mockResolvedValueOnce(undefined);
     renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
 
+    await user.click(await screen.findByRole("button", { name: /Tomato, Tomatoe/ }));
     await screen.findByText("Group 1 of 2");
     // Pick the second member ("Tomatoe") as the one to keep.
     await user.click(screen.getAllByRole("radio")[1]);
@@ -109,6 +137,7 @@ describe("MergeDuplicatesDialog", () => {
     ];
     renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
 
+    await user.click(await screen.findByRole("button", { name: /Frosne ærter/ }));
     await screen.findByText("Group 1 of 1");
     // "Frosne rejer" (frozen shrimp) doesn't belong with the peas — uncheck it.
     await user.click(screen.getByRole("checkbox", { name: "Include Frosne rejer" }));
@@ -128,6 +157,7 @@ describe("MergeDuplicatesDialog", () => {
     const user = userEvent.setup();
     renderWithClient(<MergeDuplicatesDialog open onOpenChange={onOpenChange} />);
 
+    await user.click(await screen.findByRole("button", { name: /Tomato, Tomatoe/ }));
     await screen.findByText("Group 1 of 2");
     // Deselecting one of the two members leaves only the kept target — nothing to merge.
     await user.click(screen.getByRole("checkbox", { name: "Include Tomatoe" }));
