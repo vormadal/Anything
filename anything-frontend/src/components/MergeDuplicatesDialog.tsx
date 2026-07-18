@@ -37,6 +37,7 @@ interface DuplicateGroupEditorProps {
   isPending: boolean;
   onMerge: (body: MergeRecommendationsRequest) => void;
   onSkip: () => void;
+  onBack: () => void;
 }
 
 // Keyed by the group so each new group remounts with fresh initial state,
@@ -50,6 +51,7 @@ function DuplicateGroupEditor({
   isPending,
   onMerge,
   onSkip,
+  onBack,
 }: DuplicateGroupEditorProps) {
   // Default the "keep" selection to a member that already has a category, else the first.
   const initial = group.find((m) => m.categoryId != null) ?? group[0];
@@ -189,6 +191,9 @@ function DuplicateGroupEditor({
       </div>
 
       <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+        <Button variant="outline" onClick={onBack} disabled={isPending} className="sm:mr-auto">
+          Back
+        </Button>
         <Button variant="outline" onClick={onSkip} disabled={isPending}>
           Skip
         </Button>
@@ -211,6 +216,8 @@ function MergeDuplicatesContent({ onClose }: { onClose: () => void }) {
   // Groups already merged or skipped, tracked by a stable key so they drop out
   // of the review even before the refetch removes a merged one.
   const [resolved, setResolved] = useState<Set<string>>(new Set());
+  // The group currently being edited, keyed by groupKey. null = overview list.
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
   const listNameById = useMemo(() => {
     const map = new Map<number, string>();
@@ -225,29 +232,38 @@ function MergeDuplicatesContent({ onClose }: { onClose: () => void }) {
     return listNameById.get(member.shoppingListId) ?? `List #${member.shoppingListId}`;
   };
 
+  // Every valid group in stable order, so a group's displayed number stays the
+  // same whether reached from the overview or the sequential flow.
+  const allGroups = useMemo(
+    () => (groups ?? []).map((g) => g.members ?? []).filter((m) => m.length > 0),
+    [groups]
+  );
   const remaining = useMemo(
-    () => (groups ?? []).map((g) => g.members ?? []).filter((m) => m.length > 0 && !resolved.has(groupKey(m))),
-    [groups, resolved]
+    () => allGroups.filter((m) => !resolved.has(groupKey(m))),
+    [allGroups, resolved]
   );
 
-  const totalFound = (groups ?? []).filter((g) => (g.members ?? []).length > 0).length;
+  const totalFound = allGroups.length;
   const isEmpty = !isLoading && !isError && totalFound === 0;
   const isDone = !isLoading && !isError && totalFound > 0 && remaining.length === 0;
-  const currentGroup = remaining[0];
+  // Fall back to the overview if the active group was resolved away.
+  const activeGroup = activeKey ? remaining.find((m) => groupKey(m) === activeKey) : undefined;
 
   const handleMerge = async (body: MergeRecommendationsRequest) => {
-    const key = currentGroup ? groupKey(currentGroup) : "";
+    const key = activeGroup ? groupKey(activeGroup) : "";
     try {
       await mergeRecommendations.mutateAsync(body);
       toast.success("Suggestions merged.");
       setResolved((prev) => new Set(prev).add(key));
+      setActiveKey(null);
     } catch {
       toast.error("Failed to merge suggestions.");
     }
   };
 
   const handleSkip = () => {
-    if (currentGroup) setResolved((prev) => new Set(prev).add(groupKey(currentGroup)));
+    if (activeGroup) setResolved((prev) => new Set(prev).add(groupKey(activeGroup)));
+    setActiveKey(null);
   };
 
   if (isLoading) {
@@ -273,7 +289,7 @@ function MergeDuplicatesContent({ onClose }: { onClose: () => void }) {
       </>
     );
   }
-  if (isDone || !currentGroup) {
+  if (isDone) {
     return (
       <>
         <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">All duplicate groups reviewed.</p>
@@ -284,18 +300,53 @@ function MergeDuplicatesContent({ onClose }: { onClose: () => void }) {
     );
   }
 
+  if (activeGroup) {
+    return (
+      <DuplicateGroupEditor
+        key={groupKey(activeGroup)}
+        group={activeGroup}
+        groupNumber={allGroups.findIndex((m) => groupKey(m) === activeKey) + 1}
+        totalGroups={totalFound}
+        categories={categories}
+        scopeLabel={scopeLabel}
+        isPending={mergeRecommendations.isPending}
+        onMerge={handleMerge}
+        onSkip={handleSkip}
+        onBack={() => setActiveKey(null)}
+      />
+    );
+  }
+
+  // Overview: every remaining group, so the manager can start from any one.
   return (
-    <DuplicateGroupEditor
-      key={groupKey(currentGroup)}
-      group={currentGroup}
-      groupNumber={totalFound - remaining.length + 1}
-      totalGroups={totalFound}
-      categories={categories}
-      scopeLabel={scopeLabel}
-      isPending={mergeRecommendations.isPending}
-      onMerge={handleMerge}
-      onSkip={handleSkip}
-    />
+    <>
+      <p className="mb-3 text-xs font-medium text-gray-500 dark:text-gray-400">
+        {remaining.length} {remaining.length === 1 ? "group" : "groups"} to review — pick one to merge.
+      </p>
+      <ul className="flex max-h-80 flex-col gap-2 overflow-y-auto">
+        {remaining.map((group) => (
+          <li key={groupKey(group)}>
+            <button
+              type="button"
+              onClick={() => setActiveKey(groupKey(group))}
+              className="flex w-full items-center justify-between gap-2 rounded-md border border-gray-200 p-3 text-left text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/40"
+            >
+              <span className="min-w-0 flex-1 truncate text-gray-900 dark:text-white">
+                {group.map((m) => m.name).join(", ")}
+              </span>
+              <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                {group.length} items
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Close
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
 
@@ -307,8 +358,8 @@ export function MergeDuplicatesDialog({ open, onOpenChange }: MergeDuplicatesDia
           <DialogTitle>Find duplicate suggestions</DialogTitle>
         </DialogHeader>
         <p id="merge-duplicates-description" className="text-sm text-gray-600 dark:text-gray-400">
-          Similar suggestions are grouped below. Uncheck any that don&apos;t belong, pick the one
-          to keep, then merge the rest into it. Leftover similar items reappear as a new group.
+          Similar suggestions are grouped below. Pick a group to review, uncheck any that
+          don&apos;t belong, choose the one to keep, then merge the rest into it.
         </p>
         {open && <MergeDuplicatesContent onClose={() => onOpenChange(false)} />}
       </DialogContent>
