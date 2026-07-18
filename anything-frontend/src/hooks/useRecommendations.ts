@@ -6,11 +6,13 @@ import type {
   ShoppingListRecommendation,
   DuplicateRecommendationGroup,
   MergeRecommendationsRequest,
+  TransferRecommendationsResponse,
 } from "@/lib/api-client/models/index";
 
 export type {
   DuplicateRecommendationGroup,
   MergeRecommendationsRequest,
+  TransferRecommendationsResponse,
 };
 
 export function useRecommendations() {
@@ -159,6 +161,38 @@ export function useDeleteRecommendationsForList() {
   return useMutation({
     mutationFn: (shoppingListId: number) =>
       apiClient.api.shoppingListRecommendations.byList.byShoppingListId(shoppingListId).delete(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
+    },
+  });
+}
+
+/**
+ * Removes every shared (all-list) suggestion for the household. List-specific
+ * suggestions are left untouched.
+ */
+export function useDeleteSharedRecommendations() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => apiClient.api.shoppingListRecommendations.shared.delete(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
+    },
+  });
+}
+
+/**
+ * Bulk-moves every suggestion from one scope to another (null = shared). A moved
+ * suggestion whose name already exists in the destination scope is dropped, not
+ * duplicated. Returns how many were moved vs dropped.
+ */
+export function useTransferRecommendations() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fromShoppingListId, toShoppingListId }: { fromShoppingListId: number | null; toShoppingListId: number | null }) =>
+      apiClient.api.shoppingListRecommendations.transfer.post({ fromShoppingListId, toShoppingListId }) as Promise<TransferRecommendationsResponse>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
     },

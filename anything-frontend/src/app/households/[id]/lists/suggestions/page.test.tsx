@@ -14,6 +14,8 @@ const mockExportGet = jest.fn();
 const mockImportPost = jest.fn();
 const mockDuplicatesGet = jest.fn();
 const mockByListDelete = jest.fn();
+const mockSharedDelete = jest.fn();
+const mockTransferPost = jest.fn();
 const mockItemById = jest.fn((id: number) => ({
   delete: (...args: unknown[]) => mockDeleteFn(id, ...args),
   put: (...args: unknown[]) => mockUpdatePut(id, ...args),
@@ -33,6 +35,8 @@ jest.mock("@/lib/apiClient", () => ({
         exportEscaped: { get: (...args: unknown[]) => mockExportGet(...args) },
         importEscaped: { post: (...args: unknown[]) => mockImportPost(...args) },
         duplicates: { get: (...args: unknown[]) => mockDuplicatesGet(...args) },
+        shared: { delete: (...args: unknown[]) => mockSharedDelete(...args) },
+        transfer: { post: (...args: unknown[]) => mockTransferPost(...args) },
       },
       suggestionCategories: {
         get: (...args: unknown[]) => mockCategoriesGet(...args),
@@ -275,20 +279,20 @@ describe("SuggestionsPage (household config)", () => {
       localStorage.setItem("accessToken", "test-token");
     });
 
-    it("only offers Clear list when a specific list is selected", async () => {
+    it("only enables the delete action once a specific scope is selected", async () => {
       const user = userEvent.setup();
       mockAllGet.mockResolvedValue([]);
 
       renderWithClient(<SuggestionsPage />);
 
       await screen.findByRole("option", { name: "Groceries" });
-      expect(screen.queryByRole("button", { name: "Remove all suggestions for this list" })).not.toBeInTheDocument();
+      // The action is always present (discoverable) but disabled until a scope is chosen.
+      const deleteButton = screen.getByRole("button", { name: "Delete all suggestions in this scope" });
+      expect(deleteButton).toBeDisabled();
 
       await user.selectOptions(screen.getByLabelText("Filter by list"), "7");
 
-      await waitFor(() =>
-        expect(screen.getByRole("button", { name: "Remove all suggestions for this list" })).toBeInTheDocument()
-      );
+      await waitFor(() => expect(deleteButton).toBeEnabled());
     });
 
     it("clears a list's suggestions after confirming", async () => {
@@ -301,7 +305,7 @@ describe("SuggestionsPage (household config)", () => {
       await screen.findByRole("option", { name: "Groceries" });
       await user.selectOptions(screen.getByLabelText("Filter by list"), "7");
 
-      await user.click(screen.getByRole("button", { name: "Remove all suggestions for this list" }));
+      await user.click(screen.getByRole("button", { name: "Delete all suggestions in this scope" }));
       await user.click(screen.getByRole("button", { name: "Remove suggestions" }));
 
       await waitFor(() => {
@@ -661,6 +665,64 @@ describe("SuggestionsPage (household config)", () => {
         expect(screen.getByRole("button", { name: /Import from file/ })).toBeInTheDocument()
       );
       expect(screen.getByRole("button", { name: /Export all/ })).toBeInTheDocument();
+    });
+  });
+
+  describe("Bulk scope actions", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+      mockAllGet.mockResolvedValue([]);
+    });
+
+    it("shows the bulk actions disabled with a hint when no scope is selected", async () => {
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByText("No suggestions yet.")).toBeInTheDocument());
+      expect(
+        screen.getByText(/Select a list or Shared above to move or delete/)
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Delete all suggestions in this scope" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Move all suggestions in this scope/ })).toBeDisabled();
+    });
+
+    it("deletes shared suggestions after confirming", async () => {
+      const user = userEvent.setup();
+      mockSharedDelete.mockResolvedValueOnce(undefined);
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByLabelText("Filter by list")).toBeInTheDocument());
+      await user.selectOptions(screen.getByLabelText("Filter by list"), "shared");
+
+      const deleteButton = screen.getByRole("button", { name: "Delete all suggestions in this scope" });
+      await waitFor(() => expect(deleteButton).toBeEnabled());
+      await user.click(deleteButton);
+
+      expect(screen.getByText("Remove all shared suggestions?")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Remove suggestions" }));
+
+      await waitFor(() => {
+        expect(mockSharedDelete).toHaveBeenCalledTimes(1);
+        expect(toast.success).toHaveBeenCalledWith("Shared suggestions removed.");
+      });
+    });
+
+    it("moves a list's suggestions to another scope and reports the counts", async () => {
+      const user = userEvent.setup();
+      mockTransferPost.mockResolvedValueOnce({ moved: 2, dropped: 1 });
+      renderWithClient(<SuggestionsPage />);
+
+      await screen.findByRole("option", { name: "Groceries" });
+      await user.selectOptions(screen.getByLabelText("Filter by list"), "7");
+
+      await user.click(screen.getByRole("button", { name: /Move all suggestions in this scope/ }));
+      // Destination defaults to Shared (the first option when a specific list is the source).
+      await user.click(screen.getByRole("button", { name: "Move suggestions" }));
+
+      await waitFor(() => {
+        expect(mockTransferPost).toHaveBeenCalledWith({ fromShoppingListId: 7, toShoppingListId: null });
+        expect(toast.success).toHaveBeenCalledWith("Moved 2 suggestions to Shared · 1 duplicate dropped.");
+      });
     });
   });
 });

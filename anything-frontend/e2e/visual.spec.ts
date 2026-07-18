@@ -1021,13 +1021,27 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/households/1/lists/suggestions");
     await page.waitForLoadState("networkidle");
     // Scope to one list: shows that list's own + shared suggestions, the list
-    // badges, and the "Clear list" action for removing the list's own suggestions.
+    // badges, and the enabled bulk scope actions (Move all / Clear list).
     await page.getByLabel("Filter by list").selectOption("1");
     await expect(
-      page.getByRole("button", { name: "Remove all suggestions for this list" })
-    ).toBeVisible();
+      page.getByRole("button", { name: "Delete all suggestions in this scope" })
+    ).toBeEnabled();
     await expect(page).toHaveScreenshot(
       "household-suggestions-filtered-by-list.png",
+      screenshotOptions
+    );
+  });
+
+  test("household suggestions page - move suggestions dialog", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions");
+    await page.waitForLoadState("networkidle");
+    // Scope to a list, then open the bulk "Move all to…" dialog with its
+    // destination picker.
+    await page.getByLabel("Filter by list").selectOption("1");
+    await page.getByRole("button", { name: /Move all suggestions in this scope/ }).click();
+    await expect(page.getByLabel("Move destination")).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "household-suggestions-move-dialog.png",
       screenshotOptions
     );
   });

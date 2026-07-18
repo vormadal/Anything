@@ -16,13 +16,15 @@ import {
   useUpdateRecommendation,
   useCreateRecommendation,
   useDeleteRecommendationsForList,
+  useDeleteSharedRecommendations,
+  useTransferRecommendations,
   useFindDuplicateRecommendations,
   type RecommendationFilters,
 } from "@/hooks/useRecommendations";
 import { useSuggestionCategories } from "@/hooks/useSuggestionCategories";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { toast } from "sonner";
-import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight, Trash2, Combine } from "lucide-react";
+import { X, Pencil, Plus, Search, ChevronLeft, ChevronRight, Trash2, Combine, ArrowRightLeft } from "lucide-react";
 import { useState, useMemo } from "react";
 import type { SuggestionCategory } from "@/lib/api-client/models/index";
 import { fuzzyRank } from "@/lib/fuzzy";
@@ -211,6 +213,8 @@ export function SuggestionsTab() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [moveTarget, setMoveTarget] = useState<string>("");
   const [createName, setCreateName] = useState("");
   const [createPreferredUnit, setCreatePreferredUnit] = useState("");
 
@@ -234,6 +238,8 @@ export function SuggestionsTab() {
   const updateRecommendation = useUpdateRecommendation();
   const createRecommendation = useCreateRecommendation();
   const deleteForList = useDeleteRecommendationsForList();
+  const deleteShared = useDeleteSharedRecommendations();
+  const transferRecommendations = useTransferRecommendations();
   const { data: duplicateGroups } = useFindDuplicateRecommendations();
 
   const duplicateGroupCount = useMemo(
@@ -265,6 +271,26 @@ export function SuggestionsTab() {
   const pagedList = filteredList.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const selectedListName = selectedListId != null ? listNameById.get(selectedListId) : undefined;
+
+  // Bulk scope actions (delete-all / move-all) operate on a single scope: either
+  // "Shared" or one specific list. "All lists" is not a single scope, so the
+  // actions stay visible but disabled — teaching that picking a scope enables them.
+  const isSharedScope = listFilter === LIST_FILTER_SHARED;
+  const hasScope = isSharedScope || selectedListId != null;
+  const scopeSourceId: number | null = isSharedScope ? null : selectedListId ?? null;
+  const scopeLabel = isSharedScope ? "Shared" : selectedListName ?? "this list";
+  const deleteLabel = isSharedScope ? "Delete all shared" : selectedListId != null ? "Clear list" : "Delete all";
+  const isBulkPending = deleteForList.isPending || deleteShared.isPending || transferRecommendations.isPending;
+
+  // Move destinations: every scope except the current one (Shared + each list).
+  const moveDestinations = useMemo(() => {
+    const options: { value: string; label: string }[] = [];
+    if (!isSharedScope) options.push({ value: LIST_FILTER_SHARED, label: "Shared (all lists)" });
+    for (const l of shoppingLists) {
+      if (l.id != null && l.id !== selectedListId) options.push({ value: String(l.id), label: l.name ?? `List #${l.id}` });
+    }
+    return options;
+  }, [isSharedScope, shoppingLists, selectedListId]);
 
   const listLabelFor = (rec: Recommendation): { label: string; isShared: boolean } => {
     if (rec.shoppingListId == null) return { label: "Shared", isShared: true };
@@ -336,14 +362,39 @@ export function SuggestionsTab() {
     setShowCreateForm(false);
   };
 
-  const handleClearList = async () => {
-    if (selectedListId == null) return;
+  const handleDeleteScope = async () => {
+    if (!hasScope) return;
     try {
-      await deleteForList.mutateAsync(selectedListId);
+      if (isSharedScope) {
+        await deleteShared.mutateAsync();
+      } else if (selectedListId != null) {
+        await deleteForList.mutateAsync(selectedListId);
+      }
       setShowClearDialog(false);
-      toast.success("List suggestions removed.");
+      toast.success(isSharedScope ? "Shared suggestions removed." : "List suggestions removed.");
     } catch {
-      toast.error("Failed to remove list suggestions.");
+      toast.error("Failed to remove suggestions.");
+    }
+  };
+
+  const openMoveDialog = () => {
+    setMoveTarget(moveDestinations[0]?.value ?? "");
+    setShowMoveDialog(true);
+  };
+
+  const handleMove = async () => {
+    if (!hasScope || !moveTarget) return;
+    const toShoppingListId = moveTarget === LIST_FILTER_SHARED ? null : Number(moveTarget);
+    const destLabel = moveTarget === LIST_FILTER_SHARED ? "Shared" : listNameById.get(Number(moveTarget)) ?? "the list";
+    try {
+      const result = await transferRecommendations.mutateAsync({ fromShoppingListId: scopeSourceId, toShoppingListId });
+      setShowMoveDialog(false);
+      const moved = result?.moved ?? 0;
+      const dropped = result?.dropped ?? 0;
+      const droppedNote = dropped > 0 ? ` · ${dropped} duplicate${dropped === 1 ? "" : "s"} dropped` : "";
+      toast.success(`Moved ${moved} suggestion${moved === 1 ? "" : "s"} to ${destLabel}${droppedNote}.`);
+    } catch {
+      toast.error("Failed to move suggestions.");
     }
   };
 
@@ -487,32 +538,50 @@ export function SuggestionsTab() {
             </select>
           </label>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input
-              type="checkbox"
-              checked={uncategorizedOnly}
-              onChange={(e) => {
-                setUncategorizedOnly(e.target.checked);
-                setCurrentPage(1);
-              }}
-              className="h-4 w-4 rounded border-gray-300 dark:border-gray-600"
-            />
-            Uncategorized only
-          </label>
-          {selectedListId != null && (
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            type="checkbox"
+            checked={uncategorizedOnly}
+            onChange={(e) => {
+              setUncategorizedOnly(e.target.checked);
+              setCurrentPage(1);
+            }}
+            className="h-4 w-4 rounded border-gray-300 dark:border-gray-600"
+          />
+          Uncategorized only
+        </label>
+
+        {/* Bulk scope actions — always visible so they're discoverable; disabled
+            (with a hint) until a single scope (a list or Shared) is selected. */}
+        <div className="rounded-md border border-gray-200 dark:border-gray-700 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {hasScope
+              ? `Bulk actions for ${scopeLabel}`
+              : "Select a list or Shared above to move or delete its suggestions in bulk."}
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openMoveDialog}
+              disabled={!hasScope || isBulkPending || moveDestinations.length === 0}
+              aria-label="Move all suggestions in this scope to another list"
+            >
+              <ArrowRightLeft className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Move all to…</span>
+            </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => setShowClearDialog(true)}
-              disabled={deleteForList.isPending}
+              disabled={!hasScope || isBulkPending}
               className="text-red-600 hover:text-red-700 dark:text-red-400"
-              aria-label="Remove all suggestions for this list"
+              aria-label="Delete all suggestions in this scope"
             >
               <Trash2 className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Clear list</span>
+              <span className="hidden sm:inline">{deleteLabel}</span>
             </Button>
-          )}
+          </div>
         </div>
       </div>
 
@@ -594,23 +663,60 @@ export function SuggestionsTab() {
       <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
         <DialogContent aria-describedby="clear-list-description">
           <DialogHeader>
-            <DialogTitle>Remove all suggestions for this list?</DialogTitle>
+            <DialogTitle>
+              {isSharedScope ? "Remove all shared suggestions?" : "Remove all suggestions for this list?"}
+            </DialogTitle>
           </DialogHeader>
           <p id="clear-list-description" className="text-sm text-gray-600 dark:text-gray-400">
-            This removes every suggestion that belongs specifically to
-            {selectedListName ? ` “${selectedListName}”` : " this list"}. Shared suggestions
-            (shown in every list) are kept.
+            {isSharedScope
+              ? "This removes every shared suggestion (shown in all lists). List-specific suggestions are kept."
+              : `This removes every suggestion that belongs specifically to “${scopeLabel}”. Shared suggestions (shown in every list) are kept.`}
           </p>
           <DialogFooter className="flex gap-2 sm:flex-row flex-col">
-            <Button variant="outline" onClick={() => setShowClearDialog(false)} disabled={deleteForList.isPending}>
+            <Button variant="outline" onClick={() => setShowClearDialog(false)} disabled={isBulkPending}>
               Cancel
             </Button>
             <Button
-              onClick={handleClearList}
-              disabled={deleteForList.isPending}
+              onClick={handleDeleteScope}
+              disabled={isBulkPending}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Remove suggestions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+        <DialogContent aria-describedby="move-suggestions-description">
+          <DialogHeader>
+            <DialogTitle>Move all suggestions</DialogTitle>
+          </DialogHeader>
+          <p id="move-suggestions-description" className="text-sm text-gray-600 dark:text-gray-400">
+            Move every suggestion currently in <span className="font-medium">{scopeLabel}</span> to another
+            scope. A suggestion whose name already exists in the destination is dropped.
+          </p>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Destination</span>
+            <select
+              value={moveTarget}
+              onChange={(e) => setMoveTarget(e.target.value)}
+              aria-label="Move destination"
+              className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            >
+              {moveDestinations.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <DialogFooter className="flex gap-2 sm:flex-row flex-col">
+            <Button variant="outline" onClick={() => setShowMoveDialog(false)} disabled={isBulkPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleMove} disabled={isBulkPending || !moveTarget}>
+              Move suggestions
             </Button>
           </DialogFooter>
         </DialogContent>
