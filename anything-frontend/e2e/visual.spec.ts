@@ -1045,6 +1045,32 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  test("household suggestions page - merge duplicates with a member deselected", async ({ page }) => {
+    // Override with a real-world over-grouped cluster: peas variants plus "Frosne rejer"
+    // (frozen shrimp), which only shares the modifier word "Frosne". Registered in the
+    // test body so it wins over setupApiMocks' /duplicates route.
+    await page.route("**/api/shopping-list-recommendations/duplicates**", (route) =>
+      route.fulfill({ json: [
+        { members: [
+          { id: 301, name: "Frosne ærter", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+          { id: 302, name: "Friske ærter", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+          { id: 303, name: "frosne ekstra fine ærter", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+          { id: 304, name: "Frosne rejer", categoryId: null, includeInSuggestions: true, shoppingListId: null },
+        ] },
+      ] })
+    );
+    await page.goto("/households/1/lists/suggestions");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Find duplicate suggestions" }).click();
+    await expect(page.getByText("Group 1 of 1")).toBeVisible();
+    // Exclude the frozen shrimp so only the peas get merged.
+    await page.getByRole("checkbox", { name: "Include Frosne rejer" }).click();
+    await expect(page).toHaveScreenshot(
+      "household-suggestions-merge-duplicates-deselected.png",
+      screenshotOptions
+    );
+  });
+
   test("household categories page - with categories", async ({ page }) => {
     await page.route("**/api/suggestion-categories**", (route) =>
       route.fulfill({ json: [
