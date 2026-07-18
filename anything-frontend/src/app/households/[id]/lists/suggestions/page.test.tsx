@@ -45,10 +45,13 @@ jest.mock("@/lib/apiClient", () => ({
 }));
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+let mockTab: string | null = null;
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn() }),
   useParams: () => ({ id: "1" }),
   usePathname: () => "/households/1/lists/suggestions",
+  useSearchParams: () => new URLSearchParams(mockTab ? `tab=${mockTab}` : ""),
 }));
 
 jest.mock("sonner", () => ({
@@ -75,6 +78,7 @@ describe("SuggestionsPage (household config)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    mockTab = null;
     mockCategoriesGet.mockResolvedValue([]);
     mockDuplicatesGet.mockResolvedValue([]);
     mockChecklistsGet.mockResolvedValue([
@@ -559,173 +563,14 @@ describe("SuggestionsPage (household config)", () => {
     });
   });
 
-  describe("Export Suggestions", () => {
-    beforeEach(() => {
-      localStorage.setItem("user", adminUser);
-      localStorage.setItem("accessToken", "test-token");
-      mockAllGet.mockResolvedValue([]);
-
-      global.URL.createObjectURL = jest.fn(() => "blob:mock-url");
-      global.URL.revokeObjectURL = jest.fn();
-      const originalCreateElement = document.createElement.bind(document);
-      const mockClick = jest.fn();
-      jest.spyOn(document, "createElement").mockImplementation((tag: string) => {
-        const el = originalCreateElement(tag);
-        if (tag === "a") {
-          el.click = mockClick;
-        }
-        return el;
-      });
-    });
-
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it("exports suggestions successfully", async () => {
-      const user = userEvent.setup();
-      mockExportGet.mockResolvedValueOnce({ recommendations: [{ name: "Milk", preferredUnit: "L" }] });
-
-      renderWithClient(<SuggestionsPage />);
-
-      await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
-      await user.click(screen.getByRole("button", { name: "Export suggestions" }));
-      await user.click(screen.getByRole("button", { name: "Export all" }));
-
-      await waitFor(() => {
-        expect(mockExportGet).toHaveBeenCalledWith({ queryParameters: { uncategorizedOnly: false } });
-        expect(toast.success).toHaveBeenCalledWith("Suggestions exported.");
-      });
-    });
-
-    it("exports uncategorized suggestions successfully", async () => {
-      const user = userEvent.setup();
-      mockExportGet.mockResolvedValueOnce({ recommendations: [{ name: "Milk", preferredUnit: "L" }] });
-
-      renderWithClient(<SuggestionsPage />);
-
-      await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
-      await user.click(screen.getByRole("button", { name: "Export suggestions" }));
-      await user.click(screen.getByRole("button", { name: "Export uncategorized" }));
-
-      await waitFor(() => {
-        expect(mockExportGet).toHaveBeenCalledWith({ queryParameters: { uncategorizedOnly: true } });
-        expect(toast.success).toHaveBeenCalledWith("Suggestions exported.");
-      });
-    });
-
-    it("shows error toast when export fails", async () => {
-      const user = userEvent.setup();
-      mockExportGet.mockRejectedValueOnce(new Error("Export failed"));
-
-      renderWithClient(<SuggestionsPage />);
-
-      await waitFor(() => expect(screen.getByRole("button", { name: "Export suggestions" })).toBeInTheDocument());
-      await user.click(screen.getByRole("button", { name: "Export suggestions" }));
-      await user.click(screen.getByRole("button", { name: "Export all" }));
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to export suggestions.");
-      });
-    });
-  });
-
-  describe("Import Suggestions", () => {
+  describe("Duplicate review banner", () => {
     beforeEach(() => {
       localStorage.setItem("user", adminUser);
       localStorage.setItem("accessToken", "test-token");
       mockAllGet.mockResolvedValue([]);
     });
 
-    it("imports suggestions from a valid JSON file successfully", async () => {
-      const user = userEvent.setup();
-      mockImportPost.mockResolvedValueOnce(undefined);
-
-      renderWithClient(<SuggestionsPage />);
-
-      await waitFor(() => expect(screen.getByRole("button", { name: "Import suggestions" })).toBeInTheDocument());
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      const fileContent = JSON.stringify({ recommendations: [{ name: "Milk", preferredUnit: "L" }] });
-      const file = new File([fileContent], "recommendations.json", { type: "application/json" });
-      await user.upload(fileInput, file);
-
-      await waitFor(() => {
-        expect(mockImportPost).toHaveBeenCalledWith({
-          recommendations: [{ name: "Milk", preferredUnit: "L" }],
-        });
-        expect(toast.success).toHaveBeenCalledWith("Suggestions imported.");
-      });
-    });
-
-    it("passes delete flags through import payload", async () => {
-      const user = userEvent.setup();
-      mockImportPost.mockResolvedValueOnce(undefined);
-
-      renderWithClient(<SuggestionsPage />);
-
-      await waitFor(() => expect(screen.getByRole("button", { name: "Import suggestions" })).toBeInTheDocument());
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      const fileContent = JSON.stringify({
-        recommendations: [{ name: "Milk", delete: true }],
-      });
-      const file = new File([fileContent], "recommendations.json", { type: "application/json" });
-      await user.upload(fileInput, file);
-
-      await waitFor(() => {
-        expect(mockImportPost).toHaveBeenCalledWith({
-          recommendations: [{ name: "Milk", delete: true }],
-        });
-      });
-    });
-
-    it("shows error toast when import API call fails", async () => {
-      const user = userEvent.setup();
-      mockImportPost.mockRejectedValueOnce(new Error("Import failed"));
-
-      renderWithClient(<SuggestionsPage />);
-
-      await waitFor(() => expect(screen.getByRole("button", { name: "Import suggestions" })).toBeInTheDocument());
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      const file = new File(
-        [JSON.stringify({ recommendations: [{ name: "Bread" }] })],
-        "recommendations.json",
-        { type: "application/json" }
-      );
-      await user.upload(fileInput, file);
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to import suggestions.");
-      });
-    });
-
-    it("shows error toast when file contains invalid JSON", async () => {
-      const user = userEvent.setup();
-
-      renderWithClient(<SuggestionsPage />);
-
-      await waitFor(() => expect(screen.getByRole("button", { name: "Import suggestions" })).toBeInTheDocument());
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      const file = new File(["not valid json"], "recommendations.json", { type: "application/json" });
-      await user.upload(fileInput, file);
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to import suggestions.");
-      });
-    });
-  });
-
-  describe("Duplicate count badge", () => {
-    beforeEach(() => {
-      localStorage.setItem("user", adminUser);
-      localStorage.setItem("accessToken", "test-token");
-      mockAllGet.mockResolvedValue([]);
-    });
-
-    it("shows the duplicate group count on the Duplicates button", async () => {
+    it("explains the duplicates found and shows the count on the Review duplicates button", async () => {
       mockDuplicatesGet.mockResolvedValue([
         { members: [{ id: 1, name: "Tomato" }, { id: 2, name: "Tomatoe" }] },
         { members: [{ id: 3, name: "Yoghurt" }, { id: 4, name: "Yogurt" }] },
@@ -733,18 +578,89 @@ describe("SuggestionsPage (household config)", () => {
 
       renderWithClient(<SuggestionsPage />);
 
-      const duplicatesButton = await screen.findByRole("button", { name: "Find duplicate suggestions" });
-      await waitFor(() => expect(within(duplicatesButton).getByText("2")).toBeInTheDocument());
+      const duplicatesButton = await screen.findByRole("button", { name: "Review duplicate suggestions" });
+      await waitFor(() =>
+        expect(
+          screen.getByText("2 possible duplicate groups found — review and merge them into one.")
+        ).toBeInTheDocument()
+      );
+      expect(within(duplicatesButton).getByText("2")).toBeInTheDocument();
+      expect(duplicatesButton).toBeEnabled();
     });
 
-    it("shows no count when there are no duplicates", async () => {
+    it("disables the button and shows a neutral message when there are no duplicates", async () => {
       mockDuplicatesGet.mockResolvedValue([]);
 
       renderWithClient(<SuggestionsPage />);
 
-      const duplicatesButton = await screen.findByRole("button", { name: "Find duplicate suggestions" });
+      const duplicatesButton = await screen.findByRole("button", { name: "Review duplicate suggestions" });
+      await waitFor(() =>
+        expect(screen.getByText("No possible duplicate suggestions found.")).toBeInTheDocument()
+      );
+      expect(duplicatesButton).toBeDisabled();
       // CountBadge renders nothing at zero, so the button holds only its label.
       expect(within(duplicatesButton).queryByText(/^\d+$/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Tabs", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+      mockAllGet.mockResolvedValue([]);
+    });
+
+    it("defaults to the Suggestions tab", async () => {
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByText("No suggestions yet.")).toBeInTheDocument());
+      expect(screen.getByRole("tab", { name: /Suggestions/ })).toHaveAttribute("aria-selected", "true");
+    });
+
+    it("navigates to the Categories tab via a query param", async () => {
+      const user = userEvent.setup();
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByText("No suggestions yet.")).toBeInTheDocument());
+      await user.click(screen.getByRole("tab", { name: /Categories/ }));
+
+      expect(mockReplace).toHaveBeenCalledWith(
+        "/households/1/lists/suggestions?tab=categories",
+        { scroll: false }
+      );
+    });
+
+    it("navigates to the Import & Export tab via a query param", async () => {
+      const user = userEvent.setup();
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() => expect(screen.getByText("No suggestions yet.")).toBeInTheDocument());
+      await user.click(screen.getByRole("tab", { name: /Import & Export/ }));
+
+      expect(mockReplace).toHaveBeenCalledWith(
+        "/households/1/lists/suggestions?tab=import-export",
+        { scroll: false }
+      );
+    });
+
+    it("renders the Categories tab body when tab=categories", async () => {
+      mockTab = "categories";
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() =>
+        expect(screen.getByText(/No categories yet/)).toBeInTheDocument()
+      );
+      expect(screen.getByRole("tab", { name: /Categories/ })).toHaveAttribute("aria-selected", "true");
+    });
+
+    it("renders the Import & Export tab body when tab=import-export", async () => {
+      mockTab = "import-export";
+      renderWithClient(<SuggestionsPage />);
+
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /Import from file/ })).toBeInTheDocument()
+      );
+      expect(screen.getByRole("button", { name: /Export all/ })).toBeInTheDocument();
     });
   });
 });

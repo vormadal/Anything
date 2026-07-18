@@ -8,8 +8,6 @@ import {
   useDeleteRecommendation,
   useDeleteRecommendationsForList,
   useUpdateRecommendation,
-  useExportRecommendations,
-  useImportRecommendations,
   useFindDuplicateRecommendations,
   useMergeRecommendations,
 } from '@/hooks/useRecommendations'
@@ -268,26 +266,6 @@ describe('useRecommendations hooks', () => {
     })
   })
 
-  describe('useExportRecommendations', () => {
-    it('fetches export data with the uncategorizedOnly filter', async () => {
-      mockExportGet.mockResolvedValueOnce({ recommendations: [] })
-      global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
-      global.URL.revokeObjectURL = jest.fn()
-
-      const { result } = renderHook(() => useExportRecommendations(), {
-        wrapper: createWrapper(),
-      })
-
-      await act(async () => {
-        await result.current.mutateAsync({ uncategorizedOnly: true })
-      })
-
-      expect(mockExportGet).toHaveBeenCalledWith({
-        queryParameters: { uncategorizedOnly: true },
-      })
-    })
-  })
-
   describe('useFindDuplicateRecommendations', () => {
     it('fetches duplicate groups', async () => {
       const groups = [
@@ -336,20 +314,4 @@ describe('useRecommendations hooks', () => {
     })
   })
 
-  describe('useImportRecommendations', () => {
-    it('posts the import payload', async () => {
-      mockImportPost.mockResolvedValueOnce(undefined)
-
-      const { result } = renderHook(() => useImportRecommendations(), {
-        wrapper: createWrapper(),
-      })
-
-      const payload = { recommendations: [{ name: 'Milk', preferredUnit: 'L' }] }
-      await act(async () => {
-        await result.current.mutateAsync(payload)
-      })
-
-      expect(mockImportPost).toHaveBeenCalledWith(payload)
-    })
-  })
 })

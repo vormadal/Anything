@@ -5,7 +5,8 @@ Reusable UI components shared across multiple pages.
 ## Structure
 
 - Root level — feature-specific shared components:
-  - Dialogs: `AddToFoodPlanDialog`, `CompleteListDialog`, `CreateLocationDialog`, `CreateVendorDialog`, `EditListNameDialog`, `ExportSuggestionsDialog`
+  - Dialogs: `AddToFoodPlanDialog`, `CompleteListDialog`, `CreateLocationDialog`, `CreateVendorDialog`, `EditListNameDialog`
+  - `suggestions/` — tab bodies for the consolidated Suggestions admin page (`SuggestionsTab`, `CategoriesTab`, `ImportExportTab`)
   - Layout/nav: `AppLayout`, `PageTitle`
   - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`
   - Auth: `AuthGuard`

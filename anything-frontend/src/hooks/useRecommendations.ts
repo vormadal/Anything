@@ -4,15 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type {
   ShoppingListRecommendation,
-  ExportRecommendationsResponse,
-  ImportRecommendationsRequest,
   DuplicateRecommendationGroup,
   MergeRecommendationsRequest,
 } from "@/lib/api-client/models/index";
 
 export type {
-  ExportRecommendationsResponse,
-  ImportRecommendationsRequest,
   DuplicateRecommendationGroup,
   MergeRecommendationsRequest,
 };
@@ -169,34 +165,3 @@ export function useDeleteRecommendationsForList() {
   });
 }
 
-export function useExportRecommendations() {
-  return useMutation({
-    mutationFn: async ({ uncategorizedOnly = false }: { uncategorizedOnly?: boolean } = {}) => {
-      const data = await apiClient.api.shoppingListRecommendations.exportEscaped.get({
-        queryParameters: { uncategorizedOnly },
-      });
-      if (!data) throw new Error("Export failed");
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "recommendations.json";
-      anchor.click();
-      URL.revokeObjectURL(url);
-    },
-  });
-}
-
-export function useImportRecommendations() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: ImportRecommendationsRequest) => {
-      await apiClient.api.shoppingListRecommendations.importEscaped.post(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shoppingListRecommendations"] });
-      queryClient.invalidateQueries({ queryKey: ["suggestionCategories"] });
-    },
-  });
-}

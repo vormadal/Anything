@@ -1037,7 +1037,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     // Open the duplicate-review dialog: it opens on an overview listing every
     // near-duplicate group so a manager can start from any one.
-    await page.getByRole("button", { name: "Find duplicate suggestions" }).click();
+    await page.getByRole("button", { name: "Review duplicate suggestions" }).click();
     await expect(page.getByText("2 groups to review — pick one to merge.")).toBeVisible();
     await expect(page).toHaveScreenshot(
       "household-suggestions-merge-duplicates-overview.png",
@@ -1048,7 +1048,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("household suggestions page - find duplicates dialog", async ({ page }) => {
     await page.goto("/households/1/lists/suggestions");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: "Find duplicate suggestions" }).click();
+    await page.getByRole("button", { name: "Review duplicate suggestions" }).click();
     // Pick a group from the overview to open its merge editor, where a manager
     // picks the one to keep and merges the rest into it.
     await page.getByRole("button", { name: /Tomato, Tomatoe/ }).click();
@@ -1075,7 +1075,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
     await page.goto("/households/1/lists/suggestions");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: "Find duplicate suggestions" }).click();
+    await page.getByRole("button", { name: "Review duplicate suggestions" }).click();
     // Open the single over-grouped cluster from the overview.
     await page.getByRole("button", { name: /Frosne ærter/ }).click();
     await expect(page.getByText("Group 1 of 1")).toBeVisible();
@@ -1087,21 +1087,32 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
-  test("household suggestions page - export dialog with AI prompt", async ({ page }) => {
-    await page.goto("/households/1/lists/suggestions");
+  test("household suggestions page - import & export tab", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions?tab=import-export");
     await page.waitForLoadState("networkidle");
-    // Open the export dialog and expand its collapsible AI-categorization prompt,
-    // which a manager can copy to have an AI fill in each item's category.
-    await page.getByRole("button", { name: "Export suggestions" }).click();
-    await page.getByText("Categorize with an AI").click();
-    await expect(page.getByRole("button", { name: "Copy AI instructions" })).toBeVisible();
+    // The dedicated Import & Export tab: roomy export/import sections plus the
+    // collapsed AI-categorization prompt.
+    await expect(page.getByRole("button", { name: "Import from file" })).toBeVisible();
     await expect(page).toHaveScreenshot(
-      "household-suggestions-export-ai-prompt.png",
+      "household-suggestions-import-export.png",
       screenshotOptions
     );
   });
 
-  test("household categories page - with categories", async ({ page }) => {
+  test("household suggestions page - import & export AI prompt", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions?tab=import-export");
+    await page.waitForLoadState("networkidle");
+    // Expand the AI-categorization prompt, which a manager can copy to have an AI
+    // fill in each item's category. It sits in a height-capped scroll box.
+    await page.getByRole("button", { name: /Show prompt/ }).click();
+    await expect(page.getByRole("button", { name: "Copy AI instructions" })).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "household-suggestions-import-export-ai-prompt.png",
+      screenshotOptions
+    );
+  });
+
+  test("household suggestions page - categories tab with data", async ({ page }) => {
     await page.route("**/api/suggestion-categories**", (route) =>
       route.fulfill({ json: [
         { id: 1, name: "Dairy", sortOrder: 0 },
@@ -1109,19 +1120,19 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
         { id: 3, name: "Bakery", sortOrder: 2 },
       ] })
     );
-    await page.goto("/households/1/lists/suggestions/categories");
+    await page.goto("/households/1/lists/suggestions?tab=categories");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "household-categories-with-data.png",
+      "household-suggestions-categories-tab.png",
       screenshotOptions
     );
   });
 
-  test("household categories page - empty state", async ({ page }) => {
-    await page.goto("/households/1/lists/suggestions/categories");
+  test("household suggestions page - categories tab empty state", async ({ page }) => {
+    await page.goto("/households/1/lists/suggestions?tab=categories");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
-      "household-categories-empty.png",
+      "household-suggestions-categories-tab-empty.png",
       screenshotOptions
     );
   });

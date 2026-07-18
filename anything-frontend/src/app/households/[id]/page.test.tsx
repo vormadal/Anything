@@ -271,7 +271,7 @@ describe('HouseholdDetailPage', () => {
       render(<HouseholdDetailPage />)
       await waitFor(() => screen.getByText('Suggestion Categories'))
       fireEvent.click(screen.getByText('Suggestion Categories'))
-      expect(mockPush).toHaveBeenCalledWith('/households/1/lists/suggestions/categories')
+      expect(mockPush).toHaveBeenCalledWith('/households/1/lists/suggestions?tab=categories')
     })
 
     it('navigates to recipe tags page when Recipe Tags card is clicked', async () => {
