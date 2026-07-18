@@ -138,6 +138,32 @@ public static class RecommendationEndpoints
         .RequireAuthorization()
         .RequireHouseholdManager();
 
+        // Clears all shared (all-list) suggestions; list-specific suggestions are left in place.
+        group.MapDelete("/shared", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new DeleteSharedRecommendationsCommand());
+        })
+        .WithName("DeleteSharedRecommendations")
+        .WithSummary("Remove all shared (all-list) suggestions. List-specific suggestions are left untouched.")
+        .Produces(StatusCodes.Status204NoContent)
+        .RequireAuthorization()
+        .RequireHouseholdManager();
+
+        // Moves every suggestion from one scope to another (null list id = shared). A moved
+        // suggestion whose name already exists in the destination is dropped, not duplicated.
+        group.MapPost("/transfer", async ([FromBody] TransferRecommendationsRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new TransferRecommendationsCommand(request.FromShoppingListId, request.ToShoppingListId));
+        })
+        .WithName("TransferRecommendations")
+        .WithSummary("Bulk-move suggestions from one scope to another; duplicates in the destination are dropped.")
+        .Produces<TransferRecommendationsResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithParameterValidation()
+        .RequireAuthorization()
+        .RequireHouseholdManager();
+
         group.MapGet("/export", async ([FromQuery] bool? uncategorizedOnly, IMediator mediator) =>
         {
             return await mediator.Send(new ExportRecommendationsQuery(uncategorizedOnly ?? false));
