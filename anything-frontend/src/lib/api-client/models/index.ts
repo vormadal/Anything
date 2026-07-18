@@ -1600,6 +1600,24 @@ export function createTopTagResponseFromDiscriminatorValue(parseNode: ParseNode 
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {TransferRecommendationsRequest}
+ */
+// @ts-ignore
+export function createTransferRecommendationsRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoTransferRecommendationsRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {TransferRecommendationsResponse}
+ */
+// @ts-ignore
+export function createTransferRecommendationsResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoTransferRecommendationsResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UnitImportExportItem}
  */
 // @ts-ignore
@@ -3442,6 +3460,30 @@ export function deserializeIntoTopTagResponse(topTagResponse: Partial<TopTagResp
     return {
         "count": n => { topTagResponse.count = n.getNumberValue(); },
         "name": n => { topTagResponse.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param TransferRecommendationsRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoTransferRecommendationsRequest(transferRecommendationsRequest: Partial<TransferRecommendationsRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "fromShoppingListId": n => { transferRecommendationsRequest.fromShoppingListId = n.getNumberValue(); },
+        "toShoppingListId": n => { transferRecommendationsRequest.toShoppingListId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param TransferRecommendationsResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoTransferRecommendationsResponse(transferRecommendationsResponse: Partial<TransferRecommendationsResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "dropped": n => { transferRecommendationsResponse.dropped = n.getNumberValue(); },
+        "moved": n => { transferRecommendationsResponse.moved = n.getNumberValue(); },
     }
 }
 /**
@@ -6559,6 +6601,30 @@ export function serializeTopTagResponse(writer: SerializationWriter, topTagRespo
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param TransferRecommendationsRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeTransferRecommendationsRequest(writer: SerializationWriter, transferRecommendationsRequest: Partial<TransferRecommendationsRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!transferRecommendationsRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("fromShoppingListId", transferRecommendationsRequest.fromShoppingListId);
+    writer.writeNumberValue("toShoppingListId", transferRecommendationsRequest.toShoppingListId);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param TransferRecommendationsResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeTransferRecommendationsResponse(writer: SerializationWriter, transferRecommendationsResponse: Partial<TransferRecommendationsResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!transferRecommendationsResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("dropped", transferRecommendationsResponse.dropped);
+    writer.writeNumberValue("moved", transferRecommendationsResponse.moved);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param UnitImportExportItem The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -7251,6 +7317,26 @@ export interface TopTagResponse extends Parsable {
      * The name property
      */
     name?: string | null;
+}
+export interface TransferRecommendationsRequest extends Parsable {
+    /**
+     * The fromShoppingListId property
+     */
+    fromShoppingListId?: number | null;
+    /**
+     * The toShoppingListId property
+     */
+    toShoppingListId?: number | null;
+}
+export interface TransferRecommendationsResponse extends Parsable {
+    /**
+     * The dropped property
+     */
+    dropped?: number | null;
+    /**
+     * The moved property
+     */
+    moved?: number | null;
 }
 export interface UnitImportExportItem extends Parsable {
     /**
