@@ -535,7 +535,9 @@ test.describe("Visual Snapshots - Login Page", () => {
     await page.getByPlaceholder("Enter your email").fill("wrong@example.com");
     await page.getByPlaceholder("Enter your password").fill("wrongpassword");
     await page.getByRole("button", { name: "Sign In" }).click();
-    await expect(page.getByRole("alert")).toBeVisible();
+    // Scope to the form's error text: getByRole("alert") also matches Next.js's
+    // built-in __next-route-announcer__ div, tripping strict-mode.
+    await expect(page.getByText("Invalid email or password")).toBeVisible();
     await expect(page).toHaveScreenshot("login-inline-error.png", screenshotOptions);
   });
 });
