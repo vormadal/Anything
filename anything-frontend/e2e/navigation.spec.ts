@@ -31,7 +31,6 @@ for (const { path, title } of PAGES) {
 
 const HOUSEHOLD_CONFIG_PAGES = [
   { subPath: "/lists/suggestions", title: "Suggestions" },
-  { subPath: "/lists/suggestions/categories", title: "Suggestion Categories" },
   { subPath: "/recipes/tags", title: "Recipe Tags" },
 ];
 
@@ -47,6 +46,22 @@ for (const { subPath, title } of HOUSEHOLD_CONFIG_PAGES) {
     ).toBeVisible();
   });
 }
+
+test("Suggestions categories tab loads without errors", async ({ page }) => {
+  // Categories are now a tab on the consolidated Suggestions admin page
+  // (reached via ?tab=categories), not a separate route. The page heading
+  // stays "Suggestions"; the Categories tab becomes the active tab.
+  await page.goto("/");
+  const householdId = await page.evaluate(() => localStorage.getItem("householdId"));
+  await page.goto(`/households/${householdId}/lists/suggestions?tab=categories`);
+  await expect(page).not.toHaveURL(/\/error/);
+  await expect(
+    page.getByRole("heading", { name: "Suggestions", level: 1 })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("tab", { name: /Categories/ })
+  ).toHaveAttribute("aria-selected", "true");
+});
 
 test("unauthenticated access redirects to login", async ({ browser }) => {
   // Explicitly pass an empty storageState to override the project-level storageState
