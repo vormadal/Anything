@@ -67,7 +67,6 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
           templateId,
           name: name.trim() || null,
         });
-        toast.success("List created from template");
         handleOpenChange(false);
         if (newList?.id) onCreated(newList.id);
         return;
@@ -78,7 +77,6 @@ export function CreateListDialog({ open, onOpenChange, onCreated }: Props) {
         name: name.trim(),
         type: mode === "checklist" ? 0 : 1,
       });
-      toast.success(mode === "checklist" ? "Checklist created" : "Shopping list created");
       handleOpenChange(false);
       if (newList?.id) onCreated(newList.id);
     } catch {

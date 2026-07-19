@@ -323,7 +323,6 @@ export function SuggestionsTab() {
         shoppingListId: existing?.shoppingListId ?? null,
       });
       setEditingId(null);
-      toast.success("Suggestion updated.");
     } catch {
       toast.error("Failed to update suggestion.");
     }
@@ -332,7 +331,6 @@ export function SuggestionsTab() {
   const handleDelete = async (id: number) => {
     try {
       await deleteRecommendation.mutateAsync(id);
-      toast.success("Suggestion deleted.");
     } catch {
       toast.error("Failed to delete suggestion.");
     }
@@ -350,7 +348,6 @@ export function SuggestionsTab() {
       setCreateName("");
       setCreatePreferredUnit("");
       setShowCreateForm(false);
-      toast.success("Suggestion created.");
     } catch {
       toast.error("Failed to create suggestion.");
     }
@@ -371,7 +368,6 @@ export function SuggestionsTab() {
         await deleteForList.mutateAsync(selectedListId);
       }
       setShowClearDialog(false);
-      toast.success(isSharedScope ? "Shared suggestions removed." : "List suggestions removed.");
     } catch {
       toast.error("Failed to remove suggestions.");
     }

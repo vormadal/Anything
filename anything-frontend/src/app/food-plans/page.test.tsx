@@ -458,10 +458,6 @@ describe('FoodPlanPage', () => {
         expect.objectContaining({ name: 'Burger' }),
       )
     })
-
-    await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith('Entry added')
-    })
   })
 
   it('should disable Add meal button when name input is empty', async () => {
@@ -521,10 +517,6 @@ describe('FoodPlanPage', () => {
     await waitFor(() => {
       expect(mockEntriesItemById).toHaveBeenCalledWith(42)
       expect(mockEntriesItemDelete).toHaveBeenCalled()
-    })
-
-    await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith('Entry removed')
     })
   })
 
@@ -755,9 +747,6 @@ describe('FoodPlanPage', () => {
       expect(mockEntriesPost).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Lasagna', recipeId: 11 }),
       )
-    })
-    await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith('Entry added')
     })
   })
 

@@ -39,7 +39,6 @@ export function useEditListNameDialog(
     try {
       await updateList.mutateAsync({ id: listId, name: trimmed });
       setOpen(false);
-      toast.success("List name updated");
     } catch {
       toast.error("Failed to update list name. Please try again.");
     }

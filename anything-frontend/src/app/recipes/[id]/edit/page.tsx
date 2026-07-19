@@ -350,7 +350,6 @@ export default function RecipeEditPage() {
           servings: parsedServings && !Number.isNaN(parsedServings) ? parsedServings : null,
           servingsType: effectiveEditServingsType,
         });
-        toast.success("Recipe updated");
       } catch {
         toast.error("Failed to update recipe. Please try again.");
         return;
@@ -433,7 +432,6 @@ export default function RecipeEditPage() {
       setNewIngredientName("");
       setNewIngredientAmount("");
       setNewIngredientUnit("");
-      toast.success("Ingredient added");
       ingredientNameRef.current?.focus();
     } catch {
       toast.error("Failed to add ingredient. Please try again.");
@@ -443,7 +441,6 @@ export default function RecipeEditPage() {
   const handleDeleteIngredient = async (ingredientId: number) => {
     try {
       await deleteIngredient.mutateAsync(ingredientId);
-      toast.success("Ingredient removed");
     } catch {
       toast.error("Failed to remove ingredient. Please try again.");
     }
@@ -466,7 +463,6 @@ export default function RecipeEditPage() {
   const handleDeleteStep = async (stepId: number) => {
     try {
       await deleteStep.mutateAsync(stepId);
-      toast.success("Step removed");
     } catch {
       toast.error("Failed to remove step. Please try again.");
     }
@@ -499,7 +495,6 @@ export default function RecipeEditPage() {
   const handleDeleteImage = async (imageId: number) => {
     try {
       await deleteImage.mutateAsync(imageId);
-      toast.success("Image removed");
     } catch {
       toast.error("Failed to remove image. Please try again.");
     }
@@ -511,7 +506,6 @@ export default function RecipeEditPage() {
     try {
       await addTag.mutateAsync(newTagName.trim());
       setNewTagName("");
-      toast.success("Tag added");
     } catch {
       toast.error("Failed to add tag. Please try again.");
     }
@@ -520,7 +514,6 @@ export default function RecipeEditPage() {
   const handleDeleteTag = async (tagId: number) => {
     try {
       await deleteTag.mutateAsync(tagId);
-      toast.success("Tag removed");
     } catch {
       toast.error("Failed to remove tag. Please try again.");
     }

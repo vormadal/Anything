@@ -135,7 +135,6 @@ describe('ShoppingListsPage', () => {
       expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies', type: 1 })
     })
 
-    expect(toast.success).toHaveBeenCalledWith('Shopping list created')
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists/3')
   })
 

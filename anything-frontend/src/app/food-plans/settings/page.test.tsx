@@ -297,7 +297,6 @@ describe('FoodPlanSettingsPage', () => {
         boost: 10,
       })
     })
-    expect(toast.success).toHaveBeenCalledWith('Seasonal tag added')
   })
 
   it('should edit an existing rule and round-trip its month bitmask', async () => {
@@ -329,7 +328,6 @@ describe('FoodPlanSettingsPage', () => {
         boost: 10,
       })
     })
-    expect(toast.success).toHaveBeenCalledWith('Seasonal tag updated')
   })
 
   it('should delete a rule', async () => {
@@ -350,7 +348,6 @@ describe('FoodPlanSettingsPage', () => {
       expect(mockRulesByRuleId).toHaveBeenCalledWith(7)
       expect(mockRulesDelete).toHaveBeenCalled()
     })
-    expect(toast.success).toHaveBeenCalledWith('Seasonal tag removed')
   })
 
   describe('offline', () => {

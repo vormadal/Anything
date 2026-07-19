@@ -253,7 +253,6 @@ function MergeDuplicatesContent({ onClose }: { onClose: () => void }) {
     const key = activeGroup ? groupKey(activeGroup) : "";
     try {
       await mergeRecommendations.mutateAsync(body);
-      toast.success("Suggestions merged.");
       setResolved((prev) => new Set(prev).add(key));
       setActiveKey(null);
     } catch {

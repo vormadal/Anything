@@ -160,7 +160,6 @@ describe('HouseholdDetailPage', () => {
 
     await waitFor(() => {
       expect(mockUpdateMutateAsync).toHaveBeenCalledWith({ id: 1, name: 'New Name' })
-      expect(toast.success).toHaveBeenCalledWith('Household renamed')
     })
   })
 
@@ -183,10 +182,9 @@ describe('HouseholdDetailPage', () => {
 
     await waitFor(() => {
       expect(mockCreateInviteMutateAsync).toHaveBeenCalledWith({ email: 'new@example.com', householdId: 1 })
-      expect(toast.success).toHaveBeenCalledWith('Invite link created!')
     })
 
-    expect(screen.getByDisplayValue(/register\?token=abc/)).toBeInTheDocument()
+    expect(await screen.findByDisplayValue(/register\?token=abc/)).toBeInTheDocument()
   })
 
   it('opens remove confirmation dialog when trash icon is clicked', async () => {
@@ -207,7 +205,6 @@ describe('HouseholdDetailPage', () => {
 
     await waitFor(() => {
       expect(mockRemoveMutateAsync).toHaveBeenCalledWith({ householdId: 1, userId: 11 })
-      expect(toast.success).toHaveBeenCalledWith('Bob removed')
     })
   })
 

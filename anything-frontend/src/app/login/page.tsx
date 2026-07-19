@@ -4,31 +4,31 @@ import { Button } from "@/components/ui/button";
 import { useLogin } from "@/hooks/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
-import { toast } from "sonner";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [formError, setFormError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const login = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
 
     if (!email || !password) {
-      toast.error("Please enter both email and password");
+      setFormError("Please enter both email and password");
       return;
     }
 
     try {
       await login.mutateAsync({ email, password });
-      toast.success("Login successful");
       const redirect = searchParams.get("redirect");
       router.push(redirect ?? "/");
     } catch (err) {
       const error = err as Error;
-      toast.error(error.message || "Login failed");
+      setFormError(error.message || "Login failed");
     }
   };
 
@@ -69,6 +69,12 @@ function LoginForm() {
           required
         />
       </div>
+
+      {formError && (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          {formError}
+        </p>
+      )}
 
       <Button
         type="submit"

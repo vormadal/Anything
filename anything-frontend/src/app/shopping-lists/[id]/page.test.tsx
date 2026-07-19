@@ -271,7 +271,6 @@ describe('ShoppingListDetailPage', () => {
       expect(mockItemsPost).toHaveBeenCalledWith(expect.objectContaining({ name: 'Butter' }))
     })
 
-    expect(toast.success).toHaveBeenCalledWith('Item added')
     expect(input).toHaveValue('')
   })
 
@@ -297,8 +296,6 @@ describe('ShoppingListDetailPage', () => {
     await waitFor(() => {
       expect(mockItemsPost).toHaveBeenCalledWith(expect.objectContaining({ name: 'Milk', amount: 2, unit: 'l' }))
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Item added')
   })
 
   it('should not submit add item form when name is empty', async () => {
@@ -359,8 +356,6 @@ describe('ShoppingListDetailPage', () => {
       expect(mockItemsItemById).toHaveBeenCalledWith(1)
       expect(mockItemsItemDelete).toHaveBeenCalled()
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Item removed')
   })
 
   it('should show error when remove fails', async () => {
@@ -894,8 +889,6 @@ describe('ShoppingListDetailPage', () => {
     await waitFor(() => {
       expect(mockListPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Name' }))
     })
-
-    expect(toast.success).toHaveBeenCalledWith('List name updated')
   })
 
   it('should show error toast when rename fails', async () => {

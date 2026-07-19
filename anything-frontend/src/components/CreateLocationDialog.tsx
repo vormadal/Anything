@@ -32,7 +32,6 @@ export function CreateLocationDialog({
     if (!name.trim()) return;
     try {
       const result = await createLocation.mutateAsync(name.trim()) as unknown as Location;
-      toast.success("Location created");
       onCreated(result);
     } catch {
       toast.error("Failed to create location");

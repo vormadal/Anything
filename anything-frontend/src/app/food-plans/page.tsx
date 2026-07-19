@@ -233,7 +233,6 @@ function DayManagementDialog({
         recipeId: suggestion.recipeId ?? null,
         date: toUtcMidnight(date),
       });
-      toast.success("Entry added");
     } catch {
       toast.error("Failed to add entry. Please try again.");
     }
@@ -254,7 +253,6 @@ function DayManagementDialog({
         recipeId: selectedRecipeId,
         date: toUtcMidnight(date),
       });
-      toast.success("Entry added");
       setName("");
       setSelectedRecipeId(null);
     } catch {
@@ -265,7 +263,6 @@ function DayManagementDialog({
   const handleDeleteEntry = async (entryId: number) => {
     try {
       await deleteEntry.mutateAsync(entryId);
-      toast.success("Entry removed");
     } catch {
       toast.error("Failed to remove entry. Please try again.");
     }
@@ -303,7 +300,6 @@ function DayManagementDialog({
         lastSavedNote.current = trimmed;
       }
 
-      toast.success("Saved");
       onClose();
     } catch {
       toast.error("Failed to save. Please try again.");

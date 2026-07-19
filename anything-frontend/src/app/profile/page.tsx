@@ -19,12 +19,15 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
+    setNameError("");
 
     if (!name.trim()) {
-      toast.error("Name cannot be empty");
+      setNameError("Name cannot be empty");
       return;
     }
 
@@ -42,14 +45,15 @@ export default function ProfilePage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordError("");
 
     if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match");
+      setPasswordError("New passwords do not match");
       return;
     }
 
     if (newPassword.length < 8) {
-      toast.error("New password must be at least 8 characters");
+      setPasswordError("New password must be at least 8 characters");
       return;
     }
 
@@ -98,6 +102,11 @@ export default function ProfilePage() {
               required
             />
           </div>
+          {nameError && (
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              {nameError}
+            </p>
+          )}
           <Button
             type="submit"
             disabled={updateProfile.isPending || !isOnline}
@@ -166,6 +175,11 @@ export default function ProfilePage() {
               required
             />
           </div>
+          {passwordError && (
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              {passwordError}
+            </p>
+          )}
           <Button
             type="submit"
             disabled={changePassword.isPending || !isOnline}
