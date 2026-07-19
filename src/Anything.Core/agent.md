@@ -8,6 +8,7 @@ Domain layer — zero external dependencies. Everything else depends on this; th
   - Enums live here too: `ListType`, `PaymentFrequency`, `ServingsType`
 - `Repositories/` — `IRepository<T>`, `IUnitOfWork` (abstractions only)
 - `Services/` — `IHouseholdContext`, `IImageStorageService`, `IPasswordService`, `ITokenService`
+- `Search/PgTrigramFunctions.cs` — static stubs for the pg_trgm SQL functions (`word_similarity`), mapped via `HasDbFunction` in `ApplicationDbContext`; must return `float`. See `src/Anything.Database/agent.md`.
 - `Constants/` — `HouseholdRoles`, `UserRoles`
 
 ## Key Patterns
