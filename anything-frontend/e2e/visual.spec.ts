@@ -1325,6 +1325,33 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.getByRole("button", { name: /share with user/i }).click();
     await expect(page).toHaveScreenshot("share-dialog-user-tab.png", screenshotOptions);
   });
+
+  // ---- Recipe Edit Mode (issue #621: merged into the detail page, no Done button) ----
+
+  test("recipe detail page - edit mode", async ({ page }) => {
+    // /api/recipes/1 (exact) is the per-resource GET used by edit mode; more
+    // specific than the general /api/recipes/\d+/ catch-all, so it's
+    // registered after setupApiMocks for higher LIFO priority.
+    await page.route(/\/api\/recipes\/\d+\/ingredients$/, (route) =>
+      route.fulfill({
+        json: [
+          { id: 1, name: "Spaghetti", amount: 200, unit: "g", recipeId: 1 },
+          { id: 2, name: "Eggs", amount: 3, unit: null, recipeId: 1 },
+        ],
+      })
+    );
+    await page.route(/\/api\/recipes\/\d+\/steps$/, (route) =>
+      route.fulfill({
+        json: [
+          { id: 1, text: "Boil pasta until al dente.", order: 1, recipeId: 1 },
+          { id: 2, text: "Mix eggs with cheese and toss with hot pasta.", order: 2, recipeId: 1 },
+        ],
+      })
+    );
+    await page.goto("/recipes/1?edit=true");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("recipe-detail-edit-mode.png", screenshotOptions);
+  });
 });
 
 // ---------------------------------------------------------------------------

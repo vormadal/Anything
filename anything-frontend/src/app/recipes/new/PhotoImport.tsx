@@ -84,7 +84,7 @@ export function PhotoImport({ onBack }: { readonly onBack: () => void }) {
         }
       }
       toast.success("Recipe imported");
-      router.replace(`/recipes/${imported.id}/edit`);
+      router.replace(`/recipes/${imported.id}?edit=true`);
     } catch {
       toast.error("Failed to import the recipe. Please try again.");
     }

@@ -190,6 +190,7 @@ export function useUpdateRecipe() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
       queryClient.invalidateQueries({ queryKey: ["recipe", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", variables.id] });
     },
   });
 }
@@ -218,6 +219,7 @@ export function useAddRecipeIngredient(recipeId: number) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -244,6 +246,9 @@ export function useUpdateRecipeIngredient(recipeId: number) {
     onError: (_err, _vars, context) => {
       queryClient.setQueryData(["recipeIngredients", recipeId], context?.previous);
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
+    },
   });
 }
 
@@ -255,6 +260,7 @@ export function useDeleteRecipeIngredient(recipeId: number) {
       apiClient.api.recipes.byId(recipeId).ingredients.byIngredientId(ingredientId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -280,6 +286,7 @@ export function useReorderRecipeIngredients(recipeId: number) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -307,6 +314,7 @@ export function useReorderRecipeSteps(recipeId: number) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -319,6 +327,7 @@ export function useAddRecipeStep(recipeId: number) {
       apiClient.api.recipes.byId(recipeId).steps.post({ text, order }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -331,6 +340,7 @@ export function useUpdateRecipeStep(recipeId: number) {
       apiClient.api.recipes.byId(recipeId).steps.byStepId(stepId).put({ text, order }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -343,6 +353,7 @@ export function useDeleteRecipeStep(recipeId: number) {
       apiClient.api.recipes.byId(recipeId).steps.byStepId(stepId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -480,6 +491,7 @@ export function useUploadRecipeImage(recipeId: number) {
     mutationFn: (file: File) => uploadRecipeImageFile(recipeId, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeImages", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -492,6 +504,7 @@ export function useDeleteRecipeImage(recipeId: number) {
       apiClient.api.recipes.byId(recipeId).images.byImageId(imageId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeImages", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -529,6 +542,7 @@ export function useAddRecipeTag(recipeId: number) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeTags", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -541,6 +555,7 @@ export function useDeleteRecipeTag(recipeId: number) {
       apiClient.api.recipes.byId(recipeId).tags.byTagId(tagId).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipeTags", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }
@@ -614,6 +629,7 @@ export function useReimportRecipe(recipeId: number) {
       queryClient.invalidateQueries({ queryKey: ["recipeIngredients", recipeId] });
       queryClient.invalidateQueries({ queryKey: ["recipeSteps", recipeId] });
       queryClient.invalidateQueries({ queryKey: ["recipeImages", recipeId] });
+      queryClient.invalidateQueries({ queryKey: ["recipeDetails", recipeId] });
     },
   });
 }

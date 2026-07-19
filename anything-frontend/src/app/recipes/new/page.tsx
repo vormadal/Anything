@@ -60,7 +60,7 @@ export default function NewRecipePage() {
           imageUrl: result.imageUrl ?? null,
         });
         toast.success("Recipe imported");
-        router.replace(`/recipes/${imported.id}/edit`);
+        router.replace(`/recipes/${imported.id}?edit=true`);
       }
     } catch (err) {
       const parseError = err as { status?: number };
@@ -89,7 +89,7 @@ export default function NewRecipePage() {
         servingsType: servingsType || null,
       });
       toast.success("Recipe created");
-      router.replace(newRecipe?.id ? `/recipes/${newRecipe.id}/edit` : "/recipes");
+      router.replace(newRecipe?.id ? `/recipes/${newRecipe.id}?edit=true` : "/recipes");
     } catch {
       toast.error("Failed to create recipe. Please try again.");
     }

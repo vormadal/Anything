@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
-import RecipeEditPage from './page'
+import { RecipeEditMode } from './RecipeEditMode'
 import { toast } from 'sonner'
 
 // Mock the apiClient module
@@ -18,14 +18,12 @@ const mockStepByIdDelete = jest.fn()
 const mockImagesGet = jest.fn()
 const mockImagesUploadPost = jest.fn().mockResolvedValue(undefined)
 const mockImageByIdDelete = jest.fn()
-const mockRecipeDelete = jest.fn()
 const mockIngredientById: jest.Mock = jest.fn(() => ({ put: mockIngredientByIdPut, delete: mockIngredientByIdDelete }))
 const mockStepById: jest.Mock = jest.fn(() => ({ put: mockStepByIdPut, delete: mockStepByIdDelete }))
 const mockImageById: jest.Mock = jest.fn(() => ({ delete: mockImageByIdDelete }))
 const mockById: jest.Mock = jest.fn(() => ({
   get: mockRecipeGet,
   put: mockRecipePut,
-  delete: mockRecipeDelete,
   ingredients: { get: mockIngredientsGet, post: mockIngredientsPost, byIngredientId: mockIngredientById },
   steps: { get: mockStepsGet, post: mockStepsPost, byStepId: mockStepById },
   images: { get: mockImagesGet, post: jest.fn(), byImageId: mockImageById, upload: { post: mockImagesUploadPost } },
@@ -36,17 +34,7 @@ jest.mock('@/lib/apiClient', () => ({
   apiClient: {
     api: {
       recipes: {
-        get: jest.fn().mockResolvedValue([]),
-        post: jest.fn(),
         byId: (...args: unknown[]) => mockById(...args),
-      },
-      checklists: {
-        get: jest.fn().mockResolvedValue([]),
-        byId: jest.fn(() => ({ get: jest.fn() })),
-      },
-      foodPlans: {
-        get: jest.fn().mockResolvedValue([]),
-        byId: jest.fn(() => ({ get: jest.fn() })),
       },
     },
   },
@@ -57,19 +45,11 @@ jest.mock('@/hooks/useRecommendations', () => ({
   useRecommendations: () => ({ data: [] }),
 }))
 
-// Mock next/navigation
-const mockPush = jest.fn()
+// Mock next/navigation — RecipeEditMode itself doesn't navigate, but the
+// test wrapper's header back-button (useSmartBack) does.
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn(), replace: jest.fn() }),
-  useParams: () => ({ id: '1' }),
-  usePathname: () => '/recipes/1/edit',
-  useSearchParams: () => ({ get: jest.fn().mockReturnValue(null) }),
-}))
-
-// Mock useAuth
-jest.mock('@/hooks/useAuth', () => ({
-  useCurrentUser: () => ({ data: null }),
-  useLogout: () => ({ mutateAsync: jest.fn(), isPending: false }),
+  useRouter: () => ({ push: jest.fn(), back: jest.fn(), replace: jest.fn() }),
+  usePathname: () => '/recipes/1',
 }))
 
 // Mock toast
@@ -83,27 +63,22 @@ jest.mock('sonner', () => ({
 
 const mockRecipe = { id: 1, name: 'Test Recipe', createdOn: '2024-01-01T00:00:00Z' }
 
-describe('RecipeEditPage', () => {
+function Wrapper() {
+  return <RecipeEditMode recipeId={1} />
+}
+
+describe('RecipeEditMode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockRecipeGet.mockResolvedValue(mockRecipe)
     mockRecipePut.mockResolvedValue(mockRecipe)
-    mockRecipeDelete.mockResolvedValue(undefined)
     mockIngredientsGet.mockResolvedValue([])
     mockStepsGet.mockResolvedValue([])
     mockImagesGet.mockResolvedValue([])
   })
 
-  it('should render Done editing button', async () => {
-    render(<RecipeEditPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
-    })
-  })
-
   it('should show Add Ingredient form', async () => {
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
@@ -115,7 +90,7 @@ describe('RecipeEditPage', () => {
     const user = userEvent.setup()
     mockIngredientsPost.mockResolvedValueOnce({ id: 1, name: 'Flour', amount: 2, unit: 'cups', recipeId: 1 })
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
@@ -141,7 +116,7 @@ describe('RecipeEditPage', () => {
   it('should not submit add ingredient form when name is empty', async () => {
     const user = userEvent.setup()
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
@@ -157,7 +132,7 @@ describe('RecipeEditPage', () => {
     const user = userEvent.setup()
     mockIngredientsPost.mockResolvedValueOnce({ id: 2, name: 'Salt', amount: null, unit: null, recipeId: 1 })
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
@@ -182,7 +157,7 @@ describe('RecipeEditPage', () => {
     const user = userEvent.setup()
     mockIngredientsPost.mockRejectedValueOnce(new Error('Server error'))
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
@@ -204,7 +179,7 @@ describe('RecipeEditPage', () => {
     ])
     mockIngredientByIdDelete.mockResolvedValueOnce(undefined)
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('Flour')).toBeInTheDocument()
@@ -228,7 +203,7 @@ describe('RecipeEditPage', () => {
     ])
     mockIngredientByIdPut.mockResolvedValueOnce(undefined)
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('Flour')).toBeInTheDocument()
@@ -251,7 +226,7 @@ describe('RecipeEditPage', () => {
     const user = userEvent.setup()
     mockStepsPost.mockResolvedValueOnce({ id: 1, text: 'Mix ingredients', order: 1, recipeId: 1 })
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Step description...')).toBeInTheDocument()
@@ -273,7 +248,7 @@ describe('RecipeEditPage', () => {
     const user = userEvent.setup()
     mockStepsPost.mockRejectedValueOnce(new Error('Server error'))
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Step description...')).toBeInTheDocument()
@@ -294,7 +269,7 @@ describe('RecipeEditPage', () => {
     ])
     mockStepByIdDelete.mockResolvedValueOnce(undefined)
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('Preheat oven')).toBeInTheDocument()
@@ -314,10 +289,10 @@ describe('RecipeEditPage', () => {
   it('should add an image', async () => {
     const user = userEvent.setup()
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Recipe name')).toBeInTheDocument()
     })
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -336,7 +311,7 @@ describe('RecipeEditPage', () => {
     ])
     mockImageByIdDelete.mockResolvedValueOnce(undefined)
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
       expect(screen.getAllByAltText('Recipe image').length).toBeGreaterThan(0)
@@ -353,79 +328,65 @@ describe('RecipeEditPage', () => {
     expect(toast.success).toHaveBeenCalledWith('Image removed')
   })
 
-  it('should show context menu button', async () => {
-    render(<RecipeEditPage />)
+  it('should save the recipe name when the hero name field is blurred', async () => {
+    const user = userEvent.setup()
+
+    render(<Wrapper />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Recipe name')).toHaveValue('Test Recipe')
+    })
+
+    const nameInput = screen.getByPlaceholderText('Recipe name')
+    await user.clear(nameInput)
+    await user.type(nameInput, 'New Recipe Name')
+    await user.tab()
+
+    await waitFor(() => {
+      expect(mockRecipePut).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'New Recipe Name' })
+      )
     })
   })
 
-  it('should open delete confirmation dialog from context menu', async () => {
+  it('should not save metadata on blur when nothing changed', async () => {
     const user = userEvent.setup()
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Recipe name')).toHaveValue('Test Recipe')
     })
 
-    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(screen.getByPlaceholderText('Recipe name'))
+    await user.tab()
 
-    const deleteMenuItem = await screen.findByRole('menuitem', { name: /Delete Recipe/i })
-    await user.click(deleteMenuItem)
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(screen.getByText('Delete Recipe')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
+    expect(mockRecipePut).not.toHaveBeenCalled()
   })
 
-  it('should delete recipe and navigate to /recipes on confirm', async () => {
+  it('should save link/notes/cookTime/servings together as one PUT when the field group is left', async () => {
     const user = userEvent.setup()
 
-    render(<RecipeEditPage />)
+    render(<Wrapper />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Recipe link (optional)')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.type(screen.getByPlaceholderText('Recipe link (optional)'), 'https://example.com')
+    // Tabbing to a sibling field within the same group should not save yet.
+    await user.tab()
+    expect(mockRecipePut).not.toHaveBeenCalled()
 
-    const deleteMenuItem = await screen.findByRole('menuitem', { name: /Delete Recipe/i })
-    await user.click(deleteMenuItem)
-
-    const confirmButton = screen.getByRole('button', { name: 'Delete' })
-    await user.click(confirmButton)
-
-    await waitFor(() => {
-      expect(mockRecipeDelete).toHaveBeenCalled()
-    })
-
-    expect(toast.success).toHaveBeenCalledWith('Recipe deleted')
-    expect(mockPush).toHaveBeenCalledWith('/recipes')
+    await user.type(screen.getByPlaceholderText('Notes (optional)'), 'Some notes')
+    // Leaving the whole metadata group fires exactly one save.
+    await user.tab({ shift: false })
+    await user.click(document.body)
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
-  })
-
-  it('should navigate to view page when Done is clicked with no changes', async () => {
-    const user = userEvent.setup()
-
-    render(<RecipeEditPage />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Done editing' })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Done editing' }))
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/recipes/1')
+      expect(mockRecipePut).toHaveBeenCalledWith(
+        expect.objectContaining({ link: 'https://example.com', notes: 'Some notes' })
+      )
     })
   })
 
@@ -447,7 +408,7 @@ describe('RecipeEditPage', () => {
       ])
       setOnline(false)
 
-      render(<RecipeEditPage />)
+      render(<Wrapper />)
 
       await waitFor(() => {
         expect(screen.getByDisplayValue('Flour')).toBeInTheDocument()
@@ -463,10 +424,6 @@ describe('RecipeEditPage', () => {
       expect(screen.getByPlaceholderText('Recipe link (optional)')).toBeDisabled()
       expect(screen.getByPlaceholderText('Notes (optional)')).toBeDisabled()
       expect(screen.getByPlaceholderText('Add a tag (e.g. vegetarian)').nextElementSibling).toBeDisabled()
-
-      await userEvent.setup().click(screen.getByRole('button', { name: 'More options' }))
-      const deleteMenuItem = await screen.findByRole('menuitem', { name: /Delete Recipe/i })
-      expect(deleteMenuItem).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('disables uploading and removing a photo while offline', async () => {
@@ -475,7 +432,7 @@ describe('RecipeEditPage', () => {
       ])
       setOnline(false)
 
-      render(<RecipeEditPage />)
+      render(<Wrapper />)
 
       await waitFor(() => {
         expect(screen.getAllByAltText('Recipe image').length).toBeGreaterThan(0)
