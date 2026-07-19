@@ -90,6 +90,19 @@ export function useTopRecipeTags(count = 10) {
   });
 }
 
+export function useRecipeTagCatalog() {
+  return useQuery({
+    queryKey: ["recipeTagCatalog"],
+    queryFn: async (): Promise<TopTag[]> => {
+      const tags = await apiClient.api.recipes.tags.catalog.get();
+      return (tags ?? []).map((t) => ({
+        name: t.name ?? "",
+        count: t.count ?? 0,
+      }));
+    },
+  });
+}
+
 export function useRecipe(id: number) {
   const queryClient = useQueryClient();
 
@@ -577,6 +590,35 @@ export function useImportRecipeTags() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
       queryClient.invalidateQueries({ queryKey: ["topRecipeTags"] });
+      queryClient.invalidateQueries({ queryKey: ["recipeTags"] });
+    },
+  });
+}
+
+export function useRenameRecipeTag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ name, newName }: { name: string; newName: string }) =>
+      apiClient.api.recipes.tags.byName(name).put({ newName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipeTagCatalog"] });
+      queryClient.invalidateQueries({ queryKey: ["topRecipeTags"] });
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["recipeTags"] });
+    },
+  });
+}
+
+export function useDeleteRecipeTagByName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (name: string) => apiClient.api.recipes.tags.byName(name).delete(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipeTagCatalog"] });
+      queryClient.invalidateQueries({ queryKey: ["topRecipeTags"] });
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
       queryClient.invalidateQueries({ queryKey: ["recipeTags"] });
     },
   });
