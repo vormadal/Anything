@@ -1383,6 +1383,15 @@ export function createReimportRecipeRequestFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenameRecipeTagRequest}
+ */
+// @ts-ignore
+export function createRenameRecipeTagRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenameRecipeTagRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {ReorderRecipeIngredientsRequest}
  */
 // @ts-ignore
@@ -3182,6 +3191,17 @@ export function deserializeIntoReimportRecipeRequest(reimportRecipeRequest: Part
 }
 /**
  * The deserialization information for the current model
+ * @param RenameRecipeTagRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenameRecipeTagRequest(renameRecipeTagRequest: Partial<RenameRecipeTagRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "newName": n => { renameRecipeTagRequest.newName = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param ReorderRecipeIngredientsRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -4950,6 +4970,12 @@ export interface ReimportRecipeRequest extends Parsable {
      */
     importSteps?: boolean | null;
 }
+export interface RenameRecipeTagRequest extends Parsable {
+    /**
+     * The newName property
+     */
+    newName?: string | null;
+}
 export interface ReorderRecipeIngredientsRequest extends Parsable {
     /**
      * The ids property
@@ -6315,6 +6341,17 @@ export function serializeReimportRecipeRequest(writer: SerializationWriter, reim
     writer.writeBooleanValue("importIngredients", reimportRecipeRequest.importIngredients);
     writer.writeBooleanValue("importName", reimportRecipeRequest.importName);
     writer.writeBooleanValue("importSteps", reimportRecipeRequest.importSteps);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenameRecipeTagRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenameRecipeTagRequest(writer: SerializationWriter, renameRecipeTagRequest: Partial<RenameRecipeTagRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renameRecipeTagRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("newName", renameRecipeTagRequest.newName);
 }
 /**
  * Serializes information the current object
