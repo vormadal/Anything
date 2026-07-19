@@ -20,6 +20,7 @@ Reusable UI components shared across multiple pages.
 - Components that use hooks or browser APIs must have `"use client"` at the top.
 - Shadcn components in `ui/` are owned by this project — modify them freely (they are not a dependency).
 - Dialogs manage their own open/close state via a companion hook in `src/hooks/` (e.g., `useEditListNameDialog`).
+- **Don't let a dropdown auto-open over content it doesn't own.** A `position: absolute` suggestions list is fine while the user is actively typing (it overlays the space below the input without shifting layout), but breaks when the dropdown can auto-open on mount and stay open indefinitely (e.g. the food-plan day dialog's `showSuggestionsOnOpen` for empty upcoming days, where the input never blurs) — the floating box then covers unrelated controls further down and permanently intercepts their clicks. Render such an auto-openable list in normal document flow (no `absolute`/`z-10`) so it pushes later content down instead of covering it.
 - Page-specific components (used by only one route) live next to the route's `page.tsx`, not here.
 - `button.test.tsx` is an example of a unit test for a UI primitive — follow that pattern when adding new ui/ components.
-- For visual regression: new components with distinct visual states (dialogs, multi-step flows) must be covered in `e2e/visual.spec.ts` using Playwright `toHaveScreenshot()`. Do NOT use Jest `.toMatchSnapshot()` for visual assertions.
+- New components with distinct visual states (dialogs, multi-step flows) must be covered by a Playwright visual snapshot — see `.claude/rules/e2e.md` for the authoritative rule.

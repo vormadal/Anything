@@ -6,8 +6,9 @@ Shared utilities and the generated API client.
 
 - `apiClient.ts` — configures and exports the Kiota `apiClient` instance; also re-exports `ApiError` (use for catching HTTP errors with `err.responseStatusCode`)
 - `api-client/` — **auto-generated** Kiota client from the backend OpenAPI spec; do not edit manually
-  - Regenerate with `npm run generate:api` (API must be running)
+  - Regenerate with `npm run generate:api` (API must be running); in practice the `update-api-client` workflow regenerates and commits it — see CLAUDE.md → CI Automation & Deployment
   - Import types from `@/lib/api-client/models/index`
+- `../../public/tesseract/` + `public/tessdata/` — OCR assets for the scan-from-photo flow (tesseract.js): the worker/WASM cores in `public/tesseract/` are gitignored and copied from `node_modules` by `scripts/copy-tesseract-assets.mjs` via the `predev`/`prebuild` hooks; the gzipped `tessdata_fast` models in `public/tessdata/` are committed. If OCR fails with 404s on `/tesseract/*`, run `npm run copy:tesseract`.
 - `foodPlanUtils.ts` — date/slot helpers for the food plan calendar
 - `roles.ts` — household role constants (`HOUSEHOLD_ROLES`) and role-check helpers (`isAdmin`, `canManageHousehold`, `isHouseholdOwner`)
 - `utils.ts` — generic helpers (class merging via `cn()`, etc.)
@@ -20,6 +21,7 @@ Shared utilities and the generated API client.
 - Catch `ApiError` (re-exported from `apiClient.ts`) to handle HTTP error responses — inspect `err.responseStatusCode`.
 - The base URL defaults to `http://localhost:5238` and is overridden by `NEXT_PUBLIC_API_URL` in production.
 - Never cast API response types to `any`; use the generated model types from `api-client/models/index`.
+- **Never use raw `fetch` or `apiFetch` for API calls** — use the configured `apiClient`. If the endpoint you need isn't in the generated client yet, do **not** reach for `apiFetch` as a stopgap: push the backend change (or open the PR) first so the `update-api-client` workflow regenerates and commits `api-client/**`, pull/rebase those changes, then implement the call against the regenerated `apiClient`. This holds even when the file you're editing already uses raw `fetch`/`apiFetch` — and when you touch such a file, migrate its legacy calls to `apiClient` as part of your change rather than copying the pattern.
 
 ## Offline support (`offline/`)
 
