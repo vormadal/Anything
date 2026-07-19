@@ -96,6 +96,8 @@ export function useUpdateShoppingList() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
       queryClient.invalidateQueries({ queryKey: ["shoppingList", id] });
+      // Templates are lists too — keep the template manager in sync on rename.
+      queryClient.invalidateQueries({ queryKey: ["shoppingListTemplates"] });
     },
   });
 }
@@ -108,6 +110,8 @@ export function useDeleteShoppingList() {
       apiClient.api.checklists.byId(id).delete(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+      // Templates are lists too — keep the template manager in sync on delete.
+      queryClient.invalidateQueries({ queryKey: ["shoppingListTemplates"] });
     },
   });
 }

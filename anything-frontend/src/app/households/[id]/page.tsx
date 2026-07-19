@@ -34,6 +34,7 @@ import {
   Users,
   Settings,
   ListChecks,
+  LayoutTemplate,
   Tag,
   Tags,
   Ruler,
@@ -313,6 +314,13 @@ export default function HouseholdDetailPage() {
                 icon={Tag}
                 title="Suggestion Categories"
                 description="Organise suggestions into categories"
+                onClick={(href) => router.push(href)}
+              />
+              <ConfigCard
+                href={`/households/${householdId}/lists/templates`}
+                icon={LayoutTemplate}
+                title="Templates"
+                description="Manage reusable list templates"
                 onClick={(href) => router.push(href)}
               />
             </div>
