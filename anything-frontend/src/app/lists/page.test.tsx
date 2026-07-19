@@ -113,7 +113,6 @@ describe('ListsPage', () => {
     await waitFor(() => {
       expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Chores', type: 0 })
     })
-    expect(toast.success).toHaveBeenCalledWith('Checklist created')
     expect(mockPush).toHaveBeenCalledWith('/lists/3')
   })
 
@@ -130,7 +129,6 @@ describe('ListsPage', () => {
     await waitFor(() => {
       expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies', type: 1 })
     })
-    expect(toast.success).toHaveBeenCalledWith('Shopping list created')
     expect(mockPush).toHaveBeenCalledWith('/lists/4')
   })
 
@@ -150,7 +148,6 @@ describe('ListsPage', () => {
     await waitFor(() => {
       expect(mockFromTemplatePost).toHaveBeenCalledWith({ templateId: 7, name: 'Weekly Groceries' })
     })
-    expect(toast.success).toHaveBeenCalledWith('List created from template')
     expect(mockPush).toHaveBeenCalledWith('/lists/9')
   })
 

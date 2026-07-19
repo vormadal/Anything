@@ -204,7 +204,7 @@ describe("RegisterPage", () => {
       const submitButton = screen.getByRole("button", { name: "Create Account" });
       await user.click(submitButton);
 
-      expect(toast.error).toHaveBeenCalledWith("Password must be at least 8 characters");
+      expect(await screen.findByText("Password must be at least 8 characters")).toBeInTheDocument();
       expect(mockRegisterPost).not.toHaveBeenCalled();
     });
 
@@ -226,9 +226,7 @@ describe("RegisterPage", () => {
       const submitButton = screen.getByRole("button", { name: "Create Account" });
       await user.click(submitButton);
 
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Email already exists");
-      });
+      expect(await screen.findByText("Email already exists")).toBeInTheDocument();
 
       expect(mockPush).not.toHaveBeenCalled();
     });
@@ -251,9 +249,7 @@ describe("RegisterPage", () => {
       const submitButton = screen.getByRole("button", { name: "Create Account" });
       await user.click(submitButton);
 
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Registration failed");
-      });
+      expect(await screen.findByText("Registration failed")).toBeInTheDocument();
     });
 
     it("should show loading state while registering", async () => {

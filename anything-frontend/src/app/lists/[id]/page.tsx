@@ -72,7 +72,6 @@ export default function ListDetailPage() {
     handleConvertTypeRef.current = async () => {
       try {
         await convertType.mutateAsync({ id: listId, type: isGeneral ? 1 : 0 });
-        toast.success(`Converted to ${isGeneral ? "Shopping List" : "Checklist"}`);
       } catch {
         toast.error("Failed to convert list type. Please try again.");
       }

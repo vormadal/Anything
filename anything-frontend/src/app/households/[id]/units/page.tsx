@@ -153,7 +153,6 @@ export default function UnitsPage() {
     try {
       await updateUnit.mutateAsync({ id, name: editName.trim() });
       setEditingId(null);
-      toast.success("Unit updated.");
     } catch {
       toast.error("Failed to update unit.");
     }
@@ -162,7 +161,6 @@ export default function UnitsPage() {
   const handleDelete = async (id: number) => {
     try {
       await deleteUnit.mutateAsync(id);
-      toast.success("Unit deleted.");
     } catch {
       toast.error("Failed to delete unit.");
     }
@@ -174,7 +172,6 @@ export default function UnitsPage() {
       await createUnit.mutateAsync(createName.trim());
       setCreateName("");
       setShowCreateForm(false);
-      toast.success("Unit created.");
     } catch {
       toast.error("Failed to create unit.");
     }
@@ -183,7 +180,6 @@ export default function UnitsPage() {
   const handleSeedDefaults = async () => {
     try {
       await seedDefaultUnits.mutateAsync();
-      toast.success("Common units added.");
     } catch {
       toast.error("Failed to add common units.");
     }

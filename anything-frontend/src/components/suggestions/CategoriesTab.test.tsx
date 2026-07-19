@@ -89,7 +89,6 @@ describe("CategoriesTab", () => {
 
       await waitFor(() => {
         expect(mockCategoriesPost).toHaveBeenCalledWith({ name: "Frozen" });
-        expect(toast.success).toHaveBeenCalledWith("Category created.");
       });
     });
 
@@ -140,7 +139,6 @@ describe("CategoriesTab", () => {
 
       await waitFor(() => {
         expect(mockUpdatePut).toHaveBeenCalledWith(1, { name: "Drinks" });
-        expect(toast.success).toHaveBeenCalledWith("Category updated.");
       });
     });
 
@@ -171,7 +169,6 @@ describe("CategoriesTab", () => {
 
       await waitFor(() => {
         expect(mockDeleteFn).toHaveBeenCalledWith(1);
-        expect(toast.success).toHaveBeenCalledWith("Category deleted.");
       });
     });
   });

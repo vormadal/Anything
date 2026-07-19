@@ -55,7 +55,6 @@ export default function NewBillPage() {
         initialAmount: initialAmount ? Number(initialAmount) : undefined,
         initialEffectiveDate: initialAmount ? new Date(initialDate).toISOString() : undefined,
       });
-      toast.success("Bill added");
       router.push("/bills");
     } catch {
       toast.error("Failed to add bill");

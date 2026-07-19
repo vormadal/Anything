@@ -118,7 +118,6 @@ export default function ShoppingListsPage() {
       const newList = await createList.mutateAsync({ name: newListName });
       setNewListName("");
       setIsCreating(false);
-      toast.success("Shopping list created");
       if (newList?.id) {
         router.push(`/shopping-lists/${newList.id}`);
       }

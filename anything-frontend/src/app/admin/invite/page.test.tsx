@@ -149,7 +149,6 @@ describe("AdminInvitePage", () => {
         expect(mockInvitesPost).toHaveBeenCalledWith({ email: "newuser@test.com", householdId: null });
       });
 
-      expect(toast.success).toHaveBeenCalledWith("Invite created!");
       expect(screen.getByDisplayValue(/register\?token=test-token/)).toBeInTheDocument();
       expect(emailInput).toHaveValue("");
     });
@@ -339,7 +338,6 @@ describe("AdminInvitePage", () => {
       await waitFor(() => {
         expect(mockInviteDelete).toHaveBeenCalledWith(42);
       });
-      expect(toast.success).toHaveBeenCalledWith("Invite deleted");
     });
   });
 

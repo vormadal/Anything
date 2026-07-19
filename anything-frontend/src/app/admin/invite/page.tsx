@@ -14,6 +14,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function AdminInvitePage() {
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>("");
   const [inviteData, setInviteData] = useState<{ email: string; url: string } | null>(null);
   const createInvite = useCreateInvite();
@@ -42,9 +43,10 @@ export default function AdminInvitePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailError("");
 
     if (!email) {
-      toast.error("Please enter an email address");
+      setEmailError("Please enter an email address");
       return;
     }
 
@@ -57,7 +59,6 @@ export default function AdminInvitePage() {
       }
       const fullUrl = `${window.location.origin}${result.inviteUrl}`;
       setInviteData({ email, url: fullUrl });
-      toast.success("Invite created!");
       setEmail("");
       setSelectedHouseholdId("");
     } catch {
@@ -74,7 +75,6 @@ export default function AdminInvitePage() {
   const handleDelete = async (id: number) => {
     try {
       await deleteInvite.mutateAsync(id);
-      toast.success("Invite deleted");
     } catch {
       toast.error("Failed to delete invite");
     }
@@ -115,6 +115,11 @@ export default function AdminInvitePage() {
               {createInvite.isPending ? "Creating..." : "Create Link"}
             </Button>
           </div>
+          {emailError && (
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              {emailError}
+            </p>
+          )}
           {households && households.length > 0 && (
             <div>
               <label htmlFor="household" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">

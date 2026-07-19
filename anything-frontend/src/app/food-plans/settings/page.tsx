@@ -306,10 +306,8 @@ function SeasonalTagsSection() {
     try {
       if (editingRuleId != null) {
         await updateRule.mutateAsync({ ruleId: editingRuleId, ...payload });
-        toast.success("Seasonal tag updated");
       } else {
         await createRule.mutateAsync(payload);
-        toast.success("Seasonal tag added");
       }
       resetForm();
     } catch {
@@ -320,7 +318,6 @@ function SeasonalTagsSection() {
   const handleDelete = async (ruleId: number) => {
     try {
       await deleteRule.mutateAsync(ruleId);
-      toast.success("Seasonal tag removed");
       if (editingRuleId === ruleId) resetForm();
     } catch {
       toast.error("Failed to remove seasonal tag. Please try again.");

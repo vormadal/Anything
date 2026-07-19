@@ -23,3 +23,19 @@ Reusable UI components shared across multiple pages.
 - Page-specific components (used by only one route) live next to the route's `page.tsx`, not here.
 - `button.test.tsx` is an example of a unit test for a UI primitive — follow that pattern when adding new ui/ components.
 - For visual regression: new components with distinct visual states (dialogs, multi-step flows) must be covered in `e2e/visual.spec.ts` using Playwright `toHaveScreenshot()`. Do NOT use Jest `.toMatchSnapshot()` for visual assertions.
+
+## Toast usage rules (sonner)
+
+A toast's only job is to communicate an outcome the user **cannot otherwise see on screen**. Mutations run through React Query with invalidation/optimistic updates, so after an add/edit/remove the changed row is already visible — a success toast there just repeats the screen. Before adding `toast.success(...)`, apply the decision test:
+
+> *After this action, does the screen already show the outcome — an inline row/value update, a dialog/sheet closing, or navigation to a page that reflects it?* **Yes → no success toast. No → toast.**
+
+**Show a toast — three cases only:**
+- **Errors / failures** that aren't otherwise visible (network error, rejected mutation, offline-sync failure). Keep essentially every `toast.error` on an async operation. (Exception: pre-submit *validation* — see below.)
+- **Out-of-band success** — the result lands somewhere the user isn't looking, or the current screen can't reflect it: copied to clipboard; applied to a different surface ("Ingredients added to shopping list", "Added to food plan"); share links; import/export and other file/background jobs; a destination screen that doesn't reflect the action (register → login). An explicit whole-form **Save** with no visible delta (profile name/password, food-plan settings) also counts — the field already held the value, so the toast is the only confirmation.
+- **Destructive / terminal confirmation** — an action that removes a whole entity or ends a flow and navigates away: "Recipe deleted", "List deleted", "Bill deleted", "List closed", "Shopping list completed!", "Household deleted". A delete of a **row in a list you're still viewing** does NOT qualify (the row vanishing is the feedback) — no toast.
+
+**Never toast:**
+- **Visible inline result** — an add/edit/remove whose row or value updates in the current view.
+- **Screen already changes** — a dialog closes on success, or navigation lands on a page showing the result.
+- **Form validation** — use an inline field error message (`<p role="alert" className="text-sm text-red-600 dark:text-red-400">`) and keep native `required`, never a toast. Auth pages (login, register) surface *all* errors inline, including the async auth failure; in-app forms keep validation inline but may toast the async outcome.

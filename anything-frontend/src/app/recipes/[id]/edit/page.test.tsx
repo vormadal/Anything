@@ -134,8 +134,6 @@ describe('RecipeEditPage', () => {
         group: undefined,
       })
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient added')
   })
 
   it('should not submit add ingredient form when name is empty', async () => {
@@ -174,8 +172,6 @@ describe('RecipeEditPage', () => {
         group: undefined,
       })
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient added')
   })
 
   it('should show error when add ingredient fails', async () => {
@@ -217,8 +213,6 @@ describe('RecipeEditPage', () => {
       expect(mockIngredientById).toHaveBeenCalledWith(5)
       expect(mockIngredientByIdDelete).toHaveBeenCalled()
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient removed')
   })
 
   it('should save ingredient on blur', async () => {
@@ -307,8 +301,6 @@ describe('RecipeEditPage', () => {
       expect(mockStepById).toHaveBeenCalledWith(3)
       expect(mockStepByIdDelete).toHaveBeenCalled()
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Step removed')
   })
 
   it('should add an image', async () => {
@@ -349,8 +341,6 @@ describe('RecipeEditPage', () => {
       expect(mockImageById).toHaveBeenCalledWith(7)
       expect(mockImageByIdDelete).toHaveBeenCalled()
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Image removed')
   })
 
   it('should show context menu button', async () => {

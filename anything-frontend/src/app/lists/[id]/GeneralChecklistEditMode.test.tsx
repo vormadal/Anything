@@ -2,7 +2,6 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import { GeneralChecklistEditMode } from './GeneralChecklistEditMode'
-import { toast } from 'sonner'
 
 const mockItemsGet = jest.fn()
 const mockItemsPost = jest.fn()
@@ -80,7 +79,6 @@ describe('GeneralChecklistEditMode', () => {
         expect.objectContaining({ name: 'New Task', amount: null, unit: null })
       )
     })
-    expect(toast.success).toHaveBeenCalledWith('Item added')
   })
 
   it('shows items with delete buttons', async () => {
@@ -108,7 +106,6 @@ describe('GeneralChecklistEditMode', () => {
     await user.click(screen.getByRole('button', { name: 'Remove item' }))
     await waitFor(() => {
       expect(mockItemsItemDelete).toHaveBeenCalled()
-      expect(toast.success).toHaveBeenCalledWith('Item removed')
     })
   })
 

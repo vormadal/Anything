@@ -522,6 +522,22 @@ test.describe("Visual Snapshots - Login Page", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("login.png", screenshotOptions);
   });
+
+  // Validation and auth errors render inline under the form (role="alert"),
+  // not as a toast — this captures that new inline-error visual state.
+  test("login page - inline error", async ({ page }) => {
+    await page.clock.setFixedTime(FIXED_DATE);
+    await page.route("**/api/auth/login", (route) =>
+      route.fulfill({ status: 401, json: { message: "Unauthorized" } })
+    );
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+    await page.getByPlaceholder("Enter your email").fill("wrong@example.com");
+    await page.getByPlaceholder("Enter your password").fill("wrongpassword");
+    await page.getByRole("button", { name: "Sign In" }).click();
+    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(page).toHaveScreenshot("login-inline-error.png", screenshotOptions);
+  });
 });
 
 // ---------------------------------------------------------------------------
