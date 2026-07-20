@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,10 +28,6 @@ export function AddItemsToTemplateDialog({ open, onOpenChange, listId, templateI
 
   const templateNames = new Set(templateItems.map((i) => (i.name ?? "").trim().toLowerCase()));
   const candidateItems = listItems.filter((i) => !templateNames.has((i.name ?? "").trim().toLowerCase()));
-
-  useEffect(() => {
-    if (open) setSelectedIds(new Set());
-  }, [open]);
 
   const toggleItem = (id: number) => {
     setSelectedIds((prev) => {
