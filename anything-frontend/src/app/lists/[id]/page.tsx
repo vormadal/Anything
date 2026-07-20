@@ -11,11 +11,12 @@ import {
 import { useDeleteShoppingList, useConvertShoppingListType, useSaveAsTemplate, useShoppingListTemplates, useShoppingList } from "@/hooks/useShoppingLists";
 import { useEditListNameDialog } from "@/hooks/useEditListNameDialog";
 import { EditListNameDialog } from "@/components/EditListNameDialog";
+import { AddItemsToTemplateDialog } from "@/components/AddItemsToTemplateDialog";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { LayoutList, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks, LayoutTemplate } from "lucide-react";
+import { LayoutList, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks, LayoutTemplate, PackagePlus } from "lucide-react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { ShoppingListView } from "@/app/shopping-lists/[id]/ShoppingListView";
 import { ShoppingListEditMode } from "@/app/shopping-lists/[id]/ShoppingListEditMode";
@@ -41,6 +42,7 @@ export default function ListDetailPage() {
   const handleConvertTypeRef = useRef<() => Promise<void>>(async () => {});
   const handleSaveAsTemplateRef = useRef<() => void>(() => undefined);
   const openEditNameDialogRef = useRef<() => void>(() => undefined);
+  const [showAddToTemplateDialog, setShowAddToTemplateDialog] = useState(false);
 
   const { data: list } = useShoppingList(listId);
 
@@ -135,6 +137,15 @@ export default function ListDetailPage() {
               <LayoutTemplate className="h-4 w-4" />
               Save as template
             </DropdownMenuItem>
+            {sourceTemplate && (
+              <DropdownMenuItem
+                disabled={!isOnline}
+                onSelect={() => setShowAddToTemplateDialog(true)}
+              >
+                <PackagePlus className="h-4 w-4" />
+                Add items to template
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
               onSelect={() => handleDeleteListRef.current()}
@@ -151,7 +162,7 @@ export default function ListDetailPage() {
       setLeftAction({ type: "menu" });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, isGeneral, isOnline, listId, setHeaderActions, setLeftAction]);
+  }, [isEditMode, isGeneral, isOnline, listId, !!sourceTemplate, setHeaderActions, setLeftAction]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
@@ -164,6 +175,15 @@ export default function ListDetailPage() {
         isPending={editNameDialog.isPending}
         inputRef={editNameDialog.inputRef}
       />
+      {sourceTemplate && showAddToTemplateDialog && (
+        <AddItemsToTemplateDialog
+          open={showAddToTemplateDialog}
+          onOpenChange={setShowAddToTemplateDialog}
+          listId={listId}
+          templateId={sourceTemplate.id ?? 0}
+          templateName={sourceTemplate.name ?? ""}
+        />
+      )}
       <PageTitle>{list?.name ?? "List"}</PageTitle>
       {sourceTemplate && (
         <div className="-mt-2 mb-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">

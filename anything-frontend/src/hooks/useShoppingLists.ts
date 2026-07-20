@@ -87,6 +87,19 @@ export function useSaveAsTemplate() {
   });
 }
 
+export function useCopyItemsToTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, itemIds }: { id: number; templateId: number; itemIds: number[] }) =>
+      apiClient.api.checklists.byId(id).copyItemsToTemplate.post({ itemIds }),
+    onSuccess: (_, { templateId }) => {
+      queryClient.invalidateQueries({ queryKey: ["shoppingListTemplates"] });
+      queryClient.invalidateQueries({ queryKey: ["shoppingListItems", templateId] });
+    },
+  });
+}
+
 export function useUpdateShoppingList() {
   const queryClient = useQueryClient();
 
