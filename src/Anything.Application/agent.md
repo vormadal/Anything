@@ -26,6 +26,7 @@ Business logic layer. Contains all CQRS handlers, domain services, and configura
 - Soft deletes: queries always filter `WHERE DeletedOn == null`.
 - Timestamps: set `CreatedOn`/`ModifiedOn`/`DeletedOn` to `DateTime.UtcNow` in the handler, not in the DB.
 - Fuzzy search uses a shared threshold in `Anything.Application.Common.FuzzySearch`; the pg_trgm plumbing (`word_similarity`, GIN indexes) lives in `src/Anything.Database/agent.md`.
+- Cross-entity search (`Features/Search/`) is the one place Application queries through a Core service interface (`ISearchIndexService`) instead of `IRepository<T>` directly — its implementation needs Postgres full-text search types that Application must not reference. See `src/Anything.Database/agent.md` → "Cross-entity search index" for why, and `src/Anything.Core/agent.md` for `ISearchable`.
 
 ## ShoppingListRecommendation scoping (query & seeding)
 

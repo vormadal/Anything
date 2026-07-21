@@ -40,6 +40,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<BillPriceHistory> BillPriceHistories => Set<BillPriceHistory>();
     public DbSet<BillAttachment> BillAttachments => Set<BillAttachment>();
     public DbSet<HomeCardPreference> HomeCardPreferences => Set<HomeCardPreference>();
+    public DbSet<SearchDocument> SearchDocuments => Set<SearchDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
