@@ -547,8 +547,9 @@ public class RecipeEndpointTests : IntegrationTestBase
     [Fact]
     public async Task AddToShoppingList_SeedsHiddenRecommendations_NotShownAsSuggestions()
     {
-        var recipe = await CreateRecipeAsync("Curry", null, null);
-        await AddIngredientAsync(recipe.Id, "Boneless chicken breasts", 500, "g", null);
+        // Imported (rather than manually-typed) ingredients aren't promoted into suggestions on
+        // creation, so this ingredient name reaches add-to-shopping-list unseeded.
+        var recipe = await ImportRecipeAsync("Curry", [("Boneless chicken breasts", 500m, "g")]);
 
         var listId = await CreateShoppingListAsync("My List");
         var client = await GetAuthenticatedHttpClientAsync();
@@ -637,6 +638,21 @@ public class RecipeEndpointTests : IntegrationTestBase
     {
         var client = await GetAuthenticatedHttpClientAsync();
         var response = await client.PostAsJsonAsync("/api/recipes", new { name, link, notes }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        return result;
+    }
+
+    private async Task<RecipeDto> ImportRecipeAsync(string name, IEnumerable<(string Name, decimal? Amount, string? Unit)> ingredients)
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/recipes/import", new
+        {
+            name,
+            ingredients = ingredients.Select(i => new { i.Name, i.Amount, i.Unit, group = (string?)null }),
+            steps = Array.Empty<object>()
+        }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
