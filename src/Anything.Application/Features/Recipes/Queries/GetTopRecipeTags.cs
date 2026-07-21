@@ -15,6 +15,7 @@ public class GetTopRecipeTagsHandler(IRepository<RecipeTag> tagRepository, IRepo
     public async Task<List<TopTagResponse>> Handle(GetTopRecipeTagsQuery query, CancellationToken ct = default)
     {
         var groups = await RecipeTagGroupingQuery.GroupedByHousehold(tagRepository, recipeRepository, householdContext)
+            .Select(g => new { Name = g.Key, Count = g.Count() })
             .OrderByDescending(t => t.Count)
             .ThenBy(t => t.Name)
             .Take(query.Count)

@@ -6,14 +6,15 @@ namespace Anything.Application.Features.Recipes.Queries;
 
 internal static class RecipeTagGroupingQuery
 {
-    internal record TagGroup(string Name, int Count);
-
     /// <summary>
-    /// Distinct tag names (case-insensitive) with usage counts, scoped to the
-    /// current household's non-deleted recipes. Shared by the "top tags" and
-    /// "full tag catalog" queries so the join/group logic isn't duplicated.
+    /// Non-deleted tags grouped by case-insensitive name, scoped to the current
+    /// household's non-deleted recipes. Shared by the "top tags" and "full tag
+    /// catalog" queries so the join/group logic isn't duplicated. Callers project
+    /// the grouping themselves (e.g. into an anonymous type) — EF Core cannot
+    /// reliably translate a query that projects into a named record type here
+    /// and then composes further OrderBy/Take on top of it.
     /// </summary>
-    internal static IQueryable<TagGroup> GroupedByHousehold(
+    internal static IQueryable<IGrouping<string, RecipeTag>> GroupedByHousehold(
         IRepository<RecipeTag> tagRepository,
         IRepository<Recipe> recipeRepository,
         IHouseholdContext householdContext)
@@ -25,7 +26,6 @@ internal static class RecipeTagGroupingQuery
                 t => t.RecipeId,
                 r => r.Id,
                 (t, r) => t)
-            .GroupBy(t => t.Name.ToLower())
-            .Select(g => new TagGroup(g.Key, g.Count()));
+            .GroupBy(t => t.Name.ToLower());
     }
 }
