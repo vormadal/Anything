@@ -1,3 +1,4 @@
+using Anything.Application.Features.ShoppingLists;
 using Anything.Application.Services;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
@@ -26,6 +27,7 @@ public class ImportRecipeHandler(
     IRepository<RecipeIngredient> ingredientRepository,
     IRepository<RecipeStep> stepRepository,
     IRepository<RecipeImage> imageRepository,
+    IRepository<ShoppingListRecommendation> recommendationRepository,
     IRecipeImageService recipeImageService,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
@@ -69,6 +71,19 @@ public class ImportRecipeHandler(
 
         foreach (var ingredient in ingredients)
             await unitCatalog.EnsureUnit(ingredient.Unit, ct);
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var ingredientNamesLower = ingredients.Select(i => i.Name.ToLower()).ToHashSet();
+        var existingRecommendations = await ShoppingListHelpers.GetExistingRecommendationNames(
+            recommendationRepository, householdContext.HouseholdId, null, ingredientNamesLower, ct);
+
+        foreach (var ingredient in ingredients)
+        {
+            // Imported ingredient names come from a third-party page, not the user, so they're
+            // seeded hidden rather than promoted straight into suggestions.
+            ShoppingListHelpers.AddRecommendationIfNotExists(recommendationRepository, existingRecommendations,
+                householdContext.HouseholdId, null, ingredient.Name, now, includeInSuggestions: false);
+        }
 
         if (command.ImageUrl is not null)
         {

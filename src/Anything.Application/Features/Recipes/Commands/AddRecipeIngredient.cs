@@ -1,3 +1,4 @@
+using Anything.Application.Features.ShoppingLists;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -12,6 +13,7 @@ public record AddRecipeIngredientCommand(int RecipeId, string Name, decimal? Amo
 public class AddRecipeIngredientHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<RecipeIngredient> ingredientRepository,
+    IRepository<ShoppingListRecommendation> recommendationRepository,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     IHouseholdContext householdContext,
@@ -45,6 +47,15 @@ public class AddRecipeIngredientHandler(
 
         ingredientRepository.Add(ingredient);
         await unitCatalog.EnsureUnit(command.Unit, ct);
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var existingRecommendations = await ShoppingListHelpers.GetExistingRecommendationNames(
+            recommendationRepository, householdContext.HouseholdId, null, [command.Name.ToLower()], ct);
+        // A manually-typed ingredient is a deliberate, user-authored name, so it's promoted
+        // straight into suggestions rather than seeded hidden like URL-imported ingredients.
+        ShoppingListHelpers.AddRecommendationIfNotExists(recommendationRepository, existingRecommendations,
+            householdContext.HouseholdId, null, command.Name, now, includeInSuggestions: true);
+
         await unitOfWork.SaveChanges(ct);
         return Results.Created($"/api/recipes/{command.RecipeId}/ingredients/{ingredient.Id}", ingredient);
     }

@@ -1,3 +1,4 @@
+using Anything.Application.Features.ShoppingLists;
 using Anything.Application.Services;
 using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
@@ -21,6 +22,7 @@ public class ReimportRecipeHandler(
     IRepository<RecipeIngredient> ingredientRepository,
     IRepository<RecipeStep> stepRepository,
     IRepository<RecipeImage> imageRepository,
+    IRepository<ShoppingListRecommendation> recommendationRepository,
     IRecipeParserService parserService,
     IRecipeImageService recipeImageService,
     IUnitOfWork unitOfWork,
@@ -78,6 +80,18 @@ public class ReimportRecipeHandler(
             }).ToList();
 
             ingredientRepository.AddRange(newIngredients);
+
+            var ingredientNamesLower = newIngredients.Select(i => i.Name.ToLower()).ToHashSet();
+            var existingRecommendations = await ShoppingListHelpers.GetExistingRecommendationNames(
+                recommendationRepository, householdContext.HouseholdId, null, ingredientNamesLower, ct);
+
+            foreach (var ingredient in newIngredients)
+            {
+                // Reimported ingredient names come from a third-party page, not the user, so they're
+                // seeded hidden rather than promoted straight into suggestions.
+                ShoppingListHelpers.AddRecommendationIfNotExists(recommendationRepository, existingRecommendations,
+                    householdContext.HouseholdId, null, ingredient.Name, now, includeInSuggestions: false);
+            }
         }
 
         if (command.ImportSteps)
