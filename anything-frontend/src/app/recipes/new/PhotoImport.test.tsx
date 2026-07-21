@@ -82,7 +82,7 @@ describe("PhotoImport", () => {
     await user.type(nameInput, "Corrected name");
     await user.click(screen.getByRole("button", { name: "Import Recipe" }));
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/recipes/42/edit"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/recipes/42?edit=true"));
     expect(mockParseText).toHaveBeenCalledWith({
       name: "Corrected name",
       ingredientsText: "250 g mel\n2 eggs",
@@ -107,7 +107,7 @@ describe("PhotoImport", () => {
     await user.click(screen.getByLabelText("Attach photo to the recipe"));
     await user.click(screen.getByRole("button", { name: "Import Recipe" }));
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/recipes/42/edit"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/recipes/42?edit=true"));
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
@@ -119,7 +119,7 @@ describe("PhotoImport", () => {
     await screen.findByLabelText("Name");
     await user.click(screen.getByRole("button", { name: "Import Recipe" }));
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/recipes/42/edit"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/recipes/42?edit=true"));
     expect(toast.warning).toHaveBeenCalled();
   });
 

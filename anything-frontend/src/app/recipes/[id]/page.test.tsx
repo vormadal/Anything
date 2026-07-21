@@ -8,11 +8,22 @@ import { toast } from 'sonner'
 const mockDetailsGet = jest.fn()
 const mockAddToShoppingListPost = jest.fn()
 const mockRecipeDelete = jest.fn()
+const mockReimportPost = jest.fn()
 
 const mockById: jest.Mock = jest.fn(() => ({
   delete: mockRecipeDelete,
   details: { get: mockDetailsGet },
   addToShoppingList: { post: mockAddToShoppingListPost },
+  reimport: { post: mockReimportPost },
+  // Edit-mode data comes from the granular per-resource endpoints — see
+  // RecipeEditMode.test.tsx for CRUD coverage of these; this file only
+  // needs enough to render the edit form once the user switches into it.
+  get: jest.fn().mockResolvedValue({ id: 1, name: 'Test Recipe', link: 'https://example.com/recipe', createdOn: '2024-01-01T00:00:00Z' }),
+  put: jest.fn().mockResolvedValue({ id: 1, name: 'Test Recipe' }),
+  ingredients: { get: jest.fn().mockResolvedValue([]), post: jest.fn(), byIngredientId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
+  steps: { get: jest.fn().mockResolvedValue([]), post: jest.fn(), byStepId: jest.fn(() => ({ put: jest.fn(), delete: jest.fn() })) },
+  images: { get: jest.fn().mockResolvedValue([]), byImageId: jest.fn(() => ({ delete: jest.fn() })), upload: { post: jest.fn() } },
+  tags: { get: jest.fn().mockResolvedValue([]) },
 }))
 
 jest.mock('@/lib/apiClient', () => ({
@@ -46,6 +57,11 @@ jest.mock('@/lib/apiClient', () => ({
       },
     },
   },
+  createMultipartBody: () => ({ addOrReplacePart: jest.fn() }),
+}))
+
+jest.mock('@/hooks/useRecommendations', () => ({
+  useRecommendations: () => ({ data: [] }),
 }))
 
 // Mock next/navigation
@@ -151,7 +167,7 @@ describe('RecipeDetailPage', () => {
     })
   })
 
-  it('should navigate to edit page when Edit recipe is selected', async () => {
+  it('should switch to edit mode in place when Edit recipe is selected', async () => {
     const user = userEvent.setup()
 
     render(<RecipeDetailPage />)
@@ -163,7 +179,75 @@ describe('RecipeDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'More options' }))
     await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
 
-    expect(mockPush).toHaveBeenCalledWith('/recipes/1/edit')
+    // Entering edit mode pushes exactly one history entry (the query param)
+    // instead of navigating to a separate route — see issue #621.
+    expect(mockPush).toHaveBeenCalledWith('?edit=true')
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Ingredient name')).toBeInTheDocument()
+    })
+  })
+
+  it('should show edit-mode-only dropdown options and no Done button once in edit mode', async () => {
+    const user = userEvent.setup()
+    mockDetailsGet.mockResolvedValue(buildDetail({ link: 'https://example.com/recipe' }))
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Recipe name')).toBeInTheDocument()
+    })
+
+    // There is no client-side "Done" button — the header back-chevron is the
+    // only way out, so a single back-press always leaves edit mode.
+    expect(screen.queryByRole('button', { name: /Done/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    expect(await screen.findByRole('menuitem', { name: /Reimport from URL/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Delete Recipe/i })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /Edit recipe/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /Add to Shopping List/i })).not.toBeInTheDocument()
+  })
+
+  it('should reimport the recipe from the edit-mode dropdown', async () => {
+    const user = userEvent.setup()
+    mockDetailsGet.mockResolvedValue(buildDetail({ link: 'https://example.com/recipe' }))
+    mockReimportPost.mockResolvedValueOnce(undefined)
+
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Recipe name')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Reimport from URL/i }))
+
+    await user.click(screen.getByRole('button', { name: 'Reimport' }))
+
+    await waitFor(() => {
+      expect(mockReimportPost).toHaveBeenCalledWith({
+        importName: true,
+        importIngredients: true,
+        importSteps: true,
+        importImages: true,
+      })
+    })
+
+    expect(toast.success).toHaveBeenCalledWith('Recipe reimported successfully')
   })
 
   it('should not show edit inputs on view page', async () => {

@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, ShoppingCart, MoreVertical, CalendarPlus, Trash2, Clock, Users, Package, Layers, ImageIcon, ChefHat, Share2 } from "lucide-react";
+import { Pencil, ShoppingCart, MoreVertical, CalendarPlus, Trash2, RefreshCw, ChefHat, Share2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,16 +20,20 @@ import {
   useRecipeDetails,
   useDeleteRecipe,
   useAddIngredientsToShoppingList,
+  useReimportRecipe,
 } from "@/hooks/useRecipes";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import { ShareRecipeDialog } from "@/components/ShareRecipeDialog";
-import { useParams, useRouter } from "next/navigation";
+import { RecipeView } from "./RecipeView";
+import { RecipeEditMode } from "./RecipeEditMode";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import Image from "next/image";
 import { useCookingMode, type CookingSession } from "@/context/CookingModeContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+
+const OFFLINE_TITLE_REIMPORT = "Reimporting a recipe requires an internet connection";
 
 // Reads live cooking state from context so the button reflects current state
 // even when the header actions are only set once in a useEffect.
@@ -70,44 +74,39 @@ export default function RecipeDetailPage() {
   const router = useRouter();
   const recipeId = Number(params.id);
 
-  const isSafeUrl = (url: string) =>
-    url.startsWith("http://") || url.startsWith("https://");
+  const searchParams = useSearchParams();
+  const editParam = searchParams.get("edit") === "true";
+  const [isEditMode, setIsEditMode] = useState(editParam);
 
-  const getDisplayDomain = (url: string) => {
-    try {
-      const hostname = new URL(url).hostname;
-      return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
-    } catch {
-      return url;
-    }
-  };
+  useEffect(() => {
+    setIsEditMode(editParam);
+  }, [editParam]);
 
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [foodPlanDialogOpen, setFoodPlanDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [reimportDialogOpen, setReimportDialogOpen] = useState(false);
+  const [reimportName, setReimportName] = useState(true);
+  const [reimportIngredients, setReimportIngredients] = useState(true);
+  const [reimportSteps, setReimportSteps] = useState(true);
+  const [reimportImages, setReimportImages] = useState(true);
 
-  // One aggregate request for the recipe plus its ingredients, steps, images
-  // and tags (instead of five separate queries).
-  const { data: detail, isLoading, error } = useRecipeDetails(recipeId);
-  const recipe = detail;
-  const ingredients = detail?.ingredients;
-  const steps = detail?.steps;
-  const images = detail?.images;
-  const tags = detail?.tags;
+  // Needed by both the view-mode cooking-session builder and the edit-mode
+  // reimport dropdown/dialog (recipe.link) — kept in the parent since it's
+  // always mounted, unlike RecipeView/RecipeEditMode which swap in and out.
+  const { data: recipe } = useRecipeDetails(recipeId);
+  const steps = recipe?.steps;
   // Only needed for the "add to shopping list" dialog — fetch lazily when it opens.
   const { data: shoppingLists } = useShoppingLists(shoppingListDialogOpen);
 
   const deleteRecipe = useDeleteRecipe();
   const addToShoppingList = useAddIngredientsToShoppingList(recipeId);
+  const reimportRecipe = useReimportRecipe(recipeId);
   const isOnline = useOnlineStatus();
 
   const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
-  const heroImageUrl = images?.[0]?.originalUrl ?? "";
-
-  const { session, completedStepIds, stopCooking, toggleStep } = useCookingMode();
-  const isCooking = session?.recipeId === recipeId;
 
   // Stable ref for the session builder so CookingHeaderButton can read current recipe/steps
   const sessionBuilderRef = useRef<() => CookingSession | null>(() => null);
@@ -144,6 +143,21 @@ export default function RecipeDetailPage() {
     }
   };
 
+  const handleReimport = async () => {
+    try {
+      await reimportRecipe.mutateAsync({
+        importName: reimportName,
+        importIngredients: reimportIngredients,
+        importSteps: reimportSteps,
+        importImages: reimportImages,
+      });
+      toast.success("Recipe reimported successfully");
+      setReimportDialogOpen(false);
+    } catch {
+      toast.error("Failed to reimport recipe. Please try again.");
+    }
+  };
+
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const routerRef = useRef(router);
@@ -154,287 +168,153 @@ export default function RecipeDetailPage() {
   useEffect(() => {
     setLeftAction({ type: "back", href: "/recipes" });
     setHeaderActions(
-      <div className="flex items-center gap-1 ml-auto">
-        <CookingHeaderButton recipeId={recipeId} sessionGetter={sessionBuilderRef} />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setFoodPlanDialogOpen(true)}
-          aria-label="Add to food plan"
-        >
-          <CalendarPlus className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShareDialogOpen(true)}
-          aria-label="Share recipe"
-        >
-          <Share2 className="h-5 w-5" />
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="More options">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => routerRef.current.push(`/recipes/${recipeId}/edit`)}>
-              <Pencil className="h-4 w-4" />
-              Edit recipe
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setShoppingListDialogOpen(true)} disabled={!isOnline}>
-              <ShoppingCart className="h-4 w-4" />
-              Add to Shopping List
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-              onSelect={() => setDeleteConfirmOpen(true)}
-              disabled={!isOnline}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Recipe
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      isEditMode ? (
+        <div className="flex items-center gap-1 ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="More options">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {recipe?.link && (
+                <DropdownMenuItem
+                  onSelect={() => setReimportDialogOpen(true)}
+                  disabled={!isOnline}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Reimport from URL
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                onSelect={() => setDeleteConfirmOpen(true)}
+                disabled={!isOnline}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Recipe
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1 ml-auto">
+          <CookingHeaderButton recipeId={recipeId} sessionGetter={sessionBuilderRef} />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setFoodPlanDialogOpen(true)}
+            aria-label="Add to food plan"
+          >
+            <CalendarPlus className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShareDialogOpen(true)}
+            aria-label="Share recipe"
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="More options">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onSelect={() => {
+                  setIsEditMode(true);
+                  routerRef.current.push("?edit=true");
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+                Edit recipe
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShoppingListDialogOpen(true)} disabled={!isOnline}>
+                <ShoppingCart className="h-4 w-4" />
+                Add to Shopping List
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                onSelect={() => setDeleteConfirmOpen(true)}
+                disabled={!isOnline}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Recipe
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )
     );
     return () => {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [recipeId, setHeaderActions, setLeftAction, isOnline]);
+  }, [isEditMode, recipeId, recipe?.link, setHeaderActions, setLeftAction, isOnline]);
 
   return (
     <div className="max-w-4xl mx-auto">
-      <PageTitle>Recipe</PageTitle>
+      <PageTitle>{isEditMode ? "Edit Recipe" : "Recipe"}</PageTitle>
 
-      {/* ── Hero: full-width image with overlaid title and tags ── */}
-      <div className="relative w-full h-64 sm:h-80 md:h-96 bg-gray-100 dark:bg-gray-800 overflow-hidden">
-        {heroImageUrl ? (
-          <Image
-            src={heroImageUrl}
-            alt="Recipe image"
-            fill
-            className="object-cover"
-            sizes="100vw"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-gray-300 dark:text-gray-600">
-            <ImageIcon className="h-20 w-20" strokeWidth={1} />
-            <p className="text-sm text-gray-400 dark:text-gray-500">No photo yet</p>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 pt-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow">
-            {recipe?.name ?? (isLoading ? "" : "Recipe")}
-          </h1>
-          {tags && tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm"
-                >
-                  {tag.name}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {isEditMode ? (
+        <RecipeEditMode recipeId={recipeId} />
+      ) : (
+        <RecipeView recipeId={recipeId} />
+      )}
 
-      {/* ── Page content ── */}
-      <div className="px-4 sm:px-6 py-6">
-        {isLoading && (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">Loading...</div>
-        )}
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-            Failed to load recipe. Please try again later.
-          </div>
-        )}
-
-        {/* Recipe meta */}
-        {(recipe?.link || recipe?.notes || recipe?.cookTimeMinutes != null || recipe?.servings != null) && (
-          <div className="mb-8">
-            {(recipe?.cookTimeMinutes != null || recipe?.servings != null) && (
-              <div className="flex flex-wrap gap-3 mb-3">
-                {recipe.cookTimeMinutes != null && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                    <Clock className="h-4 w-4" />
-                    {recipe.cookTimeMinutes} min
-                  </span>
-                )}
-                {recipe.servings != null && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                    {recipe.servingsType === "Quantity" ? (
-                      <Package className="h-4 w-4" />
-                    ) : recipe.servingsType === "Pieces" ? (
-                      <Layers className="h-4 w-4" />
-                    ) : (
-                      <Users className="h-4 w-4" />
-                    )}
-                    {recipe.servings} {recipe.servingsType === "Quantity" ? "items" : recipe.servingsType === "Pieces" ? "pieces" : "people"}
-                  </span>
-                )}
-              </div>
-            )}
-            {recipe?.link && isSafeUrl(recipe.link) && (
-              <a
-                href={recipe.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline text-sm block mb-2"
-              >
-                {getDisplayDomain(recipe.link)}
-              </a>
-            )}
-            {recipe?.notes && (
-              <p className="text-gray-600 dark:text-gray-400 text-sm whitespace-pre-wrap leading-relaxed">
-                {recipe.notes}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* ── Ingredients ── */}
-        <div className="mb-10">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
-            Ingredients
-          </h2>
-          {ingredients?.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No ingredients yet.</p>
-          )}
-          {ingredients && ingredients.length > 0 && (
-            <ul className="space-y-0.5">
-              {ingredients.map((ingredient) => (
-                <li key={ingredient.id} className="flex items-center gap-1 py-1">
-                  <span className="text-gray-800 dark:text-gray-200 text-sm">
-                    {(ingredient.amount != null || !!ingredient.unit) && (
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {ingredient.amount != null ? ingredient.amount : ""}{ingredient.unit ? ` ${ingredient.unit}` : ""}
-                      </span>
-                    )}{" "}
-                    {ingredient.name}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* ── Steps ── */}
-        <div className="mb-8">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
-            Steps
-          </h2>
-          {sortedSteps.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No steps yet.</p>
-          )}
-          {sortedSteps.length > 0 && (
-            <ol className="space-y-3">
-              {sortedSteps.map((step, index) => {
-                const stepId = step.id;
-                const done = isCooking && stepId != null && completedStepIds.has(stepId);
-                const handleToggle =
-                  isCooking && stepId != null ? () => toggleStep(stepId) : undefined;
-                return (
-                  <li
-                    key={step.id ?? index}
-                    className={`flex items-start gap-3 ${isCooking && stepId != null ? "cursor-pointer select-none" : ""}`}
-                    onClick={handleToggle}
-                    onKeyDown={
-                      handleToggle
-                        ? (e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleToggle();
-                            }
-                          }
-                        : undefined
-                    }
-                    role={handleToggle ? "button" : undefined}
-                    tabIndex={handleToggle ? 0 : undefined}
-                    aria-pressed={handleToggle ? done : undefined}
-                  >
-                    <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-0.5">
-                      {index + 1}.
-                    </span>
-                    <span className={`flex-1 min-w-0 text-sm leading-relaxed transition-colors ${done ? "line-through text-gray-400 dark:text-gray-600" : "text-gray-800 dark:text-gray-200"}`}>
-                      {step.text}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-          {isCooking && (
-            <button
-              type="button"
-              onClick={stopCooking}
-              className="mt-6 w-full py-2.5 px-4 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-            >
-              Stop cooking mode
-            </button>
-          )}
-        </div>
-
-        {/* ── Shopping list dialog ── */}
-        <Dialog open={shoppingListDialogOpen} onOpenChange={setShoppingListDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add ingredients to shopping list</DialogTitle>
-            </DialogHeader>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Multiplier (scale ingredient quantities):
-              </p>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setMultiplier((m) => Math.max(0, m - 1))}
-                  className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-lg disabled:opacity-50"
-                  disabled={multiplier <= 0}
-                  aria-label="Decrease multiplier"
-                >
-                  −
-                </button>
-                <span className="w-8 text-center font-semibold text-gray-900 dark:text-white">{multiplier}</span>
-                <button
-                  type="button"
-                  onClick={() => setMultiplier((m) => m + 1)}
-                  className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-lg"
-                  aria-label="Increase multiplier"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Select a shopping list to add all ingredients to:
+      {/* ── Shopping list dialog ── */}
+      <Dialog open={shoppingListDialogOpen} onOpenChange={setShoppingListDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add ingredients to shopping list</DialogTitle>
+          </DialogHeader>
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Multiplier (scale ingredient quantities):
             </p>
-            <ul className="space-y-2">
-              {(shoppingLists ?? []).map((list) => (
-                <li key={list.id}>
-                  <button
-                    onClick={() => handleAddToShoppingList(list.id ?? 0)}
-                    disabled={addToShoppingList.isPending || !isOnline}
-                    title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
-                    className="w-full text-left px-4 py-3 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium transition-colors disabled:opacity-50"
-                  >
-                    {list.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setMultiplier((m) => Math.max(0, m - 1))}
+                className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-lg disabled:opacity-50"
+                disabled={multiplier <= 0}
+                aria-label="Decrease multiplier"
+              >
+                −
+              </button>
+              <span className="w-8 text-center font-semibold text-gray-900 dark:text-white">{multiplier}</span>
+              <button
+                type="button"
+                onClick={() => setMultiplier((m) => m + 1)}
+                className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-lg"
+                aria-label="Increase multiplier"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Select a shopping list to add all ingredients to:
+          </p>
+          <ul className="space-y-2">
+            {(shoppingLists ?? []).map((list) => (
+              <li key={list.id}>
+                <button
+                  onClick={() => handleAddToShoppingList(list.id ?? 0)}
+                  disabled={addToShoppingList.isPending || !isOnline}
+                  title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
+                  className="w-full text-left px-4 py-3 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {list.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Add to Food Plan dialog ── */}
       {foodPlanDialogOpen && recipe && (
@@ -471,6 +351,80 @@ export default function RecipeDetailPage() {
               title={isOnline ? undefined : "Deleting a recipe requires an internet connection"}
             >
               Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Reimport from URL dialog ── */}
+      <Dialog open={reimportDialogOpen} onOpenChange={setReimportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reimport from URL</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Choose which parts to update from{" "}
+            <a
+              href={recipe?.link ?? ""}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline break-all"
+            >
+              {recipe?.link}
+            </a>
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reimportName}
+                onChange={(e) => setReimportName(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">Name</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reimportIngredients}
+                onChange={(e) => setReimportIngredients(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">Ingredients</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reimportSteps}
+                onChange={(e) => setReimportSteps(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">Instructions</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reimportImages}
+                onChange={(e) => setReimportImages(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <span className="text-sm font-medium">Images</span>
+            </label>
+          </div>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button variant="outline" onClick={() => setReimportDialogOpen(false)} disabled={reimportRecipe.isPending}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReimport}
+              disabled={
+                reimportRecipe.isPending ||
+                (!reimportName && !reimportIngredients && !reimportSteps && !reimportImages) ||
+                !isOnline
+              }
+              title={isOnline ? undefined : OFFLINE_TITLE_REIMPORT}
+            >
+              {reimportRecipe.isPending ? "Importing…" : "Reimport"}
             </Button>
           </div>
         </DialogContent>

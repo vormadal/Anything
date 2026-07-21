@@ -11,7 +11,7 @@ Next.js 15 App Router pages. Each subfolder maps 1:1 to a URL segment.
   - `bills/`, `food-plans/`, `households/`, `lists/`, `recipes/`, `shopping-lists/`
   - `admin/` — invite management, recipe tags, suggestion categories
   - `login/`, `register/`, `profile/` — auth and user pages
-- Dynamic segments use `[id]/` subfolders with `page.tsx` (detail) and `[id]/edit/page.tsx` (edit form)
+- Dynamic segments use `[id]/` subfolders with `page.tsx` (detail). Prefer an in-place edit mode toggled by a `?edit=true` query param on the same route (see `lists/[id]/page.tsx`, `recipes/[id]/page.tsx`) over a separate `[id]/edit/page.tsx`; `bills/[id]/edit/page.tsx` is a legacy exception for a single-entity form, not a list-item, and is not the pattern to copy for new dynamic routes.
 
 ## Key Patterns
 

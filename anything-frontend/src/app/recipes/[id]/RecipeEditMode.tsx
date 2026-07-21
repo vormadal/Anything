@@ -1,22 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Trash2, Plus, Check, GripVertical, Clock, RefreshCw, X, ImageIcon } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreVertical } from "lucide-react";
-import { useHeaderActions } from "@/context/PageActionsContext";
-import { PageTitle } from "@/components/PageTitle";
+import { Trash2, Plus, Check, GripVertical, Clock, X, ImageIcon } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -40,7 +25,6 @@ import {
   useRecipeSteps,
   useRecipeImages,
   useUpdateRecipe,
-  useDeleteRecipe,
   useAddRecipeIngredient,
   useUpdateRecipeIngredient,
   useDeleteRecipeIngredient,
@@ -53,14 +37,12 @@ import {
   useDeleteRecipeTag,
   useReorderRecipeIngredients,
   useReorderRecipeSteps,
-  useReimportRecipe,
 } from "@/hooks/useRecipes";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useUnits } from "@/hooks/useUnits";
 import { RecipeImageUpload } from "@/components/RecipeImageUpload";
-import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import type { RecipeIngredient, RecipeStep } from "@/lib/api-client/models/index";
@@ -235,11 +217,12 @@ function SortableStepItem({
   );
 }
 
-export default function RecipeEditPage() {
-  const params = useParams();
-  const router = useRouter();
+interface Props {
+  recipeId: number;
+}
+
+export function RecipeEditMode({ recipeId }: Props) {
   const queryClient = useQueryClient();
-  const recipeId = Number(params.id);
 
   const [editName, setEditName] = useState<string | null>(null);
   const [editLink, setEditLink] = useState<string | null>(null);
@@ -261,17 +244,11 @@ export default function RecipeEditPage() {
   const [savedStepIds, setSavedStepIds] = useState<Record<number, boolean>>({});
   const [stepAddedSuccess, setStepAddedSuccess] = useState(false);
   const [newTagName, setNewTagName] = useState("");
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [reimportDialogOpen, setReimportDialogOpen] = useState(false);
-  const [reimportName, setReimportName] = useState(true);
-  const [reimportIngredients, setReimportIngredients] = useState(true);
-  const [reimportSteps, setReimportSteps] = useState(true);
-  const [reimportImages, setReimportImages] = useState(true);
   const [showIngredientSuggestions, setShowIngredientSuggestions] = useState(false);
   const ingredientNameRef = useRef<HTMLInputElement>(null);
   const SUGGESTION_CLOSE_DELAY_MS = 150;
 
-  const { data: recipe, isLoading, error } = useRecipe(recipeId);
+  const { data: recipe } = useRecipe(recipeId);
   const { data: ingredients } = useRecipeIngredients(recipeId);
   const { data: steps } = useRecipeSteps(recipeId);
   const { data: images } = useRecipeImages(recipeId);
@@ -288,8 +265,6 @@ export default function RecipeEditPage() {
   const effectiveEditServingsType = editServingsType ?? (recipe?.servingsType ?? "People");
 
   const updateRecipe = useUpdateRecipe();
-  const deleteRecipe = useDeleteRecipe();
-  const reimportRecipe = useReimportRecipe(recipeId);
   const addIngredient = useAddRecipeIngredient(recipeId);
   const updateIngredient = useUpdateRecipeIngredient(recipeId);
   const deleteIngredient = useDeleteRecipeIngredient(recipeId);
@@ -329,7 +304,7 @@ export default function RecipeEditPage() {
     reorderSteps.mutate(reordered.map((s) => s.id ?? 0));
   };
 
-  const handleDone = useCallback(async () => {
+  const saveMetadataIfChanged = useCallback(async () => {
     const parsedCookTime = effectiveEditCookTimeMinutes ? Number(effectiveEditCookTimeMinutes) : null;
     const parsedServings = effectiveEditServings ? Number(effectiveEditServings) : null;
     const nameChanged = effectiveEditName !== (recipe?.name ?? "");
@@ -339,24 +314,24 @@ export default function RecipeEditPage() {
     const servingsChanged = parsedServings !== (recipe?.servings ?? null);
     const servingsTypeChanged = effectiveEditServingsType !== (recipe?.servingsType ?? "People");
 
-    if (nameChanged || linkChanged || notesChanged || cookTimeChanged || servingsChanged || servingsTypeChanged) {
-      try {
-        await updateRecipe.mutateAsync({
-          id: recipeId,
-          name: effectiveEditName,
-          link: effectiveEditLink || null,
-          notes: effectiveEditNotes || null,
-          cookTimeMinutes: parsedCookTime && !Number.isNaN(parsedCookTime) ? parsedCookTime : null,
-          servings: parsedServings && !Number.isNaN(parsedServings) ? parsedServings : null,
-          servingsType: effectiveEditServingsType,
-        });
-      } catch {
-        toast.error("Failed to update recipe. Please try again.");
-        return;
-      }
+    if (!nameChanged && !linkChanged && !notesChanged && !cookTimeChanged && !servingsChanged && !servingsTypeChanged) {
+      return;
     }
-    router.push(`/recipes/${recipeId}`);
-  }, [effectiveEditName, effectiveEditLink, effectiveEditNotes, effectiveEditCookTimeMinutes, effectiveEditServings, effectiveEditServingsType, recipe, recipeId, updateRecipe, router]);
+
+    try {
+      await updateRecipe.mutateAsync({
+        id: recipeId,
+        name: effectiveEditName,
+        link: effectiveEditLink || null,
+        notes: effectiveEditNotes || null,
+        cookTimeMinutes: parsedCookTime && !Number.isNaN(parsedCookTime) ? parsedCookTime : null,
+        servings: parsedServings && !Number.isNaN(parsedServings) ? parsedServings : null,
+        servingsType: effectiveEditServingsType,
+      });
+    } catch {
+      toast.error("Failed to update recipe. Please try again.");
+    }
+  }, [effectiveEditName, effectiveEditLink, effectiveEditNotes, effectiveEditCookTimeMinutes, effectiveEditServings, effectiveEditServingsType, recipe, recipeId, updateRecipe]);
 
   const handleIngredientFieldChange = (
     ingredientId: number,
@@ -519,95 +494,11 @@ export default function RecipeEditPage() {
     }
   };
 
-  const handleReimport = async () => {
-    try {
-      await reimportRecipe.mutateAsync({
-        importName: reimportName,
-        importIngredients: reimportIngredients,
-        importSteps: reimportSteps,
-        importImages: reimportImages,
-      });
-      toast.success("Recipe reimported successfully");
-      setReimportDialogOpen(false);
-    } catch {
-      toast.error("Failed to reimport recipe. Please try again.");
-    }
-  };
-
-  const handleDeleteRecipe = async () => {
-    try {
-      await deleteRecipe.mutateAsync(recipeId);
-      setDeleteConfirmOpen(false);
-      toast.success("Recipe deleted");
-      router.push("/recipes");
-    } catch {
-      toast.error("Failed to delete recipe. Please try again.");
-      setDeleteConfirmOpen(false);
-    }
-  };
-
   const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
   const heroImageUrl = images?.[0]?.originalUrl ?? "";
 
-  const { setHeaderActions, setLeftAction } = useHeaderActions();
-
-  const handleDoneRef = useRef(handleDone);
-  useEffect(() => {
-    handleDoneRef.current = handleDone;
-  });
-
-  useEffect(() => {
-    setLeftAction({ type: "back", href: `/recipes/${recipeId}` });
-    setHeaderActions(
-      <div className="flex items-center gap-1 ml-auto">
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => handleDoneRef.current()}
-          disabled={updateRecipe.isPending}
-          aria-label="Done editing"
-        >
-          <Check className="h-4 w-4 mr-1" />
-          Done
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="More options">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {recipe?.link && (
-              <DropdownMenuItem
-                onSelect={() => setReimportDialogOpen(true)}
-                disabled={!isOnline}
-              >
-                <RefreshCw className="h-4 w-4" />
-                Reimport from URL
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-              onSelect={() => setDeleteConfirmOpen(true)}
-              disabled={!isOnline}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Recipe
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    );
-    return () => {
-      setHeaderActions(null);
-      setLeftAction({ type: "menu" });
-    };
-  }, [updateRecipe.isPending, recipe?.link, recipeId, setHeaderActions, setLeftAction, isOnline]);
-
   return (
-    <div className="max-w-4xl mx-auto">
-      <PageTitle>Edit Recipe</PageTitle>
-
+    <>
       {/* ── Hero: full-width image with overlaid title ── */}
       <div className="relative w-full h-64 sm:h-80 md:h-96 bg-gray-100 dark:bg-gray-800 overflow-hidden">
         {heroImageUrl ? (
@@ -633,6 +524,7 @@ export default function RecipeEditPage() {
             type="text"
             value={effectiveEditName}
             onChange={(e) => setEditName(e.target.value)}
+            onBlur={() => saveMetadataIfChanged()}
             placeholder="Recipe name"
             disabled={!isOnline}
             title={isOnline ? undefined : OFFLINE_TITLE}
@@ -679,17 +571,13 @@ export default function RecipeEditPage() {
 
       {/* ── Page content ── */}
       <div className="px-4 sm:px-6 py-6">
-        {isLoading && (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">Loading...</div>
-        )}
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded mb-4">
-            Failed to load recipe. Please try again later.
-          </div>
-        )}
-
         {/* Recipe metadata */}
-        <div className="space-y-2 mb-8">
+        <div
+          className="space-y-2 mb-8"
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) saveMetadataIfChanged();
+          }}
+        >
           <input
             type="url"
             value={effectiveEditLink}
@@ -996,105 +884,6 @@ export default function RecipeEditPage() {
           </form>
         </div>
       </div>
-
-      {/* ── Delete recipe confirmation dialog ── */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Recipe</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete this recipe? This action cannot be undone.
-          </p>
-          <div className="flex gap-2 justify-end mt-2">
-            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteRecipe}
-              disabled={deleteRecipe.isPending || !isOnline}
-              title={isOnline ? undefined : OFFLINE_TITLE}
-            >
-              Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Reimport from URL dialog ── */}
-      <Dialog open={reimportDialogOpen} onOpenChange={setReimportDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reimport from URL</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Choose which parts to update from{" "}
-            <a
-              href={recipe?.link ?? ""}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline break-all"
-            >
-              {recipe?.link}
-            </a>
-          </p>
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={reimportName}
-                onChange={(e) => setReimportName(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <span className="text-sm font-medium">Name</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={reimportIngredients}
-                onChange={(e) => setReimportIngredients(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <span className="text-sm font-medium">Ingredients</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={reimportSteps}
-                onChange={(e) => setReimportSteps(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <span className="text-sm font-medium">Instructions</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={reimportImages}
-                onChange={(e) => setReimportImages(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <span className="text-sm font-medium">Images</span>
-            </label>
-          </div>
-          <div className="flex gap-2 justify-end mt-4">
-            <Button variant="outline" onClick={() => setReimportDialogOpen(false)} disabled={reimportRecipe.isPending}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleReimport}
-              disabled={
-                reimportRecipe.isPending ||
-                (!reimportName && !reimportIngredients && !reimportSteps && !reimportImages) ||
-                !isOnline
-              }
-              title={isOnline ? undefined : OFFLINE_TITLE}
-            >
-              {reimportRecipe.isPending ? "Importing…" : "Reimport"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </>
   );
 }

@@ -55,7 +55,7 @@ describe("NewRecipePage", () => {
     expect(mockCreateRecipe).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Pancakes" })
     );
-    expect(mockReplace).toHaveBeenCalledWith("/recipes/42/edit");
+    expect(mockReplace).toHaveBeenCalledWith("/recipes/42?edit=true");
   });
 
   it("imports a recipe from a URL", async () => {
@@ -70,7 +70,7 @@ describe("NewRecipePage", () => {
 
     expect(mockParseFromUrl).toHaveBeenCalledWith("https://example.com/soup");
     expect(mockImportRecipe).toHaveBeenCalled();
-    expect(mockReplace).toHaveBeenCalledWith("/recipes/7/edit");
+    expect(mockReplace).toHaveBeenCalledWith("/recipes/7?edit=true");
   });
 
   it("disables creating and importing while offline", async () => {
