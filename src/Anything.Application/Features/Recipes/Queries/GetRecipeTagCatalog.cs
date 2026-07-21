@@ -7,18 +7,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Recipes.Queries;
 
-public record GetTopRecipeTagsQuery(int Count = 10) : IRequest<List<TopTagResponse>>;
+public record GetRecipeTagCatalogQuery : IRequest<List<TopTagResponse>>;
 
-public class GetTopRecipeTagsHandler(IRepository<RecipeTag> tagRepository, IRepository<Recipe> recipeRepository, IHouseholdContext householdContext)
-    : IRequestHandler<GetTopRecipeTagsQuery, List<TopTagResponse>>
+public class GetRecipeTagCatalogHandler(IRepository<RecipeTag> tagRepository, IRepository<Recipe> recipeRepository, IHouseholdContext householdContext)
+    : IRequestHandler<GetRecipeTagCatalogQuery, List<TopTagResponse>>
 {
-    public async Task<List<TopTagResponse>> Handle(GetTopRecipeTagsQuery query, CancellationToken ct = default)
+    public async Task<List<TopTagResponse>> Handle(GetRecipeTagCatalogQuery query, CancellationToken ct = default)
     {
         var groups = await RecipeTagGroupingQuery.GroupedByHousehold(tagRepository, recipeRepository, householdContext)
             .Select(g => new { Name = g.Key, Count = g.Count() })
-            .OrderByDescending(t => t.Count)
-            .ThenBy(t => t.Name)
-            .Take(query.Count)
+            .OrderBy(t => t.Name)
             .ToListAsync(ct);
 
         return groups.Select(g => new TopTagResponse(g.Name, g.Count)).ToList();

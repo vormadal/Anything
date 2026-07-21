@@ -6,6 +6,8 @@ import { createHttpValidationProblemDetailsFromDiscriminatorValue, createShoppin
 // @ts-ignore
 import { CompleteRequestBuilderRequestsMetadata, type CompleteRequestBuilder } from './complete/index';
 // @ts-ignore
+import { CopyItemsToTemplateRequestBuilderRequestsMetadata, type CopyItemsToTemplateRequestBuilder } from './copyItemsToTemplate/index';
+// @ts-ignore
 import { ItemsRequestBuilderNavigationMetadata, ItemsRequestBuilderRequestsMetadata, type ItemsRequestBuilder } from './items/index';
 // @ts-ignore
 import { SaveAsTemplateRequestBuilderRequestsMetadata, type SaveAsTemplateRequestBuilder } from './saveAsTemplate/index';
@@ -22,6 +24,10 @@ export interface ChecklistsItemRequestBuilder extends BaseRequestBuilder<Checkli
      * The complete property
      */
     get complete(): CompleteRequestBuilder;
+    /**
+     * The copyItemsToTemplate property
+     */
+    get copyItemsToTemplate(): CopyItemsToTemplateRequestBuilder;
     /**
      * The items property
      */
@@ -76,6 +82,9 @@ export const ChecklistsItemRequestBuilderUriTemplate = "{+baseurl}/api/checklist
 export const ChecklistsItemRequestBuilderNavigationMetadata: Record<Exclude<keyof ChecklistsItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
     complete: {
         requestsMetadata: CompleteRequestBuilderRequestsMetadata,
+    },
+    copyItemsToTemplate: {
+        requestsMetadata: CopyItemsToTemplateRequestBuilderRequestsMetadata,
     },
     items: {
         requestsMetadata: ItemsRequestBuilderRequestsMetadata,

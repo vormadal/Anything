@@ -45,6 +45,35 @@ public static class RecipeEndpoints
         .Produces<List<Anything.Contracts.Recipes.TopTagResponse>>()
         .RequireAuthorization();
 
+        group.MapGet("/tags/catalog", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new GetRecipeTagCatalogQuery());
+        })
+        .WithName("GetRecipeTagCatalog")
+        .Produces<List<Anything.Contracts.Recipes.TopTagResponse>>()
+        .RequireAuthorization();
+
+        group.MapPut("/tags/{name}", async (string name, [FromBody] RenameRecipeTagRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new RenameRecipeTagCommand(name, request.NewName));
+        })
+        .WithName("RenameRecipeTag")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithParameterValidation()
+        .RequireAuthorization()
+        .RequireHouseholdManager();
+
+        group.MapDelete("/tags/{name}", async (string name, IMediator mediator) =>
+        {
+            return await mediator.Send(new DeleteRecipeTagByNameCommand(name));
+        })
+        .WithName("DeleteRecipeTagByName")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound)
+        .RequireAuthorization()
+        .RequireHouseholdManager();
+
         group.MapGet("/tags/export", async (IMediator mediator) =>
         {
             return await mediator.Send(new ExportRecipeTagsQuery());

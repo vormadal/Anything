@@ -10,12 +10,14 @@ const mockItemsGet = jest.fn()
 const mockCompletePost = jest.fn()
 const mockItemsReorderPut = jest.fn()
 const mockItemsItemById: jest.Mock = jest.fn(() => ({ put: jest.fn(), delete: jest.fn() }))
+const mockTemplatesGet = jest.fn()
 const mockById: jest.Mock = jest.fn(() => ({
   get: mockGet,
   delete: mockDelete,
   put: mockListPut,
   items: { get: mockItemsGet, post: jest.fn(), byItemId: mockItemsItemById, reorder: { put: mockItemsReorderPut } },
   complete: { post: mockCompletePost },
+  copyItemsToTemplate: { post: jest.fn() },
 }))
 
 jest.mock('@/lib/apiClient', () => ({
@@ -24,6 +26,7 @@ jest.mock('@/lib/apiClient', () => ({
       checklists: {
         byId: (...args: unknown[]) => mockById(...args),
         reorder: { put: jest.fn() },
+        templates: { get: (...args: unknown[]) => mockTemplatesGet(...args) },
       },
     },
   },
@@ -92,6 +95,29 @@ describe('ListDetailPage', () => {
     await waitFor(() => expect(screen.getByText('My List')).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: 'More options' }))
     expect(screen.getByText('Rename')).toBeInTheDocument()
+  })
+
+  it('does not show "Add items to template" for a list without a source template', async () => {
+    const user = userEvent.setup()
+    mockGet.mockResolvedValue({ id: 1, name: 'My List', type: 1 })
+    mockItemsGet.mockResolvedValue([])
+    render(<ListDetailPage />)
+    await waitFor(() => expect(screen.getByText('My List')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    expect(screen.queryByText('Add items to template')).not.toBeInTheDocument()
+  })
+
+  it('shows "Add items to template" and opens the dialog for a list with a source template', async () => {
+    const user = userEvent.setup()
+    mockGet.mockResolvedValue({ id: 1, name: 'My List', type: 1, sourceTemplateId: 9 })
+    mockItemsGet.mockResolvedValue([])
+    mockTemplatesGet.mockResolvedValue([{ id: 9, name: 'Weekly Groceries', type: 1, itemCount: 0 }])
+    render(<ListDetailPage />)
+    await waitFor(() => expect(screen.getByText('My List')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(screen.getByText('Add items to template'))
+
+    expect(await screen.findByText('Add items to “Weekly Groceries”')).toBeInTheDocument()
   })
 
   it('opens rename dialog and saves new list name', async () => {

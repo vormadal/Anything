@@ -356,6 +356,12 @@ export interface ConvertShoppingListTypeRequest extends Parsable {
      */
     type?: number | null;
 }
+export interface CopyItemsToTemplateRequest extends Parsable {
+    /**
+     * The itemIds property
+     */
+    itemIds?: number[] | null;
+}
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
@@ -541,6 +547,15 @@ export function createCompleteShoppingListRequestFromDiscriminatorValue(parseNod
 // @ts-ignore
 export function createConvertShoppingListTypeRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoConvertShoppingListTypeRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CopyItemsToTemplateRequest}
+ */
+// @ts-ignore
+export function createCopyItemsToTemplateRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCopyItemsToTemplateRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1383,6 +1398,15 @@ export function createReimportRecipeRequestFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenameRecipeTagRequest}
+ */
+// @ts-ignore
+export function createRenameRecipeTagRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenameRecipeTagRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {ReorderRecipeIngredientsRequest}
  */
 // @ts-ignore
@@ -2112,6 +2136,17 @@ export function deserializeIntoCompleteShoppingListRequest(completeShoppingListR
 export function deserializeIntoConvertShoppingListTypeRequest(convertShoppingListTypeRequest: Partial<ConvertShoppingListTypeRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "type": n => { convertShoppingListTypeRequest.type = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CopyItemsToTemplateRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCopyItemsToTemplateRequest(copyItemsToTemplateRequest: Partial<CopyItemsToTemplateRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "itemIds": n => { copyItemsToTemplateRequest.itemIds = n.getCollectionOfPrimitiveValues<number>(); },
     }
 }
 /**
@@ -3178,6 +3213,17 @@ export function deserializeIntoReimportRecipeRequest(reimportRecipeRequest: Part
         "importIngredients": n => { reimportRecipeRequest.importIngredients = n.getBooleanValue(); },
         "importName": n => { reimportRecipeRequest.importName = n.getBooleanValue(); },
         "importSteps": n => { reimportRecipeRequest.importSteps = n.getBooleanValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenameRecipeTagRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenameRecipeTagRequest(renameRecipeTagRequest: Partial<RenameRecipeTagRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "newName": n => { renameRecipeTagRequest.newName = n.getStringValue(); },
     }
 }
 /**
@@ -4950,6 +4996,12 @@ export interface ReimportRecipeRequest extends Parsable {
      */
     importSteps?: boolean | null;
 }
+export interface RenameRecipeTagRequest extends Parsable {
+    /**
+     * The newName property
+     */
+    newName?: string | null;
+}
 export interface ReorderRecipeIngredientsRequest extends Parsable {
     /**
      * The ids property
@@ -5247,6 +5299,17 @@ export function serializeCompleteShoppingListRequest(writer: SerializationWriter
 export function serializeConvertShoppingListTypeRequest(writer: SerializationWriter, convertShoppingListTypeRequest: Partial<ConvertShoppingListTypeRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!convertShoppingListTypeRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("type", convertShoppingListTypeRequest.type);
+}
+/**
+ * Serializes information the current object
+ * @param CopyItemsToTemplateRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCopyItemsToTemplateRequest(writer: SerializationWriter, copyItemsToTemplateRequest: Partial<CopyItemsToTemplateRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!copyItemsToTemplateRequest || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfPrimitiveValues<number>("itemIds", copyItemsToTemplateRequest.itemIds);
 }
 /**
  * Serializes information the current object
@@ -6315,6 +6378,17 @@ export function serializeReimportRecipeRequest(writer: SerializationWriter, reim
     writer.writeBooleanValue("importIngredients", reimportRecipeRequest.importIngredients);
     writer.writeBooleanValue("importName", reimportRecipeRequest.importName);
     writer.writeBooleanValue("importSteps", reimportRecipeRequest.importSteps);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenameRecipeTagRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenameRecipeTagRequest(writer: SerializationWriter, renameRecipeTagRequest: Partial<RenameRecipeTagRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renameRecipeTagRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("newName", renameRecipeTagRequest.newName);
 }
 /**
  * Serializes information the current object

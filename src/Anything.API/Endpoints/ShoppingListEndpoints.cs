@@ -151,6 +151,17 @@ public static class ShoppingListEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        group.MapPost("/{id}/copy-items-to-template", async (int id, CopyItemsToTemplateRequest request, IMediator mediator) =>
+        {
+            return await mediator.Send(new CopyShoppingListItemsToTemplateCommand(id, request.ItemIds));
+        })
+        .WithName("CopyShoppingListItemsToTemplate")
+        .Produces(204)
+        .Produces(400)
+        .Produces(404)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
         group.MapPost("/{id}/complete", async (int id, CompleteShoppingListRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new CompleteShoppingListCommand(id, request.MarkUnchecked));

@@ -4,9 +4,13 @@
 // @ts-ignore
 import { createTopTagResponseFromDiscriminatorValue, type TopTagResponse } from '../../../models/index';
 // @ts-ignore
+import { CatalogRequestBuilderRequestsMetadata, type CatalogRequestBuilder } from './catalog/index';
+// @ts-ignore
 import { ExportRequestBuilderRequestsMetadata, type ExportRequestBuilder } from './exportEscaped/index';
 // @ts-ignore
 import { ImportRequestBuilderRequestsMetadata, type ImportRequestBuilder } from './importEscaped/index';
+// @ts-ignore
+import { type WithNameItemRequestBuilder, WithNameItemRequestBuilderRequestsMetadata } from './item/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
@@ -15,6 +19,10 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  */
 export interface TagsRequestBuilder extends BaseRequestBuilder<TagsRequestBuilder> {
     /**
+     * The catalog property
+     */
+    get catalog(): CatalogRequestBuilder;
+    /**
      * The export property
      */
     get exportEscaped(): ExportRequestBuilder;
@@ -22,6 +30,12 @@ export interface TagsRequestBuilder extends BaseRequestBuilder<TagsRequestBuilde
      * The import property
      */
     get importEscaped(): ImportRequestBuilder;
+    /**
+     * Gets an item from the ApiSdk.api.recipes.tags.item collection
+     * @param name Unique identifier of the item
+     * @returns {WithNameItemRequestBuilder}
+     */
+     byName(name: string) : WithNameItemRequestBuilder;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {Promise<TopTagResponse[]>}
@@ -44,6 +58,13 @@ export const TagsRequestBuilderUriTemplate = "{+baseurl}/api/recipes/tags{?count
  * Metadata for all the navigation properties in the request builder.
  */
 export const TagsRequestBuilderNavigationMetadata: Record<Exclude<keyof TagsRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
+    byName: {
+        requestsMetadata: WithNameItemRequestBuilderRequestsMetadata,
+        pathParametersMappings: ["name"],
+    },
+    catalog: {
+        requestsMetadata: CatalogRequestBuilderRequestsMetadata,
+    },
     exportEscaped: {
         requestsMetadata: ExportRequestBuilderRequestsMetadata,
     },
