@@ -156,14 +156,20 @@ public class ImportRecipeHandlerTests
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
     private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
     private readonly IRepository<RecipeImage> _imageRepo = Substitute.For<IRepository<RecipeImage>>();
+    private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IRecipeImageService _recipeImageService = Substitute.For<IRecipeImageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
     private readonly IUnitCatalog _unitCatalog = Substitute.For<IUnitCatalog>();
 
+    public ImportRecipeHandlerTests()
+    {
+        _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
+    }
+
     private ImportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recipeImageService, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recommendationRepo, _recipeImageService, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
 
     [Fact]
     public async Task Handle_CreatesRecipeWithIngredientsAndSteps()
@@ -193,6 +199,8 @@ public class ImportRecipeHandlerTests
         _recipeRepo.Received(1).Add(Arg.Is<Recipe>(r => r.Name == "Soup"));
         _ingredientRepo.Received(1).AddRange(Arg.Is<IEnumerable<RecipeIngredient>>(i => i.Count() == 2));
         _stepRepo.Received(1).AddRange(Arg.Is<IEnumerable<RecipeStep>>(s => s.Count() == 2));
+        _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r => r.Name == "Carrot" && !r.IncludeInSuggestions));
+        _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r => r.Name == "Salt" && !r.IncludeInSuggestions));
     }
 
     [Fact]
@@ -329,6 +337,7 @@ public class AddRecipeIngredientHandlerTests
 {
     private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
+    private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
@@ -337,13 +346,14 @@ public class AddRecipeIngredientHandlerTests
     public AddRecipeIngredientHandlerTests()
     {
         _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero));
+        _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
     }
 
     [Fact]
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
     {
         _recipeRepo.Query().Returns(new List<Recipe>().AsAsyncQueryable());
-        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
+        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _recommendationRepo, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
 
         var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 1.5m, "cup", null), TestContext.Current.CancellationToken);
 
@@ -355,13 +365,14 @@ public class AddRecipeIngredientHandlerTests
     {
         _recipeRepo.Query().Returns(new List<Recipe> { new Recipe { Id = 1, Name = "Pasta" } }.AsAsyncQueryable());
         _ingredientRepo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
-        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
+        var handler = new AddRecipeIngredientHandler(_recipeRepo, _ingredientRepo, _recommendationRepo, _unitOfWork, _timeProvider, _householdContext, _unitCatalog);
 
         var result = await handler.Handle(new AddRecipeIngredientCommand(1, "Flour", 2m, "cups", "dry"), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<RecipeIngredient>>(result);
         _ingredientRepo.Received(1).Add(Arg.Is<RecipeIngredient>(i =>
             i.Name == "Flour" && i.Amount == 2m && i.Unit == "cups" && i.RecipeId == 1));
+        _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r => r.Name == "Flour" && r.IncludeInSuggestions));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
 }
@@ -757,6 +768,7 @@ public class ReimportRecipeHandlerTests
     private readonly IRepository<RecipeIngredient> _ingredientRepo = Substitute.For<IRepository<RecipeIngredient>>();
     private readonly IRepository<RecipeStep> _stepRepo = Substitute.For<IRepository<RecipeStep>>();
     private readonly IRepository<RecipeImage> _imageRepo = Substitute.For<IRepository<RecipeImage>>();
+    private readonly IRepository<ShoppingListRecommendation> _recommendationRepo = Substitute.For<IRepository<ShoppingListRecommendation>>();
     private readonly IRecipeParserService _parserService = Substitute.For<IRecipeParserService>();
     private readonly IRecipeImageService _recipeImageService = Substitute.For<IRecipeImageService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
@@ -769,10 +781,11 @@ public class ReimportRecipeHandlerTests
         _ingredientRepo.Query().Returns(new List<RecipeIngredient>().AsAsyncQueryable());
         _stepRepo.Query().Returns(new List<RecipeStep>().AsAsyncQueryable());
         _imageRepo.Query().Returns(new List<RecipeImage>().AsAsyncQueryable());
+        _recommendationRepo.Query().Returns(new List<ShoppingListRecommendation>().AsAsyncQueryable());
     }
 
     private ReimportRecipeHandler CreateHandler() =>
-        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _parserService, _recipeImageService, _unitOfWork, _timeProvider, _householdContext);
+        new(_recipeRepo, _ingredientRepo, _stepRepo, _imageRepo, _recommendationRepo, _parserService, _recipeImageService, _unitOfWork, _timeProvider, _householdContext);
 
     [Fact]
     public async Task Handle_WhenRecipeNotFound_ReturnsNotFound()
@@ -844,6 +857,7 @@ public class ReimportRecipeHandlerTests
         Assert.IsType<NoContent>(result);
         _ingredientRepo.Received(1).Remove(existing);
         _ingredientRepo.Received(1).AddRange(Arg.Is<IEnumerable<RecipeIngredient>>(i => i.Count() == 1));
+        _recommendationRepo.Received(1).Add(Arg.Is<ShoppingListRecommendation>(r => r.Name == "Carrot" && !r.IncludeInSuggestions));
     }
 
     [Fact]
