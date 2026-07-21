@@ -4,7 +4,6 @@ import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { isAdmin } from "@/lib/roles";
-import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,
@@ -109,7 +108,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     setDrawerOpen(false);
     await logout.mutateAsync();
-    toast.success("Logged out successfully");
     router.push("/login");
   };
 

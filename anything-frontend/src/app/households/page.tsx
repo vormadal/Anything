@@ -29,7 +29,6 @@ export default function HouseholdsPage() {
   const handleAcceptInvite = async (invite: PendingInvite) => {
     try {
       await acceptInvite.mutateAsync(invite.token);
-      toast.success(`Joined "${invite.householdName ?? "household"}" successfully!`);
       setDismissedInvites((prev) => [...prev, invite.id]);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to accept invite";
@@ -45,7 +44,6 @@ export default function HouseholdsPage() {
       setSelectedHouseholdId(created.id);
       setNewName("");
       setShowCreate(false);
-      toast.success("Household created");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create household";
       toast.error(message);

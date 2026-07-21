@@ -140,7 +140,6 @@ export function CategoriesTab() {
       await createCategory.mutateAsync(createName.trim());
       setCreateName("");
       setShowCreateForm(false);
-      toast.success("Category created.");
     } catch {
       toast.error("Failed to create category.");
     }
@@ -156,7 +155,6 @@ export function CategoriesTab() {
     try {
       await updateCategory.mutateAsync({ id: editingId, name: editName.trim() });
       setEditingId(null);
-      toast.success("Category updated.");
     } catch {
       toast.error("Failed to update category.");
     }
@@ -165,7 +163,6 @@ export function CategoriesTab() {
   const handleDelete = async (id: number) => {
     try {
       await deleteCategory.mutateAsync(id);
-      toast.success("Category deleted.");
     } catch {
       toast.error("Failed to delete category.");
     }

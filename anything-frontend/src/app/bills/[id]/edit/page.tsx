@@ -72,7 +72,6 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
       });
-      toast.success("Bill updated");
       router.push(`/bills/${billId}`);
     } catch {
       toast.error("Failed to update bill");

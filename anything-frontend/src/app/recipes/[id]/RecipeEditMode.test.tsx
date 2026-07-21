@@ -109,8 +109,6 @@ describe('RecipeEditMode', () => {
         group: undefined,
       })
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient added')
   })
 
   it('should not submit add ingredient form when name is empty', async () => {
@@ -149,8 +147,6 @@ describe('RecipeEditMode', () => {
         group: undefined,
       })
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient added')
   })
 
   it('should show error when add ingredient fails', async () => {
@@ -192,8 +188,6 @@ describe('RecipeEditMode', () => {
       expect(mockIngredientById).toHaveBeenCalledWith(5)
       expect(mockIngredientByIdDelete).toHaveBeenCalled()
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Ingredient removed')
   })
 
   it('should save ingredient on blur', async () => {
@@ -282,8 +276,6 @@ describe('RecipeEditMode', () => {
       expect(mockStepById).toHaveBeenCalledWith(3)
       expect(mockStepByIdDelete).toHaveBeenCalled()
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Step removed')
   })
 
   it('should add an image', async () => {
@@ -324,8 +316,6 @@ describe('RecipeEditMode', () => {
       expect(mockImageById).toHaveBeenCalledWith(7)
       expect(mockImageByIdDelete).toHaveBeenCalled()
     })
-
-    expect(toast.success).toHaveBeenCalledWith('Image removed')
   })
 
   it('should save the recipe name when the hero name field is blurred', async () => {

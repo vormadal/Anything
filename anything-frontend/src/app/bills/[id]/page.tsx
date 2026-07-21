@@ -174,7 +174,6 @@ export default function BillDetailPage() {
         effectiveDate: new Date(newDate).toISOString(),
         notes: newNotes.trim() || undefined,
       });
-      toast.success("Price entry added");
       setShowAddPrice(false);
       setNewAmount("");
       setNewNotes("");
@@ -188,7 +187,6 @@ export default function BillDetailPage() {
     if (!confirm("Remove this price entry?")) return;
     try {
       await deletePrice.mutateAsync({ billId, historyId });
-      toast.success("Price entry removed");
     } catch {
       toast.error("Failed to remove price entry");
     }
@@ -215,7 +213,6 @@ export default function BillDetailPage() {
     if (!attachmentDialog || !attachmentDialogName.trim()) return;
     try {
       await updateAttachment.mutateAsync({ billId, attachmentId: attachmentDialog.id, name: attachmentDialogName.trim() });
-      toast.success("Attachment renamed");
       setAttachmentDialog(null);
     } catch {
       toast.error("Failed to rename attachment");
@@ -226,7 +223,6 @@ export default function BillDetailPage() {
     if (!attachmentDialog) return;
     try {
       await deleteAttachment.mutateAsync({ billId, attachmentId: attachmentDialog.id });
-      toast.success("Attachment deleted");
       setAttachmentDialog(null);
     } catch {
       toast.error("Failed to delete attachment");

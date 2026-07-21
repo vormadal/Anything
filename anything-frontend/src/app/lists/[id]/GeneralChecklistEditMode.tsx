@@ -188,7 +188,6 @@ export function GeneralChecklistEditMode({ listId }: Props) {
         unit: null,
       });
       setNewItemName("");
-      toast.success("Item added");
       inputRef.current?.focus();
     } catch {
       toast.error("Failed to add item. Please try again.");
@@ -198,7 +197,6 @@ export function GeneralChecklistEditMode({ listId }: Props) {
   const handleRemoveItem = async (itemId: number) => {
     try {
       await removeItem.mutateAsync(itemId);
-      toast.success("Item removed");
     } catch {
       toast.error("Failed to remove item. Please try again.");
     }

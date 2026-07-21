@@ -88,7 +88,6 @@ export default function NewRecipePage() {
         servings: parsedServings && !Number.isNaN(parsedServings) ? parsedServings : null,
         servingsType: servingsType || null,
       });
-      toast.success("Recipe created");
       router.replace(newRecipe?.id ? `/recipes/${newRecipe.id}?edit=true` : "/recipes");
     } catch {
       toast.error("Failed to create recipe. Please try again.");

@@ -407,7 +407,6 @@ export function RecipeEditMode({ recipeId }: Props) {
       setNewIngredientName("");
       setNewIngredientAmount("");
       setNewIngredientUnit("");
-      toast.success("Ingredient added");
       ingredientNameRef.current?.focus();
     } catch {
       toast.error("Failed to add ingredient. Please try again.");
@@ -417,7 +416,6 @@ export function RecipeEditMode({ recipeId }: Props) {
   const handleDeleteIngredient = async (ingredientId: number) => {
     try {
       await deleteIngredient.mutateAsync(ingredientId);
-      toast.success("Ingredient removed");
     } catch {
       toast.error("Failed to remove ingredient. Please try again.");
     }
@@ -440,7 +438,6 @@ export function RecipeEditMode({ recipeId }: Props) {
   const handleDeleteStep = async (stepId: number) => {
     try {
       await deleteStep.mutateAsync(stepId);
-      toast.success("Step removed");
     } catch {
       toast.error("Failed to remove step. Please try again.");
     }
@@ -473,7 +470,6 @@ export function RecipeEditMode({ recipeId }: Props) {
   const handleDeleteImage = async (imageId: number) => {
     try {
       await deleteImage.mutateAsync(imageId);
-      toast.success("Image removed");
     } catch {
       toast.error("Failed to remove image. Please try again.");
     }
@@ -485,7 +481,6 @@ export function RecipeEditMode({ recipeId }: Props) {
     try {
       await addTag.mutateAsync(newTagName.trim());
       setNewTagName("");
-      toast.success("Tag added");
     } catch {
       toast.error("Failed to add tag. Please try again.");
     }
@@ -494,7 +489,6 @@ export function RecipeEditMode({ recipeId }: Props) {
   const handleDeleteTag = async (tagId: number) => {
     try {
       await deleteTag.mutateAsync(tagId);
-      toast.success("Tag removed");
     } catch {
       toast.error("Failed to remove tag. Please try again.");
     }

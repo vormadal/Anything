@@ -14,20 +14,22 @@ function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [formError, setFormError] = useState("");
   const router = useRouter();
   const register = useRegister();
   const acceptInvite = useAcceptHouseholdInvite();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
 
     if (!email || !password || !name || !inviteToken) {
-      toast.error("Please fill in all fields");
+      setFormError("Please fill in all fields");
       return;
     }
 
     if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+      setFormError("Password must be at least 8 characters");
       return;
     }
 
@@ -42,7 +44,7 @@ function RegisterForm() {
       router.push("/login");
     } catch (err) {
       const error = err as Error;
-      toast.error(error.message || "Registration failed");
+      setFormError(error.message || "Registration failed");
     }
   };
 
@@ -171,6 +173,12 @@ function RegisterForm() {
               minLength={8}
             />
           </div>
+
+          {formError && (
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              {formError}
+            </p>
+          )}
 
           <Button
             type="submit"

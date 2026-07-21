@@ -34,6 +34,7 @@ import {
   Users,
   Settings,
   ListChecks,
+  LayoutTemplate,
   Tag,
   Tags,
   Ruler,
@@ -103,7 +104,6 @@ export default function HouseholdDetailPage() {
     if (!newName.trim() || !isValidId) return;
     try {
       await updateHousehold.mutateAsync({ id: householdId, name: newName.trim() });
-      toast.success("Household renamed");
       setShowRename(false);
     } catch {
       toast.error("Failed to rename household");
@@ -122,7 +122,6 @@ export default function HouseholdDetailPage() {
       const fullUrl = `${window.location.origin}${result.inviteUrl}`;
       setInviteData({ email: inviteEmail.trim(), url: fullUrl });
       setInviteEmail("");
-      toast.success("Invite link created!");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create invite";
       toast.error(message);
@@ -154,7 +153,6 @@ export default function HouseholdDetailPage() {
     if (!memberToRemove || !isValidId) return;
     try {
       await removeMember.mutateAsync({ householdId, userId: memberToRemove.userId });
-      toast.success(`${memberToRemove.name} removed`);
       setRemoveConfirmOpen(false);
       setMemberToRemove(null);
     } catch (err) {
@@ -179,7 +177,6 @@ export default function HouseholdDetailPage() {
     if (!isValidId || member.role === role) return;
     try {
       await updateMemberRole.mutateAsync({ householdId, userId: member.userId, role });
-      toast.success(`${member.name} is now ${role}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to update role";
       toast.error(message);
@@ -313,6 +310,13 @@ export default function HouseholdDetailPage() {
                 icon={Tag}
                 title="Suggestion Categories"
                 description="Organise suggestions into categories"
+                onClick={(href) => router.push(href)}
+              />
+              <ConfigCard
+                href={`/households/${householdId}/lists/templates`}
+                icon={LayoutTemplate}
+                title="Templates"
+                description="Manage reusable list templates"
                 onClick={(href) => router.push(href)}
               />
             </div>

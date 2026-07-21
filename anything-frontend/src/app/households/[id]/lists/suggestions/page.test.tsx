@@ -311,7 +311,6 @@ describe("SuggestionsPage (household config)", () => {
       await waitFor(() => {
         expect(mockByShoppingListId).toHaveBeenCalledWith(7);
         expect(mockByListDelete).toHaveBeenCalled();
-        expect(toast.success).toHaveBeenCalledWith("List suggestions removed.");
       });
     });
   });
@@ -334,7 +333,6 @@ describe("SuggestionsPage (household config)", () => {
 
       await waitFor(() => {
         expect(mockDeleteFn).toHaveBeenCalledWith(1);
-        expect(toast.success).toHaveBeenCalledWith("Suggestion deleted.");
       });
     });
 
@@ -384,7 +382,6 @@ describe("SuggestionsPage (household config)", () => {
 
       await waitFor(() => {
         expect(mockCreatePost).toHaveBeenCalledWith({ name: "Cheese", preferredUnit: null, shoppingListId: null });
-        expect(toast.success).toHaveBeenCalledWith("Suggestion created.");
       });
     });
 
@@ -469,7 +466,6 @@ describe("SuggestionsPage (household config)", () => {
 
       await waitFor(() => {
         expect(mockUpdatePut).toHaveBeenCalledWith(1, expect.objectContaining({ name: "Cherry Tomato", shoppingListId: 7 }));
-        expect(toast.success).toHaveBeenCalledWith("Suggestion updated.");
       });
     });
 
@@ -703,7 +699,6 @@ describe("SuggestionsPage (household config)", () => {
 
       await waitFor(() => {
         expect(mockSharedDelete).toHaveBeenCalledTimes(1);
-        expect(toast.success).toHaveBeenCalledWith("Shared suggestions removed.");
       });
     });
 

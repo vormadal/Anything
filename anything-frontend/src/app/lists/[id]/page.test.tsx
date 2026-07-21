@@ -2,7 +2,6 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import ListDetailPage from './page'
-import { toast } from 'sonner'
 
 const mockGet = jest.fn()
 const mockDelete = jest.fn()
@@ -110,7 +109,6 @@ describe('ListDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save list name' }))
     await waitFor(() => {
       expect(mockListPut).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Name' }))
-      expect(toast.success).toHaveBeenCalledWith('List name updated')
     })
   })
 })

@@ -112,7 +112,6 @@ describe("UnitsPage (household config)", () => {
 
       await waitFor(() => {
         expect(mockSeedDefaultsPost).toHaveBeenCalled();
-        expect(toast.success).toHaveBeenCalledWith("Common units added.");
       });
     });
   });
@@ -156,7 +155,6 @@ describe("UnitsPage (household config)", () => {
 
       await waitFor(() => {
         expect(mockUnitsPost).toHaveBeenCalledWith({ name: "tbsp" });
-        expect(toast.success).toHaveBeenCalledWith("Unit created.");
       });
     });
 
@@ -200,7 +198,6 @@ describe("UnitsPage (household config)", () => {
       await waitFor(() => {
         expect(mockUnitsItemById).toHaveBeenCalledWith(1);
         expect(mockUnitsPut).toHaveBeenCalledWith(1, { name: "g" });
-        expect(toast.success).toHaveBeenCalledWith("Unit updated.");
       });
     });
 
@@ -216,7 +213,6 @@ describe("UnitsPage (household config)", () => {
       await waitFor(() => {
         expect(mockUnitsItemById).toHaveBeenCalledWith(1);
         expect(mockUnitsDelete).toHaveBeenCalled();
-        expect(toast.success).toHaveBeenCalledWith("Unit deleted.");
       });
     });
   });

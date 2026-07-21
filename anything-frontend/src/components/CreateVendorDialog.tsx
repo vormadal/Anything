@@ -36,7 +36,6 @@ export function CreateVendorDialog({
         name: name.trim(),
         website: website.trim() || undefined,
       }) as unknown as Vendor;
-      toast.success("Vendor created");
       onCreated(result);
     } catch {
       toast.error("Failed to create vendor");
