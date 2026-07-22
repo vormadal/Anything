@@ -22,8 +22,8 @@ public class GetSearchIndexOverviewHandler(IRepository<SearchDocument> repositor
 
         var byType = await baseQuery
             .GroupBy(d => d.EntityType)
+            .OrderBy(g => g.Key)
             .Select(g => new SearchIndexTypeCount(g.Key, g.Count()))
-            .OrderBy(x => x.EntityType)
             .ToListAsync(ct);
 
         var lastIndexedOn = await baseQuery
