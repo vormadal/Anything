@@ -47,5 +47,17 @@ public static class SearchEndpoints
         .WithName("RebuildSearchIndex")
         .Produces<RebuildSearchIndexResponse>(StatusCodes.Status200OK)
         .RequireAuthorization(UserRoles.Admin);
+
+        // Household-manager self-serve variant: rebuilds only the caller's own
+        // household, so backfilling data indexed before this feature shipped
+        // doesn't require the global admin role.
+        group.MapPost("/rebuild-index/household", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new RebuildHouseholdSearchIndexCommand());
+        })
+        .WithName("RebuildHouseholdSearchIndex")
+        .Produces<RebuildSearchIndexResponse>(StatusCodes.Status200OK)
+        .RequireAuthorization()
+        .RequireHouseholdManager();
     }
 }

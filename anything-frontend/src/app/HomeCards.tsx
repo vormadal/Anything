@@ -9,7 +9,7 @@ import { useBillSummary } from "@/hooks/useBills";
 import { useSearch, type SearchResultResponse } from "@/hooks/useSearch";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
-import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X } from "lucide-react";
+import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, Package, AlertCircle } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 import { CreateListDialog } from "@/components/CreateListDialog";
@@ -21,6 +21,14 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 const SEARCH_RESULT_ROUTES: Record<string, (entityId: number) => string> = {
   Recipe: (entityId) => `/recipes/${entityId}`,
   ShoppingList: (entityId) => `/lists/${entityId}`,
+};
+
+// Icon shown per result row, matching the icons already used for these entity
+// types elsewhere (QuickCreateCard's Recipe/List shortcuts).
+const SEARCH_RESULT_ICONS: Record<string, typeof BookOpen> = {
+  Recipe: BookOpen,
+  ShoppingList: ListChecks,
+  InventoryItem: Package,
 };
 
 function getTargetDate(): Date {
@@ -339,7 +347,7 @@ export function GlobalSearchCard() {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query);
   const hasQuery = debouncedQuery.trim().length > 0;
-  const { data: results, isLoading } = useSearch(debouncedQuery);
+  const { data: results, isLoading, isError } = useSearch(debouncedQuery);
 
   const handleSelect = (result: SearchResultResponse) => {
     const toHref = result.entityType ? SEARCH_RESULT_ROUTES[result.entityType] : undefined;
@@ -379,6 +387,11 @@ export function GlobalSearchCard() {
       {hasQuery &&
         (isLoading ? (
           <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Searching...</div>
+        ) : isError ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center flex flex-col items-center gap-1">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            <p className="text-sm text-gray-500 dark:text-gray-400">Search failed. Try again.</p>
+          </div>
         ) : !results || results.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -389,24 +402,23 @@ export function GlobalSearchCard() {
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
             {results.map((result) => {
               const isNavigable = !!result.entityType && result.entityType in SEARCH_RESULT_ROUTES;
+              const Icon = (result.entityType && SEARCH_RESULT_ICONS[result.entityType]) || SearchIcon;
               return (
                 <button
                   key={`${result.entityType}-${result.entityId}`}
                   type="button"
                   disabled={!isNavigable}
                   onClick={() => handleSelect(result)}
-                  className="w-full px-4 py-2.5 flex items-center justify-between gap-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                  className="w-full px-4 py-2.5 flex items-center gap-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors disabled:cursor-default disabled:hover:bg-transparent"
                 >
-                  <div className="min-w-0">
+                  <Icon className="h-4 w-4 text-gray-400 shrink-0" />
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{result.title}</p>
                     {result.snippet && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{result.snippet}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{result.entityType}</span>
-                    {isNavigable && <ChevronRight className="h-4 w-4 text-gray-400" />}
-                  </div>
+                  {isNavigable && <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />}
                 </button>
               );
             })}

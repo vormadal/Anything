@@ -2,6 +2,7 @@ using Anything.Contracts.Search;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Search;
+using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,18 +25,70 @@ public class RebuildSearchIndexHandler(
     IUnitOfWork unitOfWork)
     : IRequestHandler<RebuildSearchIndexCommand, RebuildSearchIndexResponse>
 {
-    public async Task<RebuildSearchIndexResponse> Handle(RebuildSearchIndexCommand command, CancellationToken ct = default)
+    public Task<RebuildSearchIndexResponse> Handle(RebuildSearchIndexCommand command, CancellationToken ct = default) =>
+        SearchIndexRebuilder.Rebuild(
+            recipeRepository, shoppingListRepository, inventoryItemRepository, searchDocumentRepository,
+            unitOfWork, householdId: null, ct);
+}
+
+/// <summary>
+/// Household-scoped variant of <see cref="RebuildSearchIndexCommand"/> — rebuilds
+/// only the calling household's rows, so a household manager can self-serve a
+/// reindex (e.g. to backfill data that existed before this feature shipped)
+/// without needing the global admin role.
+/// </summary>
+public record RebuildHouseholdSearchIndexCommand : IRequest<RebuildSearchIndexResponse>;
+
+public class RebuildHouseholdSearchIndexHandler(
+    IRepository<Recipe> recipeRepository,
+    IRepository<ShoppingList> shoppingListRepository,
+    IRepository<InventoryItem> inventoryItemRepository,
+    IRepository<SearchDocument> searchDocumentRepository,
+    IUnitOfWork unitOfWork,
+    IHouseholdContext householdContext)
+    : IRequestHandler<RebuildHouseholdSearchIndexCommand, RebuildSearchIndexResponse>
+{
+    public Task<RebuildSearchIndexResponse> Handle(RebuildHouseholdSearchIndexCommand command, CancellationToken ct = default) =>
+        SearchIndexRebuilder.Rebuild(
+            recipeRepository, shoppingListRepository, inventoryItemRepository, searchDocumentRepository,
+            unitOfWork, householdId: householdContext.HouseholdId, ct);
+}
+
+/// <summary>Shared rebuild logic behind <see cref="RebuildSearchIndexCommand"/> and <see cref="RebuildHouseholdSearchIndexCommand"/>.</summary>
+internal static class SearchIndexRebuilder
+{
+    public static async Task<RebuildSearchIndexResponse> Rebuild(
+        IRepository<Recipe> recipeRepository,
+        IRepository<ShoppingList> shoppingListRepository,
+        IRepository<InventoryItem> inventoryItemRepository,
+        IRepository<SearchDocument> searchDocumentRepository,
+        IUnitOfWork unitOfWork,
+        int? householdId,
+        CancellationToken ct)
     {
-        var recipes = await recipeRepository.Query().Where(r => r.DeletedOn == null).ToListAsync(ct);
-        var shoppingLists = await shoppingListRepository.Query().Where(l => l.DeletedOn == null).ToListAsync(ct);
-        var inventoryItems = await inventoryItemRepository.Query().Where(i => i.DeletedOn == null).ToListAsync(ct);
+        var recipesQuery = recipeRepository.Query().Where(r => r.DeletedOn == null);
+        var shoppingListsQuery = shoppingListRepository.Query().Where(l => l.DeletedOn == null);
+        var inventoryItemsQuery = inventoryItemRepository.Query().Where(i => i.DeletedOn == null);
+        var documentsQuery = searchDocumentRepository.Query();
+
+        if (householdId.HasValue)
+        {
+            recipesQuery = recipesQuery.Where(r => r.HouseholdId == householdId);
+            shoppingListsQuery = shoppingListsQuery.Where(l => l.HouseholdId == householdId);
+            inventoryItemsQuery = inventoryItemsQuery.Where(i => i.HouseholdId == householdId);
+            documentsQuery = documentsQuery.Where(d => d.HouseholdId == householdId);
+        }
+
+        var recipes = await recipesQuery.ToListAsync(ct);
+        var shoppingLists = await shoppingListsQuery.ToListAsync(ct);
+        var inventoryItems = await inventoryItemsQuery.ToListAsync(ct);
 
         var searchable = recipes.Cast<ISearchable>()
             .Concat(shoppingLists)
             .Concat(inventoryItems)
             .ToList();
 
-        var existingDocuments = await searchDocumentRepository.Query().ToListAsync(ct);
+        var existingDocuments = await documentsQuery.ToListAsync(ct);
         var existingByKey = existingDocuments.ToDictionary(d => (d.EntityType, d.EntityId));
         var liveKeys = new HashSet<(string EntityType, int EntityId)>();
         var now = DateTime.UtcNow;

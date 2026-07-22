@@ -51,3 +51,18 @@ export function useRebuildSearchIndex() {
     },
   });
 }
+
+/** Household-manager self-serve: rebuilds only the caller's own household. */
+export function useRebuildHouseholdSearchIndex() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (): Promise<RebuildSearchIndexResponse> => {
+      const result = await apiClient.api.search.rebuildIndex.household.post();
+      return result ?? { indexed: 0 };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SEARCH_INDEX_OVERVIEW_KEY });
+    },
+  });
+}

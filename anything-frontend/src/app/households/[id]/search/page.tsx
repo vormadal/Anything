@@ -3,12 +3,15 @@
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageTitle } from "@/components/PageTitle";
+import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { useSearchIndexOverview } from "@/hooks/useSearch";
+import { useSearchIndexOverview, useRebuildHouseholdSearchIndex } from "@/hooks/useSearch";
 import { canManageHousehold } from "@/lib/roles";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import { useHeaderActions } from "@/context/PageActionsContext";
-import { Search } from "lucide-react";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { toast } from "sonner";
+import { Search, RefreshCw } from "lucide-react";
 
 export default function HouseholdSearchIndexPage() {
   const { data: user } = useCurrentUser();
@@ -18,6 +21,8 @@ export default function HouseholdSearchIndexPage() {
   const { getHouseholdRole, isLoading: householdsLoading } = useHouseholdContext();
   const { setLeftAction } = useHeaderActions();
   const { data: overview, isLoading } = useSearchIndexOverview();
+  const rebuildIndex = useRebuildHouseholdSearchIndex();
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     if (householdId) {
@@ -35,15 +40,38 @@ export default function HouseholdSearchIndexPage() {
     return null;
   }
 
+  const handleRebuild = async () => {
+    try {
+      const result = await rebuildIndex.mutateAsync();
+      const count = result.indexed ?? 0;
+      toast.success(`Rebuilt search index for ${count} item${count === 1 ? "" : "s"}.`);
+    } catch {
+      toast.error("Failed to rebuild the search index.");
+    }
+  };
+
   const byType = overview?.byType ?? [];
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <PageTitle>Search Index</PageTitle>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          What&apos;s currently searchable for your household through the home page search widget.
-        </p>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            What&apos;s currently searchable for your household through the home page search widget.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRebuild}
+            disabled={rebuildIndex.isPending || !isOnline}
+            title={isOnline ? undefined : "Rebuilding the index requires an internet connection"}
+            className="shrink-0"
+          >
+            <RefreshCw className={`h-4 w-4 sm:mr-1 ${rebuildIndex.isPending ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">{rebuildIndex.isPending ? "Rebuilding..." : "Rebuild"}</span>
+          </Button>
+        </div>
 
         {isLoading ? (
           <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">Loading...</p>

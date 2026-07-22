@@ -1,17 +1,28 @@
 import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithClient } from "@/__tests__/utils/test-utils";
 import HouseholdSearchIndexPage from "./page";
+import { toast } from "sonner";
 
 const mockOverviewGet = jest.fn();
+const mockRebuildHouseholdPost = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
   apiClient: {
     api: {
       search: {
         overview: { get: (...args: unknown[]) => mockOverviewGet(...args) },
+        rebuildIndex: {
+          household: { post: (...args: unknown[]) => mockRebuildHouseholdPost(...args) },
+        },
       },
     },
   },
+}));
+
+jest.mock("sonner", () => ({
+  toast: { success: jest.fn(), error: jest.fn() },
+  Toaster: () => null,
 }));
 
 const mockPush = jest.fn();
@@ -42,6 +53,47 @@ describe("HouseholdSearchIndexPage", () => {
     localStorage.clear();
     mockOverviewGet.mockResolvedValue({ totalDocuments: 0, byType: [], lastIndexedOn: null });
     mockGetHouseholdRole.mockReturnValue("Owner");
+  });
+
+  describe("Rebuild", () => {
+    beforeEach(() => {
+      localStorage.setItem("user", adminUser);
+      localStorage.setItem("accessToken", "test-token");
+    });
+
+    it("shows a success toast with the indexed count", async () => {
+      const user = userEvent.setup();
+      mockRebuildHouseholdPost.mockResolvedValueOnce({ indexed: 7 });
+
+      renderWithClient(<HouseholdSearchIndexPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /Rebuild/ })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: /Rebuild/ }));
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith("Rebuilt search index for 7 items.");
+      });
+    });
+
+    it("shows an error toast when the rebuild fails", async () => {
+      const user = userEvent.setup();
+      mockRebuildHouseholdPost.mockRejectedValueOnce(new Error("Server error"));
+
+      renderWithClient(<HouseholdSearchIndexPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /Rebuild/ })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: /Rebuild/ }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to rebuild the search index.");
+      });
+    });
   });
 
   describe("Access Control", () => {

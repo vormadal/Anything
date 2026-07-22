@@ -709,9 +709,12 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     // One navigable (Recipe) and one non-navigable (InventoryItem) result, so
-    // the snapshot shows both the linked and disabled row styles.
+    // the snapshot shows both the linked and disabled row styles. Asserting on
+    // the snippet text (not the title) avoids colliding with "Pasta Carbonara"
+    // in the Today's Menu food-plan card, which would otherwise satisfy the
+    // wait immediately — before the search debounce/fetch actually resolves.
     await page.getByLabel("Search everything").fill("pasta");
-    await expect(page.getByText("Pasta Carbonara")).toBeVisible();
+    await expect(page.getByText("Classic Italian.")).toBeVisible();
     await expect(page).toHaveScreenshot("home-search-card-with-results.png", screenshotOptions);
   });
 

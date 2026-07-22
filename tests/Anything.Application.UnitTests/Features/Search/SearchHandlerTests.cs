@@ -187,3 +187,63 @@ public class RebuildSearchIndexHandlerTests
         _searchDocumentRepo.Received(1).Remove(orphan);
     }
 }
+
+public class RebuildHouseholdSearchIndexHandlerTests
+{
+    private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
+    private readonly IRepository<ShoppingList> _shoppingListRepo = Substitute.For<IRepository<ShoppingList>>();
+    private readonly IRepository<InventoryItem> _inventoryItemRepo = Substitute.For<IRepository<InventoryItem>>();
+    private readonly IRepository<SearchDocument> _searchDocumentRepo = Substitute.For<IRepository<SearchDocument>>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+
+    public RebuildHouseholdSearchIndexHandlerTests()
+    {
+        _householdContext.HouseholdId.Returns(9);
+        _recipeRepo.Query().Returns(new List<Recipe>().AsAsyncQueryable());
+        _shoppingListRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
+        _inventoryItemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
+        _searchDocumentRepo.Query().Returns(new List<SearchDocument>().AsAsyncQueryable());
+    }
+
+    private RebuildHouseholdSearchIndexHandler CreateHandler() =>
+        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _searchDocumentRepo, _unitOfWork, _householdContext);
+
+    [Fact]
+    public async Task Handle_OnlyIndexesCallersHousehold()
+    {
+        _recipeRepo.Query().Returns(new List<Recipe>
+        {
+            new() { Id = 1, HouseholdId = 9, Name = "Mine" },
+            new() { Id = 2, HouseholdId = 1, Name = "Someone else's" },
+        }.AsAsyncQueryable());
+
+        var added = new List<SearchDocument>();
+        _searchDocumentRepo.When(r => r.Add(Arg.Any<SearchDocument>())).Do(c => added.Add(c.Arg<SearchDocument>()));
+
+        var result = await CreateHandler().Handle(new RebuildHouseholdSearchIndexCommand(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, result.Indexed);
+        Assert.Single(added);
+        Assert.Equal("Mine", added[0].Title);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotTouchOrphansFromOtherHouseholds()
+    {
+        var ownOrphan = new SearchDocument
+        {
+            Id = 1, HouseholdId = 9, EntityType = SearchEntityTypes.Recipe, EntityId = 404, Title = "Gone", Content = "Gone",
+        };
+        var otherHouseholdOrphan = new SearchDocument
+        {
+            Id = 2, HouseholdId = 1, EntityType = SearchEntityTypes.Recipe, EntityId = 405, Title = "Not mine", Content = "Not mine",
+        };
+        _searchDocumentRepo.Query().Returns(new List<SearchDocument> { ownOrphan, otherHouseholdOrphan }.AsAsyncQueryable());
+
+        await CreateHandler().Handle(new RebuildHouseholdSearchIndexCommand(), TestContext.Current.CancellationToken);
+
+        _searchDocumentRepo.Received(1).Remove(ownOrphan);
+        _searchDocumentRepo.DidNotReceive().Remove(otherHouseholdOrphan);
+    }
+}
