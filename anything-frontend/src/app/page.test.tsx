@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { onlineManager } from '@tanstack/react-query'
 import { render } from '@/__tests__/utils/test-utils'
@@ -23,6 +23,7 @@ const mockFoodPlanNotesGet = jest.fn()
 const mockShoppingListsGet = jest.fn()
 const mockBillSummaryGet = jest.fn()
 const mockHomeCardPreferencesGet = jest.fn()
+const mockSearchGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -73,6 +74,9 @@ jest.mock('@/lib/apiClient', () => ({
       home: {
         cardPreferences: { get: (...args: unknown[]) => mockHomeCardPreferencesGet(...args), put: jest.fn() },
       },
+      search: {
+        get: (...args: unknown[]) => mockSearchGet(...args),
+      },
     },
   },
 }))
@@ -104,6 +108,7 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanNotesGet.mockResolvedValue([])
     mockRecipesFetch([])
     mockBillSummaryGet.mockResolvedValue(undefined)
+    mockSearchGet.mockResolvedValue([])
     mockHomeCardPreferencesGet.mockResolvedValue([
       { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
       { cardKey: 'lists', sortOrder: 1, isVisible: true },
@@ -679,5 +684,78 @@ describe('Home Page Integration Tests', () => {
     expect(screen.getByRole('button', { name: 'List' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Bill' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Meal' })).toBeDisabled()
+  })
+
+  // ------- Global search card -------
+  const searchVisible = [{ cardKey: 'search', sortOrder: 0, isVisible: true }]
+
+  it('should render the Search card search input when visible', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Search' })).toBeInTheDocument()
+    })
+    expect(screen.getByLabelText('Search everything')).toBeInTheDocument()
+  })
+
+  it('should navigate to a recipe when a search result is selected', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    mockSearchGet.mockResolvedValue([
+      { entityType: 'Recipe', entityId: 7, title: 'Chicken Curry', snippet: 'Chicken Curry, spicy' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Search everything')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Search everything'), 'chicken')
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Chicken Curry')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Chicken Curry'))
+    expect(mockPush).toHaveBeenCalledWith('/recipes/7')
+  })
+
+  it('should show a non-navigable result for an entity type with no frontend page yet', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    mockSearchGet.mockResolvedValue([
+      { entityType: 'InventoryItem', entityId: 3, title: 'Flour', snippet: '5kg bag, pantry shelf' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Search everything')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Search everything'), 'flour')
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Flour')).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: /Flour/ })).toBeDisabled()
   })
 })

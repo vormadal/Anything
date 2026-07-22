@@ -278,6 +278,20 @@ describe('HouseholdDetailPage', () => {
       expect(mockPush).toHaveBeenCalledWith('/households/1/recipes/tags')
     })
 
+    it('shows Search group with Search Index', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => {
+        expect(screen.getByText('Search Index')).toBeInTheDocument()
+      })
+    })
+
+    it('navigates to search index page when Search Index card is clicked', async () => {
+      render(<HouseholdDetailPage />)
+      await waitFor(() => screen.getByText('Search Index'))
+      fireEvent.click(screen.getByText('Search Index'))
+      expect(mockPush).toHaveBeenCalledWith('/households/1/search')
+    })
+
     it('hides Configuration section for non-manager members', async () => {
       mockGetHouseholdRole.mockReturnValue('Member')
       render(<HouseholdDetailPage />)

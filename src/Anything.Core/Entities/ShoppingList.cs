@@ -1,6 +1,8 @@
+using Anything.Core.Search;
+
 namespace Anything.Core.Entities;
 
-public class ShoppingList
+public class ShoppingList : ISearchable
 {
     public int Id { get; set; }
     public int HouseholdId { get; set; }
@@ -16,4 +18,9 @@ public class ShoppingList
     public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }
+
+    string ISearchable.SearchEntityType => SearchEntityTypes.ShoppingList;
+    int ISearchable.SearchEntityId => Id;
+    string ISearchable.SearchTitle => Name;
+    string ISearchable.SearchContent => Name;
 }

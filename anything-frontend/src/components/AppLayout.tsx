@@ -25,6 +25,7 @@ import {
   Receipt,
   Users,
   HelpCircle,
+  Search,
 } from "lucide-react";
 import {
   PageActionsProvider,
@@ -53,6 +54,7 @@ const NAV_ITEMS = [
 
 const ADMIN_NAV_ITEMS = [
   { label: "Invite Users", path: "/admin/invite", icon: UserPlus },
+  { label: "Search Index", path: "/admin/search-index", icon: Search },
 ];
 
 const NAV_ACTIVE_CLASS =
