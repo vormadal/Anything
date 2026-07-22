@@ -48,8 +48,9 @@ public class SearchEndpointTests : IntegrationTestBase
     private static async Task<List<SearchResultDto>> SearchAsync(HttpClient client, string term)
     {
         var response = await client.GetAsync($"/api/search?term={Uri.EscapeDataString(term)}", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<List<SearchResultDto>>(JsonOptions, TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"Expected OK, got {response.StatusCode}: {body}");
+        var result = JsonSerializer.Deserialize<List<SearchResultDto>>(body, JsonOptions);
         Assert.NotNull(result);
         return result;
     }

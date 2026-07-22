@@ -15,18 +15,24 @@ public class SearchIndexService(ApplicationDbContext context) : ISearchIndexServ
     public async Task<List<SearchHit>> Search(int householdId, string term, int limit, CancellationToken ct = default)
     {
         var normalized = term.Trim().ToLowerInvariant();
-        var tsQuery = EF.Functions.PlainToTsQuery("simple", normalized);
 
         // Full-text (tsvector) matches rank first — they respect word boundaries
         // and multi-word queries, and hit the GIN index on the generated
         // SearchVector column. Trigram word_similarity is the typo-tolerant
         // fallback tier, same idiom as GetRecipesHandler/SearchRecommendationsHandler.
+        //
+        // EF.Functions.PlainToTsQuery must be called inline, inside this query
+        // expression — like PgTrigramFunctions.WordSimilarity, it's a stub that
+        // only has meaning when EF's LINQ provider translates the expression
+        // tree it appears in; calling it as a separate statement first (e.g.
+        // `var tsQuery = EF.Functions.PlainToTsQuery(...)`) executes it as a
+        // plain, untranslated C# call and throws.
         var documents = await context.SearchDocuments
             .Where(d => d.HouseholdId == householdId)
             .Select(d => new
             {
                 Document = d,
-                FullTextMatch = EF.Property<NpgsqlTsVector>(d, "SearchVector").Matches(tsQuery),
+                FullTextMatch = EF.Property<NpgsqlTsVector>(d, "SearchVector").Matches(EF.Functions.PlainToTsQuery("simple", normalized)),
                 NameSimilarity = PgTrigramFunctions.WordSimilarity(normalized, d.Content),
             })
             .Where(x => x.FullTextMatch || x.NameSimilarity > SimilarityThreshold)
