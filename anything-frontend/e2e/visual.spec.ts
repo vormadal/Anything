@@ -718,6 +718,37 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-search-card-with-results.png", screenshotOptions);
   });
 
+  test("home page - search card error state", async ({ page }) => {
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "search", sortOrder: 0, isVisible: true },
+            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
+            { cardKey: "lists", sortOrder: 2, isVisible: true },
+            { cardKey: "bills", sortOrder: 3, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    // Override the search route (registered after the general one, so it wins)
+    // to simulate a backend failure, distinct from the "no results" empty state.
+    await page.route("**/api/search**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ status: 500, json: { error: "Internal Server Error" } });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.getByLabel("Search everything").fill("pasta");
+    await expect(page.getByText("Search failed. Try again.")).toBeVisible();
+    await expect(page).toHaveScreenshot("home-search-card-error.png", screenshotOptions);
+  });
+
   test("home preferences - reorder and toggle cards", async ({ page }) => {
     // Reordered (Lists first) with Bills hidden, to showcase the drag handles and toggles.
     await page.route("**/api/home/card-preferences**", (route) => {

@@ -19,6 +19,10 @@ export function useSearch(term: string, limit = 20) {
   return useQuery({
     queryKey: ["search", trimmed, limit],
     enabled: trimmed.length > 0,
+    // A live-typing search should fail fast, not silently retry for several
+    // seconds (React Query's default 3 retries with backoff) before showing
+    // an error — the user can just keep typing or try again.
+    retry: false,
     queryFn: async (): Promise<SearchResultResponse[]> => {
       const results = await apiClient.api.search.get({ queryParameters: { term: trimmed, limit } });
       return results ?? [];
