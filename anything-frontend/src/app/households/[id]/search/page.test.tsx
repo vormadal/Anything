@@ -8,6 +8,7 @@ const mockOverviewGet = jest.fn();
 const mockRebuildHouseholdPost = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
+  HOUSEHOLD_HEADER: "X-Household-Id",
   apiClient: {
     api: {
       search: {
@@ -20,6 +21,12 @@ jest.mock("@/lib/apiClient", () => ({
   },
 }));
 
+// The route [id] (2) intentionally differs from the active household (1, from the
+// HouseholdContext mock below) so tests prove the calls are scoped to the URL, not
+// the globally-active household.
+const ROUTE_HOUSEHOLD_ID = "2";
+const EXPECTED_SCOPED_CONFIG = { headers: { "X-Household-Id": ROUTE_HOUSEHOLD_ID } };
+
 jest.mock("sonner", () => ({
   toast: { success: jest.fn(), error: jest.fn() },
   Toaster: () => null,
@@ -28,8 +35,8 @@ jest.mock("sonner", () => ({
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
-  useParams: () => ({ id: "1" }),
-  usePathname: () => "/households/1/search",
+  useParams: () => ({ id: "2" }),
+  usePathname: () => "/households/2/search",
 }));
 
 const mockGetHouseholdRole = jest.fn();
@@ -76,6 +83,8 @@ describe("HouseholdSearchIndexPage", () => {
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith("Rebuilt search index for 7 items.");
       });
+      // The rebuild must target the household in the route, not the active one.
+      expect(mockRebuildHouseholdPost).toHaveBeenCalledWith(EXPECTED_SCOPED_CONFIG);
     });
 
     it("shows an error toast when the rebuild fails", async () => {
@@ -154,6 +163,8 @@ describe("HouseholdSearchIndexPage", () => {
       expect(screen.getByText("ShoppingList")).toBeInTheDocument();
       expect(screen.getByText("2")).toBeInTheDocument();
       expect(screen.getByText("5")).toBeInTheDocument();
+      // The overview must be fetched for the household in the route, not the active one.
+      expect(mockOverviewGet).toHaveBeenCalledWith(EXPECTED_SCOPED_CONFIG);
     });
   });
 });
