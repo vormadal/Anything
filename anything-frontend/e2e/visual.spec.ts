@@ -1333,7 +1333,12 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     // Asserted explicitly (not just left to the screenshot) since a stale
     // baseline predating this button previously masked its absence — see
-    // CLAUDE.md's "Regenerating a single visual snapshot" gotcha.
+    // CLAUDE.md's "Regenerating a single visual snapshot" gotcha. Frontend
+    // CI's own Visual Snapshot Tests job also fails once on the push that
+    // deletes a baseline (it compares against the checked-out commit, not
+    // the update-visual-snapshots bot commit that follows) — expected, not
+    // a regression; resolves once the bot commit lands and CI reruns on a
+    // tip that includes it.
     await expect(page.getByRole("button", { name: /Rebuild/ })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "household-search-index-with-data.png",
