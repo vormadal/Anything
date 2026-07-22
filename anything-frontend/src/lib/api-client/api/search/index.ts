@@ -6,7 +6,7 @@ import { createSearchResultResponseFromDiscriminatorValue, type SearchResultResp
 // @ts-ignore
 import { OverviewRequestBuilderRequestsMetadata, type OverviewRequestBuilder } from './overview/index';
 // @ts-ignore
-import { RebuildIndexRequestBuilderRequestsMetadata, type RebuildIndexRequestBuilder } from './rebuildIndex/index';
+import { RebuildIndexRequestBuilderNavigationMetadata, RebuildIndexRequestBuilderRequestsMetadata, type RebuildIndexRequestBuilder } from './rebuildIndex/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
@@ -57,6 +57,7 @@ export const SearchRequestBuilderNavigationMetadata: Record<Exclude<keyof Search
     },
     rebuildIndex: {
         requestsMetadata: RebuildIndexRequestBuilderRequestsMetadata,
+        navigationMetadata: RebuildIndexRequestBuilderNavigationMetadata,
     },
 };
 /**

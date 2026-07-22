@@ -4,12 +4,18 @@
 // @ts-ignore
 import { createRebuildSearchIndexResponseFromDiscriminatorValue, type RebuildSearchIndexResponse } from '../../../models/index';
 // @ts-ignore
-import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
+import { HouseholdRequestBuilderRequestsMetadata, type HouseholdRequestBuilder } from './household/index';
+// @ts-ignore
+import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /api/search/rebuild-index
  */
 export interface RebuildIndexRequestBuilder extends BaseRequestBuilder<RebuildIndexRequestBuilder> {
+    /**
+     * The household property
+     */
+    get household(): HouseholdRequestBuilder;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {Promise<RebuildSearchIndexResponse>}
@@ -25,6 +31,14 @@ export interface RebuildIndexRequestBuilder extends BaseRequestBuilder<RebuildIn
  * Uri template for the request builder.
  */
 export const RebuildIndexRequestBuilderUriTemplate = "{+baseurl}/api/search/rebuild-index";
+/**
+ * Metadata for all the navigation properties in the request builder.
+ */
+export const RebuildIndexRequestBuilderNavigationMetadata: Record<Exclude<keyof RebuildIndexRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
+    household: {
+        requestsMetadata: HouseholdRequestBuilderRequestsMetadata,
+    },
+};
 /**
  * Metadata for all the requests in the request builder.
  */
