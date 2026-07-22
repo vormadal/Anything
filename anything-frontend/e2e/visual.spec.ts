@@ -1331,6 +1331,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("household search index page - with data", async ({ page }) => {
     await page.goto("/households/1/search");
     await page.waitForLoadState("networkidle");
+    // Asserted explicitly (not just left to the screenshot) since a stale
+    // baseline predating this button previously masked its absence — see
+    // CLAUDE.md's "Regenerating a single visual snapshot" gotcha.
+    await expect(page.getByRole("button", { name: /Rebuild/ })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "household-search-index-with-data.png",
       screenshotOptions
@@ -1343,6 +1347,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
     await page.goto("/households/1/search");
     await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("button", { name: /Rebuild/ })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "household-search-index-empty.png",
       screenshotOptions
