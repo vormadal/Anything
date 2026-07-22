@@ -154,6 +154,24 @@ const mockHomeCardPreferences = [
   { cardKey: "bills", sortOrder: 2, isVisible: true },
 ];
 
+// Cross-entity search results (GET /api/search) — one navigable (Recipe) and
+// one non-navigable (InventoryItem, no frontend detail page yet) result.
+const mockSearchResults = [
+  { entityType: "Recipe", entityId: 1, title: "Pasta Carbonara", snippet: "Classic Italian." },
+  { entityType: "InventoryItem", entityId: 3, title: "Flour", snippet: "5kg bag, pantry shelf" },
+];
+
+// Household search index overview (GET /api/search/overview).
+const mockSearchIndexOverview = {
+  totalDocuments: 6,
+  byType: [
+    { entityType: "InventoryItem", count: 1 },
+    { entityType: "Recipe", count: 3 },
+    { entityType: "ShoppingList", count: 2 },
+  ],
+  lastIndexedOn: "2025-01-15T09:00:00Z",
+};
+
 // Entries spread across the week of 2025-01-13 (Mon) – 2025-01-15 (Wed, = FIXED_DATE)
 const mockFoodPlanEntries = [
   { id: 1, date: "2025-01-13", name: "Pasta Carbonara", recipeId: 1, addedToShoppingListOn: null },
@@ -478,6 +496,24 @@ async function setupApiMocks(page: Page) {
     route.fulfill({ json: [] })
   );
 
+  // ---- Global search ----
+  // Registered general-to-specific (LIFO): the base /api/search route handles
+  // the search box's GET, then the more specific /overview and /rebuild-index
+  // routes (registered after) take precedence for those exact operations.
+  await page.route("**/api/search**", (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockSearchResults });
+    } else {
+      route.continue();
+    }
+  });
+  await page.route("**/api/search/overview**", (route) =>
+    route.fulfill({ json: mockSearchIndexOverview })
+  );
+  await page.route("**/api/search/rebuild-index**", (route) =>
+    route.fulfill({ json: { indexed: 42 } })
+  );
+
   // ---- Households ----
   await page.route("**/api/households**", (route) => {
     if (route.request().method() === "GET") {
@@ -632,6 +668,51 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/");
     await page.waitForLoadState("domcontentloaded");
     await expect(page).toHaveScreenshot("home-loading-skeleton.png", screenshotOptions);
+  });
+
+  test("home page - search card", async ({ page }) => {
+    // Show the Search card on top, idle (no query typed yet).
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "search", sortOrder: 0, isVisible: true },
+            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
+            { cardKey: "lists", sortOrder: 2, isVisible: true },
+            { cardKey: "bills", sortOrder: 3, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("home-search-card.png", screenshotOptions);
+  });
+
+  test("home page - search card with results", async ({ page }) => {
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "search", sortOrder: 0, isVisible: true },
+            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
+            { cardKey: "lists", sortOrder: 2, isVisible: true },
+            { cardKey: "bills", sortOrder: 3, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    // One navigable (Recipe) and one non-navigable (InventoryItem) result, so
+    // the snapshot shows both the linked and disabled row styles.
+    await page.getByLabel("Search everything").fill("pasta");
+    await expect(page.getByText("Pasta Carbonara")).toBeVisible();
+    await expect(page).toHaveScreenshot("home-search-card-with-results.png", screenshotOptions);
   });
 
   test("home preferences - reorder and toggle cards", async ({ page }) => {
@@ -996,6 +1077,14 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("profile.png", screenshotOptions);
   });
 
+  // ---- Admin ----
+
+  test("admin search index page", async ({ page }) => {
+    await page.goto("/admin/search-index");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("admin-search-index.png", screenshotOptions);
+  });
+
   // ---- Household Config: Lists ----
 
   test("household suggestions page - with recommendations", async ({ page }) => {
@@ -1199,6 +1288,29 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "household-recipe-tags.png",
+      screenshotOptions
+    );
+  });
+
+  // ---- Household Config: Search ----
+
+  test("household search index page - with data", async ({ page }) => {
+    await page.goto("/households/1/search");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "household-search-index-with-data.png",
+      screenshotOptions
+    );
+  });
+
+  test("household search index page - empty state", async ({ page }) => {
+    await page.route("**/api/search/overview**", (route) =>
+      route.fulfill({ json: { totalDocuments: 0, byType: [], lastIndexedOn: null } })
+    );
+    await page.goto("/households/1/search");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "household-search-index-empty.png",
       screenshotOptions
     );
   });

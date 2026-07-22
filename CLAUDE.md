@@ -80,7 +80,7 @@ npm run test         # Run tests - always run after finishing work
 npm run test:coverage # Run tests with coverage report
 npm run generate:api # Generate API client from Swagger (API must be running)
 npm run test:e2e:visual          # Run visual regression tests
-npm run test:e2e:visual:update   # Regenerate baseline screenshots after an intentional UI change
+npm run test:e2e:visual:update   # Regenerate baseline screenshots — REQUIRED after any new/changed UI, not just "intentional" restyling; see .claude/rules/e2e.md
 ```
 
 ## Key Patterns & Conventions
@@ -107,7 +107,8 @@ npm run test:e2e:visual:update   # Regenerate baseline screenshots after an inte
 - **React Query hooks:** Each entity gets a dedicated hook file in `src/hooks/` (e.g. `useSomethings`, `useCreateSomething`); mutations invalidate related query keys on success. See [`anything-frontend/src/hooks/agent.md`](anything-frontend/src/hooks/agent.md).
 - **Components:** Use Shadcn UI components in `src/components/ui/`, added manually from the Shadcn docs. Components using hooks/browser APIs are marked `"use client"`.
 - **Toasts (sonner) — only for outcomes not otherwise on screen.** Before any `toast.success`, ask: *does the screen already show the outcome (inline row/value update, dialog close, or navigation to a page reflecting it)?* If yes, **no toast** — React Query invalidation already re-renders the change. Toast only for **errors**, **out-of-band success** (clipboard, a different surface, share links, import/export, whole-form saves with no visible delta), and **destructive/terminal actions that navigate away**. **Form validation is never a toast** — use an inline field error and keep native `required`. Full rules in [`anything-frontend/src/components/agent.md`](anything-frontend/src/components/agent.md).
-- **Testing:** Jest + React Testing Library for behavioural/unit tests, colocated `.test.tsx`/`.test.ts`; render via `renderWithClient` from `@/__tests__/utils/test-utils`. Do NOT use `.toMatchSnapshot()` — visual assertions go through Playwright. Visual-snapshot requirements and e2e authoring rules live in [`.claude/rules/e2e.md`](.claude/rules/e2e.md).
+- **Testing:** Jest + React Testing Library for behavioural/unit tests, colocated `.test.tsx`/`.test.ts`; render via `renderWithClient` from `@/__tests__/utils/test-utils`. Do NOT use `.toMatchSnapshot()` — visual assertions go through Playwright.
+- **Every UI change needs a Playwright visual snapshot — a hard requirement, not follow-up polish.** Adding or changing a component, page, dialog, or a distinct visual state (empty/error/loaded, a new mode, a new indicator) without a corresponding snapshot in `e2e/visual.spec.ts` means the change is incomplete, even if `npm run build`/`lint`/`test` all pass — those don't cover this. Full authoring rules (mocking, gotchas, why you can't run `test:e2e:visual:update` in a web session) live in [`.claude/rules/e2e.md`](.claude/rules/e2e.md) — read it before finishing any frontend UI change.
 
 ## API Endpoints
 
@@ -133,7 +134,7 @@ SonarCloud runs static analysis on every push to main/develop for both backend (
 - PostgreSQL connection is managed by Aspire when using AppHost, or via `appsettings.Development.json` when running standalone.
 - The solution file is `.slnx` format (new XML-based solution format).
 - Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
-- Always run linter, build, and tests before committing changes.
+- Always run linter, build, and tests before committing changes. For any frontend UI change, that also means adding/updating the Playwright visual snapshot (see Frontend → Key Patterns and [`.claude/rules/e2e.md`](.claude/rules/e2e.md)) — it is not covered by lint/build/Jest.
 - **Record expensive learnings.** When a task surfaces a non-obvious gotcha, a tool unavailable in an environment, an automated workflow that handles something for you, or a subtle ordering/dependency constraint, write it down so future sessions don't pay to rediscover it — in this CLAUDE.md for repo-wide or CI/deploy concerns, or the relevant directory [`agent.md`](#directory-documentation) / [`.claude/rules/*.md`](.claude/rules) for layer- or file-type-specific rules.
 
 ## CI Automation & Deployment
