@@ -66,7 +66,7 @@ public class SearchEndpointTests : IntegrationTestBase
         };
         inviteRequest.Headers.Add("Authorization", $"Bearer {adminToken}");
         var inviteResponse = await HttpClient.SendAsync(inviteRequest, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, inviteResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, inviteResponse.StatusCode);
         var invite = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResponseDto>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(invite);
 

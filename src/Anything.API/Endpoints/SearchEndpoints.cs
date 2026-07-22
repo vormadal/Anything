@@ -10,18 +10,26 @@ namespace Anything.API.Endpoints;
 public class SearchQueryParameters
 {
     public string? Term { get; set; }
-    public int Limit { get; set; } = 20;
+
+    // Must be nullable: a non-nullable value-type property bound via
+    // [AsParameters] has no visible "optional" marker to ASP.NET Core's minimal
+    // API binding metadata (a C# field initializer isn't reflection-visible),
+    // so a request that omits ?limit= gets a 400 instead of falling back to a
+    // default. Apply the actual default (20) where it's consumed below.
+    public int? Limit { get; set; }
 }
 
 public static class SearchEndpoints
 {
+    private const int DefaultSearchLimit = 20;
+
     public static void MapSearchEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/search");
 
         group.MapGet("/", async ([AsParameters] SearchQueryParameters parameters, IMediator mediator) =>
         {
-            return await mediator.Send(new GetSearchResultsQuery(parameters.Term ?? string.Empty, parameters.Limit));
+            return await mediator.Send(new GetSearchResultsQuery(parameters.Term ?? string.Empty, parameters.Limit ?? DefaultSearchLimit));
         })
         .WithName("SearchAcrossEntities")
         .Produces<List<SearchResultResponse>>()

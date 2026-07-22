@@ -40,9 +40,9 @@ public class HomePreferenceEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<List<HomeCardPreferenceDto>>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
-        Assert.Equal(["quickcreate", "foodplan", "lists", "bills"], result.Select(r => r.CardKey).ToList());
+        Assert.Equal(["quickcreate", "foodplan", "lists", "bills", "search"], result.Select(r => r.CardKey).ToList());
         Assert.All(result, r => Assert.True(r.IsVisible));
-        Assert.Equal([0, 1, 2, 3], result.Select(r => r.SortOrder).ToList());
+        Assert.Equal([0, 1, 2, 3, 4], result.Select(r => r.SortOrder).ToList());
     }
 
     [Fact]
@@ -91,13 +91,14 @@ public class HomePreferenceEndpointTests : IntegrationTestBase
         var result = await getResponse.Content.ReadFromJsonAsync<List<HomeCardPreferenceDto>>(JsonOptions, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
-        // The three saved cards keep their order; the remaining known card (quickcreate)
-        // is appended as a visible default.
-        Assert.Equal(["bills", "foodplan", "lists", "quickcreate"], result.Select(r => r.CardKey).ToList());
+        // The three saved cards keep their order; the remaining known cards
+        // (quickcreate, search) are appended as visible defaults.
+        Assert.Equal(["bills", "foodplan", "lists", "quickcreate", "search"], result.Select(r => r.CardKey).ToList());
         Assert.False(result[0].IsVisible);
         Assert.True(result[1].IsVisible);
         Assert.True(result[2].IsVisible);
         Assert.True(result[3].IsVisible);
+        Assert.True(result[4].IsVisible);
     }
 
     [Fact]
