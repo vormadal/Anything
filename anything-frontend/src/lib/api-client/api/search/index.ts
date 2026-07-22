@@ -40,7 +40,7 @@ export interface SearchRequestBuilderGetQueryParameters {
 /**
  * Uri template for the request builder.
  */
-export const SearchRequestBuilderUriTemplate = "{+baseurl}/api/search?Limit={Limit}{&Term*}";
+export const SearchRequestBuilderUriTemplate = "{+baseurl}/api/search{?Limit*,Term*}";
 /**
  * Mapper for query parameters from symbol name to serialization name represented as a constant.
  */
