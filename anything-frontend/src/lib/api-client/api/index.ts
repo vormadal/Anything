@@ -26,6 +26,8 @@ import { LocationsRequestBuilderNavigationMetadata, LocationsRequestBuilderReque
 // @ts-ignore
 import { RecipesRequestBuilderNavigationMetadata, RecipesRequestBuilderRequestsMetadata, type RecipesRequestBuilder } from './recipes/index';
 // @ts-ignore
+import { SearchRequestBuilderNavigationMetadata, SearchRequestBuilderRequestsMetadata, type SearchRequestBuilder } from './search/index';
+// @ts-ignore
 import { SharedRequestBuilderNavigationMetadata, type SharedRequestBuilder } from './shared/index';
 // @ts-ignore
 import { ShoppingListRecommendationsRequestBuilderNavigationMetadata, ShoppingListRecommendationsRequestBuilderRequestsMetadata, type ShoppingListRecommendationsRequestBuilder } from './shoppingListRecommendations/index';
@@ -92,6 +94,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The recipes property
      */
     get recipes(): RecipesRequestBuilder;
+    /**
+     * The search property
+     */
+    get search(): SearchRequestBuilder;
     /**
      * The shared property
      */
@@ -168,6 +174,10 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     recipes: {
         requestsMetadata: RecipesRequestBuilderRequestsMetadata,
         navigationMetadata: RecipesRequestBuilderNavigationMetadata,
+    },
+    search: {
+        requestsMetadata: SearchRequestBuilderRequestsMetadata,
+        navigationMetadata: SearchRequestBuilderNavigationMetadata,
     },
     shared: {
         navigationMetadata: SharedRequestBuilderNavigationMetadata,

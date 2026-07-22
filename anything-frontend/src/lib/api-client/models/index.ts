@@ -1461,6 +1461,33 @@ export function createSaveAsTemplateRequestFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SearchIndexOverviewResponse}
+ */
+// @ts-ignore
+export function createSearchIndexOverviewResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSearchIndexOverviewResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SearchIndexTypeCount}
+ */
+// @ts-ignore
+export function createSearchIndexTypeCountFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSearchIndexTypeCount;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SearchResultResponse}
+ */
+// @ts-ignore
+export function createSearchResultResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSearchResultResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {SeasonalTagRuleResponse}
  */
 // @ts-ignore
@@ -3294,6 +3321,45 @@ export function deserializeIntoSaveAsTemplateRequest(saveAsTemplateRequest: Part
 }
 /**
  * The deserialization information for the current model
+ * @param SearchIndexOverviewResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSearchIndexOverviewResponse(searchIndexOverviewResponse: Partial<SearchIndexOverviewResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "byType": n => { searchIndexOverviewResponse.byType = n.getCollectionOfObjectValues<SearchIndexTypeCount>(createSearchIndexTypeCountFromDiscriminatorValue); },
+        "lastIndexedOn": n => { searchIndexOverviewResponse.lastIndexedOn = n.getDateValue(); },
+        "totalDocuments": n => { searchIndexOverviewResponse.totalDocuments = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param SearchIndexTypeCount The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSearchIndexTypeCount(searchIndexTypeCount: Partial<SearchIndexTypeCount> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "count": n => { searchIndexTypeCount.count = n.getNumberValue(); },
+        "entityType": n => { searchIndexTypeCount.entityType = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param SearchResultResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSearchResultResponse(searchResultResponse: Partial<SearchResultResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "entityId": n => { searchResultResponse.entityId = n.getNumberValue(); },
+        "entityType": n => { searchResultResponse.entityType = n.getStringValue(); },
+        "snippet": n => { searchResultResponse.snippet = n.getStringValue(); },
+        "title": n => { searchResultResponse.title = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param SeasonalTagRuleResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -5038,6 +5104,48 @@ export interface SaveAsTemplateRequest extends Parsable {
      */
     name?: string | null;
 }
+export interface SearchIndexOverviewResponse extends Parsable {
+    /**
+     * The byType property
+     */
+    byType?: SearchIndexTypeCount[] | null;
+    /**
+     * The lastIndexedOn property
+     */
+    lastIndexedOn?: Date | null;
+    /**
+     * The totalDocuments property
+     */
+    totalDocuments?: number | null;
+}
+export interface SearchIndexTypeCount extends Parsable {
+    /**
+     * The count property
+     */
+    count?: number | null;
+    /**
+     * The entityType property
+     */
+    entityType?: string | null;
+}
+export interface SearchResultResponse extends Parsable {
+    /**
+     * The entityId property
+     */
+    entityId?: number | null;
+    /**
+     * The entityType property
+     */
+    entityType?: string | null;
+    /**
+     * The snippet property
+     */
+    snippet?: string | null;
+    /**
+     * The title property
+     */
+    title?: string | null;
+}
 export interface SeasonalTagRuleResponse extends Parsable {
     /**
      * The boost property
@@ -6455,6 +6563,45 @@ export function serializeReorderSuggestionCategoriesRequest(writer: Serializatio
 export function serializeSaveAsTemplateRequest(writer: SerializationWriter, saveAsTemplateRequest: Partial<SaveAsTemplateRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!saveAsTemplateRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", saveAsTemplateRequest.name);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SearchIndexOverviewResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSearchIndexOverviewResponse(writer: SerializationWriter, searchIndexOverviewResponse: Partial<SearchIndexOverviewResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!searchIndexOverviewResponse || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfObjectValues<SearchIndexTypeCount>("byType", searchIndexOverviewResponse.byType, serializeSearchIndexTypeCount);
+    writer.writeDateValue("lastIndexedOn", searchIndexOverviewResponse.lastIndexedOn);
+    writer.writeNumberValue("totalDocuments", searchIndexOverviewResponse.totalDocuments);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SearchIndexTypeCount The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSearchIndexTypeCount(writer: SerializationWriter, searchIndexTypeCount: Partial<SearchIndexTypeCount> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!searchIndexTypeCount || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("count", searchIndexTypeCount.count);
+    writer.writeStringValue("entityType", searchIndexTypeCount.entityType);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SearchResultResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSearchResultResponse(writer: SerializationWriter, searchResultResponse: Partial<SearchResultResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!searchResultResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("entityId", searchResultResponse.entityId);
+    writer.writeStringValue("entityType", searchResultResponse.entityType);
+    writer.writeStringValue("snippet", searchResultResponse.snippet);
+    writer.writeStringValue("title", searchResultResponse.title);
 }
 /**
  * Serializes information the current object
