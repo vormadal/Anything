@@ -62,6 +62,52 @@ public class GetSearchResultsHandlerTests
     }
 }
 
+public class GetSearchIndexOverviewHandlerTests
+{
+    private readonly IRepository<SearchDocument> _repo = Substitute.For<IRepository<SearchDocument>>();
+    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+
+    public GetSearchIndexOverviewHandlerTests()
+    {
+        _householdContext.HouseholdId.Returns(9);
+    }
+
+    private GetSearchIndexOverviewHandler CreateHandler() => new(_repo, _householdContext);
+
+    [Fact]
+    public async Task Handle_WhenEmpty_ReturnsZeroedOverview()
+    {
+        _repo.Query().Returns(new List<SearchDocument>().AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetSearchIndexOverviewQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.TotalDocuments);
+        Assert.Empty(result.ByType);
+        Assert.Null(result.LastIndexedOn);
+    }
+
+    [Fact]
+    public async Task Handle_GroupsCountsByEntityTypeForCurrentHousehold()
+    {
+        var older = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var newer = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        _repo.Query().Returns(new List<SearchDocument>
+        {
+            new() { Id = 1, HouseholdId = 9, EntityType = SearchEntityTypes.Recipe, EntityId = 1, Title = "Pasta", Content = "Pasta", ModifiedOn = older },
+            new() { Id = 2, HouseholdId = 9, EntityType = SearchEntityTypes.Recipe, EntityId = 2, Title = "Soup", Content = "Soup", ModifiedOn = newer },
+            new() { Id = 3, HouseholdId = 9, EntityType = SearchEntityTypes.ShoppingList, EntityId = 3, Title = "Groceries", Content = "Groceries", ModifiedOn = older },
+            new() { Id = 4, HouseholdId = 1, EntityType = SearchEntityTypes.Recipe, EntityId = 4, Title = "Other household", Content = "Other household", ModifiedOn = newer },
+        }.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetSearchIndexOverviewQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, result.TotalDocuments);
+        Assert.Equal(2, result.ByType.Single(x => x.EntityType == SearchEntityTypes.Recipe).Count);
+        Assert.Equal(1, result.ByType.Single(x => x.EntityType == SearchEntityTypes.ShoppingList).Count);
+        Assert.Equal(newer, result.LastIndexedOn);
+    }
+}
+
 public class RebuildSearchIndexHandlerTests
 {
     private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();

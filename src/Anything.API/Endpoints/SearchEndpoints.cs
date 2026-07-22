@@ -1,3 +1,4 @@
+using Anything.API.Authorization;
 using Anything.Application.Features.Search.Commands;
 using Anything.Application.Features.Search.Queries;
 using Anything.Contracts.Search;
@@ -25,6 +26,17 @@ public static class SearchEndpoints
         .WithName("SearchAcrossEntities")
         .Produces<List<SearchResultResponse>>()
         .RequireAuthorization();
+
+        // Household-scoped "is search populated/healthy" summary for the
+        // household admin — not a full document browser.
+        group.MapGet("/overview", async (IMediator mediator) =>
+        {
+            return await mediator.Send(new GetSearchIndexOverviewQuery());
+        })
+        .WithName("GetSearchIndexOverview")
+        .Produces<SearchIndexOverviewResponse>()
+        .RequireAuthorization()
+        .RequireHouseholdManager();
 
         // Admin-only backfill/repair operation — not run automatically. See
         // RebuildSearchIndexCommand for when to use it.
