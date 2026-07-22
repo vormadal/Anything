@@ -1170,6 +1170,15 @@ export function createPendingInviteResponseFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RebuildSearchIndexResponse}
+ */
+// @ts-ignore
+export function createRebuildSearchIndexResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRebuildSearchIndexResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {RecipeDetailResponse}
  */
 // @ts-ignore
@@ -2993,6 +3002,17 @@ export function deserializeIntoPendingInviteResponse(pendingInviteResponse: Part
 }
 /**
  * The deserialization information for the current model
+ * @param RebuildSearchIndexResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRebuildSearchIndexResponse(rebuildSearchIndexResponse: Partial<RebuildSearchIndexResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "indexed": n => { rebuildSearchIndexResponse.indexed = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param Recipe The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -4666,6 +4686,12 @@ export interface PendingInviteResponse extends Parsable {
      */
     token?: string | null;
 }
+export interface RebuildSearchIndexResponse extends Parsable {
+    /**
+     * The indexed property
+     */
+    indexed?: number | null;
+}
 export interface Recipe extends Parsable {
     /**
      * The cookTimeMinutes property
@@ -6235,6 +6261,17 @@ export function serializePendingInviteResponse(writer: SerializationWriter, pend
     writer.writeNumberValue("id", pendingInviteResponse.id);
     writer.writeStringValue("inviteUrl", pendingInviteResponse.inviteUrl);
     writer.writeStringValue("token", pendingInviteResponse.token);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RebuildSearchIndexResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRebuildSearchIndexResponse(writer: SerializationWriter, rebuildSearchIndexResponse: Partial<RebuildSearchIndexResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!rebuildSearchIndexResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("indexed", rebuildSearchIndexResponse.indexed);
 }
 /**
  * Serializes information the current object
