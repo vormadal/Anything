@@ -39,6 +39,7 @@ import {
   Tags,
   Ruler,
   ChevronRight,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -337,7 +338,7 @@ export default function HouseholdDetailPage() {
             </div>
           </div>
 
-          <div>
+          <div className="mb-3">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1 mb-1">
               Shared
             </p>
@@ -347,6 +348,21 @@ export default function HouseholdDetailPage() {
                 icon={Ruler}
                 title="Units"
                 description="Measurement units for recipes & lists"
+                onClick={(href) => router.push(href)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1 mb-1">
+              Search
+            </p>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+              <ConfigCard
+                href={`/households/${householdId}/search`}
+                icon={Search}
+                title="Search Index"
+                description="What's currently searchable for your household"
                 onClick={(href) => router.push(href)}
               />
             </div>
