@@ -66,6 +66,7 @@ export default function HouseholdSearchIndexPage() {
             onClick={handleRebuild}
             disabled={rebuildIndex.isPending || !isOnline}
             title={isOnline ? undefined : "Rebuilding the index requires an internet connection"}
+            aria-label="Rebuild search index"
             className="shrink-0"
           >
             <RefreshCw className={`h-4 w-4 sm:mr-1 ${rebuildIndex.isPending ? "animate-spin" : ""}`} />
