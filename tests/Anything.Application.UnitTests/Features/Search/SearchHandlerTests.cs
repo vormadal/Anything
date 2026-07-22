@@ -137,9 +137,9 @@ public class RebuildSearchIndexHandlerTests
         var added = new List<SearchDocument>();
         _searchDocumentRepo.When(r => r.Add(Arg.Any<SearchDocument>())).Do(c => added.Add(c.Arg<SearchDocument>()));
 
-        var count = await CreateHandler().Handle(new RebuildSearchIndexCommand(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new RebuildSearchIndexCommand(), TestContext.Current.CancellationToken);
 
-        Assert.Equal(3, count);
+        Assert.Equal(3, result.Indexed);
         Assert.Equal(3, added.Count);
         Assert.Contains(added, d => d.EntityType == SearchEntityTypes.Recipe && d.EntityId == 1 && d.Title == "Pasta");
         Assert.Contains(added, d => d.EntityType == SearchEntityTypes.ShoppingList && d.EntityId == 2 && d.Title == "Groceries");

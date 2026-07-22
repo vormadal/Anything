@@ -42,11 +42,10 @@ public static class SearchEndpoints
         // RebuildSearchIndexCommand for when to use it.
         group.MapPost("/rebuild-index", async (IMediator mediator) =>
         {
-            var count = await mediator.Send(new RebuildSearchIndexCommand());
-            return Results.Ok(new { Indexed = count });
+            return await mediator.Send(new RebuildSearchIndexCommand());
         })
         .WithName("RebuildSearchIndex")
-        .Produces(StatusCodes.Status200OK)
+        .Produces<RebuildSearchIndexResponse>(StatusCodes.Status200OK)
         .RequireAuthorization(UserRoles.Admin);
     }
 }

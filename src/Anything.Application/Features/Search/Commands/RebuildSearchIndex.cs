@@ -1,3 +1,4 @@
+using Anything.Contracts.Search;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Search;
@@ -13,7 +14,7 @@ namespace Anything.Application.Features.Search.Commands;
 /// as an admin-only, on-demand operation — e.g. right after this feature ships,
 /// to backfill existing data — not something run automatically on startup.
 /// </summary>
-public record RebuildSearchIndexCommand : IRequest<int>;
+public record RebuildSearchIndexCommand : IRequest<RebuildSearchIndexResponse>;
 
 public class RebuildSearchIndexHandler(
     IRepository<Recipe> recipeRepository,
@@ -21,9 +22,9 @@ public class RebuildSearchIndexHandler(
     IRepository<InventoryItem> inventoryItemRepository,
     IRepository<SearchDocument> searchDocumentRepository,
     IUnitOfWork unitOfWork)
-    : IRequestHandler<RebuildSearchIndexCommand, int>
+    : IRequestHandler<RebuildSearchIndexCommand, RebuildSearchIndexResponse>
 {
-    public async Task<int> Handle(RebuildSearchIndexCommand command, CancellationToken ct = default)
+    public async Task<RebuildSearchIndexResponse> Handle(RebuildSearchIndexCommand command, CancellationToken ct = default)
     {
         var recipes = await recipeRepository.Query().Where(r => r.DeletedOn == null).ToListAsync(ct);
         var shoppingLists = await shoppingListRepository.Query().Where(l => l.DeletedOn == null).ToListAsync(ct);
@@ -50,7 +51,7 @@ public class RebuildSearchIndexHandler(
             searchDocumentRepository.Remove(orphan);
 
         await unitOfWork.SaveChanges(ct);
-        return searchable.Count;
+        return new RebuildSearchIndexResponse(searchable.Count);
     }
 
     private static void Upsert(
