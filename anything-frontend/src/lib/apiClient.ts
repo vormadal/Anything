@@ -124,14 +124,19 @@ export class HouseholdHeaderHandler implements Middleware {
     requestInit: RequestInit,
     requestOptions?: Record<string, RequestOption>
   ): Promise<Response> {
-    const householdId =
-      typeof window !== "undefined"
-        ? localStorage.getItem(HOUSEHOLD_ID_KEY)
-        : null;
-    if (householdId) {
-      const headers = new Headers(requestInit.headers as HeadersInit);
-      headers.set(HOUSEHOLD_HEADER, householdId);
-      requestInit = { ...requestInit, headers };
+    const headers = new Headers(requestInit.headers as HeadersInit);
+    // Respect an explicit per-request X-Household-Id (e.g. a page scoped to a
+    // household from the route). Only fall back to the active household from
+    // localStorage when the caller hasn't set one, so we never override it.
+    if (!headers.has(HOUSEHOLD_HEADER)) {
+      const householdId =
+        typeof window !== "undefined"
+          ? localStorage.getItem(HOUSEHOLD_ID_KEY)
+          : null;
+      if (householdId) {
+        headers.set(HOUSEHOLD_HEADER, householdId);
+        requestInit = { ...requestInit, headers };
+      }
     }
     const response = await this.next?.execute(url, requestInit, requestOptions);
     if (!response) {

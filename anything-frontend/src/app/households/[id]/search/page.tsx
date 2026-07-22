@@ -18,10 +18,12 @@ export default function HouseholdSearchIndexPage() {
   const router = useRouter();
   const params = useParams();
   const householdId = typeof params.id === "string" ? params.id : "";
+  const routeHouseholdId = Number(householdId);
+  const scopedHouseholdId = Number.isNaN(routeHouseholdId) ? undefined : routeHouseholdId;
   const { getHouseholdRole, isLoading: householdsLoading } = useHouseholdContext();
   const { setLeftAction } = useHeaderActions();
-  const { data: overview, isLoading } = useSearchIndexOverview();
-  const rebuildIndex = useRebuildHouseholdSearchIndex();
+  const { data: overview, isLoading } = useSearchIndexOverview(scopedHouseholdId);
+  const rebuildIndex = useRebuildHouseholdSearchIndex(scopedHouseholdId);
   const isOnline = useOnlineStatus();
 
   useEffect(() => {

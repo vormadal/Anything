@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, HOUSEHOLD_HEADER } from "@/lib/apiClient";
 import type {
   SearchResultResponse,
   SearchIndexOverviewResponse,
@@ -11,6 +11,17 @@ import type {
 export type { SearchResultResponse, SearchIndexOverviewResponse, RebuildSearchIndexResponse };
 
 const SEARCH_INDEX_OVERVIEW_KEY = ["searchIndexOverview"] as const;
+
+/**
+ * Builds a Kiota request configuration that pins the call to a specific
+ * household via the X-Household-Id header, overriding the active household the
+ * apiClient would otherwise inject. Returns undefined when no id is given so
+ * the request keeps the default active-household behaviour.
+ */
+function householdRequestConfig(householdId?: number) {
+  if (householdId === undefined || Number.isNaN(householdId)) return undefined;
+  return { headers: { [HOUSEHOLD_HEADER]: String(householdId) } };
+}
 
 /** Cross-entity search. Pass an already-debounced term; disabled while blank. */
 export function useSearch(term: string, limit = 20) {
@@ -30,12 +41,16 @@ export function useSearch(term: string, limit = 20) {
   });
 }
 
-/** Household-scoped "is search populated/healthy" summary — counts by entity type, gated to household managers on the backend. */
-export function useSearchIndexOverview() {
+/**
+ * Household-scoped "is search populated/healthy" summary — counts by entity type,
+ * gated to household managers on the backend. Pass an explicit `householdId` to scope
+ * the call to that household (e.g. from a route) instead of the active household.
+ */
+export function useSearchIndexOverview(householdId?: number) {
   return useQuery({
-    queryKey: SEARCH_INDEX_OVERVIEW_KEY,
+    queryKey: [...SEARCH_INDEX_OVERVIEW_KEY, householdId ?? null],
     queryFn: async (): Promise<SearchIndexOverviewResponse> => {
-      const overview = await apiClient.api.search.overview.get();
+      const overview = await apiClient.api.search.overview.get(householdRequestConfig(householdId));
       return overview ?? { totalDocuments: 0, byType: [], lastIndexedOn: null };
     },
   });
@@ -56,13 +71,19 @@ export function useRebuildSearchIndex() {
   });
 }
 
-/** Household-manager self-serve: rebuilds only the caller's own household. */
-export function useRebuildHouseholdSearchIndex() {
+/**
+ * Household-manager self-serve: rebuilds a single household's index. Pass an explicit
+ * `householdId` (e.g. from a route) to scope the rebuild to that household instead of
+ * the active one; the backend still enforces the caller's manager role in it.
+ */
+export function useRebuildHouseholdSearchIndex(householdId?: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (): Promise<RebuildSearchIndexResponse> => {
-      const result = await apiClient.api.search.rebuildIndex.household.post();
+      const result = await apiClient.api.search.rebuildIndex.household.post(
+        householdRequestConfig(householdId)
+      );
       return result ?? { indexed: 0 };
     },
     onSuccess: () => {

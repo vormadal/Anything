@@ -184,6 +184,19 @@ describe("HouseholdHeaderHandler", () => {
     expect(headers.get(HOUSEHOLD_HEADER)).toBeNull();
   });
 
+  it("preserves an explicit X-Household-Id header instead of overriding it with the active household", async () => {
+    localStorage.setItem(HOUSEHOLD_ID_KEY, "1");
+
+    const explicitHeaders = new Headers();
+    explicitHeaders.set(HOUSEHOLD_HEADER, "2");
+    await handler.execute("https://api.example.com/test", { headers: explicitHeaders });
+
+    const calledInit = mockNext.execute.mock.calls[0][1] as RequestInit;
+    const headers = new Headers(calledInit.headers as HeadersInit);
+    // The per-request household (2) must win over the active household (1).
+    expect(headers.get(HOUSEHOLD_HEADER)).toBe("2");
+  });
+
   it("passes through to next middleware", async () => {
     localStorage.setItem(HOUSEHOLD_ID_KEY, "7");
 
