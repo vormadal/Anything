@@ -151,3 +151,20 @@ body {
 .slide-out-to-bottom {
   --tw-exit-translate-y: 100%;
 }
+
+/*
+ * Tiptap placeholder (note editor). The Placeholder extension only tags the
+ * empty node with `.is-empty` and a `data-placeholder` attribute — rendering
+ * the hint text is left to the app, so without this rule an empty note editor
+ * shows nothing at all. Scoped to the `note-editor` class the editor sets via
+ * `editorProps.attributes`, rather than Tiptap's own `.ProseMirror`, so the
+ * rule doesn't depend on that internal class name. `showOnlyWhenEditable`
+ * defaults to true, so the read-only note view is unaffected.
+ */
+.note-editor p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-gray-400, #9ca3af);
+}

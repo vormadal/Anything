@@ -1631,6 +1631,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForFunction(() => window.history.length > 1);
     await page.getByRole("button", { name: /open menu/i }).click();
     await page.waitForSelector('[role="dialog"]');
+    // Assert a nav entry explicitly: one extra row still lands under the
+    // config's 2% maxDiffPixelRatio, so adding one does NOT fail this
+    // comparison and the baseline silently keeps its pre-change contents.
+    await expect(page.getByRole("dialog").getByRole("button", { name: "Notes" })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "navigation-drawer-open.png",
       screenshotOptions
@@ -1818,6 +1822,9 @@ test.describe("Visual Snapshots - Onboarding Tour", () => {
 
   test("nav drawer", async ({ page }) => {
     await expect(page.getByRole("button", { name: "Take the tour" })).toBeVisible();
+    // See navigation-drawer-open: a new nav row alone won't fail the pixel
+    // comparison, so each entry the drawer must show is asserted directly.
+    await expect(page.getByRole("dialog").getByRole("button", { name: "Notes" })).toBeVisible();
     await expect(page).toHaveScreenshot("nav-drawer.png", screenshotOptions);
   });
 

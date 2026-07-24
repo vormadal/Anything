@@ -7,7 +7,12 @@ import { NoteEditorToolbar } from "./NoteEditorToolbar";
 import { NOTE_PROSE_CLASSES } from "./noteProseClasses";
 
 interface NoteEditorProps {
-  /** Initial document. Changes to this prop reload the editor's content. */
+  /**
+   * The document to start from. Read once, on mount: a later change to this
+   * prop is deliberately ignored so a background refetch of the note can't
+   * discard edits in progress. Remount the editor (e.g. via a `key`) to load a
+   * different note.
+   */
   value: JSONContent;
   onChange: (document: JSONContent) => void;
   /** Marks the editing surface for assistive tech; defaults to "Note content". */
@@ -35,7 +40,8 @@ export function NoteEditor({ value, onChange, label = DEFAULT_LABEL }: NoteEdito
         role: "textbox",
         "aria-label": label,
         "aria-multiline": "true",
-        class: `${NOTE_PROSE_CLASSES} min-h-[12rem] px-3 py-2 focus:outline-none`,
+        // `note-editor` is the hook the placeholder CSS in globals.css targets.
+        class: `note-editor ${NOTE_PROSE_CLASSES} min-h-[12rem] px-3 py-2 focus:outline-none`,
       },
     },
     onUpdate: ({ editor: updated }) => onChange(updated.getJSON()),

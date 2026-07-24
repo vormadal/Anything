@@ -25,6 +25,14 @@ Reusable UI components shared across multiple pages.
 - `button.test.tsx` is an example of a unit test for a UI primitive — follow that pattern when adding new ui/ components.
 - New components with distinct visual states (dialogs, multi-step flows) must be covered by a Playwright visual snapshot — see `.claude/rules/e2e.md` for the authoritative rule.
 
+## Rich text (`notes/`)
+
+The note editor is Tiptap (ProseMirror). Three rules keep it manageable:
+
+- **One schema, two modes.** `NoteEditor` (editable) and `NoteContentView` (read-only) both build from `noteExtensions` in `@/lib/notes/extensions`. Never hand-render the stored JSON — registering a node in that array is what makes it render in both modes, and it is the intended extension point for a future `entityReference` node linking to a recipe or shopping list (inline, atomic, `attrs: { entityType, entityId, label }`, no text child — the shape the backend's `NoteContent.ExtractPlainText` already flattens into the search index).
+- **Always load the editor via `next/dynamic` with `ssr: false`.** ProseMirror constructs against the DOM, so a server render throws; `useEditor` also needs `immediatelyRender: false` under the App Router or the first client render mismatches. Lazy loading additionally keeps ~200 KB off the notes list and home card, which render server-provided plain-text snippets and never need the editor.
+- **Mock the editor in Jest.** jsdom lacks the layout APIs ProseMirror calls (`Range.getClientRects` and friends), so component tests `jest.mock("./NoteEditor")` — see `NoteForm.test.tsx`. Editor behaviour is covered by the Playwright visual specs instead.
+
 ## Toast usage rules (sonner)
 
 A toast's only job is to communicate an outcome the user **cannot otherwise see on screen**. Mutations run through React Query with invalidation/optimistic updates, so after an add/edit/remove the changed row is already visible — a success toast there just repeats the screen. Before adding `toast.success(...)`, apply the decision test:
