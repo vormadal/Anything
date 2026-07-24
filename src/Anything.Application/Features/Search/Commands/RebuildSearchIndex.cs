@@ -21,14 +21,15 @@ public class RebuildSearchIndexHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<ShoppingList> shoppingListRepository,
     IRepository<InventoryItem> inventoryItemRepository,
+    IRepository<Note> noteRepository,
     IRepository<SearchDocument> searchDocumentRepository,
     IUnitOfWork unitOfWork)
     : IRequestHandler<RebuildSearchIndexCommand, RebuildSearchIndexResponse>
 {
     public Task<RebuildSearchIndexResponse> Handle(RebuildSearchIndexCommand command, CancellationToken ct = default) =>
         SearchIndexRebuilder.Rebuild(
-            recipeRepository, shoppingListRepository, inventoryItemRepository, searchDocumentRepository,
-            unitOfWork, householdId: null, ct);
+            recipeRepository, shoppingListRepository, inventoryItemRepository, noteRepository,
+            searchDocumentRepository, unitOfWork, householdId: null, ct);
 }
 
 /// <summary>
@@ -43,6 +44,7 @@ public class RebuildHouseholdSearchIndexHandler(
     IRepository<Recipe> recipeRepository,
     IRepository<ShoppingList> shoppingListRepository,
     IRepository<InventoryItem> inventoryItemRepository,
+    IRepository<Note> noteRepository,
     IRepository<SearchDocument> searchDocumentRepository,
     IUnitOfWork unitOfWork,
     IHouseholdContext householdContext)
@@ -50,8 +52,8 @@ public class RebuildHouseholdSearchIndexHandler(
 {
     public Task<RebuildSearchIndexResponse> Handle(RebuildHouseholdSearchIndexCommand command, CancellationToken ct = default) =>
         SearchIndexRebuilder.Rebuild(
-            recipeRepository, shoppingListRepository, inventoryItemRepository, searchDocumentRepository,
-            unitOfWork, householdId: householdContext.HouseholdId, ct);
+            recipeRepository, shoppingListRepository, inventoryItemRepository, noteRepository,
+            searchDocumentRepository, unitOfWork, householdId: householdContext.HouseholdId, ct);
 }
 
 /// <summary>Shared rebuild logic behind <see cref="RebuildSearchIndexCommand"/> and <see cref="RebuildHouseholdSearchIndexCommand"/>.</summary>
@@ -61,6 +63,7 @@ internal static class SearchIndexRebuilder
         IRepository<Recipe> recipeRepository,
         IRepository<ShoppingList> shoppingListRepository,
         IRepository<InventoryItem> inventoryItemRepository,
+        IRepository<Note> noteRepository,
         IRepository<SearchDocument> searchDocumentRepository,
         IUnitOfWork unitOfWork,
         int? householdId,
@@ -69,6 +72,7 @@ internal static class SearchIndexRebuilder
         var recipesQuery = recipeRepository.Query().Where(r => r.DeletedOn == null);
         var shoppingListsQuery = shoppingListRepository.Query().Where(l => l.DeletedOn == null);
         var inventoryItemsQuery = inventoryItemRepository.Query().Where(i => i.DeletedOn == null);
+        var notesQuery = noteRepository.Query().Where(n => n.DeletedOn == null);
         var documentsQuery = searchDocumentRepository.Query();
 
         if (householdId.HasValue)
@@ -76,16 +80,19 @@ internal static class SearchIndexRebuilder
             recipesQuery = recipesQuery.Where(r => r.HouseholdId == householdId);
             shoppingListsQuery = shoppingListsQuery.Where(l => l.HouseholdId == householdId);
             inventoryItemsQuery = inventoryItemsQuery.Where(i => i.HouseholdId == householdId);
+            notesQuery = notesQuery.Where(n => n.HouseholdId == householdId);
             documentsQuery = documentsQuery.Where(d => d.HouseholdId == householdId);
         }
 
         var recipes = await recipesQuery.ToListAsync(ct);
         var shoppingLists = await shoppingListsQuery.ToListAsync(ct);
         var inventoryItems = await inventoryItemsQuery.ToListAsync(ct);
+        var notes = await notesQuery.ToListAsync(ct);
 
         var searchable = recipes.Cast<ISearchable>()
             .Concat(shoppingLists)
             .Concat(inventoryItems)
+            .Concat(notes)
             .ToList();
 
         var existingDocuments = await documentsQuery.ToListAsync(ct);

@@ -11,4 +11,5 @@ public static class SearchEntityTypes
     public const string Recipe = "Recipe";
     public const string ShoppingList = "ShoppingList";
     public const string InventoryItem = "InventoryItem";
+    public const string Note = "Note";
 }
