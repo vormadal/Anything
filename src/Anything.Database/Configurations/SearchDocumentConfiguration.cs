@@ -1,4 +1,5 @@
 using Anything.Core.Entities;
+using Anything.Core.Search;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NpgsqlTypes;
