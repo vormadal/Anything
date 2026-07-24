@@ -35,6 +35,13 @@ public class Note : ISearchable
     string ISearchable.SearchEntityType => SearchEntityTypes.Note;
     int ISearchable.SearchEntityId => Id;
     string ISearchable.SearchTitle => Title;
-    string ISearchable.SearchContent =>
-        string.IsNullOrWhiteSpace(ContentText) ? Title : $"{Title} {ContentText}";
+
+    // A note body is unbounded but SearchDocument.Content is not, and the
+    // interceptor writes that row in a save that runs after the user's write has
+    // already committed — overflowing here would fail the index write on an
+    // otherwise successful save. Truncating keeps long notes findable by their
+    // opening text rather than not at all.
+    string ISearchable.SearchContent => SearchDocumentLimits.Truncate(
+        string.IsNullOrWhiteSpace(ContentText) ? Title : $"{Title} {ContentText}",
+        SearchDocumentLimits.MaxContentLength);
 }
