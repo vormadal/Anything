@@ -8,7 +8,7 @@ One subfolder per feature domain, each containing:
 - `Create*Request.cs`, `Update*Request.cs` — write-side inputs with data annotation validation
 - `*Response.cs` — read-side outputs returned by query handlers
 
-Feature folders: `Auth`, `Bills`, `FoodPlans`, `Households`, `Inventory`, `Locations`, `Recipes`, `Recommendations`, `ShoppingLists`, `Somethings`, `SuggestionCategories`, `Vendors`
+Feature folders: `Auth`, `Bills`, `FoodPlans`, `HomePreferences`, `Households`, `Inventory`, `Locations`, `Notes`, `Recipes`, `Recommendations`, `Search`, `ShoppingLists`, `Somethings`, `SuggestionCategories`, `Units`, `Vendors`
 
 ## Key Patterns
 
@@ -16,3 +16,4 @@ Feature folders: `Auth`, `Bills`, `FoodPlans`, `Households`, `Inventory`, `Locat
 - Data annotations (`[Required]`, `[MaxLength]`, etc.) live on request records here — validation is triggered by `.WithParameterValidation()` in the API layer.
 - Response records are flat projections — avoid exposing navigation properties or EF entities directly.
 - When adding a new endpoint, add the matching request/response records here first, then wire up the handler and endpoint.
+- Prefer a separate summary record when a list endpoint doesn't need the full entity — `Notes` pairs `NoteResponse` (includes the full rich-text `ContentJson`) with `NoteSummaryResponse` (title + short plain-text snippet), so listing many notes never ships every editor document.

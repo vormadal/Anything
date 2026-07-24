@@ -112,6 +112,14 @@ npm run test:e2e:visual:update   # Regenerate baseline screenshots — REQUIRED 
 
 ## API Endpoints
 
+Notes (`/api/notes`) — household-scoped rich-text notes. `GET /` returns
+`NoteSummaryResponse` (title + plain-text snippet) and accepts an optional
+`?limit=`; `GET /{id}` returns the full `ContentJson` editor document. The body
+is a ProseMirror/Tiptap document stored as JSON, with its flattened plain text
+derived server-side by `NoteContent.ExtractPlainText` on every write — that
+extractor also surfaces a node's `attrs.label`, which is what will keep a future
+"reference a recipe/list" node searchable without backend changes.
+
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
 - `GET /{id}` — Get by ID
@@ -149,6 +157,10 @@ Three GitHub Actions workflows auto-generate committed artifacts on **non-main**
 
 Non-obvious gotchas:
 
+- **Making an entity `ISearchable` takes more than implementing the interface, despite what its doc comment says.** The `SearchIndexInterceptor` does keep the entity's `SearchDocument` in sync automatically, but two things still have to be done by hand, and both fail silently or late:
+  1. **Add the entity to both handlers in `Features/Search/Commands/RebuildSearchIndex.cs`.** The rebuild ends by deleting every `SearchDocument` whose `(EntityType, EntityId)` isn't in the live set it just gathered — so a searchable type the rebuild doesn't know about isn't merely skipped, it gets **wiped from the index** the first time any admin or household manager clicks "rebuild", and only comes back as each row is next edited.
+  2. **Keep `SearchContent` within `SearchDocumentLimits.MaxContentLength` (5000).** The interceptor writes the index row in a *second* `SaveChangesAsync` that runs after the user's own write has already committed, so an overlong projection throws on an otherwise-successful save. Entities with unbounded bodies must truncate — see `Note.SearchContent`.
+- **Adding a key to `HomeCardKeys.All` breaks `HomePreferenceEndpointTests`**, which asserts the exact default card list and sort orders. Update it in the same change; the frontend's `DEFAULT_HOME_CARD_ORDER` in `anything-frontend/src/app/HomeCards.tsx` mirrors the same list and needs the matching entry.
 - **Model-changing pushes break `update-api-client` on the first push — this is expected.** When a push adds/changes an entity, `update-ef-migrations` and `update-api-client` run in parallel on the *same* pre-migration commit. `update-api-client` boots the API, whose startup `MigrateAsync` escalates `PendingModelChangesWarning` to a fatal error because the migration doesn't exist yet, so Swagger never comes up and Kiota generation times out (exit 124). `update-ef-migrations` meanwhile commits the migration. To regenerate the client you must re-trigger `update-api-client` on a commit that *already contains* the migration — and it only triggers on `src/Anything.{API,Contracts,Application,Core}/**` (NOT `src/Anything.Database/**`, where migrations live). Fix: after the migration lands, make a small backend-path change (e.g. XML-doc the new contracts) in your next push, then pull/rebase the regenerated client before validating the frontend.
 - **Snapshot bot `[skip ci]` commits don't re-trigger PR checks.** The PR's `Visual Snapshot Tests` check does NOT rerun on the baseline-containing commit — the PR stays red with the pre-baseline failure as its latest check. After the bot commit lands, push a small non-`[skip ci]` commit (docs, comment) to sync the PR and rerun checks on a tip that includes the baselines.
 - **Regenerating a single visual snapshot: the snapshot dir is not a workflow trigger path.** Playwright's `--update-snapshots` won't overwrite (or commit) a baseline it considers a match, so `git rm` the specific `anything-frontend/e2e/visual.spec.ts-snapshots/<name>.png` to force a clean regeneration. But that directory is **not** in the workflow's `paths:` filter — pair the deletion with a change to a trigger path (`e2e/visual.spec.ts`, `src/**`, `public/**`, …) in the same push so the workflow runs.
