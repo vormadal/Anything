@@ -40,9 +40,9 @@ public class HomePreferenceEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<List<HomeCardPreferenceDto>>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
-        Assert.Equal(["quickcreate", "foodplan", "lists", "bills", "search"], result.Select(r => r.CardKey).ToList());
+        Assert.Equal(["quickcreate", "foodplan", "notes", "lists", "bills", "search"], result.Select(r => r.CardKey).ToList());
         Assert.All(result, r => Assert.True(r.IsVisible));
-        Assert.Equal([0, 1, 2, 3, 4], result.Select(r => r.SortOrder).ToList());
+        Assert.Equal([0, 1, 2, 3, 4, 5], result.Select(r => r.SortOrder).ToList());
     }
 
     [Fact]

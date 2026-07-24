@@ -1,4 +1,5 @@
 using Anything.Core.Entities;
+using Anything.Core.Search;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NpgsqlTypes;
@@ -20,8 +21,8 @@ public class SearchDocumentConfiguration : IEntityTypeConfiguration<SearchDocume
         builder.HasIndex(e => e.HouseholdId);
 
         builder.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
-        builder.Property(e => e.Title).IsRequired().HasMaxLength(200);
-        builder.Property(e => e.Content).IsRequired().HasMaxLength(5000);
+        builder.Property(e => e.Title).IsRequired().HasMaxLength(SearchDocumentLimits.MaxTitleLength);
+        builder.Property(e => e.Content).IsRequired().HasMaxLength(SearchDocumentLimits.MaxContentLength);
 
         // GIN trigram index powering fuzzy (word_similarity) fallback matching —
         // same pattern as RecipeConfiguration's Name index.

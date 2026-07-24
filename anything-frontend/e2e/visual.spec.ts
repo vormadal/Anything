@@ -158,8 +158,86 @@ const mockHomeCardPreferences = [
 // one non-navigable (InventoryItem, no frontend detail page yet) result.
 const mockSearchResults = [
   { entityType: "Recipe", entityId: 1, title: "Pasta Carbonara", snippet: "Classic Italian." },
+  { entityType: "Note", entityId: 1, title: "Wifi password", snippet: "Guest network, no password" },
   { entityType: "InventoryItem", entityId: 3, title: "Flour", snippet: "5kg bag, pantry shelf" },
 ];
+
+// Notes list rows (GET /api/notes) — summaries only, no editor document.
+const mockNotes = [
+  {
+    id: 1,
+    title: "Wifi password",
+    snippet: "Guest network, no password. Main network: see the router label.",
+    createdOn: "2025-01-10T09:00:00Z",
+    modifiedOn: "2025-01-14T18:30:00Z",
+  },
+  {
+    id: 2,
+    title: "Holiday packing",
+    snippet: "Passports, chargers, swimwear, sun cream, the good camera",
+    createdOn: "2025-01-08T09:00:00Z",
+    modifiedOn: null,
+  },
+  {
+    id: 3,
+    title: "Plant watering",
+    snippet: "Ferns twice a week, cactus once a month",
+    createdOn: "2025-01-05T09:00:00Z",
+    modifiedOn: null,
+  },
+];
+
+// A single note including its Tiptap document (GET /api/notes/{id}), covering
+// each block type the editor's toolbar can produce so the rendered typography
+// is what the snapshot actually checks.
+const mockNoteDetail = {
+  id: 1,
+  title: "Wifi password",
+  contentJson: JSON.stringify({
+    type: "doc",
+    content: [
+      { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Guest network" }] },
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "Network name is " },
+          { type: "text", marks: [{ type: "bold" }], text: "Anything-Guest" },
+          { type: "text", text: " — no password needed." },
+        ],
+      },
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Router is in the hallway cupboard" }] }],
+          },
+          {
+            type: "listItem",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Reboot it if the lights go red" }] }],
+          },
+        ],
+      },
+      {
+        type: "blockquote",
+        content: [{ type: "paragraph", content: [{ type: "text", text: "Main network password is on the router label." }] }],
+      },
+    ],
+  }),
+  contentText: "Guest network Network name is Anything-Guest — no password needed.",
+  createdOn: "2025-01-10T09:00:00Z",
+  modifiedOn: "2025-01-14T18:30:00Z",
+};
+
+// A note with no body, to cover the "nothing written yet" detail state.
+const mockEmptyNoteDetail = {
+  id: 2,
+  title: "Holiday packing",
+  contentJson: null,
+  contentText: null,
+  createdOn: "2025-01-08T09:00:00Z",
+  modifiedOn: null,
+};
 
 // Household search index overview (GET /api/search/overview).
 const mockSearchIndexOverview = {
@@ -514,6 +592,24 @@ async function setupApiMocks(page: Page) {
     route.fulfill({ json: { indexed: 42 } })
   );
 
+  // ---- Notes ----
+  // General-to-specific (LIFO): the list route first, then the by-id route
+  // registered after it so a detail GET wins.
+  await page.route("**/api/notes**", (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockNotes });
+    } else {
+      route.fulfill({ status: 204, body: "" });
+    }
+  });
+  await page.route(/\/api\/notes\/\d+$/, (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockNoteDetail });
+    } else {
+      route.fulfill({ status: 204, body: "" });
+    }
+  });
+
   // ---- Households ----
   await page.route("**/api/households**", (route) => {
     if (route.request().method() === "GET") {
@@ -768,6 +864,91 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/home-preferences");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("home-preferences.png", screenshotOptions);
+  });
+
+  // ---- Notes ----
+
+  test("notes - list with items", async ({ page }) => {
+    await page.goto("/notes");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Wifi password")).toBeVisible();
+    await expect(page).toHaveScreenshot("notes-list.png", screenshotOptions);
+  });
+
+  test("notes - empty state", async ({ page }) => {
+    await page.route("**/api/notes**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: [] });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/notes");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/No notes yet/)).toBeVisible();
+    await expect(page).toHaveScreenshot("notes-empty.png", screenshotOptions);
+  });
+
+  test("note detail - rendered rich text", async ({ page }) => {
+    await page.goto("/notes/1");
+    await page.waitForLoadState("networkidle");
+    // Assert on the rendered document rather than trusting the screenshot: a
+    // baseline generated before this feature would otherwise pass silently.
+    await expect(page.getByRole("heading", { name: "Guest network" })).toBeVisible();
+    await expect(page.getByText("Reboot it if the lights go red")).toBeVisible();
+    await expect(page).toHaveScreenshot("note-detail.png", screenshotOptions);
+  });
+
+  test("note detail - empty body", async ({ page }) => {
+    await page.route(/\/api\/notes\/\d+$/, (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: mockEmptyNoteDetail });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/notes/2");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/This note is empty/)).toBeVisible();
+    await expect(page).toHaveScreenshot("note-detail-empty.png", screenshotOptions);
+  });
+
+  test("note - edit mode with formatting toolbar", async ({ page }) => {
+    await page.goto("/notes/1?edit=true");
+    await page.waitForLoadState("networkidle");
+    // The editor is loaded via next/dynamic, so wait for the toolbar itself.
+    await expect(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Bullet list" })).toBeVisible();
+    await expect(page.getByLabel("Title")).toHaveValue("Wifi password");
+    await expect(page).toHaveScreenshot("note-edit-mode.png", screenshotOptions);
+  });
+
+  test("note - new note form", async ({ page }) => {
+    await page.goto("/notes/new");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Create" })).toBeVisible();
+    await expect(page).toHaveScreenshot("note-new.png", screenshotOptions);
+  });
+
+  test("home page - notes card", async ({ page }) => {
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "notes", sortOrder: 0, isVisible: true },
+            { cardKey: "lists", sortOrder: 1, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Notes" })).toBeVisible();
+    await expect(page.getByText("Holiday packing")).toBeVisible();
+    await expect(page).toHaveScreenshot("home-notes-card.png", screenshotOptions);
   });
 
   // ---- Lists ----
@@ -1450,6 +1631,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForFunction(() => window.history.length > 1);
     await page.getByRole("button", { name: /open menu/i }).click();
     await page.waitForSelector('[role="dialog"]');
+    // Assert a nav entry explicitly: one extra row still lands under the
+    // config's 2% maxDiffPixelRatio, so adding one does NOT fail this
+    // comparison and the baseline silently keeps its pre-change contents.
+    await expect(page.getByRole("dialog").getByRole("button", { name: "Notes" })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "navigation-drawer-open.png",
       screenshotOptions
@@ -1637,6 +1822,9 @@ test.describe("Visual Snapshots - Onboarding Tour", () => {
 
   test("nav drawer", async ({ page }) => {
     await expect(page.getByRole("button", { name: "Take the tour" })).toBeVisible();
+    // See navigation-drawer-open: a new nav row alone won't fail the pixel
+    // comparison, so each entry the drawer must show is asserted directly.
+    await expect(page.getByRole("dialog").getByRole("button", { name: "Notes" })).toBeVisible();
     await expect(page).toHaveScreenshot("nav-drawer.png", screenshotOptions);
   });
 

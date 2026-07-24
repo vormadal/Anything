@@ -41,6 +41,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<BillAttachment> BillAttachments => Set<BillAttachment>();
     public DbSet<HomeCardPreference> HomeCardPreferences => Set<HomeCardPreference>();
     public DbSet<SearchDocument> SearchDocuments => Set<SearchDocument>();
+    public DbSet<Note> Notes => Set<Note>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

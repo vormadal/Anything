@@ -113,6 +113,7 @@ public class RebuildSearchIndexHandlerTests
     private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<ShoppingList> _shoppingListRepo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IRepository<InventoryItem> _inventoryItemRepo = Substitute.For<IRepository<InventoryItem>>();
+    private readonly IRepository<Note> _noteRepo = Substitute.For<IRepository<Note>>();
     private readonly IRepository<SearchDocument> _searchDocumentRepo = Substitute.For<IRepository<SearchDocument>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
@@ -121,11 +122,12 @@ public class RebuildSearchIndexHandlerTests
         _recipeRepo.Query().Returns(new List<Recipe>().AsAsyncQueryable());
         _shoppingListRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
         _inventoryItemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
+        _noteRepo.Query().Returns(new List<Note>().AsAsyncQueryable());
         _searchDocumentRepo.Query().Returns(new List<SearchDocument>().AsAsyncQueryable());
     }
 
     private RebuildSearchIndexHandler CreateHandler() =>
-        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _searchDocumentRepo, _unitOfWork);
+        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _noteRepo, _searchDocumentRepo, _unitOfWork);
 
     [Fact]
     public async Task Handle_CreatesDocumentForEachSearchableEntity()
@@ -133,17 +135,21 @@ public class RebuildSearchIndexHandlerTests
         _recipeRepo.Query().Returns(new List<Recipe> { new() { Id = 1, HouseholdId = 9, Name = "Pasta" } }.AsAsyncQueryable());
         _shoppingListRepo.Query().Returns(new List<ShoppingList> { new() { Id = 2, HouseholdId = 9, Name = "Groceries" } }.AsAsyncQueryable());
         _inventoryItemRepo.Query().Returns(new List<InventoryItem> { new() { Id = 3, HouseholdId = 9, Name = "Flour" } }.AsAsyncQueryable());
+        // A searchable type missing from this handler's sources isn't merely
+        // skipped — the orphan sweep below would delete its existing documents.
+        _noteRepo.Query().Returns(new List<Note> { new() { Id = 4, HouseholdId = 9, Title = "Wifi code" } }.AsAsyncQueryable());
 
         var added = new List<SearchDocument>();
         _searchDocumentRepo.When(r => r.Add(Arg.Any<SearchDocument>())).Do(c => added.Add(c.Arg<SearchDocument>()));
 
         var result = await CreateHandler().Handle(new RebuildSearchIndexCommand(), TestContext.Current.CancellationToken);
 
-        Assert.Equal(3, result.Indexed);
-        Assert.Equal(3, added.Count);
+        Assert.Equal(4, result.Indexed);
+        Assert.Equal(4, added.Count);
         Assert.Contains(added, d => d.EntityType == SearchEntityTypes.Recipe && d.EntityId == 1 && d.Title == "Pasta");
         Assert.Contains(added, d => d.EntityType == SearchEntityTypes.ShoppingList && d.EntityId == 2 && d.Title == "Groceries");
         Assert.Contains(added, d => d.EntityType == SearchEntityTypes.InventoryItem && d.EntityId == 3 && d.Title == "Flour");
+        Assert.Contains(added, d => d.EntityType == SearchEntityTypes.Note && d.EntityId == 4 && d.Title == "Wifi code");
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
 
@@ -193,6 +199,7 @@ public class RebuildHouseholdSearchIndexHandlerTests
     private readonly IRepository<Recipe> _recipeRepo = Substitute.For<IRepository<Recipe>>();
     private readonly IRepository<ShoppingList> _shoppingListRepo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IRepository<InventoryItem> _inventoryItemRepo = Substitute.For<IRepository<InventoryItem>>();
+    private readonly IRepository<Note> _noteRepo = Substitute.For<IRepository<Note>>();
     private readonly IRepository<SearchDocument> _searchDocumentRepo = Substitute.For<IRepository<SearchDocument>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
@@ -203,11 +210,12 @@ public class RebuildHouseholdSearchIndexHandlerTests
         _recipeRepo.Query().Returns(new List<Recipe>().AsAsyncQueryable());
         _shoppingListRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
         _inventoryItemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
+        _noteRepo.Query().Returns(new List<Note>().AsAsyncQueryable());
         _searchDocumentRepo.Query().Returns(new List<SearchDocument>().AsAsyncQueryable());
     }
 
     private RebuildHouseholdSearchIndexHandler CreateHandler() =>
-        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _searchDocumentRepo, _unitOfWork, _householdContext);
+        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _noteRepo, _searchDocumentRepo, _unitOfWork, _householdContext);
 
     [Fact]
     public async Task Handle_OnlyIndexesCallersHousehold()

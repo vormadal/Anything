@@ -585,6 +585,49 @@ namespace Anything.Database.Migrations
                     b.ToTable("MeasurementUnits");
                 });
 
+            modelBuilder.Entity("Anything.Core.Entities.Note", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentText")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("Title");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Title"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Title"), new[] { "gin_trgm_ops" });
+
+                    b.ToTable("Notes");
+                });
+
             modelBuilder.Entity("Anything.Core.Entities.Recipe", b =>
                 {
                     b.Property<int>("Id")
@@ -1483,6 +1526,15 @@ namespace Anything.Database.Migrations
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.MeasurementUnit", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.Household", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.Note", b =>
                 {
                     b.HasOne("Anything.Core.Entities.Household", null)
                         .WithMany()

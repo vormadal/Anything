@@ -24,6 +24,8 @@ import { InventoryStorageUnitsRequestBuilderNavigationMetadata, InventoryStorage
 // @ts-ignore
 import { LocationsRequestBuilderNavigationMetadata, LocationsRequestBuilderRequestsMetadata, type LocationsRequestBuilder } from './locations/index';
 // @ts-ignore
+import { NotesRequestBuilderNavigationMetadata, NotesRequestBuilderRequestsMetadata, type NotesRequestBuilder } from './notes/index';
+// @ts-ignore
 import { RecipesRequestBuilderNavigationMetadata, RecipesRequestBuilderRequestsMetadata, type RecipesRequestBuilder } from './recipes/index';
 // @ts-ignore
 import { SearchRequestBuilderNavigationMetadata, SearchRequestBuilderRequestsMetadata, type SearchRequestBuilder } from './search/index';
@@ -90,6 +92,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The locations property
      */
     get locations(): LocationsRequestBuilder;
+    /**
+     * The notes property
+     */
+    get notes(): NotesRequestBuilder;
     /**
      * The recipes property
      */
@@ -170,6 +176,10 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     locations: {
         requestsMetadata: LocationsRequestBuilderRequestsMetadata,
         navigationMetadata: LocationsRequestBuilderNavigationMetadata,
+    },
+    notes: {
+        requestsMetadata: NotesRequestBuilderRequestsMetadata,
+        navigationMetadata: NotesRequestBuilderNavigationMetadata,
     },
     recipes: {
         requestsMetadata: RecipesRequestBuilderRequestsMetadata,

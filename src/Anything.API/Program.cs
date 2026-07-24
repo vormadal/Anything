@@ -147,6 +147,7 @@ app.MapBillEndpoints();
 app.MapEventsEndpoints();
 app.MapHomePreferenceEndpoints();
 app.MapSearchEndpoints();
+app.MapNoteEndpoints();
 
 await app.RunAsync();
 
