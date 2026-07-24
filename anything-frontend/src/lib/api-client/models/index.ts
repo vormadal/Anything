@@ -632,6 +632,15 @@ export function createCreateLocationRequestFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateNoteRequest}
+ */
+// @ts-ignore
+export function createCreateNoteRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateNoteRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {CreateRecipeIngredientRequest}
  */
 // @ts-ignore
@@ -1112,6 +1121,34 @@ export function createMeasurementUnitFromDiscriminatorValue(parseNode: ParseNode
 // @ts-ignore
 export function createMergeRecommendationsRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoMergeRecommendationsRequest;
+}
+export interface CreateNoteRequest extends Parsable {
+    /**
+     * The contentJson property
+     */
+    contentJson?: string | null;
+    /**
+     * The title property
+     */
+    title?: string | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {NoteResponse}
+ */
+// @ts-ignore
+export function createNoteResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoNoteResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {NoteSummaryResponse}
+ */
+// @ts-ignore
+export function createNoteSummaryResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoNoteSummaryResponse;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1801,6 +1838,15 @@ export function createUpdateLocationRequestFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateNoteRequest}
+ */
+// @ts-ignore
+export function createUpdateNoteRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateNoteRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UpdateProfileRequest}
  */
 // @ts-ignore
@@ -2287,6 +2333,18 @@ export function deserializeIntoCreateInviteResponse(createInviteResponse: Partia
 export function deserializeIntoCreateLocationRequest(createLocationRequest: Partial<CreateLocationRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { createLocationRequest.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateNoteRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateNoteRequest(createNoteRequest: Partial<CreateNoteRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "contentJson": n => { createNoteRequest.contentJson = n.getStringValue(); },
+        "title": n => { createNoteRequest.title = n.getStringValue(); },
     }
 }
 /**
@@ -2917,6 +2975,37 @@ export function deserializeIntoMergeRecommendationsRequest(mergeRecommendationsR
         "preferredUnit": n => { mergeRecommendationsRequest.preferredUnit = n.getStringValue(); },
         "sourceIds": n => { mergeRecommendationsRequest.sourceIds = n.getCollectionOfPrimitiveValues<number>(); },
         "targetId": n => { mergeRecommendationsRequest.targetId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param NoteResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoNoteResponse(noteResponse: Partial<NoteResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "contentJson": n => { noteResponse.contentJson = n.getStringValue(); },
+        "contentText": n => { noteResponse.contentText = n.getStringValue(); },
+        "createdOn": n => { noteResponse.createdOn = n.getDateValue(); },
+        "id": n => { noteResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { noteResponse.modifiedOn = n.getDateValue(); },
+        "title": n => { noteResponse.title = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param NoteSummaryResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoNoteSummaryResponse(noteSummaryResponse: Partial<NoteSummaryResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { noteSummaryResponse.createdOn = n.getDateValue(); },
+        "id": n => { noteSummaryResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { noteSummaryResponse.modifiedOn = n.getDateValue(); },
+        "snippet": n => { noteSummaryResponse.snippet = n.getStringValue(); },
+        "title": n => { noteSummaryResponse.title = n.getStringValue(); },
     }
 }
 /**
@@ -3786,6 +3875,18 @@ export function deserializeIntoUpdateLocationRequest(updateLocationRequest: Part
 }
 /**
  * The deserialization information for the current model
+ * @param UpdateNoteRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateNoteRequest(updateNoteRequest: Partial<UpdateNoteRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "contentJson": n => { updateNoteRequest.contentJson = n.getStringValue(); },
+        "title": n => { updateNoteRequest.title = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param UpdateProfileRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -4589,6 +4690,54 @@ export interface MergeRecommendationsRequest extends Parsable {
      * The targetId property
      */
     targetId?: number | null;
+}
+export interface NoteResponse extends Parsable {
+    /**
+     * The contentJson property
+     */
+    contentJson?: string | null;
+    /**
+     * The contentText property
+     */
+    contentText?: string | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The title property
+     */
+    title?: string | null;
+}
+export interface NoteSummaryResponse extends Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The snippet property
+     */
+    snippet?: string | null;
+    /**
+     * The title property
+     */
+    title?: string | null;
 }
 export interface ParsedIngredient extends Parsable {
     /**
@@ -5551,6 +5700,18 @@ export function serializeCreateLocationRequest(writer: SerializationWriter, crea
 }
 /**
  * Serializes information the current object
+ * @param CreateNoteRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateNoteRequest(writer: SerializationWriter, createNoteRequest: Partial<CreateNoteRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createNoteRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("contentJson", createNoteRequest.contentJson);
+    writer.writeStringValue("title", createNoteRequest.title);
+}
+/**
+ * Serializes information the current object
  * @param CreateRecipeIngredientRequest The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
@@ -6180,6 +6341,37 @@ export function serializeMergeRecommendationsRequest(writer: SerializationWriter
     writer.writeStringValue("preferredUnit", mergeRecommendationsRequest.preferredUnit);
     writer.writeCollectionOfPrimitiveValues<number>("sourceIds", mergeRecommendationsRequest.sourceIds);
     writer.writeNumberValue("targetId", mergeRecommendationsRequest.targetId);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param NoteResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeNoteResponse(writer: SerializationWriter, noteResponse: Partial<NoteResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!noteResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("contentJson", noteResponse.contentJson);
+    writer.writeStringValue("contentText", noteResponse.contentText);
+    writer.writeDateValue("createdOn", noteResponse.createdOn);
+    writer.writeNumberValue("id", noteResponse.id);
+    writer.writeDateValue("modifiedOn", noteResponse.modifiedOn);
+    writer.writeStringValue("title", noteResponse.title);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param NoteSummaryResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeNoteSummaryResponse(writer: SerializationWriter, noteSummaryResponse: Partial<NoteSummaryResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!noteSummaryResponse || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", noteSummaryResponse.createdOn);
+    writer.writeNumberValue("id", noteSummaryResponse.id);
+    writer.writeDateValue("modifiedOn", noteSummaryResponse.modifiedOn);
+    writer.writeStringValue("snippet", noteSummaryResponse.snippet);
+    writer.writeStringValue("title", noteSummaryResponse.title);
 }
 /**
  * Serializes information the current object
@@ -7049,6 +7241,18 @@ export function serializeUpdateLocationRequest(writer: SerializationWriter, upda
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateNoteRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateNoteRequest(writer: SerializationWriter, updateNoteRequest: Partial<UpdateNoteRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateNoteRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("contentJson", updateNoteRequest.contentJson);
+    writer.writeStringValue("title", updateNoteRequest.title);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param UpdateProfileRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -7765,6 +7969,16 @@ export interface UpdateLocationRequest extends Parsable {
      * The name property
      */
     name?: string | null;
+}
+export interface UpdateNoteRequest extends Parsable {
+    /**
+     * The contentJson property
+     */
+    contentJson?: string | null;
+    /**
+     * The title property
+     */
+    title?: string | null;
 }
 export interface UpdateProfileRequest extends Parsable {
     /**
