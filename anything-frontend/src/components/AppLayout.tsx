@@ -26,6 +26,7 @@ import {
   Users,
   HelpCircle,
   Search,
+  NotebookPen,
 } from "lucide-react";
 import {
   PageActionsProvider,
@@ -46,6 +47,7 @@ const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home },
   { label: "Lists", path: "/lists", icon: LayoutList },
+  { label: "Notes", path: "/notes", icon: NotebookPen },
   { label: "Recipes", path: "/recipes", icon: CookingPot },
   { label: "Food Plan", path: "/food-plans", icon: CalendarDays },
   { label: "Bills", path: "/bills", icon: Receipt },

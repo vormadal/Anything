@@ -7,9 +7,10 @@ import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useBillSummary } from "@/hooks/useBills";
 import { useSearch, type SearchResultResponse } from "@/hooks/useSearch";
+import { useNotes } from "@/hooks/useNotes";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
-import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, Package, AlertCircle } from "lucide-react";
+import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, Package, AlertCircle, NotebookPen } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 import { CreateListDialog } from "@/components/CreateListDialog";
@@ -21,6 +22,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 const SEARCH_RESULT_ROUTES: Record<string, (entityId: number) => string> = {
   Recipe: (entityId) => `/recipes/${entityId}`,
   ShoppingList: (entityId) => `/lists/${entityId}`,
+  Note: (entityId) => `/notes/${entityId}`,
 };
 
 // Icon shown per result row, matching the icons already used for these entity
@@ -29,6 +31,7 @@ const SEARCH_RESULT_ICONS: Record<string, typeof BookOpen> = {
   Recipe: BookOpen,
   ShoppingList: ListChecks,
   InventoryItem: Package,
+  Note: NotebookPen,
 };
 
 function getTargetDate(): Date {
@@ -368,7 +371,7 @@ export function GlobalSearchCard() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search recipes, lists, inventory…"
+          placeholder="Search recipes, lists, notes…"
           aria-label="Search everything"
           className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder:text-gray-400"
         />
@@ -428,12 +431,92 @@ export function GlobalSearchCard() {
   );
 }
 
+const HOME_NOTES_LIMIT = 5;
+
+export function NotesCard() {
+  const router = useRouter();
+  const { data: notes, isLoading } = useNotes(HOME_NOTES_LIMIT);
+  const isOnline = useOnlineStatus();
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <NotebookPen className="h-5 w-5 text-purple-600" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notes</h2>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/notes/new")}
+          disabled={!isOnline}
+          title={isOnline ? undefined : "Creating notes requires an internet connection"}
+          className="text-xs"
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          New
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
+      ) : !notes || notes.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+            No notes yet. Jot down anything you want to keep.
+          </p>
+          <Button
+            size="sm"
+            onClick={() => router.push("/notes/new")}
+            disabled={!isOnline}
+            title={isOnline ? undefined : "Creating notes requires an internet connection"}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Write a note
+          </Button>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+          {notes.map((note) => (
+            <button
+              key={note.id}
+              type="button"
+              className="w-full px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+              onClick={() => router.push(`/notes/${note.id}`)}
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {note.title}
+                </span>
+                {note.snippet && (
+                  <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {note.snippet}
+                  </span>
+                )}
+              </span>
+              <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+            </button>
+          ))}
+          <button
+            type="button"
+            className="w-full px-4 py-2.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            onClick={() => router.push("/notes")}
+          >
+            View all notes →
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export const HOME_CARD_KEYS = {
   QuickCreate: "quickcreate",
   Search: "search",
   FoodPlan: "foodplan",
   Bills: "bills",
   Lists: "lists",
+  Notes: "notes",
 } as const;
 
 export type HomeCardKey = (typeof HOME_CARD_KEYS)[keyof typeof HOME_CARD_KEYS];
@@ -442,14 +525,18 @@ export const HOME_CARD_REGISTRY: Record<HomeCardKey, { title: string; component:
   [HOME_CARD_KEYS.QuickCreate]: { title: "Quick Create", component: QuickCreateCard },
   [HOME_CARD_KEYS.Search]: { title: "Search", component: GlobalSearchCard },
   [HOME_CARD_KEYS.FoodPlan]: { title: "Menu of the Day", component: FoodPlanCard },
+  [HOME_CARD_KEYS.Notes]: { title: "Notes", component: NotesCard },
   [HOME_CARD_KEYS.Lists]: { title: "Lists", component: ListsCard },
   [HOME_CARD_KEYS.Bills]: { title: "Bills", component: BillsCard },
 };
 
+// Mirrors HomeCardKeys.All on the backend, which is what decides the order for
+// a user who has never customised their home page — keep the two in step.
 export const DEFAULT_HOME_CARD_ORDER: HomeCardKey[] = [
   HOME_CARD_KEYS.QuickCreate,
   HOME_CARD_KEYS.Search,
   HOME_CARD_KEYS.FoodPlan,
+  HOME_CARD_KEYS.Notes,
   HOME_CARD_KEYS.Lists,
   HOME_CARD_KEYS.Bills,
 ];

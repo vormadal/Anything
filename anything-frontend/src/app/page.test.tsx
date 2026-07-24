@@ -24,6 +24,7 @@ const mockShoppingListsGet = jest.fn()
 const mockBillSummaryGet = jest.fn()
 const mockHomeCardPreferencesGet = jest.fn()
 const mockSearchGet = jest.fn()
+const mockNotesGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -77,6 +78,9 @@ jest.mock('@/lib/apiClient', () => ({
       search: {
         get: (...args: unknown[]) => mockSearchGet(...args),
       },
+      notes: {
+        get: (...args: unknown[]) => mockNotesGet(...args),
+      },
     },
   },
 }))
@@ -109,6 +113,7 @@ describe('Home Page Integration Tests', () => {
     mockRecipesFetch([])
     mockBillSummaryGet.mockResolvedValue(undefined)
     mockSearchGet.mockResolvedValue([])
+    mockNotesGet.mockResolvedValue([])
     mockHomeCardPreferencesGet.mockResolvedValue([
       { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
       { cardKey: 'lists', sortOrder: 1, isVisible: true },
@@ -757,5 +762,96 @@ describe('Home Page Integration Tests', () => {
       expect(screen.getByText('Flour')).toBeInTheDocument()
     })
     expect(screen.queryByRole('button', { name: /Flour/ })).toBeDisabled()
+  })
+
+  it('should navigate to a note when a search result is selected', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    mockSearchGet.mockResolvedValue([
+      { entityType: 'Note', entityId: 12, title: 'Wifi password', snippet: 'Guest network' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Search everything')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Search everything'), 'wifi')
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Wifi password')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Wifi password'))
+    expect(mockPush).toHaveBeenCalledWith('/notes/12')
+  })
+
+  // ------- Notes card -------
+  const notesVisible = [{ cardKey: 'notes', sortOrder: 0, isVisible: true }]
+
+  it('should show recent notes on the Notes card', async () => {
+    mockHomeCardPreferencesGet.mockResolvedValue(notesVisible)
+    mockNotesGet.mockResolvedValue([
+      { id: 1, title: 'Wifi password', snippet: 'Guest network is open', createdOn: '2025-06-16T10:00:00Z' },
+      { id: 2, title: 'Packing list', snippet: null, createdOn: '2025-06-15T10:00:00Z' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Wifi password')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Guest network is open')).toBeInTheDocument()
+    expect(screen.getByText('Packing list')).toBeInTheDocument()
+  })
+
+  it('should navigate to a note when a Notes card row is clicked', async () => {
+    const user = userEvent.setup()
+    mockHomeCardPreferencesGet.mockResolvedValue(notesVisible)
+    mockNotesGet.mockResolvedValue([
+      { id: 4, title: 'Wifi password', snippet: null, createdOn: '2025-06-16T10:00:00Z' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Wifi password')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Wifi password'))
+    expect(mockPush).toHaveBeenCalledWith('/notes/4')
+  })
+
+  it('should show an empty state on the Notes card when there are no notes', async () => {
+    mockHomeCardPreferencesGet.mockResolvedValue(notesVisible)
+    mockNotesGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/No notes yet/)).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /Write a note/ })).toBeInTheDocument()
+  })
+
+  it('should disable the Notes card New button while offline', async () => {
+    mockHomeCardPreferencesGet.mockResolvedValue(notesVisible)
+    mockNotesGet.mockResolvedValue([])
+    setOnline(false)
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /New/ })).toBeDisabled()
+    })
+
+    setOnline(true)
   })
 })
