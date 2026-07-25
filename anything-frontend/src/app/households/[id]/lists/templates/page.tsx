@@ -13,9 +13,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { EditListNameDialog } from "@/components/EditListNameDialog";
+import { CreateTemplateDialog } from "@/components/CreateTemplateDialog";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { canManageHousehold } from "@/lib/roles";
 import {
   useShoppingListTemplates,
@@ -27,6 +29,7 @@ import {
   LayoutTemplate,
   ListChecks,
   Pencil,
+  Plus,
   ShoppingCart,
   Trash2,
 } from "lucide-react";
@@ -40,7 +43,8 @@ export default function TemplatesPage() {
   const params = useParams();
   const householdId = typeof params.id === "string" ? params.id : "";
   const { getHouseholdRole, isLoading: householdsLoading } = useHouseholdContext();
-  const { setLeftAction } = useHeaderActions();
+  const { setLeftAction, setHeaderActions } = useHeaderActions();
+  const isOnline = useOnlineStatus();
 
   const { data: templates, isLoading } = useShoppingListTemplates();
   const updateList = useUpdateShoppingList();
@@ -49,6 +53,7 @@ export default function TemplatesPage() {
   const [renameTarget, setRenameTarget] = useState<{ id: number; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ShoppingListTemplateResponse | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -57,6 +62,24 @@ export default function TemplatesPage() {
     }
     return () => setLeftAction({ type: "menu" });
   }, [setLeftAction, householdId]);
+
+  useEffect(() => {
+    setHeaderActions(
+      <div className="flex items-center gap-1 ml-auto">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsCreating(true)}
+          aria-label="New template"
+          disabled={!isOnline}
+          title={isOnline ? undefined : "Creating templates requires an internet connection"}
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
+      </div>
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, isOnline]);
 
   if (
     user &&
@@ -102,6 +125,13 @@ export default function TemplatesPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <PageTitle>Templates</PageTitle>
+      <CreateTemplateDialog
+        open={isCreating}
+        onOpenChange={setIsCreating}
+        onCreated={(templateId) =>
+          router.push(`/households/${householdId}/lists/templates/${templateId}`)
+        }
+      />
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Reusable templates for creating new lists. Rename or delete a template, or open one to
@@ -114,7 +144,8 @@ export default function TemplatesPage() {
           <div className="text-center py-8 flex flex-col items-center gap-2">
             <LayoutTemplate className="h-8 w-8 text-gray-300 dark:text-gray-600" />
             <p className="text-gray-400 dark:text-gray-500 text-sm">
-              No templates yet. Open a list and choose &ldquo;Save as template&rdquo; to create one.
+              No templates yet. Tap the + button to create one, or open a list and choose
+              &ldquo;Save as template&rdquo;.
             </p>
           </div>
         ) : (

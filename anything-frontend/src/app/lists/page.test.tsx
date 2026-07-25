@@ -111,7 +111,7 @@ describe('ListsPage', () => {
     await user.type(screen.getByPlaceholderText('List name...'), 'Chores')
     await user.click(screen.getByRole('button', { name: 'Create' }))
     await waitFor(() => {
-      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Chores', type: 0 })
+      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Chores', type: 0, isTemplate: false })
     })
     expect(mockPush).toHaveBeenCalledWith('/lists/3')
   })
@@ -127,7 +127,7 @@ describe('ListsPage', () => {
     await user.type(screen.getByPlaceholderText('List name...'), 'Party Supplies')
     await user.click(screen.getByRole('button', { name: 'Create' }))
     await waitFor(() => {
-      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies', type: 1 })
+      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies', type: 1, isTemplate: false })
     })
     expect(mockPush).toHaveBeenCalledWith('/lists/4')
   })
