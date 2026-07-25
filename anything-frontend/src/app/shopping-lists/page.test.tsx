@@ -132,7 +132,7 @@ describe('ShoppingListsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Create list' }))
 
     await waitFor(() => {
-      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies', type: 1 })
+      expect(mockShoppingListsPost).toHaveBeenCalledWith({ name: 'Party Supplies', type: 1, isTemplate: false })
     })
 
     expect(mockPush).toHaveBeenCalledWith('/shopping-lists/3')

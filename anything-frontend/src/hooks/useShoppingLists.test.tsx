@@ -129,7 +129,7 @@ describe('useShoppingLists hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockPost).toHaveBeenCalledWith({ name: 'Groceries', type: 1 })
+      expect(mockPost).toHaveBeenCalledWith({ name: 'Groceries', type: 1, isTemplate: false })
     })
 
     it('should create a general checklist with type 0', async () => {
@@ -146,7 +146,24 @@ describe('useShoppingLists hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-      expect(mockPost).toHaveBeenCalledWith({ name: 'My Checklist', type: 0 })
+      expect(mockPost).toHaveBeenCalledWith({ name: 'My Checklist', type: 0, isTemplate: false })
+    })
+
+    it('should create a template directly with isTemplate true', async () => {
+      const mockResponse = { id: 3, name: 'Weekly Shop', createdOn: '2024-01-01T00:00:00Z', isTemplate: true }
+      mockPost.mockResolvedValueOnce(mockResponse)
+
+      const { result } = renderHook(() => useCreateShoppingList(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.mutate({ name: 'Weekly Shop', type: 1, isTemplate: true })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockPost).toHaveBeenCalledWith({ name: 'Weekly Shop', type: 1, isTemplate: true })
     })
 
     it('should handle create error', async () => {

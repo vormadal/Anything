@@ -46,10 +46,16 @@ export function useCreateShoppingList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (list: { name: string; type?: number }) =>
-      apiClient.api.checklists.post({ name: list.name, type: list.type ?? 1 }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
+    mutationFn: (list: { name: string; type?: number; isTemplate?: boolean }) =>
+      apiClient.api.checklists.post({
+        name: list.name,
+        type: list.type ?? 1,
+        isTemplate: list.isTemplate ?? false,
+      }),
+    onSuccess: (_, { isTemplate }) => {
+      queryClient.invalidateQueries({
+        queryKey: isTemplate ? ["shoppingListTemplates"] : ["shoppingLists"],
+      });
     },
   });
 }

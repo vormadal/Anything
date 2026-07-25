@@ -75,6 +75,32 @@ public class CreateShoppingListHandlerTests
 
         Assert.Equal(2, result.SortOrder);
     }
+
+    [Fact]
+    public async Task Handle_WhenIsTemplate_CreatesTemplate()
+    {
+        var handler = CreateHandler();
+        var result = await handler.Handle(new CreateShoppingListCommand("Weekly shop", IsTemplate: true), TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsTemplate);
+        await _realtimeNotifier.Received(1).Notify(SyncEvent.ShoppingListTemplates(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenIsTemplate_SortOrderIsScopedToOtherTemplates()
+    {
+        var existing = new List<ShoppingList>
+        {
+            new() { Id = 1, Name = "Regular list", SortOrder = 5, IsTemplate = false },
+            new() { Id = 2, Name = "Existing template", SortOrder = 0, IsTemplate = true },
+        };
+        _repo.Query().Returns(existing.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new CreateShoppingListCommand("New template", IsTemplate: true), TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, result.SortOrder);
+    }
 }
 
 public class UpdateShoppingListHandlerTests

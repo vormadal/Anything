@@ -1496,6 +1496,40 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  // ---- Household Config: Templates ----
+
+  test("household templates page - with templates", async ({ page }) => {
+    await page.goto("/households/1/lists/templates");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "household-templates-with-data.png",
+      screenshotOptions
+    );
+  });
+
+  test("household templates page - empty state", async ({ page }) => {
+    await page.route("**/api/checklists/templates**", (route) =>
+      route.fulfill({ json: [] })
+    );
+    await page.goto("/households/1/lists/templates");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot(
+      "household-templates-empty.png",
+      screenshotOptions
+    );
+  });
+
+  test("create template dialog - default (checklist)", async ({ page }) => {
+    await page.goto("/households/1/lists/templates");
+    await page.waitForSelector('[aria-label="New template"]');
+    await page.getByRole("button", { name: "New template" }).click();
+    await page.waitForSelector('[role="dialog"]');
+    await expect(page).toHaveScreenshot(
+      "create-template-dialog-default.png",
+      screenshotOptions
+    );
+  });
+
   // ---- Household Config: Recipes ----
 
   test("household recipe tags page", async ({ page }) => {

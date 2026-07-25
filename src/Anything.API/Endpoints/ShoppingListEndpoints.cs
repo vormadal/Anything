@@ -48,7 +48,7 @@ public static class ShoppingListEndpoints
 
         group.MapPost("/", async (CreateShoppingListRequest request, IMediator mediator) =>
         {
-            var result = await mediator.Send(new CreateShoppingListCommand(request.Name, (ListType)request.Type));
+            var result = await mediator.Send(new CreateShoppingListCommand(request.Name, (ListType)request.Type, request.IsTemplate));
             return Results.Created($"/api/checklists/{result.Id}", result);
         })
         .WithName("CreateShoppingList")
