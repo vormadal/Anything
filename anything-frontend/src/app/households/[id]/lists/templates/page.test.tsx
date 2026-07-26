@@ -7,6 +7,7 @@ import { toast } from "sonner";
 const mockTemplatesGet = jest.fn();
 const mockPut = jest.fn();
 const mockDelete = jest.fn();
+const mockPost = jest.fn();
 const mockById = jest.fn((id: number) => ({
   put: (...args: unknown[]) => mockPut(id, ...args),
   delete: (...args: unknown[]) => mockDelete(id, ...args),
@@ -18,6 +19,7 @@ jest.mock("@/lib/apiClient", () => ({
       checklists: {
         templates: { get: (...args: unknown[]) => mockTemplatesGet(...args) },
         byId: (id: number) => mockById(id),
+        post: (...args: unknown[]) => mockPost(...args),
       },
     },
   },
@@ -62,6 +64,7 @@ describe("TemplatesPage (household config)", () => {
     mockTemplatesGet.mockResolvedValue([]);
     mockPut.mockResolvedValue(undefined);
     mockDelete.mockResolvedValue(undefined);
+    mockPost.mockResolvedValue({ id: 9, name: "New Template", type: 1, isTemplate: true });
     mockGetHouseholdRole.mockReturnValue("Owner");
   });
 
@@ -186,6 +189,24 @@ describe("TemplatesPage (household config)", () => {
         expect(mockById).toHaveBeenCalledWith(5);
         expect(mockDelete).toHaveBeenCalled();
         expect(toast.success).toHaveBeenCalledWith("Template deleted.");
+      });
+    });
+  });
+
+  describe("Create template", () => {
+    beforeEach(signInAsManager);
+
+    it("creates a new template and navigates to its detail page", async () => {
+      const user = userEvent.setup();
+      renderWithClient(<TemplatesPage />);
+
+      await user.click(await screen.findByRole("button", { name: "New template" }));
+      await user.type(await screen.findByRole("textbox", { name: "Template name" }), "New Template");
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith({ name: "New Template", type: 0, isTemplate: true });
+        expect(mockPush).toHaveBeenCalledWith("/households/1/lists/templates/9");
       });
     });
   });

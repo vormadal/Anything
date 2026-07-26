@@ -551,6 +551,33 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    // --- Templates: POST /api/checklists (isTemplate: true) ---
+
+    [Fact]
+    public async Task CreateShoppingList_WithIsTemplateTrue_CreatesTemplateDirectly()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/checklists", new { name = "Camping Trip", type = 0, isTemplate = true }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var template = await response.Content.ReadFromJsonAsync<ShoppingListDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(template);
+        Assert.True(template.IsTemplate);
+        Assert.Equal("Camping Trip", template.Name);
+
+        // It appears among templates, not active lists
+        var templatesResponse = await client.GetAsync("/api/checklists/templates", TestContext.Current.CancellationToken);
+        var templates = await templatesResponse.Content.ReadFromJsonAsync<ShoppingListTemplateDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(templates);
+        Assert.Contains(templates, t => t.Id == template.Id);
+
+        var listsResponse = await client.GetAsync("/api/checklists", TestContext.Current.CancellationToken);
+        var lists = await listsResponse.Content.ReadFromJsonAsync<ShoppingListDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(lists);
+        Assert.DoesNotContain(lists, l => l.Id == template.Id);
+    }
+
     // --- Templates: POST /api/checklists/{id}/save-as-template ---
 
     [Fact]

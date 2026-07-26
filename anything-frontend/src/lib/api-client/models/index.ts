@@ -1620,6 +1620,10 @@ export function createShoppingListRecommendationFromDiscriminatorValue(parseNode
 }
 export interface CreateShoppingListRequest extends Parsable {
     /**
+     * The isTemplate property
+     */
+    isTemplate?: boolean | null;
+    /**
      * The name property
      */
     name?: string | null;
@@ -2458,6 +2462,7 @@ export function deserializeIntoCreateShoppingListItemRequest(createShoppingListI
 // @ts-ignore
 export function deserializeIntoCreateShoppingListRequest(createShoppingListRequest: Partial<CreateShoppingListRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "isTemplate": n => { createShoppingListRequest.isTemplate = n.getBooleanValue(); },
         "name": n => { createShoppingListRequest.name = n.getStringValue(); },
         "type": n => { createShoppingListRequest.type = n.getNumberValue(); },
     }
@@ -5822,6 +5827,7 @@ export function serializeCreateShoppingListItemRequest(writer: SerializationWrit
 // @ts-ignore
 export function serializeCreateShoppingListRequest(writer: SerializationWriter, createShoppingListRequest: Partial<CreateShoppingListRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createShoppingListRequest || isSerializingDerivedType) { return; }
+    writer.writeBooleanValue("isTemplate", createShoppingListRequest.isTemplate);
     writer.writeStringValue("name", createShoppingListRequest.name);
     writer.writeNumberValue("type", createShoppingListRequest.type);
 }
