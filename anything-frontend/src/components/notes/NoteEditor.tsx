@@ -22,6 +22,13 @@ interface NoteEditorProps {
 const DEFAULT_LABEL = "Note content";
 
 /**
+ * The editor fills whatever space its parent gives it — the note page hands it
+ * everything below the header — so the whole page is the writing surface and a
+ * click anywhere in it lands the caret.
+ */
+const SURFACE_CLASSES = "flex grow flex-col bg-white dark:bg-gray-800";
+
+/**
  * The rich-text editing surface for a note.
  *
  * Loaded through `next/dynamic` with `ssr: false` by its callers: ProseMirror
@@ -41,7 +48,7 @@ export function NoteEditor({ value, onChange, label = DEFAULT_LABEL }: NoteEdito
         "aria-label": label,
         "aria-multiline": "true",
         // `note-editor` is the hook the placeholder CSS in globals.css targets.
-        class: `note-editor ${NOTE_PROSE_CLASSES} min-h-[12rem] px-3 py-2 focus:outline-none`,
+        class: `note-editor ${NOTE_PROSE_CLASSES} grow w-full px-4 py-3 focus:outline-none`,
       },
     },
     onUpdate: ({ editor: updated }) => onChange(updated.getJSON()),
@@ -51,18 +58,17 @@ export function NoteEditor({ value, onChange, label = DEFAULT_LABEL }: NoteEdito
   useEffect(() => () => editor?.destroy(), [editor]);
 
   if (!editor) {
-    return (
-      <div
-        className="min-h-[14rem] rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
-        aria-busy="true"
-      />
-    );
+    return <div className={SURFACE_CLASSES} aria-busy="true" />;
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-700 dark:bg-gray-800">
-      <NoteEditorToolbar editor={editor} />
-      <EditorContent editor={editor} />
+    <div className={SURFACE_CLASSES}>
+      {/* Pinned under the app header so formatting stays reachable however far
+          down a long note the user has scrolled. */}
+      <div className="sticky top-14 z-30 bg-white dark:bg-gray-800">
+        <NoteEditorToolbar editor={editor} />
+      </div>
+      <EditorContent editor={editor} className="flex grow flex-col" />
     </div>
   );
 }

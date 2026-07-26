@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
-import { useNote, useUpdateNote, useDeleteNote } from "@/hooks/useNotes";
+import { useNote, useDeleteNote } from "@/hooks/useNotes";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,108 +13,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { NoteForm, type NoteFormValues } from "@/components/notes/NoteForm";
-import { isNoteDocumentEmpty, parseNoteDocument } from "@/lib/notes/noteDocument";
-
-const NoteContentView = dynamic(
-  () => import("@/components/notes/NoteContentView").then((m) => m.NoteContentView),
-  { ssr: false, loading: () => <div className="h-24" aria-busy="true" /> }
-);
-
-const NOTES_PATH = "/notes";
-const OFFLINE_EDIT_TITLE = "Editing a note requires an internet connection";
+import { NOTES_PATH, NoteWorkspace } from "@/components/notes/NoteWorkspace";
+import { parseNoteDocument } from "@/lib/notes/noteDocument";
 
 export default function NoteDetailPage() {
   const params = useParams();
   const noteId = Number(params.id);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const isOnline = useOnlineStatus();
-  const { setHeaderActions, setLeftAction } = useHeaderActions();
 
-  const editParam = searchParams.get("edit") === "true";
-  const [isEditMode, setIsEditMode] = useState(editParam);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const { data: note, isLoading, error } = useNote(noteId);
-  const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
 
-  const routerRef = useRef(router);
-  useEffect(() => {
-    routerRef.current = router;
-  }, [router]);
-
-  useEffect(() => {
-    setIsEditMode(editParam);
-  }, [editParam]);
-
   const noteDocument = useMemo(() => parseNoteDocument(note?.contentJson), [note?.contentJson]);
-
-  useEffect(() => {
-    setLeftAction({ type: "back", href: NOTES_PATH });
-    setHeaderActions(
-      isEditMode ? null : (
-        <div className="flex items-center gap-1 ml-auto">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Edit note"
-            disabled={!isOnline}
-            title={isOnline ? undefined : OFFLINE_EDIT_TITLE}
-            onClick={() => {
-              setIsEditMode(true);
-              routerRef.current.push("?edit=true");
-            }}
-          >
-            <Pencil className="h-5 w-5" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="More options">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-                onSelect={() => setDeleteConfirmOpen(true)}
-                disabled={!isOnline}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )
-    );
-
-    return () => {
-      setHeaderActions(null);
-      setLeftAction({ type: "menu" });
-    };
-  }, [isEditMode, isOnline, setHeaderActions, setLeftAction]);
-
-  const leaveEditMode = () => {
-    setIsEditMode(false);
-    routerRef.current.replace(`${NOTES_PATH}/${noteId}`);
-  };
-
-  const handleSave = async (values: NoteFormValues) => {
-    try {
-      await updateNote.mutateAsync({ id: noteId, ...values });
-      leaveEditMode();
-    } catch {
-      toast.error("Failed to save note");
-    }
-  };
 
   const handleDelete = async () => {
     try {
@@ -152,30 +62,17 @@ export default function NoteDetailPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-2xl">
-      <PageTitle>{note.title ?? "Note"}</PageTitle>
-
-      {isEditMode ? (
-        <NoteForm
-          initialTitle={note.title ?? ""}
-          initialDocument={noteDocument}
-          submitLabel="Save"
-          isPending={updateNote.isPending}
-          onSubmit={handleSave}
-          onCancel={leaveEditMode}
-        />
-      ) : (
-        <article className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{note.title}</h2>
-          {isNoteDocumentEmpty(noteDocument) ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-              This note is empty. Tap the pencil to add something.
-            </p>
-          ) : (
-            <NoteContentView content={noteDocument} />
-          )}
-        </article>
-      )}
+    <>
+      {/* Keyed on the note so switching notes rebuilds the editor: it reads its
+          document once, on mount, so a refetch can't discard edits in flight. */}
+      <NoteWorkspace
+        key={noteId}
+        noteId={noteId}
+        initialTitle={note.title ?? ""}
+        initialDocument={noteDocument}
+        readOnly={!isOnline}
+        onDelete={() => setDeleteConfirmOpen(true)}
+      />
 
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent>
@@ -200,6 +97,6 @@ export default function NoteDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
