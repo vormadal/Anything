@@ -27,11 +27,16 @@ Reusable UI components shared across multiple pages.
 
 ## Rich text (`notes/`)
 
-The note editor is Tiptap (ProseMirror). Three rules keep it manageable:
+The note editor is Tiptap (ProseMirror). `NoteWorkspace` is the whole note screen — both `/notes/new` and `/notes/[id]` render it — and it has no Save or Cancel button: the title sits in the app header, everything below the header is the editor, and `useNoteAutosave` (see `src/hooks/agent.md`) persists as the user writes. Rules that keep it manageable:
 
-- **One schema, two modes.** `NoteEditor` (editable) and `NoteContentView` (read-only) both build from `noteExtensions` in `@/lib/notes/extensions`. Never hand-render the stored JSON — registering a node in that array is what makes it render in both modes, and it is the intended extension point for a future `entityReference` node linking to a recipe or shopping list (inline, atomic, `attrs: { entityType, entityId, label }`, no text child — the shape the backend's `NoteContent.ExtractPlainText` already flattens into the search index).
+- **One schema, two modes.** `NoteEditor` (editable) and `NoteContentView` (read-only, used when offline) both build from `noteExtensions` in `@/lib/notes/extensions`. Never hand-render the stored JSON — registering a node in that array is what makes it render in both modes, and it is the intended extension point for a future `entityReference` node linking to a recipe or shopping list (inline, atomic, `attrs: { entityType, entityId, label }`, no text child — the shape the backend's `NoteContent.ExtractPlainText` already flattens into the search index).
 - **Always load the editor via `next/dynamic` with `ssr: false`.** ProseMirror constructs against the DOM, so a server render throws; `useEditor` also needs `immediatelyRender: false` under the App Router or the first client render mismatches. Lazy loading additionally keeps ~200 KB off the notes list and home card, which render server-provided plain-text snippets and never need the editor.
-- **Mock the editor in Jest.** jsdom lacks the layout APIs ProseMirror calls (`Range.getClientRects` and friends), so component tests `jest.mock("./NoteEditor")` — see `NoteForm.test.tsx`. Editor behaviour is covered by the Playwright visual specs instead.
+- **`NoteEditor` reads `value` once, on mount.** A background refetch (autosave invalidates `["note", id]` on every save) must not clobber in-flight edits, so the detail page keys the workspace on the note id to load a different note.
+- **Mock the editor in Jest.** jsdom lacks the layout APIs ProseMirror calls (`Range.getClientRects` and friends), so component tests `jest.mock("./NoteEditor")` and replace it with a button that fires `onChange` with a staged document — see `NoteWorkspace.test.tsx`. Editor behaviour itself is covered by the Playwright visual specs. Note that unmounting flushes a pending autosave, so such a suite must `jest.clearAllMocks()` in `beforeEach`, not `afterEach` — the previous test's teardown lands a save while `afterEach` is still running.
+
+### Full-height pages
+
+`AppLayout` is a flex column (`min-h-screen`) whose `<main>` is `flex flex-1 flex-col`, so a page that should fill the viewport uses `flex-1` rather than a `calc(100dvh - …)` guess. Don't reintroduce the guess: the header is **57px**, not the 56px its `h-14` suggests, because of its bottom border — subtracting `3.5rem` leaves the page 1px scrollable.
 
 ## Toast usage rules (sonner)
 

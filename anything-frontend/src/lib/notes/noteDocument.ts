@@ -43,6 +43,67 @@ export function isNoteDocumentEmpty(document: JSONContent): boolean {
   return !hasContent(document);
 }
 
+/** Longest title the API accepts — `StringLength(200)` on the note contracts. */
+export const NOTE_TITLE_MAX_LENGTH = 200;
+
+/** How much of the first line becomes the note's title. */
+export const NOTE_TITLE_MAX_WORDS = 6;
+
+/** Stands in for the title while the first line is still blank. */
+export const UNTITLED_NOTE_TITLE = "Untitled note";
+
+/**
+ * The note's title is its first line, trimmed to `NOTE_TITLE_MAX_WORDS` words —
+ * the user never types it separately. A first line longer than the API's limit
+ * is cut to fit rather than rejected, since the user can't see the limit.
+ */
+export function deriveNoteTitle(document: JSONContent): string {
+  const [firstBlock] = collectTextBlocks(document, []);
+  const words = nodeText(firstBlock).trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return UNTITLED_NOTE_TITLE;
+
+  const title = words.slice(0, NOTE_TITLE_MAX_WORDS).join(" ");
+  return title.length > NOTE_TITLE_MAX_LENGTH
+    ? title.slice(0, NOTE_TITLE_MAX_LENGTH).trimEnd()
+    : title;
+}
+
+/**
+ * True once the first line has text and something follows it — the user pressed
+ * Enter, so the heading is settled. That is the moment a note being written for
+ * the first time becomes worth creating on the server.
+ */
+export function hasCompletedFirstLine(document: JSONContent): boolean {
+  const blocks = collectTextBlocks(document, []);
+  return blocks.length > 1 && nodeText(blocks[0]).trim().length > 0;
+}
+
+/** Block nodes that hold text directly; everything else only wraps them. */
+const TEXT_BLOCK_TYPES = new Set(["paragraph", "heading", "codeBlock"]);
+
+/**
+ * Flattens the document to its text-bearing blocks in reading order, so a first
+ * line stays the first line whether it is a plain paragraph, a heading, or the
+ * paragraph inside the first bullet.
+ */
+function collectTextBlocks(node: JSONContent, blocks: JSONContent[]): JSONContent[] {
+  if (node.type && TEXT_BLOCK_TYPES.has(node.type)) {
+    // A text block's children are inline nodes, never further blocks.
+    blocks.push(node);
+    return blocks;
+  }
+
+  for (const child of node.content ?? []) collectTextBlocks(child, blocks);
+  return blocks;
+}
+
+function nodeText(node: JSONContent | undefined): string {
+  if (!node) return "";
+
+  const own = node.type === "text" ? (node.text ?? "") : "";
+  return own + (node.content ?? []).map(nodeText).join("");
+}
+
 const STRUCTURAL_NODE_TYPES = new Set(["doc", "paragraph"]);
 
 function hasContent(node: JSONContent): boolean {

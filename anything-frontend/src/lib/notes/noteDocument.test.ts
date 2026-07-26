@@ -1,5 +1,8 @@
 import {
   EMPTY_NOTE_DOCUMENT,
+  UNTITLED_NOTE_TITLE,
+  deriveNoteTitle,
+  hasCompletedFirstLine,
   isNoteDocumentEmpty,
   parseNoteDocument,
   serializeNoteDocument,
@@ -28,6 +31,84 @@ describe("parseNoteDocument", () => {
     };
 
     expect(parseNoteDocument(serializeNoteDocument(document))).toEqual(document);
+  });
+});
+
+const paragraph = (text?: string) =>
+  text === undefined ? { type: "paragraph" } : { type: "paragraph", content: [{ type: "text", text }] };
+
+describe("deriveNoteTitle", () => {
+  it("uses the first line", () => {
+    expect(deriveNoteTitle({ type: "doc", content: [paragraph("Wifi password"), paragraph("Guest network")] })).toBe(
+      "Wifi password"
+    );
+  });
+
+  it("keeps at most six words", () => {
+    expect(
+      deriveNoteTitle({ type: "doc", content: [paragraph("one two three four five six seven eight")] })
+    ).toBe("one two three four five six");
+  });
+
+  it("collapses the whitespace a line can pick up", () => {
+    expect(deriveNoteTitle({ type: "doc", content: [paragraph("  Buy   milk  ")] })).toBe("Buy milk");
+  });
+
+  it("falls back to a placeholder while the first line is blank", () => {
+    expect(deriveNoteTitle(EMPTY_NOTE_DOCUMENT)).toBe(UNTITLED_NOTE_TITLE);
+    expect(deriveNoteTitle({ type: "doc", content: [paragraph("   ")] })).toBe(UNTITLED_NOTE_TITLE);
+  });
+
+  it("reads a first line that is a heading or a bullet", () => {
+    expect(
+      deriveNoteTitle({
+        type: "doc",
+        content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Packing list" }] }],
+      })
+    ).toBe("Packing list");
+
+    expect(
+      deriveNoteTitle({
+        type: "doc",
+        content: [
+          { type: "bulletList", content: [{ type: "listItem", content: [paragraph("Passports")] }] },
+        ],
+      })
+    ).toBe("Passports");
+  });
+
+  it("joins the marked-up runs a formatted line is split into", () => {
+    expect(
+      deriveNoteTitle({
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "text", text: "Wifi " },
+              { type: "text", marks: [{ type: "bold" }], text: "password" },
+            ],
+          },
+        ],
+      })
+    ).toBe("Wifi password");
+  });
+});
+
+describe("hasCompletedFirstLine", () => {
+  it("is false while the note is still on its first line", () => {
+    expect(hasCompletedFirstLine(EMPTY_NOTE_DOCUMENT)).toBe(false);
+    expect(hasCompletedFirstLine({ type: "doc", content: [paragraph("Wifi password")] })).toBe(false);
+  });
+
+  it("is false when Enter was pressed on a blank first line", () => {
+    expect(hasCompletedFirstLine({ type: "doc", content: [paragraph(), paragraph()] })).toBe(false);
+  });
+
+  it("is true once a written first line is followed by another block", () => {
+    expect(hasCompletedFirstLine({ type: "doc", content: [paragraph("Wifi password"), paragraph()] })).toBe(
+      true
+    );
   });
 });
 

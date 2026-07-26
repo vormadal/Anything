@@ -596,8 +596,13 @@ async function setupApiMocks(page: Page) {
   // General-to-specific (LIFO): the list route first, then the by-id route
   // registered after it so a detail GET wins.
   await page.route("**/api/notes**", (route) => {
-    if (route.request().method() === "GET") {
+    const method = route.request().method();
+    if (method === "GET") {
       route.fulfill({ json: mockNotes });
+    } else if (method === "POST") {
+      // Autosave creates the note as soon as its first line is finished, and
+      // needs the assigned id back to switch from creating to updating.
+      route.fulfill({ status: 201, json: mockNoteDetail });
     } else {
       route.fulfill({ status: 204, body: "" });
     }
@@ -889,13 +894,18 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("notes-empty.png", screenshotOptions);
   });
 
-  test("note detail - rendered rich text", async ({ page }) => {
+  test("note detail - always-on editor with the title in the header", async ({ page }) => {
     await page.goto("/notes/1");
     await page.waitForLoadState("networkidle");
     // Assert on the rendered document rather than trusting the screenshot: a
     // baseline generated before this feature would otherwise pass silently.
     await expect(page.getByRole("heading", { name: "Guest network" })).toBeVisible();
     await expect(page.getByText("Reboot it if the lights go red")).toBeVisible();
+    // The title lives in the top bar only — there is no title field on the page.
+    await expect(page.getByRole("heading", { name: "Wifi password", level: 1 })).toBeVisible();
+    await expect(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Rename note" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
     await expect(page).toHaveScreenshot("note-detail.png", screenshotOptions);
   });
 
@@ -909,26 +919,67 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     });
     await page.goto("/notes/2");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText(/This note is empty/)).toBeVisible();
+    // The placeholder is CSS-generated, so assert on the editing surface itself.
+    await expect(page.getByRole("textbox", { name: "Note content" })).toBeVisible();
     await expect(page).toHaveScreenshot("note-detail-empty.png", screenshotOptions);
   });
 
-  test("note - edit mode with formatting toolbar", async ({ page }) => {
-    await page.goto("/notes/1?edit=true");
+  test("note - autosave indicator after an edit", async ({ page }) => {
+    await page.goto("/notes/1");
     await page.waitForLoadState("networkidle");
-    // The editor is loaded via next/dynamic, so wait for the toolbar itself.
-    await expect(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Bullet list" })).toBeVisible();
-    await expect(page.getByLabel("Title")).toHaveValue("Wifi password");
-    await expect(page).toHaveScreenshot("note-edit-mode.png", screenshotOptions);
+    const editor = page.getByRole("textbox", { name: "Note content" });
+    await expect(editor).toBeVisible();
+
+    await editor.click();
+    await page.keyboard.type(" Reboot takes a minute.");
+    // The save is debounced, so the indicator passes through "Saving…" first.
+    await expect(page.getByRole("status")).toHaveText("Saved");
+    await expect(page).toHaveScreenshot("note-autosave-saved.png", screenshotOptions);
   });
 
-  test("note - new note form", async ({ page }) => {
+  test("note - rename dialog", async ({ page }) => {
+    await page.goto("/notes/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Rename note" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByLabel("Title")).toHaveValue("Wifi password");
+    await expect(page).toHaveScreenshot("note-rename-dialog.png", screenshotOptions);
+  });
+
+  test("note - new note starts as an empty full-height editor", async ({ page }) => {
     await page.goto("/notes/new");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Create" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Note content" })).toBeVisible();
+    // Nothing is saved — and no note exists — until the first line is finished.
+    await expect(page.getByRole("status")).toHaveCount(0);
     await expect(page).toHaveScreenshot("note-new.png", screenshotOptions);
+  });
+
+  test("note - created once the first line is finished", async ({ page }) => {
+    const createRequests: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() === "POST" && request.url().includes("/api/notes")) {
+        createRequests.push(request.postData() ?? "");
+      }
+    });
+
+    await page.goto("/notes/new");
+    await page.waitForLoadState("networkidle");
+    const editor = page.getByRole("textbox", { name: "Note content" });
+    await editor.click();
+
+    await page.keyboard.type("Guest wifi password is on the router");
+    // The title tracks the first line, capped at six words, before anything is
+    // saved — and no note has been created yet.
+    await expect(page.getByRole("heading", { name: "Guest wifi password is on the", level: 1 })).toBeVisible();
+    expect(createRequests).toHaveLength(0);
+
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("status")).toHaveText("Saved");
+    expect(createRequests).toHaveLength(1);
+    expect(createRequests[0]).toContain("Guest wifi password is on the");
+    await expect(page).toHaveScreenshot("note-new-created.png", screenshotOptions);
   });
 
   test("home page - notes card", async ({ page }) => {
