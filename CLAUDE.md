@@ -112,6 +112,21 @@ npm run test:e2e:visual:update   # Regenerate baseline screenshots — REQUIRED 
 
 ## API Endpoints
 
+Storage / inventory — three household-scoped entities under
+`/api/inventory-storage-units` (a place: basement room, summerhouse, under the
+bed), `/api/inventory-boxes` (a numbered box, optionally in a place) and
+`/api/inventory-items` (optionally in a box and/or a place). All five verbs each,
+all `RequireAuthorization()`. Two behaviours the frontend must encode: deleting a
+place returns **409** while it still holds boxes or items, and deleting a box
+keeps its items but clears their `BoxId`. `InventoryItem` carries `BoxId` and
+`StorageUnitId` independently with no server-side consistency check, so the UI
+derives the place from the box (`resolvePlacement` in
+`anything-frontend/src/lib/inventory.ts`). These endpoints return raw EF entities
+rather than `Anything.Contracts` response records — unlike Notes/Bills — so
+responses still include `householdId`/`deletedOn`; the frontend must not depend
+on those fields. Photos, documents and per-item metadata (warranty, serial,
+purchase) are **not** implemented yet.
+
 Notes (`/api/notes`) — household-scoped rich-text notes. `GET /` returns
 `NoteSummaryResponse` (title + plain-text snippet) and accepts an optional
 `?limit=`; `GET /{id}` returns the full `ContentJson` editor document. The body

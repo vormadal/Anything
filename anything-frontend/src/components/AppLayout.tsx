@@ -27,6 +27,7 @@ import {
   HelpCircle,
   Search,
   NotebookPen,
+  Package,
 } from "lucide-react";
 import {
   PageActionsProvider,
@@ -51,6 +52,7 @@ const NAV_ITEMS = [
   { label: "Recipes", path: "/recipes", icon: CookingPot },
   { label: "Food Plan", path: "/food-plans", icon: CalendarDays },
   { label: "Bills", path: "/bills", icon: Receipt },
+  { label: "Storage", path: "/inventory", icon: Package },
   { label: "Households", path: "/households", icon: Users },
 ];
 

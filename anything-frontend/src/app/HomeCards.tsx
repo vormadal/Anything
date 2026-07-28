@@ -15,14 +15,15 @@ import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 import { CreateListDialog } from "@/components/CreateListDialog";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { itemPath } from "@/lib/inventory";
 
 // Maps a search result's entityType to its detail-page route. Entity types not
-// listed here (e.g. InventoryItem, which has no frontend page yet) render as
-// non-navigable rows instead of a broken link.
+// listed here render as non-navigable rows instead of a broken link.
 const SEARCH_RESULT_ROUTES: Record<string, (entityId: number) => string> = {
   Recipe: (entityId) => `/recipes/${entityId}`,
   ShoppingList: (entityId) => `/lists/${entityId}`,
   Note: (entityId) => `/notes/${entityId}`,
+  InventoryItem: (entityId) => itemPath(entityId),
 };
 
 // Icon shown per result row, matching the icons already used for these entity

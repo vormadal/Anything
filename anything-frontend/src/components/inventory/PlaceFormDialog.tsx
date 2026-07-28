@@ -1,0 +1,110 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import {
+  useCreateInventoryStorageUnit,
+  useUpdateInventoryStorageUnit,
+  type InventoryStorageUnit,
+} from "@/hooks/useInventory";
+import {
+  FIELD_INPUT_CLASS,
+  FIELD_LABEL_CLASS,
+  OFFLINE_HINT,
+} from "@/components/inventory/inventoryFormStyles";
+
+interface PlaceFormDialogProps {
+  /** Omit to create a new place; pass a place to edit it. */
+  place?: InventoryStorageUnit;
+  onClose: () => void;
+}
+
+export function PlaceFormDialog({ place, onClose }: PlaceFormDialogProps) {
+  const isEdit = place !== undefined;
+  const [name, setName] = useState(place?.name ?? "");
+  const [type, setType] = useState(place?.type ?? "");
+
+  const createPlace = useCreateInventoryStorageUnit();
+  const updatePlace = useUpdateInventoryStorageUnit();
+  const isOnline = useOnlineStatus();
+  const isPending = createPlace.isPending || updatePlace.isPending;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    const body = { name: trimmed, type: type.trim() || null };
+    try {
+      if (isEdit) {
+        await updatePlace.mutateAsync({ id: place.id ?? 0, ...body });
+      } else {
+        await createPlace.mutateAsync(body);
+      }
+      onClose();
+    } catch {
+      toast.error(isEdit ? "Failed to save place" : "Failed to create place");
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit place" : "New place"}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div>
+            <label htmlFor="place-name" className={FIELD_LABEL_CLASS}>
+              Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="place-name"
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Basement storage room"
+              autoFocus
+              className={FIELD_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="place-type" className={FIELD_LABEL_CLASS}>
+              Type
+            </label>
+            <input
+              id="place-type"
+              type="text"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              placeholder="Room, shelf, under the bed…"
+              className={FIELD_INPUT_CLASS}
+            />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={isPending || !name.trim() || !isOnline}
+              title={isOnline ? undefined : OFFLINE_HINT}
+            >
+              {isEdit ? "Save" : "Create"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

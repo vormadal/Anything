@@ -319,6 +319,30 @@ const mockHouseholds = [
   { id: 2, name: "Work Team", createdOn: "2024-02-01T00:00:00Z", role: "Member" },
 ];
 
+// ---- Storage (inventory) ----
+// Two places, three boxes and a spread of items covering every placement the
+// UI distinguishes: in a box, loose in a place, and not placed at all.
+const mockStoragePlaces = [
+  { id: 1, name: "Basement storage room", type: "Room", householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 2, name: "Summerhouse", type: "Cabin", householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 3, name: "Under the bed", type: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+];
+
+const mockStorageBoxes = [
+  { id: 10, number: 1, storageUnitId: 1, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 11, number: 2, storageUnitId: 1, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 12, number: 3, storageUnitId: 2, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+];
+
+const mockStorageItems = [
+  { id: 100, name: "Christmas lights", description: "Two strings, warm white", boxId: 10, storageUnitId: 1, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 101, name: "Winter tyres", description: "Set of four, 205/55 R16", boxId: 10, storageUnitId: 1, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 102, name: "Paint tins", description: "Hallway white, half full", boxId: 11, storageUnitId: 1, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 103, name: "Step ladder", description: null, boxId: null, storageUnitId: 1, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 104, name: "Beach parasol", description: "Blue, one broken rib", boxId: 12, storageUnitId: 2, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 105, name: "Camping tent", description: "Four person", boxId: null, storageUnitId: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+];
+
 const mockRecipeDetail = {
   id: 1, name: "Pasta Carbonara", notes: "Classic Italian.",
   cookTimeMinutes: 30, servings: 4, servingsType: "People",
@@ -613,6 +637,34 @@ async function setupApiMocks(page: Page) {
     } else {
       route.fulfill({ status: 204, body: "" });
     }
+  });
+
+  // ---- Storage (inventory) ----
+  // General-to-specific (LIFO): each list route first, then its by-id route
+  // registered after it so a detail GET wins.
+  await page.route("**/api/inventory-storage-units**", (route) =>
+    route.fulfill({ json: mockStoragePlaces })
+  );
+  await page.route(/\/api\/inventory-storage-units\/(\d+)$/, (route) => {
+    const id = Number(/(\d+)$/.exec(route.request().url())?.[1]);
+    const place = mockStoragePlaces.find((p) => p.id === id);
+    route.fulfill(place ? { json: place } : { status: 404, body: "" });
+  });
+  await page.route("**/api/inventory-boxes**", (route) =>
+    route.fulfill({ json: mockStorageBoxes })
+  );
+  await page.route(/\/api\/inventory-boxes\/(\d+)$/, (route) => {
+    const id = Number(/(\d+)$/.exec(route.request().url())?.[1]);
+    const box = mockStorageBoxes.find((b) => b.id === id);
+    route.fulfill(box ? { json: box } : { status: 404, body: "" });
+  });
+  await page.route("**/api/inventory-items**", (route) =>
+    route.fulfill({ json: mockStorageItems })
+  );
+  await page.route(/\/api\/inventory-items\/(\d+)$/, (route) => {
+    const id = Number(/(\d+)$/.exec(route.request().url())?.[1]);
+    const item = mockStorageItems.find((i) => i.id === id);
+    route.fulfill(item ? { json: item } : { status: 404, body: "" });
   });
 
   // ---- Households ----
@@ -1000,6 +1052,79 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("heading", { name: "Notes" })).toBeVisible();
     await expect(page.getByText("Holiday packing")).toBeVisible();
     await expect(page).toHaveScreenshot("home-notes-card.png", screenshotOptions);
+  });
+
+  // ---- Storage (inventory) ----
+  //
+  // Every test asserts on a distinctive element before taking its screenshot.
+  // The snapshot workflow can silently keep a pre-feature baseline when a run
+  // fails for an unrelated reason (see CLAUDE.md), and a plain toHaveScreenshot
+  // would then pass against the stale image — the explicit assertion fails loudly
+  // instead.
+
+  test("storage - overview with places and unplaced items", async ({ page }) => {
+    await page.goto("/inventory");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("link", { name: /Basement storage room/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Camping tent/ })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-overview.png", screenshotOptions);
+  });
+
+  test("storage - overview empty state", async ({ page }) => {
+    await page.route("**/api/inventory-storage-units**", (route) =>
+      route.fulfill({ json: [] })
+    );
+    await page.route("**/api/inventory-boxes**", (route) => route.fulfill({ json: [] }));
+    await page.route("**/api/inventory-items**", (route) => route.fulfill({ json: [] }));
+
+    await page.goto("/inventory");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/Nothing stored yet/)).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-overview-empty.png", screenshotOptions);
+  });
+
+  test("storage - searching items across every place", async ({ page }) => {
+    await page.goto("/inventory");
+    await page.waitForLoadState("networkidle");
+    await page.getByLabel("Search all items").fill("parasol");
+    await expect(page.getByText("1 match")).toBeVisible();
+    await expect(page.getByText("Summerhouse · Box 3")).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-overview-search.png", screenshotOptions);
+  });
+
+  test("storage - place detail with boxes and loose items", async ({ page }) => {
+    await page.goto("/inventory/places/1");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Basement storage room" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Box 1/ })).toBeVisible();
+    await expect(page.getByText("Loose items")).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-place-detail.png", screenshotOptions);
+  });
+
+  test("storage - box detail listing its contents", async ({ page }) => {
+    await page.goto("/inventory/boxes/10");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Box 1" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Christmas lights/ })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-box-detail.png", screenshotOptions);
+  });
+
+  test("storage - item detail showing where it lives", async ({ page }) => {
+    await page.goto("/inventory/items/100");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Christmas lights" })).toBeVisible();
+    await expect(page.getByText("Where it is")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Box 1" })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-item-detail.png", screenshotOptions);
+  });
+
+  test("storage - new item dialog", async ({ page }) => {
+    await page.goto("/inventory/boxes/10");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Add item" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByLabel("Box")).toHaveValue("10");
+    await expect(page).toHaveScreenshot("storage-item-dialog.png", screenshotOptions);
   });
 
   // ---- Lists ----

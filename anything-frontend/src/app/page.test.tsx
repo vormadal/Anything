@@ -743,8 +743,10 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanEntriesGet.mockResolvedValue([])
     mockShoppingListsGet.mockResolvedValue([])
     mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    // Every entity type the backend indexes today has a page, so this uses a
+    // stand-in to keep the fallback branch covered for the next one added.
     mockSearchGet.mockResolvedValue([
-      { entityType: 'InventoryItem', entityId: 3, title: 'Flour', snippet: '5kg bag, pantry shelf' },
+      { entityType: 'NotBuiltYet', entityId: 3, title: 'Flour', snippet: '5kg bag, pantry shelf' },
     ])
 
     render(<Home />)
@@ -762,6 +764,35 @@ describe('Home Page Integration Tests', () => {
       expect(screen.getByText('Flour')).toBeInTheDocument()
     })
     expect(screen.queryByRole('button', { name: /Flour/ })).toBeDisabled()
+  })
+
+  it('should navigate to an inventory item when a search result is selected', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    mockSearchGet.mockResolvedValue([
+      { entityType: 'InventoryItem', entityId: 3, title: 'Christmas lights', snippet: 'Box 4, summerhouse' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Search everything')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Search everything'), 'christmas')
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Christmas lights')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Christmas lights'))
+    expect(mockPush).toHaveBeenCalledWith('/inventory/items/3')
   })
 
   it('should navigate to a note when a search result is selected', async () => {
