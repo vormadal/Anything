@@ -99,21 +99,27 @@ export default function BoxDetailPage() {
 
       {/* The app header already renders the box number (via PageTitle), so the
           page body only adds what the header can't show. */}
-      {place ? (
-        <Link
-          href={placePath(place.id ?? 0)}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+      <div className="flex items-center justify-between gap-3">
+        {place ? (
+          <Link
+            href={placePath(place.id ?? 0)}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {formatPlaceName(place)}
+          </Link>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">Not in a place yet</p>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs"
+          onClick={() => setAddItemOpen(true)}
         >
-          {formatPlaceName(place)}
-        </Link>
-      ) : (
-        <p className="text-sm text-gray-500 dark:text-gray-400">Not in a place yet</p>
-      )}
-
-      <Button variant="outline" size="sm" onClick={() => setAddItemOpen(true)}>
-        <Plus className="h-4 w-4" />
-        Add item
-      </Button>
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          Add item
+        </Button>
+      </div>
 
       {contents.length === 0 ? (
         <p className="text-center py-12 text-gray-500 dark:text-gray-400">

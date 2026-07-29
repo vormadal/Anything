@@ -23,9 +23,6 @@ import {
   placePath,
 } from "@/lib/inventory";
 
-const META_LABEL_CLASS =
-  "text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400";
-
 export default function ItemDetailPage() {
   const params = useParams();
   const itemId = Number(params.id);
@@ -95,42 +92,39 @@ export default function ItemDetailPage() {
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-5">
       <PageTitle>{item.name ?? "Item"}</PageTitle>
 
-      {/* The app header already renders the item name (via PageTitle). */}
+      {/* The app header already renders the item name (via PageTitle). No
+          section headers here — description vs. location is distinguished by
+          size/weight/color alone, matching how a business card separates a
+          name from a title without labelling either. */}
       {item.description && (
-        <section className="space-y-1">
-          <h2 className={META_LABEL_CLASS}>Description</h2>
-          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-            {item.description}
-          </p>
-        </section>
+        <p className="text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+          {item.description}
+        </p>
       )}
 
-      <section className="space-y-1">
-        <h2 className={META_LABEL_CLASS}>Where it is</h2>
-        {place || box ? (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-            {place && (
-              <Link
-                href={placePath(place.id ?? 0)}
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {formatPlaceName(place)}
-              </Link>
-            )}
-            {place && box && <span className="text-gray-400">·</span>}
-            {box && (
-              <Link
-                href={boxPath(box.id ?? 0)}
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {formatBoxName(box)}
-              </Link>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400">Not placed yet</p>
-        )}
-      </section>
+      {place || box ? (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+          {place && (
+            <Link
+              href={placePath(place.id ?? 0)}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {formatPlaceName(place)}
+            </Link>
+          )}
+          {place && box && <span>·</span>}
+          {box && (
+            <Link
+              href={boxPath(box.id ?? 0)}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {formatBoxName(box)}
+            </Link>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500 dark:text-gray-400">Not placed yet</p>
+      )}
 
       {editOpen && <ItemFormDialog item={item} onClose={() => setEditOpen(false)} />}
 

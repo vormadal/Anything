@@ -106,12 +106,6 @@ export default function PlaceDetailPage() {
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
       <PageTitle>{formatPlaceName(place)}</PageTitle>
 
-      {/* The app header already renders the place name (via PageTitle), so the
-          page body only adds what the header can't show. */}
-      {place.type && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">{place.type}</p>
-      )}
-
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => setAddBoxOpen(true)}>
           <Plus className="h-4 w-4" />
