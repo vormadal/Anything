@@ -1057,10 +1057,15 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   // ---- Storage (inventory) ----
   //
   // Every test asserts on a distinctive element before taking its screenshot.
-  // The snapshot workflow can silently keep a pre-feature baseline when a run
-  // fails for an unrelated reason (see CLAUDE.md), and a plain toHaveScreenshot
-  // would then pass against the stale image — the explicit assertion fails loudly
-  // instead.
+  // The snapshot workflow can silently keep a stale baseline — either because a
+  // run fails for an unrelated reason (see CLAUDE.md), or because `--update-
+  // snapshots` (mode "changed") only rewrites a file when the actual render
+  // differs from the baseline by more than maxDiffPixelRatio (0.02): a layout
+  // tweak whose affected region is a small share of the full-page screenshot
+  // (e.g. removing one heading on an otherwise-short, mostly-blank page) can
+  // fall under that threshold and get silently skipped even though the DOM
+  // genuinely changed. Either way a plain toHaveScreenshot would pass against
+  // the stale image — the explicit assertion fails loudly instead.
 
   test("storage - overview with places and unplaced items", async ({ page }) => {
     await page.goto("/inventory");
