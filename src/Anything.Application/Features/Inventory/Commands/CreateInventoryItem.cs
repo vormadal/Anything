@@ -1,3 +1,5 @@
+using Anything.Application.Features.Inventory;
+using Anything.Contracts.Inventory;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -7,7 +9,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Inventory.Commands;
 
-public record CreateInventoryItemCommand(string Name, string? Description, int? BoxId, int? StorageUnitId) : IRequest<IResult>;
+public record CreateInventoryItemCommand(
+    string Name,
+    string? Description,
+    int? BoxId,
+    int? StorageUnitId,
+    int? Quantity = null,
+    string? Brand = null,
+    string? Model = null,
+    string? SerialNumber = null,
+    DateTime? PurchasedOn = null,
+    decimal? PurchasePrice = null,
+    DateTime? WarrantyExpiresOn = null,
+    string? Notes = null) : IRequest<IResult>;
 
 public class CreateInventoryItemHandler(
     IRepository<InventoryItem> itemRepository,
@@ -19,6 +33,11 @@ public class CreateInventoryItemHandler(
 {
     public async Task<IResult> Handle(CreateInventoryItemCommand command, CancellationToken ct = default)
     {
+        // A box's own place always wins over whatever place the caller sent,
+        // so an item can never end up claiming a box while disagreeing about
+        // which place that box is in.
+        int? storageUnitId = command.StorageUnitId;
+
         if (command.BoxId.HasValue)
         {
             var box = await boxRepository.Query()
@@ -26,9 +45,9 @@ public class CreateInventoryItemHandler(
                 .FirstOrDefaultAsync(ct);
             if (box is null)
                 return Results.BadRequest("Invalid box ID.");
+            storageUnitId = box.StorageUnitId;
         }
-
-        if (command.StorageUnitId.HasValue)
+        else if (command.StorageUnitId.HasValue)
         {
             var storageUnit = await storageUnitRepository.Query()
                 .Where(s => s.Id == command.StorageUnitId.Value && s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
@@ -43,12 +62,20 @@ public class CreateInventoryItemHandler(
             Name = command.Name,
             Description = command.Description,
             BoxId = command.BoxId,
-            StorageUnitId = command.StorageUnitId,
+            StorageUnitId = storageUnitId,
+            Quantity = command.Quantity,
+            Brand = command.Brand,
+            Model = command.Model,
+            SerialNumber = command.SerialNumber,
+            PurchasedOn = command.PurchasedOn,
+            PurchasePrice = command.PurchasePrice,
+            WarrantyExpiresOn = command.WarrantyExpiresOn,
+            Notes = command.Notes,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         itemRepository.Add(item);
         await unitOfWork.SaveChanges(ct);
-        return Results.Created($"/api/inventory-items/{item.Id}", item);
+        return Results.Created($"/api/inventory-items/{item.Id}", InventoryMapping.ToResponse(item, []));
     }
 }

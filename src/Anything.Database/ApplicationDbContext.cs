@@ -20,6 +20,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<InventoryStorageUnit> InventoryStorageUnits => Set<InventoryStorageUnit>();
     public DbSet<InventoryBox> InventoryBoxes => Set<InventoryBox>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<InventoryItemField> InventoryItemFields => Set<InventoryItemField>();
+    public DbSet<InventoryAttachment> InventoryAttachments => Set<InventoryAttachment>();
     public DbSet<ShoppingList> ShoppingLists => Set<ShoppingList>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
     public DbSet<ShoppingListRecommendation> ShoppingListRecommendations => Set<ShoppingListRecommendation>();

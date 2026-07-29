@@ -1,3 +1,4 @@
+using Anything.Application.Features.Inventory;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -17,6 +18,6 @@ public class GetInventoryStorageUnitByIdHandler(IRepository<InventoryStorageUnit
         var storageUnit = await repository.Query()
             .Where(s => s.Id == query.Id && s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
-        return storageUnit is not null ? Results.Ok(storageUnit) : Results.NotFound();
+        return storageUnit is not null ? Results.Ok(InventoryMapping.ToResponse(storageUnit)) : Results.NotFound();
     }
 }

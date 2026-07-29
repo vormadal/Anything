@@ -114,18 +114,41 @@ npm run test:e2e:visual:update   # Regenerate baseline screenshots — REQUIRED 
 
 Storage / inventory — three household-scoped entities under
 `/api/inventory-storage-units` (a place: basement room, summerhouse, under the
-bed), `/api/inventory-boxes` (a numbered box, optionally in a place) and
-`/api/inventory-items` (optionally in a box and/or a place). All five verbs each,
-all `RequireAuthorization()`. Two behaviours the frontend must encode: deleting a
-place returns **409** while it still holds boxes or items, and deleting a box
-keeps its items but clears their `BoxId`. `InventoryItem` carries `BoxId` and
-`StorageUnitId` independently with no server-side consistency check, so the UI
-derives the place from the box (`resolvePlacement` in
-`anything-frontend/src/lib/inventory.ts`). These endpoints return raw EF entities
-rather than `Anything.Contracts` response records — unlike Notes/Bills — so
-responses still include `householdId`/`deletedOn`; the frontend must not depend
-on those fields. Photos, documents and per-item metadata (warranty, serial,
-purchase) are **not** implemented yet.
+bed), `/api/inventory-boxes` (a numbered box, optionally in a place, plus an
+optional `Label`/`Description`) and `/api/inventory-items` (optionally in a box
+and/or a place, plus optional metadata: `Quantity`, `Brand`, `Model`,
+`SerialNumber`, `PurchasedOn`, `PurchasePrice`, `WarrantyExpiresOn`, `Notes`).
+All five verbs each, all `RequireAuthorization()`. Two behaviours the frontend
+must encode: deleting a place returns **409** while it still holds boxes or
+items, and deleting a box keeps its items but clears their `BoxId`.
+`CreateInventoryItem`/`UpdateInventoryItem` derive `StorageUnitId` from the
+chosen box server-side whenever `BoxId` is set — the box's own place always
+wins over whatever place the caller sent, so an item can never persist a
+contradiction between the two. All three entities now return
+`Anything.Contracts.Inventory` response records (`InventoryItemResponse` /
+`InventoryItemSummaryResponse` for the list endpoint / `InventoryBoxResponse` /
+`InventoryStorageUnitResponse`) rather than raw EF entities, so responses no
+longer include `householdId`/`deletedOn`.
+
+Per-item **custom fields** (free-form label/value pairs, e.g. for metadata with
+no dedicated column) live in `InventoryItemField`, embedded in
+`InventoryItemResponse.Fields` on `GET /api/inventory-items/{id}` and replaced
+wholesale via `PUT /api/inventory-items/{id}/fields` (simpler than per-field
+CRUD — the whole ordered list is sent each time, `SortOrder` following array
+order). **Not search-indexed** — see `src/Anything.Database/agent.md`.
+
+**Attachments** (photos/manuals/receipts/warranty docs) live in one shared
+`InventoryAttachment` table with three nullable owner FKs (`ItemId`/`BoxId`/
+`StorageUnitId`, exactly one set by the handler — never a DB constraint, since
+the owner always comes from the route, not the caller), mirroring
+`BillAttachment` but reused across all three inventory entities via
+`InventoryAttachmentMapping.ToResponse` (shared image/thumbnail-URL
+projection). Each of the three entity endpoint groups gets its own
+`GET/POST .../attachments`, `GET .../attachments/{id}/download`,
+`DELETE .../attachments/{id}`, using `folder: "inventory"` in
+`IImageStorageService.Upload`. `Kind` is one of `InventoryAttachmentKinds`
+(`Photo`/`Manual`/`Receipt`/`Warranty`/`Other`), validated server-side; photos
+get imgproxy thumbnail + full URLs, everything else gets a download URL.
 
 Notes (`/api/notes`) — household-scoped rich-text notes. `GET /` returns
 `NoteSummaryResponse` (title + plain-text snippet) and accepts an optional

@@ -1,3 +1,4 @@
+using Anything.Application.Features.Inventory;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -17,6 +18,6 @@ public class GetInventoryBoxByIdHandler(IRepository<InventoryBox> repository, IH
         var box = await repository.Query()
             .Where(b => b.Id == query.Id && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
-        return box is not null ? Results.Ok(box) : Results.NotFound();
+        return box is not null ? Results.Ok(InventoryMapping.ToResponse(box)) : Results.NotFound();
     }
 }

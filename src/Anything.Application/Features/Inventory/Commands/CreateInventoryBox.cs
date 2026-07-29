@@ -1,3 +1,5 @@
+using Anything.Application.Features.Inventory;
+using Anything.Contracts.Inventory;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -7,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Inventory.Commands;
 
-public record CreateInventoryBoxCommand(int Number, int? StorageUnitId) : IRequest<IResult>;
+public record CreateInventoryBoxCommand(int Number, int? StorageUnitId, string? Label = null, string? Description = null) : IRequest<IResult>;
 
 public class CreateInventoryBoxHandler(
     IRepository<InventoryBox> boxRepository,
@@ -32,11 +34,13 @@ public class CreateInventoryBoxHandler(
             HouseholdId = householdContext.HouseholdId,
             Number = command.Number,
             StorageUnitId = command.StorageUnitId,
+            Label = command.Label,
+            Description = command.Description,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };
 
         boxRepository.Add(box);
         await unitOfWork.SaveChanges(ct);
-        return Results.Created($"/api/inventory-boxes/{box.Id}", box);
+        return Results.Created($"/api/inventory-boxes/{box.Id}", InventoryMapping.ToResponse(box));
     }
 }
