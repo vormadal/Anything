@@ -1,0 +1,132 @@
+import {
+  boxesInPlace,
+  describeItemLocation,
+  formatBoxName,
+  formatPlaceName,
+  itemsInBox,
+  itemsInPlace,
+  looseItemsInPlace,
+  nextBoxNumber,
+  resolvePlacement,
+  unplacedItems,
+} from '@/lib/inventory'
+import type {
+  InventoryBox,
+  InventoryItem,
+  InventoryStorageUnit,
+} from '@/lib/api-client/models/index'
+
+const summerhouse: InventoryStorageUnit = { id: 1, name: 'Summerhouse' }
+const basement: InventoryStorageUnit = { id: 2, name: 'Basement storage room' }
+const places = [summerhouse, basement]
+
+const boxInSummerhouse: InventoryBox = { id: 10, number: 4, storageUnitId: 1 }
+const boxInBasement: InventoryBox = { id: 11, number: 7, storageUnitId: 2 }
+const homelessBox: InventoryBox = { id: 12, number: 9, storageUnitId: null }
+const boxes = [boxInSummerhouse, boxInBasement, homelessBox]
+
+describe('inventory helpers', () => {
+  describe('formatting', () => {
+    it('names a box by the number written on it', () => {
+      expect(formatBoxName({ number: 4 })).toBe('Box 4')
+    })
+
+    it('falls back when a box somehow has no number', () => {
+      expect(formatBoxName({ number: null })).toBe('Box ?')
+    })
+
+    it('falls back when a place has no name', () => {
+      expect(formatPlaceName({ name: null })).toBe('Unnamed place')
+    })
+  })
+
+  describe('grouping', () => {
+    const items: InventoryItem[] = [
+      { id: 100, name: 'Christmas lights', boxId: 10, storageUnitId: 1 },
+      { id: 101, name: 'Deck chair', boxId: null, storageUnitId: 1 },
+      { id: 102, name: 'Paint tins', boxId: 11, storageUnitId: 2 },
+      { id: 103, name: 'Tent', boxId: null, storageUnitId: null },
+    ]
+
+    it('finds the boxes in a place', () => {
+      expect(boxesInPlace(boxes, 1)).toEqual([boxInSummerhouse])
+    })
+
+    it('finds the items in a box', () => {
+      expect(itemsInBox(items, 10).map((i) => i.name)).toEqual(['Christmas lights'])
+    })
+
+    it('counts every item in a place, boxed or not', () => {
+      expect(itemsInPlace(items, 1).map((i) => i.name)).toEqual([
+        'Christmas lights',
+        'Deck chair',
+      ])
+    })
+
+    it('separates loose items from boxed ones', () => {
+      expect(looseItemsInPlace(items, 1).map((i) => i.name)).toEqual(['Deck chair'])
+    })
+
+    it('surfaces items with no place at all', () => {
+      expect(unplacedItems(items).map((i) => i.name)).toEqual(['Tent'])
+    })
+  })
+
+  describe('resolvePlacement', () => {
+    it('takes the place from the chosen box, ignoring a contradictory one', () => {
+      expect(
+        resolvePlacement({ boxId: 10, storageUnitId: 2 }, boxes)
+      ).toEqual({ boxId: 10, storageUnitId: 1 })
+    })
+
+    it('keeps the chosen place when no box is selected', () => {
+      expect(
+        resolvePlacement({ boxId: null, storageUnitId: 2 }, boxes)
+      ).toEqual({ boxId: null, storageUnitId: 2 })
+    })
+
+    it('clears the place for a box that has none', () => {
+      expect(
+        resolvePlacement({ boxId: 12, storageUnitId: 1 }, boxes)
+      ).toEqual({ boxId: 12, storageUnitId: null })
+    })
+
+    it('leaves an item unplaced when neither is chosen', () => {
+      expect(
+        resolvePlacement({ boxId: null, storageUnitId: null }, boxes)
+      ).toEqual({ boxId: null, storageUnitId: null })
+    })
+  })
+
+  describe('describeItemLocation', () => {
+    it('reads place then box', () => {
+      const item: InventoryItem = { id: 1, name: 'Lights', boxId: 10, storageUnitId: 1 }
+      expect(describeItemLocation(item, boxes, places)).toBe('Summerhouse · Box 4')
+    })
+
+    it('trusts the box over a stale storageUnitId', () => {
+      const item: InventoryItem = { id: 1, name: 'Lights', boxId: 10, storageUnitId: 2 }
+      expect(describeItemLocation(item, boxes, places)).toBe('Summerhouse · Box 4')
+    })
+
+    it('reads just the place for a loose item', () => {
+      const item: InventoryItem = { id: 1, name: 'Chair', boxId: null, storageUnitId: 2 }
+      expect(describeItemLocation(item, boxes, places)).toBe('Basement storage room')
+    })
+
+    it('says so when the item is nowhere', () => {
+      const item: InventoryItem = { id: 1, name: 'Tent', boxId: null, storageUnitId: null }
+      expect(describeItemLocation(item, boxes, places)).toBe('Not placed yet')
+    })
+  })
+
+  describe('nextBoxNumber', () => {
+    it('suggests one past the highest number in use', () => {
+      expect(nextBoxNumber(boxes)).toBe(10)
+    })
+
+    it('starts at 1 when there are no boxes', () => {
+      expect(nextBoxNumber([])).toBe(1)
+    })
+  })
+})

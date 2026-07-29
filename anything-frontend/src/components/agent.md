@@ -7,6 +7,7 @@ Reusable UI components shared across multiple pages.
 - Root level — feature-specific shared components:
   - Dialogs: `AddToFoodPlanDialog`, `CompleteListDialog`, `CreateLocationDialog`, `CreateVendorDialog`, `EditListNameDialog`
   - `suggestions/` — tab bodies for the consolidated Suggestions admin page (`SuggestionsTab`, `CategoriesTab`, `ImportExportTab`)
+  - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, and `inventoryFormStyles.ts` for the repeated Tailwind field classes
   - Layout/nav: `AppLayout`, `PageTitle`
   - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`
   - Auth: `AuthGuard`
