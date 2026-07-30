@@ -38,8 +38,17 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("da-DK", { year: "numeric", month: "short", day: "numeric" });
+// `item.purchasedOn`/`warrantyExpiresOn` are typed as `Date` by the generated
+// client, but a query restored from the offline persister (see
+// lib/offline/persister.ts) has been through a JSON.stringify/parse round
+// trip, which turns Date instances back into plain ISO strings until the
+// post-restore refetch lands. Re-wrapping in `new Date()` here handles both.
+function formatDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString("da-DK", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default function ItemDetailPage() {

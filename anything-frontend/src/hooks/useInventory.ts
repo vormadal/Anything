@@ -218,12 +218,30 @@ export function useInventoryItems() {
   });
 }
 
+/**
+ * `purchasedOn`/`warrantyExpiresOn` are typed as `Date` by the generated
+ * client, but a query restored from the offline persister (see
+ * lib/offline/persister.ts) has been through a JSON.stringify/parse round
+ * trip, which turns Date instances back into plain ISO strings until the
+ * post-restore refetch lands. `select` re-normalizes on every read (not just
+ * on fetch), so consumers always see a real Date regardless of where the
+ * cached value came from.
+ */
+function toDateOrNull(value: Date | string | null | undefined): Date | null {
+  return value ? new Date(value) : null;
+}
+
 export function useInventoryItem(id: number) {
   return useQuery({
     queryKey: [ITEM_KEY, id],
     enabled: id > 0,
     refetchOnMount: "always",
     queryFn: () => apiClient.api.inventoryItems.byId(id).get() as Promise<InventoryItemResponse>,
+    select: (item): InventoryItemResponse => ({
+      ...item,
+      purchasedOn: toDateOrNull(item.purchasedOn),
+      warrantyExpiresOn: toDateOrNull(item.warrantyExpiresOn),
+    }),
   });
 }
 
