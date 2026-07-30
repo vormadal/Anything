@@ -227,6 +227,100 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, updateLongType.StatusCode);
     }
 
+    // --- Attachments ---
+
+    [Fact]
+    public async Task Attachments_UploadListDownloadDelete_WorkCorrectly()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var unit = await CreateStorageUnitViaClient("Unit With Photo", null);
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF }); // JPEG magic bytes
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        content.Add(fileContent, "file", "unit.jpg");
+
+        var uploadResponse = await httpClient.PostAsync(
+            $"/api/inventory-storage-units/{unit.Id}/attachments?kind=Photo", content, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+        var uploaded = await uploadResponse.Content.ReadFromJsonAsync<AttachmentDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(uploaded);
+        Assert.Equal("unit", uploaded.Name);
+        Assert.Equal("Photo", uploaded.Kind);
+        Assert.NotNull(uploaded.ThumbnailUrl);
+
+        var listResponse = await httpClient.GetAsync($"/api/inventory-storage-units/{unit.Id}/attachments", TestContext.Current.CancellationToken);
+        var attachments = await listResponse.Content.ReadFromJsonAsync<AttachmentDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(attachments);
+        Assert.Single(attachments);
+
+        var downloadResponse = await httpClient.GetAsync(
+            $"/api/inventory-storage-units/{unit.Id}/attachments/{attachments[0].Id}/download", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
+
+        var deleteResponse = await httpClient.DeleteAsync(
+            $"/api/inventory-storage-units/{unit.Id}/attachments/{attachments[0].Id}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var afterDelete = await httpClient.GetAsync($"/api/inventory-storage-units/{unit.Id}/attachments", TestContext.Current.CancellationToken);
+        var remaining = await afterDelete.Content.ReadFromJsonAsync<AttachmentDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Empty(remaining!);
+    }
+
+    [Fact]
+    public async Task Attachments_InvalidKind_ReturnsBadRequest()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var unit = await CreateStorageUnitViaClient("Unit", null);
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x01 });
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "test.pdf");
+
+        var response = await httpClient.PostAsync(
+            $"/api/inventory-storage-units/{unit.Id}/attachments?kind=NotAKind", content, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Attachments_NotFound_WhenUnitDoesNotExist()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+
+        var listResponse = await httpClient.GetAsync("/api/inventory-storage-units/99999/attachments", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, listResponse.StatusCode);
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x01 });
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "test.pdf");
+
+        var uploadResponse = await httpClient.PostAsync("/api/inventory-storage-units/99999/attachments", content, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, uploadResponse.StatusCode);
+
+        var downloadResponse = await httpClient.GetAsync("/api/inventory-storage-units/99999/attachments/1/download", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
+
+        var deleteResponse = await httpClient.DeleteAsync("/api/inventory-storage-units/99999/attachments/1", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Attachments_DownloadOrDelete_WhenAttachmentDoesNotExist_Returns404()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var unit = await CreateStorageUnitViaClient("Unit", null);
+
+        var downloadResponse = await httpClient.GetAsync(
+            $"/api/inventory-storage-units/{unit.Id}/attachments/99999/download", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
+
+        var deleteResponse = await httpClient.DeleteAsync(
+            $"/api/inventory-storage-units/{unit.Id}/attachments/99999", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+    }
+
     // --- Helpers ---
 
     private async Task<InventoryStorageUnitResponse> CreateStorageUnitViaClient(string name, string? type)
@@ -265,4 +359,5 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
     private record InventoryStorageUnitResponse(int Id, string Name, string? Type, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record InventoryBoxResponse(int Id, int Number, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record InventoryItemResponse(int Id, string Name, string? Description, int? BoxId, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
+    private record AttachmentDto(int Id, string Name, string ContentType, string Kind, string Url, string? ThumbnailUrl, int SortOrder, DateTime CreatedOn);
 }
