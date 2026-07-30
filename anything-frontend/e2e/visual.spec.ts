@@ -1187,6 +1187,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/inventory/boxes/13");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "#4 Christmas decorations" })).toBeVisible();
+    // The label already appears in the title above — it shouldn't be repeated as its own line.
+    await expect(page.getByText("Christmas decorations", { exact: true })).not.toBeVisible();
     await expect(page).toHaveScreenshot("storage-box-detail-labeled.png", screenshotOptions);
   });
 
