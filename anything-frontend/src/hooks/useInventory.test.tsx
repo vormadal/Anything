@@ -337,6 +337,24 @@ describe('useInventory hooks', () => {
       expect(mockItemById).toHaveBeenCalledWith(100)
     })
 
+    it('normalizes purchasedOn/warrantyExpiresOn back into Date objects even when the cache holds plain strings', async () => {
+      // Simulates data restored from the offline persister, which round-trips
+      // through JSON.stringify/parse and turns Date instances back into strings.
+      mockItemItemGet.mockResolvedValueOnce({
+        ...item,
+        purchasedOn: '2024-01-15T00:00:00Z',
+        warrantyExpiresOn: '2026-01-15T00:00:00Z',
+      })
+
+      const { result } = renderHook(() => useInventoryItem(100), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(result.current.data?.purchasedOn).toBeInstanceOf(Date)
+      expect(result.current.data?.warrantyExpiresOn).toBeInstanceOf(Date)
+    })
+
     it('creates an item, sending explicit nulls for the fields left blank', async () => {
       mockItemsPost.mockResolvedValueOnce(item)
 
