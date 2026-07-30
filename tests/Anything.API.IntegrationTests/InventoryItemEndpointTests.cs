@@ -63,7 +63,7 @@ public class InventoryItemEndpointTests : IntegrationTestBase
         Assert.Empty(emptyResult);
 
         // Create with all optional fields
-        var unit = await CreateStorageUnitViaClient("Unit", null);
+        var unit = await CreateStorageUnitViaClient("Unit");
         var box = await CreateBoxViaClient(1, unit.Id);
         var created = await CreateItemViaClient("Test Item", "Test Description", box.Id, unit.Id);
         Assert.True(created.Id > 0);
@@ -246,7 +246,7 @@ public class InventoryItemEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, invalidUnit.StatusCode);
 
         // Create with deleted storage unit
-        var unit = await CreateStorageUnitViaClient("Deleted Unit", null);
+        var unit = await CreateStorageUnitViaClient("Deleted Unit");
         await client.Api.InventoryStorageUnits[unit.Id].DeleteAsync();
         var deletedUnit = await httpClient.PostAsJsonAsync("/api/inventory-items",
             new { name = "Item", description = (string?)null, boxId = (int?)null, storageUnitId = unit.Id }, TestContext.Current.CancellationToken);
@@ -269,7 +269,7 @@ public class InventoryItemEndpointTests : IntegrationTestBase
             new { name = "Valid", description = (string?)null, boxId = (int?)null, storageUnitId = 99999 }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, updateInvalidUnit.StatusCode);
 
-        var unit2 = await CreateStorageUnitViaClient("Deleted Unit 2", null);
+        var unit2 = await CreateStorageUnitViaClient("Deleted Unit 2");
         await client.Api.InventoryStorageUnits[unit2.Id].DeleteAsync();
         var updateDeletedUnit = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}",
             new { name = "Valid", description = (string?)null, boxId = (int?)null, storageUnitId = unit2.Id }, TestContext.Current.CancellationToken);
@@ -344,8 +344,8 @@ public class InventoryItemEndpointTests : IntegrationTestBase
     public async Task CreateInventoryItem_WithBoxInADifferentPlace_DerivesPlaceFromTheBox()
     {
         var httpClient = await GetAuthenticatedHttpClientAsync();
-        var boxsPlace = await CreateStorageUnitViaClient("Basement", null);
-        var callersClaimedPlace = await CreateStorageUnitViaClient("Attic", null);
+        var boxsPlace = await CreateStorageUnitViaClient("Basement");
+        var callersClaimedPlace = await CreateStorageUnitViaClient("Attic");
         var box = await CreateBoxViaClient(1, boxsPlace.Id);
 
         var payload = new
@@ -524,10 +524,10 @@ public class InventoryItemEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private async Task<InventoryStorageUnitResponse> CreateStorageUnitViaClient(string name, string? type)
+    private async Task<InventoryStorageUnitResponse> CreateStorageUnitViaClient(string name)
     {
         var stream = await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits.PostAsync(
-            new KiotaModels.CreateInventoryStorageUnitRequest { Name = name, Type = type });
+            new KiotaModels.CreateInventoryStorageUnitRequest { Name = name });
 
         Assert.NotNull(stream);
         var result = await JsonSerializer.DeserializeAsync<InventoryStorageUnitResponse>(stream, JsonOptions);
@@ -537,7 +537,7 @@ public class InventoryItemEndpointTests : IntegrationTestBase
 
     private record InventoryItemResponse(int Id, string Name, string? Description, int? BoxId, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record InventoryBoxResponse(int Id, int Number, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
-    private record InventoryStorageUnitResponse(int Id, string Name, string? Type, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
+    private record InventoryStorageUnitResponse(int Id, string Name, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
 
     private record FullItemDto(
         int Id, string Name, string? Description, int? BoxId, int? StorageUnitId,

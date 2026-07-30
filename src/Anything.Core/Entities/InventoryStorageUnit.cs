@@ -5,7 +5,7 @@ public class InventoryStorageUnit
     public int Id { get; set; }
     public int HouseholdId { get; set; }
     public required string Name { get; set; }
-    public string? Type { get; set; }
+    public int? ParentId { get; set; }
     public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }

@@ -23,8 +23,9 @@ interface InventorySelectProps {
 }
 
 /**
- * Plain select for choosing a place or a box. Both lists are short and fully
- * loaded client-side, so there is nothing for a combobox to search.
+ * Plain select for choosing a place, a box, or a place's parent place. These
+ * lists are short and fully loaded client-side, so there is nothing for a
+ * combobox to search.
  */
 export function InventorySelect({
   id,

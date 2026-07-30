@@ -70,7 +70,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         Assert.NotNull(created.CreatedOn);
 
         // Create with storage unit
-        var unit = await CreateStorageUnitViaClient("Test Unit", null);
+        var unit = await CreateStorageUnitViaClient("Test Unit");
         var withUnit = await CreateBoxViaClient(200, unit.Id);
         Assert.Equal(unit.Id, withUnit.StorageUnitId);
 
@@ -173,7 +173,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, invalidCreate.StatusCode);
 
         // Create with deleted storage unit
-        var unit = await CreateStorageUnitViaClient("Deleted Unit", null);
+        var unit = await CreateStorageUnitViaClient("Deleted Unit");
         await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits[unit.Id].DeleteAsync();
 
         var deletedCreate = await httpClient.PostAsJsonAsync("/api/inventory-boxes", new { number = 1, storageUnitId = unit.Id }, TestContext.Current.CancellationToken);
@@ -185,7 +185,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, invalidUpdate.StatusCode);
 
         // Update with deleted storage unit
-        var unit2 = await CreateStorageUnitViaClient("Deleted Unit 2", null);
+        var unit2 = await CreateStorageUnitViaClient("Deleted Unit 2");
         await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits[unit2.Id].DeleteAsync();
         var deletedUpdate = await httpClient.PutAsJsonAsync($"/api/inventory-boxes/{box.Id}", new { number = 1, storageUnitId = unit2.Id }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, deletedUpdate.StatusCode);
@@ -297,10 +297,10 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private async Task<InventoryStorageUnitResponse> CreateStorageUnitViaClient(string name, string? type)
+    private async Task<InventoryStorageUnitResponse> CreateStorageUnitViaClient(string name)
     {
         var stream = await (await GetAuthenticatedClientAsync()).Api.InventoryStorageUnits.PostAsync(
-            new KiotaModels.CreateInventoryStorageUnitRequest { Name = name, Type = type });
+            new KiotaModels.CreateInventoryStorageUnitRequest { Name = name });
 
         Assert.NotNull(stream);
         var result = await JsonSerializer.DeserializeAsync<InventoryStorageUnitResponse>(stream, JsonOptions);
@@ -320,7 +320,7 @@ public class InventoryBoxEndpointTests : IntegrationTestBase
     }
 
     private record InventoryBoxResponse(int Id, int Number, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
-    private record InventoryStorageUnitResponse(int Id, string Name, string? Type, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
+    private record InventoryStorageUnitResponse(int Id, string Name, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record InventoryItemResponse(int Id, string Name, string? Description, int? BoxId, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record AttachmentDto(int Id, string Name, string ContentType, string Kind, string Url, string? ThumbnailUrl, int SortOrder, DateTime CreatedOn);
 }

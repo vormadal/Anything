@@ -1105,9 +1105,9 @@ export interface CreateInventoryStorageUnitRequest extends Parsable {
      */
     name?: string | null;
     /**
-     * The type property
+     * The parentId property
      */
-    type?: string | null;
+    parentId?: number | null;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -2396,7 +2396,7 @@ export function deserializeIntoCreateInventoryItemRequest(createInventoryItemReq
 export function deserializeIntoCreateInventoryStorageUnitRequest(createInventoryStorageUnitRequest: Partial<CreateInventoryStorageUnitRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { createInventoryStorageUnitRequest.name = n.getStringValue(); },
-        "type": n => { createInventoryStorageUnitRequest.type = n.getStringValue(); },
+        "parentId": n => { createInventoryStorageUnitRequest.parentId = n.getNumberValue(); },
     }
 }
 /**
@@ -3050,7 +3050,7 @@ export function deserializeIntoInventoryStorageUnitResponse(inventoryStorageUnit
         "id": n => { inventoryStorageUnitResponse.id = n.getNumberValue(); },
         "modifiedOn": n => { inventoryStorageUnitResponse.modifiedOn = n.getDateValue(); },
         "name": n => { inventoryStorageUnitResponse.name = n.getStringValue(); },
-        "type": n => { inventoryStorageUnitResponse.type = n.getStringValue(); },
+        "parentId": n => { inventoryStorageUnitResponse.parentId = n.getNumberValue(); },
     }
 }
 /**
@@ -4046,7 +4046,7 @@ export function deserializeIntoUpdateInventoryItemRequest(updateInventoryItemReq
 export function deserializeIntoUpdateInventoryStorageUnitRequest(updateInventoryStorageUnitRequest: Partial<UpdateInventoryStorageUnitRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { updateInventoryStorageUnitRequest.name = n.getStringValue(); },
-        "type": n => { updateInventoryStorageUnitRequest.type = n.getStringValue(); },
+        "parentId": n => { updateInventoryStorageUnitRequest.parentId = n.getNumberValue(); },
     }
 }
 /**
@@ -4854,9 +4854,9 @@ export interface InventoryStorageUnitResponse extends Parsable {
      */
     name?: string | null;
     /**
-     * The type property
+     * The parentId property
      */
-    type?: string | null;
+    parentId?: number | null;
 }
 export interface InviteResponse extends Parsable {
     /**
@@ -5970,7 +5970,7 @@ export function serializeCreateInventoryItemRequest(writer: SerializationWriter,
 export function serializeCreateInventoryStorageUnitRequest(writer: SerializationWriter, createInventoryStorageUnitRequest: Partial<CreateInventoryStorageUnitRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createInventoryStorageUnitRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", createInventoryStorageUnitRequest.name);
-    writer.writeStringValue("type", createInventoryStorageUnitRequest.type);
+    writer.writeNumberValue("parentId", createInventoryStorageUnitRequest.parentId);
 }
 /**
  * Serializes information the current object
@@ -6626,7 +6626,7 @@ export function serializeInventoryStorageUnitResponse(writer: SerializationWrite
     writer.writeNumberValue("id", inventoryStorageUnitResponse.id);
     writer.writeDateValue("modifiedOn", inventoryStorageUnitResponse.modifiedOn);
     writer.writeStringValue("name", inventoryStorageUnitResponse.name);
-    writer.writeStringValue("type", inventoryStorageUnitResponse.type);
+    writer.writeNumberValue("parentId", inventoryStorageUnitResponse.parentId);
 }
 /**
  * Serializes information the current object
@@ -7622,7 +7622,7 @@ export function serializeUpdateInventoryItemRequest(writer: SerializationWriter,
 export function serializeUpdateInventoryStorageUnitRequest(writer: SerializationWriter, updateInventoryStorageUnitRequest: Partial<UpdateInventoryStorageUnitRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateInventoryStorageUnitRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", updateInventoryStorageUnitRequest.name);
-    writer.writeStringValue("type", updateInventoryStorageUnitRequest.type);
+    writer.writeNumberValue("parentId", updateInventoryStorageUnitRequest.parentId);
 }
 /**
  * Serializes information the current object
@@ -8403,9 +8403,9 @@ export interface UpdateInventoryStorageUnitRequest extends Parsable {
      */
     name?: string | null;
     /**
-     * The type property
+     * The parentId property
      */
-    type?: string | null;
+    parentId?: number | null;
 }
 export interface UpdateLocationRequest extends Parsable {
     /**

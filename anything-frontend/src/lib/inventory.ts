@@ -31,6 +31,59 @@ export function formatPlaceName(unit: Pick<InventoryStorageUnitResponse, "name">
   return unit.name ?? "Unnamed place";
 }
 
+type PlaceNode = Pick<InventoryStorageUnitResponse, "id" | "name" | "parentId">;
+
+/**
+ * Ancestor chain top-down, e.g. "Summerhouse › Shed" — the structural
+ * disambiguator for places that share a name or type in different locations
+ * (two sheds, one at Home and one at the Summerhouse).
+ */
+export function formatPlaceBreadcrumb(place: PlaceNode, places: PlaceNode[]): string {
+  const chain: string[] = [];
+  const visited = new Set<number>();
+  let current: PlaceNode | undefined = place;
+  while (current && (current.id == null || !visited.has(current.id))) {
+    chain.unshift(formatPlaceName(current));
+    if (current.id != null) visited.add(current.id);
+    current = current.parentId ? places.find((p) => p.id === current!.parentId) : undefined;
+  }
+  return chain.join(" › ");
+}
+
+export function topLevelPlaces(places: InventoryStorageUnitResponse[]): InventoryStorageUnitResponse[] {
+  return places.filter((p) => !p.parentId);
+}
+
+export function childPlaces(places: InventoryStorageUnitResponse[], placeId: number): InventoryStorageUnitResponse[] {
+  return places.filter((p) => p.parentId === placeId);
+}
+
+function descendantPlaceIds(placeId: number, places: InventoryStorageUnitResponse[]): Set<number> {
+  const result = new Set<number>();
+  const queue = [placeId];
+  while (queue.length > 0) {
+    const current = queue.shift() as number;
+    for (const candidate of childPlaces(places, current)) {
+      if (candidate.id != null && !result.has(candidate.id)) {
+        result.add(candidate.id);
+        queue.push(candidate.id);
+      }
+    }
+  }
+  return result;
+}
+
+/** Places that are valid parents for `place` — everything except itself and its own descendants (would create a cycle). */
+export function eligibleParentPlaces(
+  place: Pick<InventoryStorageUnitResponse, "id"> | undefined,
+  places: InventoryStorageUnitResponse[]
+): InventoryStorageUnitResponse[] {
+  if (place?.id == null) return places;
+  const excluded = descendantPlaceIds(place.id, places);
+  excluded.add(place.id);
+  return places.filter((p) => p.id != null && !excluded.has(p.id));
+}
+
 export function boxesInPlace(boxes: InventoryBoxResponse[], placeId: number): InventoryBoxResponse[] {
   return boxes.filter((box) => box.storageUnitId === placeId);
 }
@@ -87,7 +140,7 @@ export function describeItemLocation(
   const place = placeId ? places.find((p) => p.id === placeId) : undefined;
 
   const parts = [
-    place ? formatPlaceName(place) : null,
+    place ? formatPlaceBreadcrumb(place, places) : null,
     box ? formatBoxName(box) : null,
   ].filter((part): part is string => part !== null);
 

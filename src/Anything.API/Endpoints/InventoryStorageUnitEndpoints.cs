@@ -30,20 +30,21 @@ public static class InventoryStorageUnitEndpoints
 
         group.MapPost("/", async (CreateInventoryStorageUnitRequest request, IMediator mediator) =>
         {
-            var result = await mediator.Send(new CreateInventoryStorageUnitCommand(request.Name, request.Type));
-            return Results.Created($"/api/inventory-storage-units/{result.Id}", result);
+            return await mediator.Send(new CreateInventoryStorageUnitCommand(request.Name, request.ParentId));
         })
         .WithName("CreateInventoryStorageUnit")
         .Produces<InventoryStorageUnitResponse>(StatusCodes.Status201Created)
+        .Produces(400)
         .WithParameterValidation()
         .RequireAuthorization();
 
         group.MapPut("/{id}", async (int id, UpdateInventoryStorageUnitRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateInventoryStorageUnitCommand(id, request.Name, request.Type));
+            return await mediator.Send(new UpdateInventoryStorageUnitCommand(id, request.Name, request.ParentId));
         })
         .WithName("UpdateInventoryStorageUnit")
         .Produces(204)
+        .Produces(400)
         .Produces(404)
         .WithParameterValidation()
         .RequireAuthorization();

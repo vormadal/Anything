@@ -22,8 +22,8 @@ jest.mock("@/lib/apiClient", () => ({
 }));
 
 const places = [
-  { id: 1, name: "Summerhouse", type: "Cabin" },
-  { id: 2, name: "Basement storage room", type: "Room" },
+  { id: 1, name: "Summerhouse" },
+  { id: 2, name: "Basement storage room" },
 ];
 const boxes = [
   { id: 10, number: 4, storageUnitId: 1 },

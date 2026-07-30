@@ -119,7 +119,7 @@ function createWrapper() {
   return Wrapper
 }
 
-const place = { id: 1, name: 'Summerhouse', type: 'Cabin' }
+const place = { id: 1, name: 'Summerhouse' }
 const box = { id: 10, number: 4, storageUnitId: 1 }
 const item = { id: 100, name: 'Christmas lights', boxId: 10, storageUnitId: 1 }
 
@@ -182,7 +182,7 @@ describe('useInventory hooks', () => {
       expect(mockUnitItemGet).not.toHaveBeenCalled()
     })
 
-    it('creates a place, sending an explicit null for a blank type', async () => {
+    it('creates a place, sending an explicit null for no parent', async () => {
       mockUnitsPost.mockResolvedValueOnce(place)
 
       const { result } = renderHook(() => useCreateInventoryStorageUnit(), {
@@ -191,7 +191,7 @@ describe('useInventory hooks', () => {
 
       await result.current.mutateAsync({ name: 'Summerhouse' })
 
-      expect(mockUnitsPost).toHaveBeenCalledWith({ name: 'Summerhouse', type: null })
+      expect(mockUnitsPost).toHaveBeenCalledWith({ name: 'Summerhouse', parentId: null })
     })
 
     it('updates a place', async () => {
@@ -201,10 +201,10 @@ describe('useInventory hooks', () => {
         wrapper: createWrapper(),
       })
 
-      await result.current.mutateAsync({ id: 1, name: 'Basement', type: 'Room' })
+      await result.current.mutateAsync({ id: 1, name: 'Basement', parentId: 2 })
 
       expect(mockUnitById).toHaveBeenCalledWith(1)
-      expect(mockUnitItemPut).toHaveBeenCalledWith({ name: 'Basement', type: 'Room' })
+      expect(mockUnitItemPut).toHaveBeenCalledWith({ name: 'Basement', parentId: 2 })
     })
 
     it('deletes a place', async () => {
