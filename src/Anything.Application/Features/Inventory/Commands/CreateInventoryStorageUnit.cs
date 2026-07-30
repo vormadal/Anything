@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Inventory.Commands;
 
-public record CreateInventoryStorageUnitCommand(string Name, string? Type, int? ParentId) : IRequest<IResult>;
+public record CreateInventoryStorageUnitCommand(string Name, int? ParentId) : IRequest<IResult>;
 
 public class CreateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<CreateInventoryStorageUnitCommand, IResult>
@@ -28,7 +28,6 @@ public class CreateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit>
         {
             HouseholdId = householdContext.HouseholdId,
             Name = command.Name,
-            Type = command.Type,
             ParentId = command.ParentId,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };

@@ -45,7 +45,7 @@ jest.mock("@/lib/apiClient", () => ({
   },
 }));
 
-const place = { id: 1, name: "Summerhouse", type: "Cabin" };
+const place = { id: 1, name: "Summerhouse" };
 
 function mockLoaded() {
   mockUnitGet.mockResolvedValue(place);
@@ -135,7 +135,7 @@ describe("PlaceDetailPage", () => {
   });
 
   it("shows a link to the parent place when nested", async () => {
-    const parent = { id: 2, name: "Basement storage room", type: "Room", parentId: null };
+    const parent = { id: 2, name: "Basement storage room", parentId: null };
     const nestedPlace = { ...place, parentId: 2 };
     mockUnitGet.mockResolvedValue(nestedPlace);
     mockUnitsGet.mockResolvedValue([nestedPlace, parent]);
@@ -151,7 +151,7 @@ describe("PlaceDetailPage", () => {
 
   it("lists nested child places and offers to add another", async () => {
     const user = userEvent.setup();
-    const child = { id: 3, name: "Shed", type: "Shed", parentId: 1 };
+    const child = { id: 3, name: "Shed", parentId: 1 };
     mockUnitGet.mockResolvedValue(place);
     mockUnitsGet.mockResolvedValue([place, child]);
     mockBoxesGet.mockResolvedValue([]);

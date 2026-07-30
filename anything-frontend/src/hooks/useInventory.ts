@@ -38,7 +38,6 @@ const ITEM_KEY = "inventoryItem";
 /** Body shared by create and update of a storage place. */
 export interface StorageUnitInput {
   name: string;
-  type?: string | null;
   parentId?: number | null;
 }
 
@@ -98,7 +97,6 @@ export function useCreateInventoryStorageUnit() {
     mutationFn: (unit: StorageUnitInput) =>
       apiClient.api.inventoryStorageUnits.post({
         name: unit.name,
-        type: unit.type ?? null,
         parentId: unit.parentId ?? null,
       }),
     onSuccess: () => {
@@ -114,7 +112,6 @@ export function useUpdateInventoryStorageUnit() {
     mutationFn: (unit: StorageUnitInput & { id: number }) =>
       apiClient.api.inventoryStorageUnits.byId(unit.id).put({
         name: unit.name,
-        type: unit.type ?? null,
         parentId: unit.parentId ?? null,
       }),
     onSuccess: (_data, variables) => {

@@ -330,10 +330,10 @@ const mockHouseholds = [
 // every placement the UI distinguishes: in a box, loose in a place, and not
 // placed at all.
 const mockStoragePlaces = [
-  { id: 1, name: "Basement storage room", type: "Room", parentId: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
-  { id: 2, name: "Summerhouse", type: "Cabin", parentId: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
-  { id: 3, name: "Under the bed", type: null, parentId: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
-  { id: 4, name: "Shed", type: "Shed", parentId: 2, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 1, name: "Basement storage room", parentId: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 2, name: "Summerhouse", parentId: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 3, name: "Under the bed", parentId: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 4, name: "Shed", parentId: 2, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
 ];
 
 const mockStorageBoxes = [
@@ -1091,10 +1091,9 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("link", { name: /Basement storage room/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Camping tent/ })).toBeVisible();
-    // Type is shown alongside the box/item counts so it's obvious at a glance.
-    await expect(page.getByText("Room · 2 boxes · 4 items")).toBeVisible();
+    await expect(page.getByText("2 boxes · 4 items")).toBeVisible();
     // Summerhouse has a nested place (Shed), so its child-place count shows too.
-    await expect(page.getByText("Cabin · 1 place · 1 box · 1 item")).toBeVisible();
+    await expect(page.getByText("1 place · 1 box · 1 item")).toBeVisible();
     await expect(page).toHaveScreenshot("storage-overview.png", screenshotOptions);
   });
 
@@ -1105,7 +1104,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
     // Places can nest (e.g. a shed inside the summerhouse), so a place can be
     // picked as another one's parent — breadcrumb label included for clarity.
-    await expect(page.getByLabel("Parent place")).toContainText("Summerhouse (Cabin)");
+    await expect(page.getByLabel("Parent place")).toContainText("Summerhouse");
     await expect(page).toHaveScreenshot("storage-place-dialog.png", screenshotOptions);
   });
 
@@ -1135,8 +1134,6 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/inventory/places/1");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "Basement storage room" })).toBeVisible();
-    // Type is shown under the title so it's obvious what kind of place this is.
-    await expect(page.getByText("Room", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: /Box 1/ })).toBeVisible();
     await expect(page.getByText("Loose items")).toBeVisible();
     // Phase 3 addition: every place gets a photos/documents section.
@@ -1338,8 +1335,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "Add box" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    // Type is shown alongside the name so the place is obvious when picking one.
-    await expect(page.getByLabel("Place")).toContainText("Basement storage room (Room)");
+    await expect(page.getByLabel("Place")).toContainText("Basement storage room");
     await expect(page).toHaveScreenshot("storage-box-dialog.png", screenshotOptions);
   });
 

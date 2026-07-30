@@ -224,11 +224,10 @@ public class CreateInventoryStorageUnitHandlerTests
     {
         var handler = new CreateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Fridge", "refrigerator", null), TestContext.Current.CancellationToken);
+        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Fridge", null), TestContext.Current.CancellationToken);
 
         var created = Assert.IsType<Created<InventoryStorageUnitResponse>>(result);
         Assert.Equal("Fridge", created.Value?.Name);
-        Assert.Equal("refrigerator", created.Value?.Type);
         _repo.Received(1).Add(Arg.Is<InventoryStorageUnit>(s => s.Name == "Fridge"));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -239,7 +238,7 @@ public class CreateInventoryStorageUnitHandlerTests
         _repo.Query().Returns(new List<InventoryStorageUnit> { new InventoryStorageUnit { Id = 1, Name = "Summerhouse" } }.AsAsyncQueryable());
         var handler = new CreateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Shed", null, 1), TestContext.Current.CancellationToken);
+        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Shed", 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<Created<InventoryStorageUnitResponse>>(result);
         _repo.Received(1).Add(Arg.Is<InventoryStorageUnit>(s => s.ParentId == 1));
@@ -251,7 +250,7 @@ public class CreateInventoryStorageUnitHandlerTests
         _repo.Query().Returns(new List<InventoryStorageUnit>().AsAsyncQueryable());
         var handler = new CreateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Shed", null, 99), TestContext.Current.CancellationToken);
+        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Shed", 99), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -274,24 +273,23 @@ public class UpdateInventoryStorageUnitHandlerTests
     {
         _repo.Query().Returns(new List<InventoryStorageUnit>().AsAsyncQueryable());
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "X", null, null), TestContext.Current.CancellationToken);
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "X", null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
     [Fact]
-    public async Task Handle_UpdatesNameAndTypeAndReturnsNoContent()
+    public async Task Handle_UpdatesNameAndReturnsNoContent()
     {
         var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
         _timeProvider.GetUtcNow().Returns(now);
-        var entity = new InventoryStorageUnit { Id = 1, Name = "Old", Type = "freezer" };
+        var entity = new InventoryStorageUnit { Id = 1, Name = "Old" };
         _repo.Query().Returns(new List<InventoryStorageUnit> { entity }.AsAsyncQueryable());
 
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "New Fridge", "refrigerator", null), TestContext.Current.CancellationToken);
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "New Fridge", null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Fridge", entity.Name);
-        Assert.Equal("refrigerator", entity.Type);
         Assert.Equal(now.UtcDateTime, entity.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -304,7 +302,7 @@ public class UpdateInventoryStorageUnitHandlerTests
         _repo.Query().Returns(new List<InventoryStorageUnit> { entity, parent }.AsAsyncQueryable());
 
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", null, 2), TestContext.Current.CancellationToken);
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", 2), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(2, entity.ParentId);
@@ -317,7 +315,7 @@ public class UpdateInventoryStorageUnitHandlerTests
         _repo.Query().Returns(new List<InventoryStorageUnit> { entity }.AsAsyncQueryable());
 
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", null, 1), TestContext.Current.CancellationToken);
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", 1), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -331,7 +329,7 @@ public class UpdateInventoryStorageUnitHandlerTests
         _repo.Query().Returns(new List<InventoryStorageUnit> { summerhouse, shed }.AsAsyncQueryable());
 
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "Summerhouse", null, 2), TestContext.Current.CancellationToken);
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "Summerhouse", 2), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }
@@ -343,7 +341,7 @@ public class UpdateInventoryStorageUnitHandlerTests
         _repo.Query().Returns(new List<InventoryStorageUnit> { entity }.AsAsyncQueryable());
 
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", null, 99), TestContext.Current.CancellationToken);
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", 99), TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
     }

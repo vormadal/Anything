@@ -50,15 +50,6 @@ export function formatPlaceBreadcrumb(place: PlaceNode, places: PlaceNode[]): st
   return chain.join(" › ");
 }
 
-/** "Summerhouse › Shed (Room)" — breadcrumb plus type, used wherever a place is picked or listed. */
-export function formatPlaceLabel(
-  place: Pick<InventoryStorageUnitResponse, "id" | "name" | "type" | "parentId">,
-  places: InventoryStorageUnitResponse[]
-): string {
-  const breadcrumb = formatPlaceBreadcrumb(place, places);
-  return place.type ? `${breadcrumb} (${place.type})` : breadcrumb;
-}
-
 export function topLevelPlaces(places: InventoryStorageUnitResponse[]): InventoryStorageUnitResponse[] {
   return places.filter((p) => !p.parentId);
 }

@@ -35,8 +35,8 @@ describe("PlaceFormDialog", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUnitsGet.mockResolvedValue([
-      { id: 1, name: "Summerhouse", type: "Cabin", parentId: null },
-      { id: 2, name: "Shed", type: "Shed", parentId: 1 },
+      { id: 1, name: "Summerhouse", parentId: null },
+      { id: 2, name: "Shed", parentId: 1 },
     ]);
   });
 
@@ -82,23 +82,22 @@ describe("PlaceFormDialog", () => {
     await waitFor(() => expect(screen.getByLabelText("Parent place")).toHaveValue("1"));
   });
 
-  it("pre-fills the name, type, and parent when editing", async () => {
+  it("pre-fills the name and parent when editing", async () => {
     renderWithClient(
       <PlaceFormDialog
-        place={{ id: 2, name: "Shed", type: "Shed", parentId: 1 }}
+        place={{ id: 2, name: "Shed", parentId: 1 }}
         onClose={jest.fn()}
       />
     );
 
     expect(screen.getByLabelText(/Name/)).toHaveValue("Shed");
-    expect(screen.getByLabelText("Type")).toHaveValue("Shed");
     await waitFor(() => expect(screen.getByLabelText("Parent place")).toHaveValue("1"));
   });
 
   it("excludes the place itself from its own parent options, so it can't become its own ancestor", async () => {
     renderWithClient(
       <PlaceFormDialog
-        place={{ id: 1, name: "Summerhouse", type: "Cabin", parentId: null }}
+        place={{ id: 1, name: "Summerhouse", parentId: null }}
         onClose={jest.fn()}
       />
     );
@@ -106,7 +105,7 @@ describe("PlaceFormDialog", () => {
     await waitFor(() => expect(mockUnitsGet).toHaveBeenCalled());
     const parentSelect = screen.getByLabelText("Parent place");
     // Summerhouse (itself) and Shed (its own child, would create a cycle) are both excluded.
-    expect(parentSelect).not.toHaveTextContent("Summerhouse (Cabin)");
+    expect(parentSelect).not.toHaveTextContent("Summerhouse");
     expect(parentSelect).not.toHaveTextContent("Shed");
   });
 
@@ -116,7 +115,7 @@ describe("PlaceFormDialog", () => {
 
     renderWithClient(
       <PlaceFormDialog
-        place={{ id: 2, name: "Shed", type: "Shed", parentId: 1 }}
+        place={{ id: 2, name: "Shed", parentId: 1 }}
         onClose={jest.fn()}
       />
     );

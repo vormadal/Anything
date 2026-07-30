@@ -23,7 +23,7 @@ import {
   FIELD_LABEL_CLASS,
   OFFLINE_HINT,
 } from "@/components/inventory/inventoryFormStyles";
-import { formatPlaceLabel, nextBoxNumber } from "@/lib/inventory";
+import { formatPlaceBreadcrumb, nextBoxNumber } from "@/lib/inventory";
 
 interface BoxFormDialogProps {
   /** Omit to create a new box; pass a box to edit it. */
@@ -108,7 +108,7 @@ export function BoxFormDialog({ box, defaultPlaceId, onClose }: BoxFormDialogPro
             emptyLabel="No place yet"
             options={(places ?? []).map((place) => ({
               value: place.id ?? 0,
-              label: formatPlaceLabel(place, places ?? []),
+              label: formatPlaceBreadcrumb(place, places ?? []),
             }))}
             value={placeId}
             onChange={setPlaceId}

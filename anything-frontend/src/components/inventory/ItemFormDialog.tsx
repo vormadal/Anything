@@ -23,7 +23,7 @@ import {
   FIELD_LABEL_CLASS,
   OFFLINE_HINT,
 } from "@/components/inventory/inventoryFormStyles";
-import { formatBoxName, formatPlaceLabel, resolvePlacement } from "@/lib/inventory";
+import { formatBoxName, formatPlaceBreadcrumb, resolvePlacement } from "@/lib/inventory";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 
 interface ItemFormDialogProps {
@@ -174,7 +174,7 @@ export function ItemFormDialog({
             emptyLabel="Not placed yet"
             options={(places ?? []).map((place) => ({
               value: place.id ?? 0,
-              label: formatPlaceLabel(place, places ?? []),
+              label: formatPlaceBreadcrumb(place, places ?? []),
             }))}
             value={placeId}
             onChange={handlePlaceChange}

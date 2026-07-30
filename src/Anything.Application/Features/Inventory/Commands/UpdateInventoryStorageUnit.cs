@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Inventory.Commands;
 
-public record UpdateInventoryStorageUnitCommand(int Id, string Name, string? Type, int? ParentId) : IRequest<IResult>;
+public record UpdateInventoryStorageUnitCommand(int Id, string Name, int? ParentId) : IRequest<IResult>;
 
 public class UpdateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit> repository, IHouseholdContext householdContext, IUnitOfWork unitOfWork, TimeProvider timeProvider)
     : IRequestHandler<UpdateInventoryStorageUnitCommand, IResult>
@@ -28,7 +28,6 @@ public class UpdateInventoryStorageUnitHandler(IRepository<InventoryStorageUnit>
         }
 
         storageUnit.Name = command.Name;
-        storageUnit.Type = command.Type;
         storageUnit.ParentId = command.ParentId;
         storageUnit.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 

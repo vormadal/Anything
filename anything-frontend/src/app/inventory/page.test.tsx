@@ -22,8 +22,8 @@ jest.mock("@/lib/apiClient", () => ({
 }));
 
 const places = [
-  { id: 1, name: "Summerhouse", type: "Cabin" },
-  { id: 2, name: "Basement storage room", type: "Room" },
+  { id: 1, name: "Summerhouse" },
+  { id: 2, name: "Basement storage room" },
 ];
 const boxes = [
   { id: 10, number: 4, storageUnitId: 1 },
@@ -50,8 +50,8 @@ describe("InventoryPage", () => {
     renderWithClient(<InventoryPage />);
 
     await waitFor(() => expect(screen.getByText("Summerhouse")).toBeInTheDocument());
-    expect(screen.getByText("Cabin · 1 box · 2 items")).toBeInTheDocument();
-    expect(screen.getByText("Room · 1 box · 0 items")).toBeInTheDocument();
+    expect(screen.getByText("1 box · 2 items")).toBeInTheDocument();
+    expect(screen.getByText("1 box · 0 items")).toBeInTheDocument();
     expect(screen.getByText("Summerhouse").closest("a")).toHaveAttribute(
       "href",
       "/inventory/places/1"

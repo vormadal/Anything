@@ -6,7 +6,6 @@ import {
   eligibleParentPlaces,
   formatBoxName,
   formatPlaceBreadcrumb,
-  formatPlaceLabel,
   formatPlaceName,
   itemsInBox,
   itemsInPlace,
@@ -127,10 +126,10 @@ describe('inventory helpers', () => {
   })
 
   describe('place hierarchy', () => {
-    const home: InventoryStorageUnitResponse = { id: 1, name: 'Home', type: null, parentId: null }
-    const shedAtHome: InventoryStorageUnitResponse = { id: 2, name: 'Shed', type: 'Shed', parentId: 1 }
-    const summerhouseCabin: InventoryStorageUnitResponse = { id: 3, name: 'Summerhouse', type: null, parentId: null }
-    const shedAtSummerhouse: InventoryStorageUnitResponse = { id: 4, name: 'Shed', type: 'Shed', parentId: 3 }
+    const home: InventoryStorageUnitResponse = { id: 1, name: 'Home', parentId: null }
+    const shedAtHome: InventoryStorageUnitResponse = { id: 2, name: 'Shed', parentId: 1 }
+    const summerhouseCabin: InventoryStorageUnitResponse = { id: 3, name: 'Summerhouse', parentId: null }
+    const shedAtSummerhouse: InventoryStorageUnitResponse = { id: 4, name: 'Shed', parentId: 3 }
     const nested = [home, shedAtHome, summerhouseCabin, shedAtSummerhouse]
 
     describe('formatPlaceBreadcrumb', () => {
@@ -147,16 +146,6 @@ describe('inventory helpers', () => {
         const a: InventoryStorageUnitResponse = { id: 5, name: 'A', parentId: 6 }
         const b: InventoryStorageUnitResponse = { id: 6, name: 'B', parentId: 5 }
         expect(formatPlaceBreadcrumb(a, [a, b])).toBe('B › A')
-      })
-    })
-
-    describe('formatPlaceLabel', () => {
-      it('appends the type after the breadcrumb', () => {
-        expect(formatPlaceLabel(shedAtSummerhouse, nested)).toBe('Summerhouse › Shed (Shed)')
-      })
-
-      it('omits the parens when there is no type', () => {
-        expect(formatPlaceLabel(home, nested)).toBe('Home')
       })
     })
 

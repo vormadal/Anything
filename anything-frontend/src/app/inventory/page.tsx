@@ -154,7 +154,7 @@ export default function InventoryPage() {
                   const childCount = childPlaces(allPlaces, placeId).length;
                   const boxCount = boxesInPlace(allBoxes, placeId).length;
                   const itemCount = itemsInPlace(allItems, placeId).length;
-                  const counts = [
+                  const subtitle = [
                     childCount > 0 ? `${childCount} ${childCount === 1 ? "place" : "places"}` : null,
                     `${boxCount} ${boxCount === 1 ? "box" : "boxes"}`,
                     `${itemCount} ${itemCount === 1 ? "item" : "items"}`,
@@ -166,7 +166,7 @@ export default function InventoryPage() {
                       key={place.id}
                       href={placePath(placeId)}
                       title={formatPlaceName(place)}
-                      subtitle={place.type ? `${place.type} · ${counts}` : counts}
+                      subtitle={subtitle}
                       count={itemCount}
                       icon={<Box className="h-4 w-4" />}
                     />

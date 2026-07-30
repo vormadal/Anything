@@ -135,10 +135,6 @@ export default function PlaceDetailPage() {
           ‹ {formatPlaceName(parent)}
         </Link>
       )}
-      {place.type && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">{place.type}</p>
-      )}
-
       {headerPhoto?.thumbnailUrl && (
         <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
           <Image

@@ -22,7 +22,7 @@ import {
   FIELD_LABEL_CLASS,
   OFFLINE_HINT,
 } from "@/components/inventory/inventoryFormStyles";
-import { eligibleParentPlaces, formatPlaceLabel } from "@/lib/inventory";
+import { eligibleParentPlaces, formatPlaceBreadcrumb } from "@/lib/inventory";
 
 interface PlaceFormDialogProps {
   /** Omit to create a new place; pass a place to edit it. */
@@ -36,7 +36,6 @@ export function PlaceFormDialog({ place, defaultParentId, onClose }: PlaceFormDi
   const isEdit = place !== undefined;
   const { data: places } = useInventoryStorageUnits();
   const [name, setName] = useState(place?.name ?? "");
-  const [type, setType] = useState(place?.type ?? "");
   const [parentId, setParentId] = useState<number | null>(
     place?.parentId ?? defaultParentId ?? null
   );
@@ -52,7 +51,7 @@ export function PlaceFormDialog({ place, defaultParentId, onClose }: PlaceFormDi
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    const body = { name: trimmed, type: type.trim() || null, parentId };
+    const body = { name: trimmed, parentId };
     try {
       if (isEdit) {
         await updatePlace.mutateAsync({ id: place.id ?? 0, ...body });
@@ -87,26 +86,13 @@ export function PlaceFormDialog({ place, defaultParentId, onClose }: PlaceFormDi
               className={FIELD_INPUT_CLASS}
             />
           </div>
-          <div>
-            <label htmlFor="place-type" className={FIELD_LABEL_CLASS}>
-              Type
-            </label>
-            <input
-              id="place-type"
-              type="text"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              placeholder="Room, shelf, under the bed…"
-              className={FIELD_INPUT_CLASS}
-            />
-          </div>
           <InventorySelect
             id="place-parent"
             label="Parent place"
             emptyLabel="No parent (top-level place)"
             options={parentOptions.map((option) => ({
               value: option.id ?? 0,
-              label: formatPlaceLabel(option, places ?? []),
+              label: formatPlaceBreadcrumb(option, places ?? []),
             }))}
             value={parentId}
             onChange={setParentId}
