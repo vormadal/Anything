@@ -1105,6 +1105,10 @@ export interface CreateInventoryStorageUnitRequest extends Parsable {
      */
     name?: string | null;
     /**
+     * The parentId property
+     */
+    parentId?: number | null;
+    /**
      * The type property
      */
     type?: string | null;
@@ -2396,6 +2400,7 @@ export function deserializeIntoCreateInventoryItemRequest(createInventoryItemReq
 export function deserializeIntoCreateInventoryStorageUnitRequest(createInventoryStorageUnitRequest: Partial<CreateInventoryStorageUnitRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { createInventoryStorageUnitRequest.name = n.getStringValue(); },
+        "parentId": n => { createInventoryStorageUnitRequest.parentId = n.getNumberValue(); },
         "type": n => { createInventoryStorageUnitRequest.type = n.getStringValue(); },
     }
 }
@@ -3050,6 +3055,7 @@ export function deserializeIntoInventoryStorageUnitResponse(inventoryStorageUnit
         "id": n => { inventoryStorageUnitResponse.id = n.getNumberValue(); },
         "modifiedOn": n => { inventoryStorageUnitResponse.modifiedOn = n.getDateValue(); },
         "name": n => { inventoryStorageUnitResponse.name = n.getStringValue(); },
+        "parentId": n => { inventoryStorageUnitResponse.parentId = n.getNumberValue(); },
         "type": n => { inventoryStorageUnitResponse.type = n.getStringValue(); },
     }
 }
@@ -4046,6 +4052,7 @@ export function deserializeIntoUpdateInventoryItemRequest(updateInventoryItemReq
 export function deserializeIntoUpdateInventoryStorageUnitRequest(updateInventoryStorageUnitRequest: Partial<UpdateInventoryStorageUnitRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { updateInventoryStorageUnitRequest.name = n.getStringValue(); },
+        "parentId": n => { updateInventoryStorageUnitRequest.parentId = n.getNumberValue(); },
         "type": n => { updateInventoryStorageUnitRequest.type = n.getStringValue(); },
     }
 }
@@ -4853,6 +4860,10 @@ export interface InventoryStorageUnitResponse extends Parsable {
      * The name property
      */
     name?: string | null;
+    /**
+     * The parentId property
+     */
+    parentId?: number | null;
     /**
      * The type property
      */
@@ -5970,6 +5981,7 @@ export function serializeCreateInventoryItemRequest(writer: SerializationWriter,
 export function serializeCreateInventoryStorageUnitRequest(writer: SerializationWriter, createInventoryStorageUnitRequest: Partial<CreateInventoryStorageUnitRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createInventoryStorageUnitRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", createInventoryStorageUnitRequest.name);
+    writer.writeNumberValue("parentId", createInventoryStorageUnitRequest.parentId);
     writer.writeStringValue("type", createInventoryStorageUnitRequest.type);
 }
 /**
@@ -6626,6 +6638,7 @@ export function serializeInventoryStorageUnitResponse(writer: SerializationWrite
     writer.writeNumberValue("id", inventoryStorageUnitResponse.id);
     writer.writeDateValue("modifiedOn", inventoryStorageUnitResponse.modifiedOn);
     writer.writeStringValue("name", inventoryStorageUnitResponse.name);
+    writer.writeNumberValue("parentId", inventoryStorageUnitResponse.parentId);
     writer.writeStringValue("type", inventoryStorageUnitResponse.type);
 }
 /**
@@ -7622,6 +7635,7 @@ export function serializeUpdateInventoryItemRequest(writer: SerializationWriter,
 export function serializeUpdateInventoryStorageUnitRequest(writer: SerializationWriter, updateInventoryStorageUnitRequest: Partial<UpdateInventoryStorageUnitRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateInventoryStorageUnitRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", updateInventoryStorageUnitRequest.name);
+    writer.writeNumberValue("parentId", updateInventoryStorageUnitRequest.parentId);
     writer.writeStringValue("type", updateInventoryStorageUnitRequest.type);
 }
 /**
@@ -8402,6 +8416,10 @@ export interface UpdateInventoryStorageUnitRequest extends Parsable {
      * The name property
      */
     name?: string | null;
+    /**
+     * The parentId property
+     */
+    parentId?: number | null;
     /**
      * The type property
      */
