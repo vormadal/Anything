@@ -108,7 +108,7 @@ export function BoxFormDialog({ box, defaultPlaceId, onClose }: BoxFormDialogPro
             emptyLabel="No place yet"
             options={(places ?? []).map((place) => ({
               value: place.id ?? 0,
-              label: formatPlaceLabel(place),
+              label: formatPlaceLabel(place, places ?? []),
             }))}
             value={placeId}
             onChange={setPlaceId}

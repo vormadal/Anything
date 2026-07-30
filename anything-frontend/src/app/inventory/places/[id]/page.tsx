@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Box, Package, Plus } from "lucide-react";
@@ -16,6 +17,7 @@ import {
   useInventoryItems,
   useInventoryStorageUnit,
   useInventoryStorageUnitAttachments,
+  useInventoryStorageUnits,
   useUploadInventoryStorageUnitAttachment,
 } from "@/hooks/useInventory";
 import { BoxFormDialog } from "@/components/inventory/BoxFormDialog";
@@ -30,11 +32,14 @@ import {
   InventoryAttachmentKinds,
   boxPath,
   boxesInPlace,
+  childPlaces,
   formatBoxName,
   formatPlaceName,
   itemPath,
   itemsInBox,
+  itemsInPlace,
   looseItemsInPlace,
+  placePath,
 } from "@/lib/inventory";
 
 const SECTION_HEADING_CLASS =
@@ -50,8 +55,10 @@ export default function PlaceDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addBoxOpen, setAddBoxOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
+  const [addPlaceOpen, setAddPlaceOpen] = useState(false);
 
   const { data: place, isLoading, error } = useInventoryStorageUnit(placeId);
+  const { data: places } = useInventoryStorageUnits();
   const { data: boxes } = useInventoryBoxes();
   const { data: items } = useInventoryItems();
   const deletePlace = useDeleteInventoryStorageUnit();
@@ -80,6 +87,8 @@ export default function PlaceDetailPage() {
 
   const placeBoxes = boxesInPlace(boxes ?? [], placeId);
   const loose = looseItemsInPlace(items ?? [], placeId);
+  const children = childPlaces(places ?? [], placeId);
+  const parent = place?.parentId ? (places ?? []).find((p) => p.id === place.parentId) : undefined;
 
   const handleDelete = async () => {
     try {
@@ -90,9 +99,9 @@ export default function PlaceDetailPage() {
       toast.success("Place deleted");
       router.push(INVENTORY_PATH);
     } catch {
-      // The API refuses (409) while boxes or items still reference the place,
+      // The API refuses (409) while boxes, items, or child places still reference the place,
       // rather than silently orphaning them.
-      toast.error("Empty this place first — it still has boxes or items in it.");
+      toast.error("Empty this place first — it still has boxes, items, or places in it.");
     }
   };
 
@@ -118,6 +127,14 @@ export default function PlaceDetailPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
       <PageTitle>{formatPlaceName(place)}</PageTitle>
+      {parent && (
+        <Link
+          href={placePath(parent.id ?? 0)}
+          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          ‹ {formatPlaceName(parent)}
+        </Link>
+      )}
       {place.type && (
         <p className="text-sm text-gray-500 dark:text-gray-400">{place.type}</p>
       )}
@@ -135,6 +152,10 @@ export default function PlaceDetailPage() {
       )}
 
       <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => setAddPlaceOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Add place
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setAddBoxOpen(true)}>
           <Plus className="h-4 w-4" />
           Add box
@@ -144,6 +165,29 @@ export default function PlaceDetailPage() {
           Add item
         </Button>
       </div>
+
+      {children.length > 0 && (
+        <section className="space-y-2">
+          <h2 className={SECTION_HEADING_CLASS}>Places</h2>
+          <InventoryList>
+            {children.map((child) => {
+              const childId = child.id ?? 0;
+              const boxCount = boxesInPlace(boxes ?? [], childId).length;
+              const itemCount = itemsInPlace(items ?? [], childId).length;
+              return (
+                <InventoryRow
+                  key={child.id}
+                  href={placePath(childId)}
+                  title={formatPlaceName(child)}
+                  subtitle={`${boxCount} ${boxCount === 1 ? "box" : "boxes"} · ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
+                  count={itemCount}
+                  icon={<Box className="h-4 w-4" />}
+                />
+              );
+            })}
+          </InventoryList>
+        </section>
+      )}
 
       <section className="space-y-2">
         <h2 className={SECTION_HEADING_CLASS}>Boxes</h2>
@@ -200,6 +244,9 @@ export default function PlaceDetailPage() {
       {editOpen && (
         <PlaceFormDialog place={place} onClose={() => setEditOpen(false)} />
       )}
+      {addPlaceOpen && (
+        <PlaceFormDialog defaultParentId={placeId} onClose={() => setAddPlaceOpen(false)} />
+      )}
       {addBoxOpen && (
         <BoxFormDialog defaultPlaceId={placeId} onClose={() => setAddBoxOpen(false)} />
       )}
@@ -210,7 +257,7 @@ export default function PlaceDetailPage() {
       <ConfirmDeleteDialog
         open={deleteOpen}
         title="Delete place"
-        message={`Delete "${formatPlaceName(place)}"? Move its boxes and items somewhere else first — this cannot be undone.`}
+        message={`Delete "${formatPlaceName(place)}"? Move its places, boxes, and items somewhere else first — this cannot be undone.`}
         isPending={deletePlace.isPending}
         onConfirm={handleDelete}
         onOpenChange={setDeleteOpen}

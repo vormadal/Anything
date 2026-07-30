@@ -174,7 +174,7 @@ export function ItemFormDialog({
             emptyLabel="Not placed yet"
             options={(places ?? []).map((place) => ({
               value: place.id ?? 0,
-              label: formatPlaceLabel(place),
+              label: formatPlaceLabel(place, places ?? []),
             }))}
             value={placeId}
             onChange={handlePlaceChange}

@@ -39,6 +39,7 @@ const ITEM_KEY = "inventoryItem";
 export interface StorageUnitInput {
   name: string;
   type?: string | null;
+  parentId?: number | null;
 }
 
 /** Body shared by create and update of a box. */
@@ -98,6 +99,7 @@ export function useCreateInventoryStorageUnit() {
       apiClient.api.inventoryStorageUnits.post({
         name: unit.name,
         type: unit.type ?? null,
+        parentId: unit.parentId ?? null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: STORAGE_UNITS_KEY });
@@ -113,6 +115,7 @@ export function useUpdateInventoryStorageUnit() {
       apiClient.api.inventoryStorageUnits.byId(unit.id).put({
         name: unit.name,
         type: unit.type ?? null,
+        parentId: unit.parentId ?? null,
       }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: STORAGE_UNITS_KEY });

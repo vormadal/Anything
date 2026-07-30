@@ -191,7 +191,7 @@ describe('useInventory hooks', () => {
 
       await result.current.mutateAsync({ name: 'Summerhouse' })
 
-      expect(mockUnitsPost).toHaveBeenCalledWith({ name: 'Summerhouse', type: null })
+      expect(mockUnitsPost).toHaveBeenCalledWith({ name: 'Summerhouse', type: null, parentId: null })
     })
 
     it('updates a place', async () => {
@@ -201,10 +201,10 @@ describe('useInventory hooks', () => {
         wrapper: createWrapper(),
       })
 
-      await result.current.mutateAsync({ id: 1, name: 'Basement', type: 'Room' })
+      await result.current.mutateAsync({ id: 1, name: 'Basement', type: 'Room', parentId: 2 })
 
       expect(mockUnitById).toHaveBeenCalledWith(1)
-      expect(mockUnitItemPut).toHaveBeenCalledWith({ name: 'Basement', type: 'Room' })
+      expect(mockUnitItemPut).toHaveBeenCalledWith({ name: 'Basement', type: 'Room', parentId: 2 })
     })
 
     it('deletes a place', async () => {

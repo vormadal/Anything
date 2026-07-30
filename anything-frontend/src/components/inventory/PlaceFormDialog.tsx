@@ -12,37 +12,47 @@ import {
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import {
   useCreateInventoryStorageUnit,
+  useInventoryStorageUnits,
   useUpdateInventoryStorageUnit,
   type InventoryStorageUnitResponse,
 } from "@/hooks/useInventory";
+import { InventorySelect } from "@/components/inventory/InventorySelect";
 import {
   FIELD_INPUT_CLASS,
   FIELD_LABEL_CLASS,
   OFFLINE_HINT,
 } from "@/components/inventory/inventoryFormStyles";
+import { eligibleParentPlaces, formatPlaceLabel } from "@/lib/inventory";
 
 interface PlaceFormDialogProps {
   /** Omit to create a new place; pass a place to edit it. */
   place?: InventoryStorageUnitResponse;
+  /** Pre-selects the parent when creating from a place's detail page. */
+  defaultParentId?: number | null;
   onClose: () => void;
 }
 
-export function PlaceFormDialog({ place, onClose }: PlaceFormDialogProps) {
+export function PlaceFormDialog({ place, defaultParentId, onClose }: PlaceFormDialogProps) {
   const isEdit = place !== undefined;
+  const { data: places } = useInventoryStorageUnits();
   const [name, setName] = useState(place?.name ?? "");
   const [type, setType] = useState(place?.type ?? "");
+  const [parentId, setParentId] = useState<number | null>(
+    place?.parentId ?? defaultParentId ?? null
+  );
 
   const createPlace = useCreateInventoryStorageUnit();
   const updatePlace = useUpdateInventoryStorageUnit();
   const isOnline = useOnlineStatus();
   const isPending = createPlace.isPending || updatePlace.isPending;
+  const parentOptions = eligibleParentPlaces(place, places ?? []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    const body = { name: trimmed, type: type.trim() || null };
+    const body = { name: trimmed, type: type.trim() || null, parentId };
     try {
       if (isEdit) {
         await updatePlace.mutateAsync({ id: place.id ?? 0, ...body });
@@ -90,6 +100,18 @@ export function PlaceFormDialog({ place, onClose }: PlaceFormDialogProps) {
               className={FIELD_INPUT_CLASS}
             />
           </div>
+          <InventorySelect
+            id="place-parent"
+            label="Parent place"
+            emptyLabel="No parent (top-level place)"
+            options={parentOptions.map((option) => ({
+              value: option.id ?? 0,
+              label: formatPlaceLabel(option, places ?? []),
+            }))}
+            value={parentId}
+            onChange={setParentId}
+            hint="Nest this place inside another, e.g. a shed inside the summerhouse."
+          />
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
               Cancel

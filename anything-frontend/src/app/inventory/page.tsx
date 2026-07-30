@@ -14,11 +14,13 @@ import { PlaceFormDialog } from "@/components/inventory/PlaceFormDialog";
 import { InventoryList, InventoryRow } from "@/components/inventory/InventoryRow";
 import {
   boxesInPlace,
+  childPlaces,
   describeItemLocation,
   formatPlaceName,
   itemPath,
   itemsInPlace,
   placePath,
+  topLevelPlaces,
   unplacedItems,
 } from "@/lib/inventory";
 import { fuzzyRank } from "@/lib/fuzzy";
@@ -141,17 +143,24 @@ export default function InventoryPage() {
         <>
           <section className="space-y-2">
             <h2 className={SECTION_HEADING_CLASS}>Places</h2>
-            {allPlaces.length === 0 ? (
+            {topLevelPlaces(allPlaces).length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 No places yet. Tap + to add one.
               </p>
             ) : (
               <InventoryList>
-                {allPlaces.map((place) => {
+                {topLevelPlaces(allPlaces).map((place) => {
                   const placeId = place.id ?? 0;
+                  const childCount = childPlaces(allPlaces, placeId).length;
                   const boxCount = boxesInPlace(allBoxes, placeId).length;
                   const itemCount = itemsInPlace(allItems, placeId).length;
-                  const counts = `${boxCount} ${boxCount === 1 ? "box" : "boxes"} · ${itemCount} ${itemCount === 1 ? "item" : "items"}`;
+                  const counts = [
+                    childCount > 0 ? `${childCount} ${childCount === 1 ? "place" : "places"}` : null,
+                    `${boxCount} ${boxCount === 1 ? "box" : "boxes"}`,
+                    `${itemCount} ${itemCount === 1 ? "item" : "items"}`,
+                  ]
+                    .filter((part): part is string => part !== null)
+                    .join(" · ");
                   return (
                     <InventoryRow
                       key={place.id}

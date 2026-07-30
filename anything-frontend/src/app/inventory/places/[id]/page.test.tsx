@@ -104,7 +104,7 @@ describe("PlaceDetailPage", () => {
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
-        "Empty this place first — it still has boxes or items in it."
+        "Empty this place first — it still has boxes, items, or places in it."
       )
     );
     expect(mockPush).not.toHaveBeenCalled();
