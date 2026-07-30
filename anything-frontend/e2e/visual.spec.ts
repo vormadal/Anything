@@ -1075,6 +1075,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   // ---- Storage (inventory) ----
   //
+  // Places can nest (mockStoragePlaces has "Shed" under "Summerhouse") — the
+  // place-hierarchy tests below cover the parent picker, breadcrumb link, and
+  // child-places section this adds on top of the base CRUD screens.
+  //
   // Every test asserts on a distinctive element before taking its screenshot.
   // The snapshot workflow can silently keep a stale baseline — either because a
   // run fails for an unrelated reason (see CLAUDE.md), or because `--update-
