@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useInventory";
 import { FIELD_INPUT_CLASS, OFFLINE_HINT } from "@/components/inventory/inventoryFormStyles";
 
+// Mirrors InventoryItemFieldConfiguration on the backend (Label/Value column limits).
 const LABEL_MAX_LENGTH = 100;
 const VALUE_MAX_LENGTH = 500;
 
