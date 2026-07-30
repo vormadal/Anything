@@ -93,7 +93,7 @@ describe("BoxDetailPage", () => {
     await waitFor(() => expect(screen.getByText("Christmas lights")).toBeInTheDocument());
   });
 
-  it("shows the box's label and description", async () => {
+  it("shows the box's label in the title instead of the generic 'Box' prefix, and shows the description", async () => {
     mockBoxGet.mockResolvedValue({ ...box, label: "Christmas decorations", description: "Lights and ornaments" });
     mockBoxesGet.mockResolvedValue([box]);
     mockUnitsGet.mockResolvedValue([{ id: 1, name: "Summerhouse" }]);
@@ -102,7 +102,9 @@ describe("BoxDetailPage", () => {
 
     renderWithClient(<BoxDetailPage />);
 
-    await waitFor(() => expect(screen.getByText("Christmas decorations")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "Christmas decorations #4" })).toBeInTheDocument()
+    );
     expect(screen.getByText("Lights and ornaments")).toBeInTheDocument();
   });
 

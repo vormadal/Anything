@@ -40,6 +40,18 @@ describe('inventory helpers', () => {
       expect(formatBoxName({ number: null })).toBe('Box ?')
     })
 
+    it('shows the label instead of the "Box" prefix when the box has one', () => {
+      expect(formatBoxName({ number: 4, label: 'Christmas decorations' })).toBe(
+        'Christmas decorations #4'
+      )
+    })
+
+    it('falls back to the number placeholder alongside the label when the box has no number', () => {
+      expect(formatBoxName({ number: null, label: 'Christmas decorations' })).toBe(
+        'Christmas decorations #?'
+      )
+    })
+
     it('falls back when a place has no name', () => {
       expect(formatPlaceName({ name: null })).toBe('Unnamed place')
     })

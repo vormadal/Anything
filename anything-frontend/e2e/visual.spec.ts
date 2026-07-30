@@ -1171,6 +1171,25 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("storage-box-detail.png", screenshotOptions);
   });
 
+  test("storage - box detail with a label shown instead of the 'Box' prefix", async ({ page }) => {
+    const labeledBox = {
+      id: 13,
+      number: 4,
+      storageUnitId: 1,
+      label: "Christmas decorations",
+      householdId: 1,
+      createdOn: "2024-01-01T00:00:00Z",
+      modifiedOn: null,
+      deletedOn: null,
+    };
+    await page.route(/\/api\/inventory-boxes\/13$/, (route) => route.fulfill({ json: labeledBox }));
+
+    await page.goto("/inventory/boxes/13");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Christmas decorations #4" })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-box-detail-labeled.png", screenshotOptions);
+  });
+
   test("storage - item detail showing where it lives", async ({ page }) => {
     await page.goto("/inventory/items/100");
     await page.waitForLoadState("networkidle");
