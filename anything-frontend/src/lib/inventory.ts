@@ -31,6 +31,14 @@ export function formatPlaceName(unit: Pick<InventoryStorageUnitResponse, "name">
   return unit.name ?? "Unnamed place";
 }
 
+/** "Basement storage room (Room)" — keeps the place's type visible wherever a place is picked or listed. */
+export function formatPlaceLabel(
+  unit: Pick<InventoryStorageUnitResponse, "name" | "type">
+): string {
+  const name = formatPlaceName(unit);
+  return unit.type ? `${name} (${unit.type})` : name;
+}
+
 export function boxesInPlace(boxes: InventoryBoxResponse[], placeId: number): InventoryBoxResponse[] {
   return boxes.filter((box) => box.storageUnitId === placeId);
 }

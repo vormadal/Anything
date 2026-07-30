@@ -151,12 +151,13 @@ export default function InventoryPage() {
                   const placeId = place.id ?? 0;
                   const boxCount = boxesInPlace(allBoxes, placeId).length;
                   const itemCount = itemsInPlace(allItems, placeId).length;
+                  const counts = `${boxCount} ${boxCount === 1 ? "box" : "boxes"} · ${itemCount} ${itemCount === 1 ? "item" : "items"}`;
                   return (
                     <InventoryRow
                       key={place.id}
                       href={placePath(placeId)}
                       title={formatPlaceName(place)}
-                      subtitle={`${boxCount} ${boxCount === 1 ? "box" : "boxes"} · ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
+                      subtitle={place.type ? `${place.type} · ${counts}` : counts}
                       count={itemCount}
                       icon={<Box className="h-4 w-4" />}
                     />

@@ -1088,6 +1088,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("link", { name: /Basement storage room/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Camping tent/ })).toBeVisible();
+    // Type is shown alongside the box/item counts so it's obvious at a glance.
+    await expect(page.getByText("Room · 2 boxes · 4 items")).toBeVisible();
     await expect(page).toHaveScreenshot("storage-overview.png", screenshotOptions);
   });
 
@@ -1117,6 +1119,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/inventory/places/1");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "Basement storage room" })).toBeVisible();
+    // Type is shown under the title so it's obvious what kind of place this is.
+    await expect(page.getByText("Room", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: /Box 1/ })).toBeVisible();
     await expect(page.getByText("Loose items")).toBeVisible();
     // Phase 3 addition: every place gets a photos/documents section.
@@ -1295,6 +1299,16 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByLabel("Quantity")).toBeVisible();
     await expect(page.getByLabel("Warranty expires")).toBeVisible();
     await expect(page).toHaveScreenshot("storage-item-dialog-details.png", screenshotOptions);
+  });
+
+  test("storage - new box dialog", async ({ page }) => {
+    await page.goto("/inventory/places/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Add box" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    // Type is shown alongside the name so the place is obvious when picking one.
+    await expect(page.getByLabel("Place")).toContainText("Basement storage room (Room)");
+    await expect(page).toHaveScreenshot("storage-box-dialog.png", screenshotOptions);
   });
 
   // ---- Lists ----

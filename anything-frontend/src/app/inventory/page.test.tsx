@@ -50,8 +50,8 @@ describe("InventoryPage", () => {
     renderWithClient(<InventoryPage />);
 
     await waitFor(() => expect(screen.getByText("Summerhouse")).toBeInTheDocument());
-    expect(screen.getByText("1 box · 2 items")).toBeInTheDocument();
-    expect(screen.getByText("1 box · 0 items")).toBeInTheDocument();
+    expect(screen.getByText("Cabin · 1 box · 2 items")).toBeInTheDocument();
+    expect(screen.getByText("Room · 1 box · 0 items")).toBeInTheDocument();
     expect(screen.getByText("Summerhouse").closest("a")).toHaveAttribute(
       "href",
       "/inventory/places/1"

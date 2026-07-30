@@ -118,6 +118,9 @@ export default function PlaceDetailPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
       <PageTitle>{formatPlaceName(place)}</PageTitle>
+      {place.type && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">{place.type}</p>
+      )}
 
       {headerPhoto?.thumbnailUrl && (
         <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
