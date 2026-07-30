@@ -42,10 +42,9 @@ export function formatPlaceBreadcrumb(place: PlaceNode, places: PlaceNode[]): st
   const chain: string[] = [];
   const visited = new Set<number>();
   let current: PlaceNode | undefined = place;
-  while (current) {
+  while (current && (current.id == null || !visited.has(current.id))) {
     chain.unshift(formatPlaceName(current));
-    if (current.id == null || visited.has(current.id)) break;
-    visited.add(current.id);
+    if (current.id != null) visited.add(current.id);
     current = current.parentId ? places.find((p) => p.id === current!.parentId) : undefined;
   }
   return chain.join(" › ");

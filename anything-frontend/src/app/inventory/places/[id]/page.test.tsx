@@ -134,6 +134,39 @@ describe("PlaceDetailPage", () => {
     expect(screen.getByText("Documents")).toBeInTheDocument();
   });
 
+  it("shows a link to the parent place when nested", async () => {
+    const parent = { id: 2, name: "Basement storage room", type: "Room", parentId: null };
+    const nestedPlace = { ...place, parentId: 2 };
+    mockUnitGet.mockResolvedValue(nestedPlace);
+    mockUnitsGet.mockResolvedValue([nestedPlace, parent]);
+    mockBoxesGet.mockResolvedValue([]);
+    mockItemsGet.mockResolvedValue([]);
+    mockAttachmentsGet.mockResolvedValue([]);
+
+    renderWithClient(<PlaceDetailPage />);
+
+    const parentLink = await screen.findByRole("link", { name: /Basement storage room/ });
+    expect(parentLink).toHaveAttribute("href", "/inventory/places/2");
+  });
+
+  it("lists nested child places and offers to add another", async () => {
+    const user = userEvent.setup();
+    const child = { id: 3, name: "Shed", type: "Shed", parentId: 1 };
+    mockUnitGet.mockResolvedValue(place);
+    mockUnitsGet.mockResolvedValue([place, child]);
+    mockBoxesGet.mockResolvedValue([]);
+    mockItemsGet.mockResolvedValue([]);
+    mockAttachmentsGet.mockResolvedValue([]);
+
+    renderWithClient(<PlaceDetailPage />);
+
+    const childLink = await screen.findByRole("link", { name: /Shed/ });
+    expect(childLink).toHaveAttribute("href", "/inventory/places/3");
+
+    await user.click(screen.getByRole("button", { name: "Add place" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("New place");
+  });
+
   it("shows an error state when the place cannot be loaded", async () => {
     mockUnitGet.mockRejectedValue(new Error("boom"));
     mockUnitsGet.mockResolvedValue([]);

@@ -1,14 +1,19 @@
 import {
   boxesInPlace,
+  childPlaces,
   describeItemLocation,
   describeWarranty,
+  eligibleParentPlaces,
   formatBoxName,
+  formatPlaceBreadcrumb,
+  formatPlaceLabel,
   formatPlaceName,
   itemsInBox,
   itemsInPlace,
   looseItemsInPlace,
   nextBoxNumber,
   resolvePlacement,
+  topLevelPlaces,
   unplacedItems,
 } from '@/lib/inventory'
 import type {
@@ -118,6 +123,70 @@ describe('inventory helpers', () => {
     it('says so when the item is nowhere', () => {
       const item: InventoryItemSummaryResponse = { id: 1, name: 'Tent', boxId: null, storageUnitId: null }
       expect(describeItemLocation(item, boxes, places)).toBe('Not placed yet')
+    })
+  })
+
+  describe('place hierarchy', () => {
+    const home: InventoryStorageUnitResponse = { id: 1, name: 'Home', type: null, parentId: null }
+    const shedAtHome: InventoryStorageUnitResponse = { id: 2, name: 'Shed', type: 'Shed', parentId: 1 }
+    const summerhouseCabin: InventoryStorageUnitResponse = { id: 3, name: 'Summerhouse', type: null, parentId: null }
+    const shedAtSummerhouse: InventoryStorageUnitResponse = { id: 4, name: 'Shed', type: 'Shed', parentId: 3 }
+    const nested = [home, shedAtHome, summerhouseCabin, shedAtSummerhouse]
+
+    describe('formatPlaceBreadcrumb', () => {
+      it('is just the name for a top-level place', () => {
+        expect(formatPlaceBreadcrumb(home, nested)).toBe('Home')
+      })
+
+      it('disambiguates two same-named places by their ancestor chain', () => {
+        expect(formatPlaceBreadcrumb(shedAtHome, nested)).toBe('Home › Shed')
+        expect(formatPlaceBreadcrumb(shedAtSummerhouse, nested)).toBe('Summerhouse › Shed')
+      })
+
+      it('does not infinite-loop on a cycle', () => {
+        const a: InventoryStorageUnitResponse = { id: 5, name: 'A', parentId: 6 }
+        const b: InventoryStorageUnitResponse = { id: 6, name: 'B', parentId: 5 }
+        expect(formatPlaceBreadcrumb(a, [a, b])).toBe('B › A')
+      })
+    })
+
+    describe('formatPlaceLabel', () => {
+      it('appends the type after the breadcrumb', () => {
+        expect(formatPlaceLabel(shedAtSummerhouse, nested)).toBe('Summerhouse › Shed (Shed)')
+      })
+
+      it('omits the parens when there is no type', () => {
+        expect(formatPlaceLabel(home, nested)).toBe('Home')
+      })
+    })
+
+    describe('topLevelPlaces / childPlaces', () => {
+      it('finds only the places without a parent', () => {
+        expect(topLevelPlaces(nested)).toEqual([home, summerhouseCabin])
+      })
+
+      it('finds the direct children of a place', () => {
+        expect(childPlaces(nested, 1)).toEqual([shedAtHome])
+        expect(childPlaces(nested, 3)).toEqual([shedAtSummerhouse])
+      })
+    })
+
+    describe('eligibleParentPlaces', () => {
+      it('offers every place when creating a new one', () => {
+        expect(eligibleParentPlaces(undefined, nested)).toEqual(nested)
+      })
+
+      it('excludes the place itself, so it cannot become its own parent', () => {
+        const options = eligibleParentPlaces(home, nested)
+        expect(options).not.toContain(home)
+      })
+
+      it('excludes descendants, so a place cannot be nested under its own child', () => {
+        const options = eligibleParentPlaces(home, nested)
+        expect(options).not.toContain(shedAtHome)
+        // Unrelated places remain valid parents.
+        expect(options).toEqual([summerhouseCabin, shedAtSummerhouse])
+      })
     })
   })
 
