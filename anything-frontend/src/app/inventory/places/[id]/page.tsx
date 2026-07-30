@@ -4,14 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Box, Package, Plus } from "lucide-react";
+import Image from "next/image";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import {
   useDeleteInventoryStorageUnit,
+  useDeleteInventoryStorageUnitAttachment,
+  useDownloadInventoryStorageUnitAttachment,
   useInventoryBoxes,
   useInventoryItems,
   useInventoryStorageUnit,
+  useInventoryStorageUnitAttachments,
+  useUploadInventoryStorageUnitAttachment,
 } from "@/hooks/useInventory";
 import { BoxFormDialog } from "@/components/inventory/BoxFormDialog";
 import { ItemFormDialog } from "@/components/inventory/ItemFormDialog";
@@ -19,8 +24,10 @@ import { PlaceFormDialog } from "@/components/inventory/PlaceFormDialog";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
 import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
 import { InventoryList, InventoryRow } from "@/components/inventory/InventoryRow";
+import { InventoryAttachments } from "@/components/inventory/InventoryAttachments";
 import {
   INVENTORY_PATH,
+  InventoryAttachmentKinds,
   boxPath,
   boxesInPlace,
   formatBoxName,
@@ -48,6 +55,12 @@ export default function PlaceDetailPage() {
   const { data: boxes } = useInventoryBoxes();
   const { data: items } = useInventoryItems();
   const deletePlace = useDeleteInventoryStorageUnit();
+
+  const attachments = useInventoryStorageUnitAttachments(placeId);
+  const uploadAttachment = useUploadInventoryStorageUnitAttachment(placeId);
+  const downloadAttachment = useDownloadInventoryStorageUnitAttachment(placeId);
+  const deleteAttachment = useDeleteInventoryStorageUnitAttachment(placeId);
+  const headerPhoto = attachments.data?.find((a) => a.kind === InventoryAttachmentKinds.Photo);
 
   // Refs keep the header effect's deps stable, matching the lists detail page.
   const openEditRef = useRef(() => setEditOpen(true));
@@ -106,6 +119,18 @@ export default function PlaceDetailPage() {
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
       <PageTitle>{formatPlaceName(place)}</PageTitle>
 
+      {headerPhoto?.thumbnailUrl && (
+        <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+          <Image
+            src={headerPhoto.thumbnailUrl}
+            alt={formatPlaceName(place)}
+            fill
+            sizes="(max-width: 672px) 100vw, 672px"
+            className="object-cover"
+          />
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => setAddBoxOpen(true)}>
           <Plus className="h-4 w-4" />
@@ -158,6 +183,16 @@ export default function PlaceDetailPage() {
           </InventoryList>
         </section>
       )}
+
+      <InventoryAttachments
+        attachments={attachments.data}
+        isLoading={attachments.isLoading}
+        onUpload={(data) => uploadAttachment.mutateAsync(data)}
+        isUploading={uploadAttachment.isPending}
+        onDownload={(data) => downloadAttachment.mutate(data)}
+        onDelete={(id) => deleteAttachment.mutateAsync(id)}
+        isDeleting={deleteAttachment.isPending}
+      />
 
       {editOpen && (
         <PlaceFormDialog place={place} onClose={() => setEditOpen(false)} />

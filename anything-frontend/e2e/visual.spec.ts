@@ -38,6 +38,11 @@ import { test, expect, Page } from "@playwright/test";
 // ---------------------------------------------------------------------------
 const FIXED_DATE = new Date("2025-01-15T10:00:00");
 
+// A 1x1 transparent PNG as a data URI — renders deterministically with no
+// network request, unlike a real image URL that would need mocking too.
+const PLACEHOLDER_IMAGE =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
 // ---------------------------------------------------------------------------
 // Mock data
 // ---------------------------------------------------------------------------
@@ -666,6 +671,17 @@ async function setupApiMocks(page: Page) {
     const item = mockStorageItems.find((i) => i.id === id);
     route.fulfill(item ? { json: item } : { status: 404, body: "" });
   });
+  // Attachments default to empty; individual tests override for a specific
+  // owner id when they need a photo or document to render.
+  await page.route(/\/api\/inventory-items\/(\d+)\/attachments$/, (route) =>
+    route.fulfill({ json: [] })
+  );
+  await page.route(/\/api\/inventory-boxes\/(\d+)\/attachments$/, (route) =>
+    route.fulfill({ json: [] })
+  );
+  await page.route(/\/api\/inventory-storage-units\/(\d+)\/attachments$/, (route) =>
+    route.fulfill({ json: [] })
+  );
 
   // ---- Households ----
   await page.route("**/api/households**", (route) => {
@@ -1103,6 +1119,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("heading", { name: "Basement storage room" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Box 1/ })).toBeVisible();
     await expect(page.getByText("Loose items")).toBeVisible();
+    // Phase 3 addition: every place gets a photos/documents section.
+    await expect(page.getByRole("heading", { name: "Photos" })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-place-detail.png", screenshotOptions);
   });
 
@@ -1111,6 +1129,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "Box 1" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Christmas lights/ })).toBeVisible();
+    // Phase 3 addition: every box gets a photos/documents section.
+    await expect(page.getByRole("heading", { name: "Photos" })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-box-detail.png", screenshotOptions);
   });
 
@@ -1120,7 +1140,138 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("heading", { name: "Christmas lights" })).toBeVisible();
     await expect(page.getByText("Two strings, warm white")).toBeVisible();
     await expect(page.getByRole("link", { name: "Box 1" })).toBeVisible();
+    // Phase 3 additions: present on every item, even with nothing in them yet.
+    await expect(page.getByRole("heading", { name: "Custom fields" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Photos" })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-item-detail.png", screenshotOptions);
+  });
+
+  test("storage - item detail with metadata, warranty badge and a custom field", async ({ page }) => {
+    await page.clock.setFixedTime(FIXED_DATE);
+    const metadataItem = {
+      id: 106,
+      name: "Cordless drill",
+      description: null,
+      boxId: null,
+      storageUnitId: null,
+      quantity: 2,
+      brand: "Bosch",
+      model: "PSB 750",
+      serialNumber: "SN-4471",
+      purchasedOn: "2024-06-01T00:00:00Z",
+      purchasePrice: 49.99,
+      warrantyExpiresOn: "2025-03-01T00:00:00Z",
+      notes: "Keep the charger with it.",
+      fields: [{ id: 1, label: "Color", value: "Blue", sortOrder: 0 }],
+      createdOn: "2024-01-01T00:00:00Z",
+      modifiedOn: null,
+    };
+    await page.route(/\/api\/inventory-items\/106$/, (route) => route.fulfill({ json: metadataItem }));
+
+    await page.goto("/inventory/items/106");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Cordless drill" })).toBeVisible();
+    await expect(page.getByText("Bosch")).toBeVisible();
+    await expect(page.getByText(/Warranty expires in 2 months/)).toBeVisible();
+    await expect(page.getByLabel("Field label")).toHaveValue("Color");
+    await expect(page).toHaveScreenshot("storage-item-detail-metadata.png", screenshotOptions);
+  });
+
+  test("storage - item detail with a photo", async ({ page }) => {
+    const photoItem = {
+      id: 107,
+      name: "Garden gnome",
+      description: null,
+      boxId: null,
+      storageUnitId: null,
+      fields: [],
+      createdOn: "2024-01-01T00:00:00Z",
+      modifiedOn: null,
+    };
+    await page.route(/\/api\/inventory-items\/107$/, (route) => route.fulfill({ json: photoItem }));
+    await page.route(/\/api\/inventory-items\/107\/attachments$/, (route) =>
+      route.fulfill({
+        json: [
+          {
+            id: 1,
+            name: "front",
+            contentType: "image/jpeg",
+            kind: "Photo",
+            thumbnailUrl: PLACEHOLDER_IMAGE,
+            url: PLACEHOLDER_IMAGE,
+            sortOrder: 0,
+            createdOn: "2024-01-01T00:00:00Z",
+          },
+        ],
+      })
+    );
+
+    await page.goto("/inventory/items/107");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Garden gnome" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "front" })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-item-detail-photo.png", screenshotOptions);
+  });
+
+  test("storage - item detail with a document", async ({ page }) => {
+    const documentItem = {
+      id: 108,
+      name: "Espresso machine",
+      description: null,
+      boxId: null,
+      storageUnitId: null,
+      fields: [],
+      createdOn: "2024-01-01T00:00:00Z",
+      modifiedOn: null,
+    };
+    await page.route(/\/api\/inventory-items\/108$/, (route) => route.fulfill({ json: documentItem }));
+    await page.route(/\/api\/inventory-items\/108\/attachments$/, (route) =>
+      route.fulfill({
+        json: [
+          {
+            id: 2,
+            name: "manual",
+            contentType: "application/pdf",
+            kind: "Manual",
+            url: "/api/inventory-items/108/attachments/2/download",
+            sortOrder: 0,
+            createdOn: "2024-01-01T00:00:00Z",
+          },
+        ],
+      })
+    );
+
+    await page.goto("/inventory/items/108");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Espresso machine" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "manual", exact: true })).toBeVisible();
+    await expect(page.getByText("Manual", { exact: true })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-item-detail-document.png", screenshotOptions);
+  });
+
+  test("storage - box detail with a photo header", async ({ page }) => {
+    await page.route(/\/api\/inventory-boxes\/10\/attachments$/, (route) =>
+      route.fulfill({
+        json: [
+          {
+            id: 3,
+            name: "box-front",
+            contentType: "image/jpeg",
+            kind: "Photo",
+            thumbnailUrl: PLACEHOLDER_IMAGE,
+            url: PLACEHOLDER_IMAGE,
+            sortOrder: 0,
+            createdOn: "2024-01-01T00:00:00Z",
+          },
+        ],
+      })
+    );
+
+    await page.goto("/inventory/boxes/10");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Box 1" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Box 1" })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-box-detail-photo.png", screenshotOptions);
   });
 
   test("storage - new item dialog", async ({ page }) => {
@@ -1129,7 +1280,21 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.getByRole("button", { name: "Add item" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByLabel("Box")).toHaveValue("10");
+    // Phase 3 addition: metadata fields are collapsed behind this toggle.
+    await expect(page.getByRole("button", { name: "Add more details" })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-item-dialog.png", screenshotOptions);
+  });
+
+  test("storage - new item dialog with metadata details expanded", async ({ page }) => {
+    await page.goto("/inventory/boxes/10");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Add item" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByRole("button", { name: "Add more details" }).click();
+
+    await expect(page.getByLabel("Quantity")).toBeVisible();
+    await expect(page.getByLabel("Warranty expires")).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-item-dialog-details.png", screenshotOptions);
   });
 
   // ---- Lists ----

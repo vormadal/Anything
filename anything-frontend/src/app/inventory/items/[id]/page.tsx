@@ -8,13 +8,20 @@ import { PageTitle } from "@/components/PageTitle";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import {
   useDeleteInventoryItem,
+  useDeleteInventoryItemAttachment,
+  useDownloadInventoryItemAttachment,
   useInventoryBoxes,
   useInventoryItem,
+  useInventoryItemAttachments,
   useInventoryStorageUnits,
+  useUploadInventoryItemAttachment,
 } from "@/hooks/useInventory";
 import { ItemFormDialog } from "@/components/inventory/ItemFormDialog";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
 import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
+import { WarrantyBadge } from "@/components/inventory/WarrantyBadge";
+import { CustomFieldsEditor } from "@/components/inventory/CustomFieldsEditor";
+import { InventoryAttachments } from "@/components/inventory/InventoryAttachments";
 import {
   INVENTORY_PATH,
   boxPath,
@@ -22,6 +29,18 @@ import {
   formatPlaceName,
   placePath,
 } from "@/lib/inventory";
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("da-DK", {
+    style: "currency",
+    currency: "DKK",
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("da-DK", { year: "numeric", month: "short", day: "numeric" });
+}
 
 export default function ItemDetailPage() {
   const params = useParams();
@@ -36,6 +55,11 @@ export default function ItemDetailPage() {
   const { data: boxes } = useInventoryBoxes();
   const { data: places } = useInventoryStorageUnits();
   const deleteItem = useDeleteInventoryItem();
+
+  const attachments = useInventoryItemAttachments(itemId);
+  const uploadAttachment = useUploadInventoryItemAttachment(itemId);
+  const downloadAttachment = useDownloadInventoryItemAttachment(itemId);
+  const deleteAttachment = useDeleteInventoryItemAttachment(itemId);
 
   const openEditRef = useRef(() => setEditOpen(true));
   const openDeleteRef = useRef(() => setDeleteOpen(true));
@@ -57,6 +81,16 @@ export default function ItemDetailPage() {
   // the physical box is where the item actually is.
   const placeId = box?.storageUnitId ?? item?.storageUnitId;
   const place = placeId ? places?.find((p) => p.id === placeId) : undefined;
+
+  const metadataRows: { label: string; value: string }[] = [];
+  if (item?.quantity != null) metadataRows.push({ label: "Quantity", value: String(item.quantity) });
+  if (item?.brand) metadataRows.push({ label: "Brand", value: item.brand });
+  if (item?.model) metadataRows.push({ label: "Model", value: item.model });
+  if (item?.serialNumber) metadataRows.push({ label: "Serial number", value: item.serialNumber });
+  if (item?.purchasedOn) metadataRows.push({ label: "Purchased on", value: formatDate(item.purchasedOn) });
+  if (item?.purchasePrice != null) {
+    metadataRows.push({ label: "Purchase price", value: formatCurrency(item.purchasePrice) });
+  }
 
   const handleDelete = async () => {
     try {
@@ -125,6 +159,38 @@ export default function ItemDetailPage() {
       ) : (
         <p className="text-sm text-gray-500 dark:text-gray-400">Not placed yet</p>
       )}
+
+      {item.warrantyExpiresOn && <WarrantyBadge warrantyExpiresOn={item.warrantyExpiresOn} />}
+
+      {metadataRows.length > 0 && (
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          {metadataRows.map((row) => (
+            <div key={row.label}>
+              <dt className="text-gray-500 dark:text-gray-400">{row.label}</dt>
+              <dd className="text-gray-900 dark:text-white">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {item.notes && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Notes</h2>
+          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{item.notes}</p>
+        </div>
+      )}
+
+      <CustomFieldsEditor itemId={itemId} fields={item.fields ?? []} />
+
+      <InventoryAttachments
+        attachments={attachments.data}
+        isLoading={attachments.isLoading}
+        onUpload={(data) => uploadAttachment.mutateAsync(data)}
+        isUploading={uploadAttachment.isPending}
+        onDownload={(data) => downloadAttachment.mutate(data)}
+        onDelete={(id) => deleteAttachment.mutateAsync(id)}
+        isDeleting={deleteAttachment.isPending}
+      />
 
       {editOpen && <ItemFormDialog item={item} onClose={() => setEditOpen(false)} />}
 

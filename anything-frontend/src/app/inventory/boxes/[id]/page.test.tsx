@@ -18,13 +18,23 @@ const mockBoxGet = jest.fn();
 const mockBoxesGet = jest.fn();
 const mockItemsGet = jest.fn();
 const mockUnitsGet = jest.fn();
+const mockAttachmentsGet = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
   apiClient: {
     api: {
       inventoryBoxes: {
         get: (...args: unknown[]) => mockBoxesGet(...args),
-        byId: () => ({ get: mockBoxGet, delete: jest.fn(), put: jest.fn() }),
+        byId: () => ({
+          get: mockBoxGet,
+          delete: jest.fn(),
+          put: jest.fn(),
+          attachments: {
+            get: (...args: unknown[]) => mockAttachmentsGet(...args),
+            post: jest.fn(),
+            byAttachmentId: () => ({ delete: jest.fn(), download: { get: jest.fn() } }),
+          },
+        }),
       },
       inventoryItems: { get: (...args: unknown[]) => mockItemsGet(...args) },
       inventoryStorageUnits: { get: (...args: unknown[]) => mockUnitsGet(...args) },
@@ -41,6 +51,7 @@ function mockLoaded() {
   mockItemsGet.mockResolvedValue([
     { id: 100, name: "Christmas lights", description: "Warm white", boxId: 10, storageUnitId: 1 },
   ]);
+  mockAttachmentsGet.mockResolvedValue([]);
 }
 
 describe("BoxDetailPage", () => {
@@ -80,5 +91,27 @@ describe("BoxDetailPage", () => {
     renderWithClient(<BoxDetailPage />);
 
     await waitFor(() => expect(screen.getByText("Christmas lights")).toBeInTheDocument());
+  });
+
+  it("shows the box's label and description", async () => {
+    mockBoxGet.mockResolvedValue({ ...box, label: "Christmas decorations", description: "Lights and ornaments" });
+    mockBoxesGet.mockResolvedValue([box]);
+    mockUnitsGet.mockResolvedValue([{ id: 1, name: "Summerhouse" }]);
+    mockItemsGet.mockResolvedValue([]);
+    mockAttachmentsGet.mockResolvedValue([]);
+
+    renderWithClient(<BoxDetailPage />);
+
+    await waitFor(() => expect(screen.getByText("Christmas decorations")).toBeInTheDocument());
+    expect(screen.getByText("Lights and ornaments")).toBeInTheDocument();
+  });
+
+  it("shows the photos and documents sections", async () => {
+    mockLoaded();
+
+    renderWithClient(<BoxDetailPage />);
+
+    await waitFor(() => expect(screen.getByText("Photos")).toBeInTheDocument());
+    expect(screen.getByText("Documents")).toBeInTheDocument();
   });
 });

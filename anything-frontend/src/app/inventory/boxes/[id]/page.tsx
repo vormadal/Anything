@@ -5,22 +5,29 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Package, Plus } from "lucide-react";
+import Image from "next/image";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import {
   useDeleteInventoryBox,
+  useDeleteInventoryBoxAttachment,
+  useDownloadInventoryBoxAttachment,
   useInventoryBox,
+  useInventoryBoxAttachments,
   useInventoryItems,
   useInventoryStorageUnits,
+  useUploadInventoryBoxAttachment,
 } from "@/hooks/useInventory";
 import { BoxFormDialog } from "@/components/inventory/BoxFormDialog";
 import { ItemFormDialog } from "@/components/inventory/ItemFormDialog";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
 import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
 import { InventoryList, InventoryRow } from "@/components/inventory/InventoryRow";
+import { InventoryAttachments } from "@/components/inventory/InventoryAttachments";
 import {
   INVENTORY_PATH,
+  InventoryAttachmentKinds,
   formatBoxName,
   formatPlaceName,
   itemPath,
@@ -42,6 +49,12 @@ export default function BoxDetailPage() {
   const { data: items } = useInventoryItems();
   const { data: places } = useInventoryStorageUnits();
   const deleteBox = useDeleteInventoryBox();
+
+  const attachments = useInventoryBoxAttachments(boxId);
+  const uploadAttachment = useUploadInventoryBoxAttachment(boxId);
+  const downloadAttachment = useDownloadInventoryBoxAttachment(boxId);
+  const deleteAttachment = useDeleteInventoryBoxAttachment(boxId);
+  const headerPhoto = attachments.data?.find((a) => a.kind === InventoryAttachmentKinds.Photo);
 
   const openEditRef = useRef(() => setEditOpen(true));
   const openDeleteRef = useRef(() => setDeleteOpen(true));
@@ -97,8 +110,29 @@ export default function BoxDetailPage() {
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
       <PageTitle>{formatBoxName(box)}</PageTitle>
 
+      {headerPhoto?.thumbnailUrl && (
+        <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+          <Image
+            src={headerPhoto.thumbnailUrl}
+            alt={box.label ?? formatBoxName(box)}
+            fill
+            sizes="(max-width: 672px) 100vw, 672px"
+            className="object-cover"
+          />
+        </div>
+      )}
+
       {/* The app header already renders the box number (via PageTitle), so the
           page body only adds what the header can't show. */}
+      {box.label && (
+        <p className="text-base font-medium text-gray-900 dark:text-white">{box.label}</p>
+      )}
+      {box.description && (
+        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+          {box.description}
+        </p>
+      )}
+
       <div className="flex items-center justify-between gap-3">
         {place ? (
           <Link
@@ -138,6 +172,16 @@ export default function BoxDetailPage() {
           ))}
         </InventoryList>
       )}
+
+      <InventoryAttachments
+        attachments={attachments.data}
+        isLoading={attachments.isLoading}
+        onUpload={(data) => uploadAttachment.mutateAsync(data)}
+        isUploading={uploadAttachment.isPending}
+        onDownload={(data) => downloadAttachment.mutate(data)}
+        onDelete={(id) => deleteAttachment.mutateAsync(id)}
+        isDeleting={deleteAttachment.isPending}
+      />
 
       {editOpen && <BoxFormDialog box={box} onClose={() => setEditOpen(false)} />}
       {addItemOpen && (

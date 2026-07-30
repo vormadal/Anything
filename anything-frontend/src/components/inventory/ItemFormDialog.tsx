@@ -24,6 +24,7 @@ import {
   OFFLINE_HINT,
 } from "@/components/inventory/inventoryFormStyles";
 import { formatBoxName, formatPlaceName, resolvePlacement } from "@/lib/inventory";
+import { toDateInputValue } from "@/lib/foodPlanUtils";
 
 interface ItemFormDialogProps {
   /** Omit to create a new item; pass an item to edit it. */
@@ -51,6 +52,29 @@ export function ItemFormDialog({
   const [boxId, setBoxId] = useState<number | null>(
     item?.boxId ?? defaultBoxId ?? null
   );
+  const [showDetails, setShowDetails] = useState(
+    isEdit &&
+      (item?.quantity != null ||
+        item?.brand ||
+        item?.model ||
+        item?.serialNumber ||
+        item?.purchasedOn ||
+        item?.purchasePrice != null ||
+        item?.warrantyExpiresOn ||
+        item?.notes)
+  );
+  const [quantity, setQuantity] = useState(item?.quantity?.toString() ?? "");
+  const [brand, setBrand] = useState(item?.brand ?? "");
+  const [model, setModel] = useState(item?.model ?? "");
+  const [serialNumber, setSerialNumber] = useState(item?.serialNumber ?? "");
+  const [purchasedOn, setPurchasedOn] = useState(
+    item?.purchasedOn ? toDateInputValue(item.purchasedOn) : ""
+  );
+  const [purchasePrice, setPurchasePrice] = useState(item?.purchasePrice?.toString() ?? "");
+  const [warrantyExpiresOn, setWarrantyExpiresOn] = useState(
+    item?.warrantyExpiresOn ? toDateInputValue(item.warrantyExpiresOn) : ""
+  );
+  const [notes, setNotes] = useState(item?.notes ?? "");
 
   const createItem = useCreateInventoryItem();
   const updateItem = useUpdateInventoryItem();
@@ -87,6 +111,14 @@ export function ItemFormDialog({
       name: trimmed,
       description: description.trim() || null,
       ...placement,
+      quantity: quantity.trim() ? Number(quantity) : null,
+      brand: brand.trim() || null,
+      model: model.trim() || null,
+      serialNumber: serialNumber.trim() || null,
+      purchasedOn: purchasedOn || null,
+      purchasePrice: purchasePrice.trim() ? Number(purchasePrice) : null,
+      warrantyExpiresOn: warrantyExpiresOn || null,
+      notes: notes.trim() || null,
     };
 
     try {
@@ -159,6 +191,125 @@ export function ItemFormDialog({
             onChange={setBoxId}
             hint="Picking a box also moves the item to that box's place."
           />
+
+          <button
+            type="button"
+            onClick={() => setShowDetails((prev) => !prev)}
+            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {showDetails ? "Hide details" : "Add more details"}
+          </button>
+
+          {showDetails && (
+            <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label htmlFor="item-quantity" className={FIELD_LABEL_CLASS}>
+                    Quantity
+                  </label>
+                  <input
+                    id="item-quantity"
+                    type="number"
+                    min={0}
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className={FIELD_INPUT_CLASS}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="item-purchase-price" className={FIELD_LABEL_CLASS}>
+                    Purchase price
+                  </label>
+                  <input
+                    id="item-purchase-price"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={purchasePrice}
+                    onChange={(e) => setPurchasePrice(e.target.value)}
+                    className={FIELD_INPUT_CLASS}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label htmlFor="item-brand" className={FIELD_LABEL_CLASS}>
+                    Brand
+                  </label>
+                  <input
+                    id="item-brand"
+                    type="text"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    className={FIELD_INPUT_CLASS}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="item-model" className={FIELD_LABEL_CLASS}>
+                    Model
+                  </label>
+                  <input
+                    id="item-model"
+                    type="text"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className={FIELD_INPUT_CLASS}
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="item-serial-number" className={FIELD_LABEL_CLASS}>
+                  Serial number
+                </label>
+                <input
+                  id="item-serial-number"
+                  type="text"
+                  value={serialNumber}
+                  onChange={(e) => setSerialNumber(e.target.value)}
+                  className={FIELD_INPUT_CLASS}
+                />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label htmlFor="item-purchased-on" className={FIELD_LABEL_CLASS}>
+                    Purchased on
+                  </label>
+                  <input
+                    id="item-purchased-on"
+                    type="date"
+                    value={purchasedOn}
+                    onChange={(e) => setPurchasedOn(e.target.value)}
+                    className={FIELD_INPUT_CLASS}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="item-warranty-expires-on" className={FIELD_LABEL_CLASS}>
+                    Warranty expires
+                  </label>
+                  <input
+                    id="item-warranty-expires-on"
+                    type="date"
+                    value={warrantyExpiresOn}
+                    onChange={(e) => setWarrantyExpiresOn(e.target.value)}
+                    className={FIELD_INPUT_CLASS}
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="item-notes" className={FIELD_LABEL_CLASS}>
+                  Notes
+                </label>
+                <textarea
+                  id="item-notes"
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className={FIELD_INPUT_CLASS}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
               Cancel
