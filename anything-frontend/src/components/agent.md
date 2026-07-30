@@ -7,7 +7,7 @@ Reusable UI components shared across multiple pages.
 - Root level — feature-specific shared components:
   - Dialogs: `AddToFoodPlanDialog`, `CompleteListDialog`, `CreateLocationDialog`, `CreateVendorDialog`, `EditListNameDialog`
   - `suggestions/` — tab bodies for the consolidated Suggestions admin page (`SuggestionsTab`, `CategoriesTab`, `ImportExportTab`)
-  - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, and `inventoryFormStyles.ts` for the repeated Tailwind field classes
+  - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed; item metadata sits behind an "Add more details" toggle, collapsed by default), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, `WarrantyBadge` (renders `describeWarranty` from `@/lib/inventory`), `CustomFieldsEditor` (item-only; wholesale replace via `useUpdateInventoryItemFields`), `InventoryAttachments` (photos + documents section reused by items/boxes/places — takes the owner's attachment hook results as props rather than knowing which owner it's attached to), and `inventoryFormStyles.ts` for the repeated Tailwind field classes
   - Layout/nav: `AppLayout`, `PageTitle`
   - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`
   - Auth: `AuthGuard`

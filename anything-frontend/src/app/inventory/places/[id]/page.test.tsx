@@ -21,13 +21,23 @@ const mockUnitGet = jest.fn();
 const mockUnitDelete = jest.fn();
 const mockBoxesGet = jest.fn();
 const mockItemsGet = jest.fn();
+const mockAttachmentsGet = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
   apiClient: {
     api: {
       inventoryStorageUnits: {
         get: (...args: unknown[]) => mockUnitsGet(...args),
-        byId: () => ({ get: mockUnitGet, delete: mockUnitDelete, put: jest.fn() }),
+        byId: () => ({
+          get: mockUnitGet,
+          delete: mockUnitDelete,
+          put: jest.fn(),
+          attachments: {
+            get: (...args: unknown[]) => mockAttachmentsGet(...args),
+            post: jest.fn(),
+            byAttachmentId: () => ({ delete: jest.fn(), download: { get: jest.fn() } }),
+          },
+        }),
       },
       inventoryBoxes: { get: (...args: unknown[]) => mockBoxesGet(...args) },
       inventoryItems: { get: (...args: unknown[]) => mockItemsGet(...args) },
@@ -48,6 +58,7 @@ function mockLoaded() {
     { id: 100, name: "Christmas lights", boxId: 10, storageUnitId: 1 },
     { id: 101, name: "Deck chair", description: "Folds flat", boxId: null, storageUnitId: 1 },
   ]);
+  mockAttachmentsGet.mockResolvedValue([]);
 }
 
 describe("PlaceDetailPage", () => {
@@ -112,6 +123,15 @@ describe("PlaceDetailPage", () => {
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/inventory"));
+  });
+
+  it("shows the photos and documents sections", async () => {
+    mockLoaded();
+
+    renderWithClient(<PlaceDetailPage />);
+
+    await waitFor(() => expect(screen.getByText("Photos")).toBeInTheDocument());
+    expect(screen.getByText("Documents")).toBeInTheDocument();
   });
 
   it("shows an error state when the place cannot be loaded", async () => {

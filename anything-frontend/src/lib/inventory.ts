@@ -6,6 +6,18 @@ import type {
 
 export const INVENTORY_PATH = "/inventory";
 
+/** Mirrors `Anything.Core.Constants.InventoryAttachmentKinds` on the backend. */
+export const InventoryAttachmentKinds = {
+  Photo: "Photo",
+  Manual: "Manual",
+  Receipt: "Receipt",
+  Warranty: "Warranty",
+  Other: "Other",
+} as const;
+
+export type InventoryAttachmentKind =
+  (typeof InventoryAttachmentKinds)[keyof typeof InventoryAttachmentKinds];
+
 export const placePath = (id: number) => `${INVENTORY_PATH}/places/${id}`;
 export const boxPath = (id: number) => `${INVENTORY_PATH}/boxes/${id}`;
 export const itemPath = (id: number) => `${INVENTORY_PATH}/items/${id}`;
@@ -86,4 +98,33 @@ export function describeItemLocation(
 export function nextBoxNumber(boxes: InventoryBoxResponse[]): number {
   const highest = boxes.reduce((max, box) => Math.max(max, box.number ?? 0), 0);
   return highest + 1;
+}
+
+export type WarrantyStatus = "expired" | "expiring-soon" | "active";
+
+export interface WarrantyInfo {
+  status: WarrantyStatus;
+  label: string;
+}
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const EXPIRING_SOON_DAYS = 30;
+const DAYS_PER_MONTH = 30;
+const DAYS_PER_YEAR = 365;
+
+/** "Expires in 3 months" / "Expires in 5 days" / "Expired" for a warranty badge. */
+export function describeWarranty(warrantyExpiresOn: Date, now: Date = new Date()): WarrantyInfo {
+  const daysRemaining = Math.ceil((warrantyExpiresOn.getTime() - now.getTime()) / MS_PER_DAY);
+
+  if (daysRemaining < 0) return { status: "expired", label: "Warranty expired" };
+  if (daysRemaining === 0) return { status: "expiring-soon", label: "Warranty expires today" };
+  if (daysRemaining <= EXPIRING_SOON_DAYS) {
+    return { status: "expiring-soon", label: `Warranty expires in ${daysRemaining} ${daysRemaining === 1 ? "day" : "days"}` };
+  }
+  if (daysRemaining < DAYS_PER_YEAR) {
+    const months = Math.round(daysRemaining / DAYS_PER_MONTH);
+    return { status: "active", label: `Warranty expires in ${months} ${months === 1 ? "month" : "months"}` };
+  }
+  const years = Math.round(daysRemaining / DAYS_PER_YEAR);
+  return { status: "active", label: `Warranty expires in ${years} ${years === 1 ? "year" : "years"}` };
 }

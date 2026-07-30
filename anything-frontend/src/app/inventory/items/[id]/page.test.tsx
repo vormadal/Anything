@@ -16,12 +16,23 @@ jest.mock("sonner", () => ({
 const mockItemGet = jest.fn();
 const mockBoxesGet = jest.fn();
 const mockUnitsGet = jest.fn();
+const mockAttachmentsGet = jest.fn();
 
 jest.mock("@/lib/apiClient", () => ({
   apiClient: {
     api: {
       inventoryItems: {
-        byId: () => ({ get: mockItemGet, delete: jest.fn(), put: jest.fn() }),
+        byId: () => ({
+          get: mockItemGet,
+          delete: jest.fn(),
+          put: jest.fn(),
+          fields: { put: jest.fn() },
+          attachments: {
+            get: (...args: unknown[]) => mockAttachmentsGet(...args),
+            post: jest.fn(),
+            byAttachmentId: () => ({ delete: jest.fn(), download: { get: jest.fn() } }),
+          },
+        }),
       },
       inventoryBoxes: { get: (...args: unknown[]) => mockBoxesGet(...args) },
       inventoryStorageUnits: { get: (...args: unknown[]) => mockUnitsGet(...args) },
@@ -30,7 +41,10 @@ jest.mock("@/lib/apiClient", () => ({
 }));
 
 describe("ItemDetailPage", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAttachmentsGet.mockResolvedValue([]);
+  });
 
   it("shows the description and location without section headers", async () => {
     mockItemGet.mockResolvedValue({
@@ -68,5 +82,76 @@ describe("ItemDetailPage", () => {
     renderWithClient(<ItemDetailPage />);
 
     await waitFor(() => expect(screen.getByText("Not placed yet")).toBeInTheDocument());
+  });
+
+  it("shows populated metadata fields and a warranty badge", async () => {
+    mockItemGet.mockResolvedValue({
+      id: 106,
+      name: "Drill",
+      description: null,
+      boxId: null,
+      storageUnitId: null,
+      quantity: 2,
+      brand: "Bosch",
+      model: "PSB 750",
+      serialNumber: "SN-123",
+      purchasedOn: new Date("2024-01-15"),
+      purchasePrice: 49.99,
+      warrantyExpiresOn: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10),
+      notes: "Keep in the garage",
+      fields: [],
+    });
+    mockBoxesGet.mockResolvedValue([]);
+    mockUnitsGet.mockResolvedValue([]);
+
+    renderWithClient(<ItemDetailPage />);
+
+    await waitFor(() => expect(screen.getByText("Bosch")).toBeInTheDocument());
+    expect(screen.getByText("PSB 750")).toBeInTheDocument();
+    expect(screen.getByText("SN-123")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("Keep in the garage")).toBeInTheDocument();
+    expect(screen.getByText(/Warranty expires in \d+ days?/)).toBeInTheDocument();
+  });
+
+  it("omits metadata fields, notes and warranty badge that aren't set", async () => {
+    mockItemGet.mockResolvedValue({
+      id: 107,
+      name: "Plain item",
+      description: null,
+      boxId: null,
+      storageUnitId: null,
+      fields: [],
+    });
+    mockBoxesGet.mockResolvedValue([]);
+    mockUnitsGet.mockResolvedValue([]);
+
+    renderWithClient(<ItemDetailPage />);
+
+    await waitFor(() => expect(screen.getByText("Not placed yet")).toBeInTheDocument());
+    expect(screen.queryByText(/Warranty expires/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Notes")).not.toBeInTheDocument();
+  });
+
+  it("shows the custom fields editor and the photos/documents sections", async () => {
+    mockItemGet.mockResolvedValue({
+      id: 108,
+      name: "Item with fields",
+      description: null,
+      boxId: null,
+      storageUnitId: null,
+      fields: [{ id: 1, label: "Color", value: "Blue", sortOrder: 0 }],
+    });
+    mockBoxesGet.mockResolvedValue([]);
+    mockUnitsGet.mockResolvedValue([]);
+
+    renderWithClient(<ItemDetailPage />);
+
+    await waitFor(() => expect(screen.getByDisplayValue("Color")).toBeInTheDocument());
+    expect(screen.getByDisplayValue("Blue")).toBeInTheDocument();
+    expect(screen.getByText("Photos")).toBeInTheDocument();
+    expect(screen.getByText("Documents")).toBeInTheDocument();
+    expect(screen.getByText("No photos yet.")).toBeInTheDocument();
+    expect(screen.getByText("No documents yet.")).toBeInTheDocument();
   });
 });

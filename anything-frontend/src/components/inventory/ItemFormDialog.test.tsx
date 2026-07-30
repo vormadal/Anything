@@ -100,6 +100,14 @@ describe("ItemFormDialog", () => {
         description: null,
         boxId: 10,
         storageUnitId: 1,
+        quantity: null,
+        brand: null,
+        model: null,
+        serialNumber: null,
+        purchasedOn: null,
+        purchasePrice: null,
+        warrantyExpiresOn: null,
+        notes: null,
       })
     );
     expect(onClose).toHaveBeenCalled();
@@ -128,6 +136,14 @@ describe("ItemFormDialog", () => {
         boxId: 10,
         // Was 2 on the item; the box says the summerhouse, and the box wins.
         storageUnitId: 1,
+        quantity: null,
+        brand: null,
+        model: null,
+        serialNumber: null,
+        purchasedOn: null,
+        purchasePrice: null,
+        warrantyExpiresOn: null,
+        notes: null,
       })
     );
   });

@@ -1,6 +1,7 @@
 import {
   boxesInPlace,
   describeItemLocation,
+  describeWarranty,
   formatBoxName,
   formatPlaceName,
   itemsInBox,
@@ -127,6 +128,49 @@ describe('inventory helpers', () => {
 
     it('starts at 1 when there are no boxes', () => {
       expect(nextBoxNumber([])).toBe(1)
+    })
+  })
+
+  describe('describeWarranty', () => {
+    const now = new Date('2026-01-01T00:00:00Z')
+
+    it('reports an already-expired warranty', () => {
+      const expiresOn = new Date('2025-12-01T00:00:00Z')
+      expect(describeWarranty(expiresOn, now)).toEqual({
+        status: 'expired',
+        label: 'Warranty expired',
+      })
+    })
+
+    it('reports a warranty expiring today', () => {
+      expect(describeWarranty(now, now)).toEqual({
+        status: 'expiring-soon',
+        label: 'Warranty expires today',
+      })
+    })
+
+    it('reports a warranty expiring soon in days', () => {
+      const expiresOn = new Date('2026-01-06T00:00:00Z')
+      expect(describeWarranty(expiresOn, now)).toEqual({
+        status: 'expiring-soon',
+        label: 'Warranty expires in 5 days',
+      })
+    })
+
+    it('reports a warranty expiring in months', () => {
+      const expiresOn = new Date('2026-04-01T00:00:00Z')
+      expect(describeWarranty(expiresOn, now)).toEqual({
+        status: 'active',
+        label: 'Warranty expires in 3 months',
+      })
+    })
+
+    it('reports a warranty expiring in years', () => {
+      const expiresOn = new Date('2028-01-01T00:00:00Z')
+      expect(describeWarranty(expiresOn, now)).toEqual({
+        status: 'active',
+        label: 'Warranty expires in 2 years',
+      })
     })
   })
 })

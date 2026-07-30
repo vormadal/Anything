@@ -44,6 +44,8 @@ export function BoxFormDialog({ box, defaultPlaceId, onClose }: BoxFormDialogPro
   const [placeId, setPlaceId] = useState<number | null>(
     box?.storageUnitId ?? defaultPlaceId ?? null
   );
+  const [label, setLabel] = useState(box?.label ?? "");
+  const [description, setDescription] = useState(box?.description ?? "");
 
   const createBox = useCreateInventoryBox();
   const updateBox = useUpdateInventoryBox();
@@ -57,7 +59,12 @@ export function BoxFormDialog({ box, defaultPlaceId, onClose }: BoxFormDialogPro
     e.preventDefault();
     if (!isValidNumber) return;
 
-    const body = { number: parsedNumber, storageUnitId: placeId };
+    const body = {
+      number: parsedNumber,
+      storageUnitId: placeId,
+      label: label.trim() || null,
+      description: description.trim() || null,
+    };
     try {
       if (isEdit) {
         await updateBox.mutateAsync({ id: box.id ?? 0, ...body });
@@ -106,6 +113,31 @@ export function BoxFormDialog({ box, defaultPlaceId, onClose }: BoxFormDialogPro
             value={placeId}
             onChange={setPlaceId}
           />
+          <div>
+            <label htmlFor="box-label" className={FIELD_LABEL_CLASS}>
+              Label
+            </label>
+            <input
+              id="box-label"
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Christmas decorations"
+              className={FIELD_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="box-description" className={FIELD_LABEL_CLASS}>
+              Description
+            </label>
+            <textarea
+              id="box-description"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={FIELD_INPUT_CLASS}
+            />
+          </div>
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
               Cancel
