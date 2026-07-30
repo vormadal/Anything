@@ -980,13 +980,21 @@ export function createImportUnitsRequestFromDiscriminatorValue(parseNode: ParseN
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
- * @returns {InventoryBox}
+ * @returns {InventoryAttachmentResponse}
  */
 // @ts-ignore
-export function createInventoryBoxFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-    return deserializeIntoInventoryBox;
+export function createInventoryAttachmentResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoInventoryAttachmentResponse;
 }
 export interface CreateInventoryBoxRequest extends Parsable {
+    /**
+     * The description property
+     */
+    description?: string | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
     /**
      * The number property
      */
@@ -999,11 +1007,29 @@ export interface CreateInventoryBoxRequest extends Parsable {
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
- * @returns {InventoryItem}
+ * @returns {InventoryBoxResponse}
  */
 // @ts-ignore
-export function createInventoryItemFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-    return deserializeIntoInventoryItem;
+export function createInventoryBoxResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoInventoryBoxResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {InventoryItemFieldInput}
+ */
+// @ts-ignore
+export function createInventoryItemFieldInputFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoInventoryItemFieldInput;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {InventoryItemFieldResponse}
+ */
+// @ts-ignore
+export function createInventoryItemFieldResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoInventoryItemFieldResponse;
 }
 export interface CreateInventoryItemRequest extends Parsable {
     /**
@@ -1011,26 +1037,67 @@ export interface CreateInventoryItemRequest extends Parsable {
      */
     boxId?: number | null;
     /**
+     * The brand property
+     */
+    brand?: string | null;
+    /**
      * The description property
      */
     description?: string | null;
+    /**
+     * The model property
+     */
+    model?: string | null;
     /**
      * The name property
      */
     name?: string | null;
     /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The purchasedOn property
+     */
+    purchasedOn?: Date | null;
+    /**
+     * The purchasePrice property
+     */
+    purchasePrice?: number | null;
+    /**
+     * The quantity property
+     */
+    quantity?: number | null;
+    /**
+     * The serialNumber property
+     */
+    serialNumber?: string | null;
+    /**
      * The storageUnitId property
      */
     storageUnitId?: number | null;
+    /**
+     * The warrantyExpiresOn property
+     */
+    warrantyExpiresOn?: Date | null;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
- * @returns {InventoryStorageUnit}
+ * @returns {InventoryItemResponse}
  */
 // @ts-ignore
-export function createInventoryStorageUnitFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-    return deserializeIntoInventoryStorageUnit;
+export function createInventoryItemResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoInventoryItemResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {InventoryItemSummaryResponse}
+ */
+// @ts-ignore
+export function createInventoryItemSummaryResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoInventoryItemSummaryResponse;
 }
 export interface CreateInventoryStorageUnitRequest extends Parsable {
     /**
@@ -1041,6 +1108,15 @@ export interface CreateInventoryStorageUnitRequest extends Parsable {
      * The type property
      */
     type?: string | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {InventoryStorageUnitResponse}
+ */
+// @ts-ignore
+export function createInventoryStorageUnitResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoInventoryStorageUnitResponse;
 }
 export interface CreateInviteRequest extends Parsable {
     /**
@@ -1815,6 +1891,15 @@ export function createUpdateInventoryBoxRequestFromDiscriminatorValue(parseNode:
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateInventoryItemFieldsRequest}
+ */
+// @ts-ignore
+export function createUpdateInventoryItemFieldsRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateInventoryItemFieldsRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UpdateInventoryItemRequest}
  */
 // @ts-ignore
@@ -2274,6 +2359,8 @@ export function deserializeIntoCreateHouseholdRequest(createHouseholdRequest: Pa
 // @ts-ignore
 export function deserializeIntoCreateInventoryBoxRequest(createInventoryBoxRequest: Partial<CreateInventoryBoxRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "description": n => { createInventoryBoxRequest.description = n.getStringValue(); },
+        "label": n => { createInventoryBoxRequest.label = n.getStringValue(); },
         "number": n => { createInventoryBoxRequest.number = n.getNumberValue(); },
         "storageUnitId": n => { createInventoryBoxRequest.storageUnitId = n.getNumberValue(); },
     }
@@ -2287,9 +2374,17 @@ export function deserializeIntoCreateInventoryBoxRequest(createInventoryBoxReque
 export function deserializeIntoCreateInventoryItemRequest(createInventoryItemRequest: Partial<CreateInventoryItemRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "boxId": n => { createInventoryItemRequest.boxId = n.getNumberValue(); },
+        "brand": n => { createInventoryItemRequest.brand = n.getStringValue(); },
         "description": n => { createInventoryItemRequest.description = n.getStringValue(); },
+        "model": n => { createInventoryItemRequest.model = n.getStringValue(); },
         "name": n => { createInventoryItemRequest.name = n.getStringValue(); },
+        "notes": n => { createInventoryItemRequest.notes = n.getStringValue(); },
+        "purchasedOn": n => { createInventoryItemRequest.purchasedOn = n.getDateValue(); },
+        "purchasePrice": n => { createInventoryItemRequest.purchasePrice = n.getNumberValue(); },
+        "quantity": n => { createInventoryItemRequest.quantity = n.getNumberValue(); },
+        "serialNumber": n => { createInventoryItemRequest.serialNumber = n.getStringValue(); },
         "storageUnitId": n => { createInventoryItemRequest.storageUnitId = n.getNumberValue(); },
+        "warrantyExpiresOn": n => { createInventoryItemRequest.warrantyExpiresOn = n.getDateValue(); },
     }
 }
 /**
@@ -2841,55 +2936,121 @@ export function deserializeIntoImportUnitsRequest(importUnitsRequest: Partial<Im
 }
 /**
  * The deserialization information for the current model
- * @param InventoryBox The instance to deserialize into.
+ * @param InventoryAttachmentResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
 // @ts-ignore
-export function deserializeIntoInventoryBox(inventoryBox: Partial<InventoryBox> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+export function deserializeIntoInventoryAttachmentResponse(inventoryAttachmentResponse: Partial<InventoryAttachmentResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
-        "createdOn": n => { inventoryBox.createdOn = n.getDateValue(); },
-        "deletedOn": n => { inventoryBox.deletedOn = n.getDateValue(); },
-        "householdId": n => { inventoryBox.householdId = n.getNumberValue(); },
-        "id": n => { inventoryBox.id = n.getNumberValue(); },
-        "modifiedOn": n => { inventoryBox.modifiedOn = n.getDateValue(); },
-        "number": n => { inventoryBox.number = n.getNumberValue(); },
-        "storageUnitId": n => { inventoryBox.storageUnitId = n.getNumberValue(); },
+        "contentType": n => { inventoryAttachmentResponse.contentType = n.getStringValue(); },
+        "createdOn": n => { inventoryAttachmentResponse.createdOn = n.getDateValue(); },
+        "id": n => { inventoryAttachmentResponse.id = n.getNumberValue(); },
+        "kind": n => { inventoryAttachmentResponse.kind = n.getStringValue(); },
+        "name": n => { inventoryAttachmentResponse.name = n.getStringValue(); },
+        "sortOrder": n => { inventoryAttachmentResponse.sortOrder = n.getNumberValue(); },
+        "thumbnailUrl": n => { inventoryAttachmentResponse.thumbnailUrl = n.getStringValue(); },
+        "url": n => { inventoryAttachmentResponse.url = n.getStringValue(); },
     }
 }
 /**
  * The deserialization information for the current model
- * @param InventoryItem The instance to deserialize into.
+ * @param InventoryBoxResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
 // @ts-ignore
-export function deserializeIntoInventoryItem(inventoryItem: Partial<InventoryItem> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+export function deserializeIntoInventoryBoxResponse(inventoryBoxResponse: Partial<InventoryBoxResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
-        "boxId": n => { inventoryItem.boxId = n.getNumberValue(); },
-        "createdOn": n => { inventoryItem.createdOn = n.getDateValue(); },
-        "deletedOn": n => { inventoryItem.deletedOn = n.getDateValue(); },
-        "description": n => { inventoryItem.description = n.getStringValue(); },
-        "householdId": n => { inventoryItem.householdId = n.getNumberValue(); },
-        "id": n => { inventoryItem.id = n.getNumberValue(); },
-        "modifiedOn": n => { inventoryItem.modifiedOn = n.getDateValue(); },
-        "name": n => { inventoryItem.name = n.getStringValue(); },
-        "storageUnitId": n => { inventoryItem.storageUnitId = n.getNumberValue(); },
+        "createdOn": n => { inventoryBoxResponse.createdOn = n.getDateValue(); },
+        "description": n => { inventoryBoxResponse.description = n.getStringValue(); },
+        "id": n => { inventoryBoxResponse.id = n.getNumberValue(); },
+        "label": n => { inventoryBoxResponse.label = n.getStringValue(); },
+        "modifiedOn": n => { inventoryBoxResponse.modifiedOn = n.getDateValue(); },
+        "number": n => { inventoryBoxResponse.number = n.getNumberValue(); },
+        "storageUnitId": n => { inventoryBoxResponse.storageUnitId = n.getNumberValue(); },
     }
 }
 /**
  * The deserialization information for the current model
- * @param InventoryStorageUnit The instance to deserialize into.
+ * @param InventoryItemFieldInput The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
 // @ts-ignore
-export function deserializeIntoInventoryStorageUnit(inventoryStorageUnit: Partial<InventoryStorageUnit> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+export function deserializeIntoInventoryItemFieldInput(inventoryItemFieldInput: Partial<InventoryItemFieldInput> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
-        "createdOn": n => { inventoryStorageUnit.createdOn = n.getDateValue(); },
-        "deletedOn": n => { inventoryStorageUnit.deletedOn = n.getDateValue(); },
-        "householdId": n => { inventoryStorageUnit.householdId = n.getNumberValue(); },
-        "id": n => { inventoryStorageUnit.id = n.getNumberValue(); },
-        "modifiedOn": n => { inventoryStorageUnit.modifiedOn = n.getDateValue(); },
-        "name": n => { inventoryStorageUnit.name = n.getStringValue(); },
-        "type": n => { inventoryStorageUnit.type = n.getStringValue(); },
+        "label": n => { inventoryItemFieldInput.label = n.getStringValue(); },
+        "value": n => { inventoryItemFieldInput.value = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param InventoryItemFieldResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoInventoryItemFieldResponse(inventoryItemFieldResponse: Partial<InventoryItemFieldResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "id": n => { inventoryItemFieldResponse.id = n.getNumberValue(); },
+        "label": n => { inventoryItemFieldResponse.label = n.getStringValue(); },
+        "sortOrder": n => { inventoryItemFieldResponse.sortOrder = n.getNumberValue(); },
+        "value": n => { inventoryItemFieldResponse.value = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param InventoryItemResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoInventoryItemResponse(inventoryItemResponse: Partial<InventoryItemResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "boxId": n => { inventoryItemResponse.boxId = n.getNumberValue(); },
+        "brand": n => { inventoryItemResponse.brand = n.getStringValue(); },
+        "createdOn": n => { inventoryItemResponse.createdOn = n.getDateValue(); },
+        "description": n => { inventoryItemResponse.description = n.getStringValue(); },
+        "fields": n => { inventoryItemResponse.fields = n.getCollectionOfObjectValues<InventoryItemFieldResponse>(createInventoryItemFieldResponseFromDiscriminatorValue); },
+        "id": n => { inventoryItemResponse.id = n.getNumberValue(); },
+        "model": n => { inventoryItemResponse.model = n.getStringValue(); },
+        "modifiedOn": n => { inventoryItemResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { inventoryItemResponse.name = n.getStringValue(); },
+        "notes": n => { inventoryItemResponse.notes = n.getStringValue(); },
+        "purchasedOn": n => { inventoryItemResponse.purchasedOn = n.getDateValue(); },
+        "purchasePrice": n => { inventoryItemResponse.purchasePrice = n.getNumberValue(); },
+        "quantity": n => { inventoryItemResponse.quantity = n.getNumberValue(); },
+        "serialNumber": n => { inventoryItemResponse.serialNumber = n.getStringValue(); },
+        "storageUnitId": n => { inventoryItemResponse.storageUnitId = n.getNumberValue(); },
+        "warrantyExpiresOn": n => { inventoryItemResponse.warrantyExpiresOn = n.getDateValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param InventoryItemSummaryResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoInventoryItemSummaryResponse(inventoryItemSummaryResponse: Partial<InventoryItemSummaryResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "boxId": n => { inventoryItemSummaryResponse.boxId = n.getNumberValue(); },
+        "createdOn": n => { inventoryItemSummaryResponse.createdOn = n.getDateValue(); },
+        "description": n => { inventoryItemSummaryResponse.description = n.getStringValue(); },
+        "id": n => { inventoryItemSummaryResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { inventoryItemSummaryResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { inventoryItemSummaryResponse.name = n.getStringValue(); },
+        "storageUnitId": n => { inventoryItemSummaryResponse.storageUnitId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param InventoryStorageUnitResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoInventoryStorageUnitResponse(inventoryStorageUnitResponse: Partial<InventoryStorageUnitResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { inventoryStorageUnitResponse.createdOn = n.getDateValue(); },
+        "id": n => { inventoryStorageUnitResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { inventoryStorageUnitResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { inventoryStorageUnitResponse.name = n.getStringValue(); },
+        "type": n => { inventoryStorageUnitResponse.type = n.getStringValue(); },
     }
 }
 /**
@@ -3837,8 +3998,21 @@ export function deserializeIntoUpdateHouseholdRequest(updateHouseholdRequest: Pa
 // @ts-ignore
 export function deserializeIntoUpdateInventoryBoxRequest(updateInventoryBoxRequest: Partial<UpdateInventoryBoxRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "description": n => { updateInventoryBoxRequest.description = n.getStringValue(); },
+        "label": n => { updateInventoryBoxRequest.label = n.getStringValue(); },
         "number": n => { updateInventoryBoxRequest.number = n.getNumberValue(); },
         "storageUnitId": n => { updateInventoryBoxRequest.storageUnitId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param UpdateInventoryItemFieldsRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateInventoryItemFieldsRequest(updateInventoryItemFieldsRequest: Partial<UpdateInventoryItemFieldsRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "fields": n => { updateInventoryItemFieldsRequest.fields = n.getCollectionOfObjectValues<InventoryItemFieldInput>(createInventoryItemFieldInputFromDiscriminatorValue); },
     }
 }
 /**
@@ -3850,9 +4024,17 @@ export function deserializeIntoUpdateInventoryBoxRequest(updateInventoryBoxReque
 export function deserializeIntoUpdateInventoryItemRequest(updateInventoryItemRequest: Partial<UpdateInventoryItemRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "boxId": n => { updateInventoryItemRequest.boxId = n.getNumberValue(); },
+        "brand": n => { updateInventoryItemRequest.brand = n.getStringValue(); },
         "description": n => { updateInventoryItemRequest.description = n.getStringValue(); },
+        "model": n => { updateInventoryItemRequest.model = n.getStringValue(); },
         "name": n => { updateInventoryItemRequest.name = n.getStringValue(); },
+        "notes": n => { updateInventoryItemRequest.notes = n.getStringValue(); },
+        "purchasedOn": n => { updateInventoryItemRequest.purchasedOn = n.getDateValue(); },
+        "purchasePrice": n => { updateInventoryItemRequest.purchasePrice = n.getNumberValue(); },
+        "quantity": n => { updateInventoryItemRequest.quantity = n.getNumberValue(); },
+        "serialNumber": n => { updateInventoryItemRequest.serialNumber = n.getStringValue(); },
         "storageUnitId": n => { updateInventoryItemRequest.storageUnitId = n.getNumberValue(); },
+        "warrantyExpiresOn": n => { updateInventoryItemRequest.warrantyExpiresOn = n.getDateValue(); },
     }
 }
 /**
@@ -4466,23 +4648,57 @@ export interface ImportUnitsRequest extends Parsable {
      */
     units?: UnitImportExportItem[] | null;
 }
-export interface InventoryBox extends Parsable {
+export interface InventoryAttachmentResponse extends Parsable {
+    /**
+     * The contentType property
+     */
+    contentType?: string | null;
     /**
      * The createdOn property
      */
     createdOn?: Date | null;
     /**
-     * The deletedOn property
+     * The id property
      */
-    deletedOn?: Date | null;
+    id?: number | null;
     /**
-     * The householdId property
+     * The kind property
      */
-    householdId?: number | null;
+    kind?: string | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The sortOrder property
+     */
+    sortOrder?: number | null;
+    /**
+     * The thumbnailUrl property
+     */
+    thumbnailUrl?: string | null;
+    /**
+     * The url property
+     */
+    url?: string | null;
+}
+export interface InventoryBoxResponse extends Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The description property
+     */
+    description?: string | null;
     /**
      * The id property
      */
     id?: number | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
     /**
      * The modifiedOn property
      */
@@ -4496,7 +4712,101 @@ export interface InventoryBox extends Parsable {
      */
     storageUnitId?: number | null;
 }
-export interface InventoryItem extends Parsable {
+export interface InventoryItemFieldInput extends Parsable {
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
+     * The value property
+     */
+    value?: string | null;
+}
+export interface InventoryItemFieldResponse extends Parsable {
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
+     * The sortOrder property
+     */
+    sortOrder?: number | null;
+    /**
+     * The value property
+     */
+    value?: string | null;
+}
+export interface InventoryItemResponse extends Parsable {
+    /**
+     * The boxId property
+     */
+    boxId?: number | null;
+    /**
+     * The brand property
+     */
+    brand?: string | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The description property
+     */
+    description?: string | null;
+    /**
+     * The fields property
+     */
+    fields?: InventoryItemFieldResponse[] | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The model property
+     */
+    model?: string | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The purchasedOn property
+     */
+    purchasedOn?: Date | null;
+    /**
+     * The purchasePrice property
+     */
+    purchasePrice?: number | null;
+    /**
+     * The quantity property
+     */
+    quantity?: number | null;
+    /**
+     * The serialNumber property
+     */
+    serialNumber?: string | null;
+    /**
+     * The storageUnitId property
+     */
+    storageUnitId?: number | null;
+    /**
+     * The warrantyExpiresOn property
+     */
+    warrantyExpiresOn?: Date | null;
+}
+export interface InventoryItemSummaryResponse extends Parsable {
     /**
      * The boxId property
      */
@@ -4506,17 +4816,9 @@ export interface InventoryItem extends Parsable {
      */
     createdOn?: Date | null;
     /**
-     * The deletedOn property
-     */
-    deletedOn?: Date | null;
-    /**
      * The description property
      */
     description?: string | null;
-    /**
-     * The householdId property
-     */
-    householdId?: number | null;
     /**
      * The id property
      */
@@ -4534,19 +4836,11 @@ export interface InventoryItem extends Parsable {
      */
     storageUnitId?: number | null;
 }
-export interface InventoryStorageUnit extends Parsable {
+export interface InventoryStorageUnitResponse extends Parsable {
     /**
      * The createdOn property
      */
     createdOn?: Date | null;
-    /**
-     * The deletedOn property
-     */
-    deletedOn?: Date | null;
-    /**
-     * The householdId property
-     */
-    householdId?: number | null;
     /**
      * The id property
      */
@@ -5639,6 +5933,8 @@ export function serializeCreateHouseholdRequest(writer: SerializationWriter, cre
 // @ts-ignore
 export function serializeCreateInventoryBoxRequest(writer: SerializationWriter, createInventoryBoxRequest: Partial<CreateInventoryBoxRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createInventoryBoxRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("description", createInventoryBoxRequest.description);
+    writer.writeStringValue("label", createInventoryBoxRequest.label);
     writer.writeNumberValue("number", createInventoryBoxRequest.number);
     writer.writeNumberValue("storageUnitId", createInventoryBoxRequest.storageUnitId);
 }
@@ -5652,9 +5948,17 @@ export function serializeCreateInventoryBoxRequest(writer: SerializationWriter, 
 export function serializeCreateInventoryItemRequest(writer: SerializationWriter, createInventoryItemRequest: Partial<CreateInventoryItemRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!createInventoryItemRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("boxId", createInventoryItemRequest.boxId);
+    writer.writeStringValue("brand", createInventoryItemRequest.brand);
     writer.writeStringValue("description", createInventoryItemRequest.description);
+    writer.writeStringValue("model", createInventoryItemRequest.model);
     writer.writeStringValue("name", createInventoryItemRequest.name);
+    writer.writeStringValue("notes", createInventoryItemRequest.notes);
+    writer.writeDateValue("purchasedOn", createInventoryItemRequest.purchasedOn);
+    writer.writeNumberValue("purchasePrice", createInventoryItemRequest.purchasePrice);
+    writer.writeNumberValue("quantity", createInventoryItemRequest.quantity);
+    writer.writeStringValue("serialNumber", createInventoryItemRequest.serialNumber);
     writer.writeNumberValue("storageUnitId", createInventoryItemRequest.storageUnitId);
+    writer.writeDateValue("warrantyExpiresOn", createInventoryItemRequest.warrantyExpiresOn);
 }
 /**
  * Serializes information the current object
@@ -6207,56 +6511,122 @@ export function serializeImportUnitsRequest(writer: SerializationWriter, importU
 }
 /**
  * Serializes information the current object
- * @param InventoryBox The instance to serialize from.
+ * @param InventoryAttachmentResponse The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
  */
 // @ts-ignore
-export function serializeInventoryBox(writer: SerializationWriter, inventoryBox: Partial<InventoryBox> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
-    if (!inventoryBox || isSerializingDerivedType) { return; }
-    writer.writeDateValue("createdOn", inventoryBox.createdOn);
-    writer.writeDateValue("deletedOn", inventoryBox.deletedOn);
-    writer.writeNumberValue("householdId", inventoryBox.householdId);
-    writer.writeNumberValue("id", inventoryBox.id);
-    writer.writeDateValue("modifiedOn", inventoryBox.modifiedOn);
-    writer.writeNumberValue("number", inventoryBox.number);
-    writer.writeNumberValue("storageUnitId", inventoryBox.storageUnitId);
+export function serializeInventoryAttachmentResponse(writer: SerializationWriter, inventoryAttachmentResponse: Partial<InventoryAttachmentResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!inventoryAttachmentResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("contentType", inventoryAttachmentResponse.contentType);
+    writer.writeDateValue("createdOn", inventoryAttachmentResponse.createdOn);
+    writer.writeNumberValue("id", inventoryAttachmentResponse.id);
+    writer.writeStringValue("kind", inventoryAttachmentResponse.kind);
+    writer.writeStringValue("name", inventoryAttachmentResponse.name);
+    writer.writeNumberValue("sortOrder", inventoryAttachmentResponse.sortOrder);
+    writer.writeStringValue("thumbnailUrl", inventoryAttachmentResponse.thumbnailUrl);
+    writer.writeStringValue("url", inventoryAttachmentResponse.url);
 }
 /**
  * Serializes information the current object
- * @param InventoryItem The instance to serialize from.
+ * @param InventoryBoxResponse The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
  */
 // @ts-ignore
-export function serializeInventoryItem(writer: SerializationWriter, inventoryItem: Partial<InventoryItem> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
-    if (!inventoryItem || isSerializingDerivedType) { return; }
-    writer.writeNumberValue("boxId", inventoryItem.boxId);
-    writer.writeDateValue("createdOn", inventoryItem.createdOn);
-    writer.writeDateValue("deletedOn", inventoryItem.deletedOn);
-    writer.writeStringValue("description", inventoryItem.description);
-    writer.writeNumberValue("householdId", inventoryItem.householdId);
-    writer.writeNumberValue("id", inventoryItem.id);
-    writer.writeDateValue("modifiedOn", inventoryItem.modifiedOn);
-    writer.writeStringValue("name", inventoryItem.name);
-    writer.writeNumberValue("storageUnitId", inventoryItem.storageUnitId);
+export function serializeInventoryBoxResponse(writer: SerializationWriter, inventoryBoxResponse: Partial<InventoryBoxResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!inventoryBoxResponse || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", inventoryBoxResponse.createdOn);
+    writer.writeStringValue("description", inventoryBoxResponse.description);
+    writer.writeNumberValue("id", inventoryBoxResponse.id);
+    writer.writeStringValue("label", inventoryBoxResponse.label);
+    writer.writeDateValue("modifiedOn", inventoryBoxResponse.modifiedOn);
+    writer.writeNumberValue("number", inventoryBoxResponse.number);
+    writer.writeNumberValue("storageUnitId", inventoryBoxResponse.storageUnitId);
 }
 /**
  * Serializes information the current object
- * @param InventoryStorageUnit The instance to serialize from.
+ * @param InventoryItemFieldInput The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
  */
 // @ts-ignore
-export function serializeInventoryStorageUnit(writer: SerializationWriter, inventoryStorageUnit: Partial<InventoryStorageUnit> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
-    if (!inventoryStorageUnit || isSerializingDerivedType) { return; }
-    writer.writeDateValue("createdOn", inventoryStorageUnit.createdOn);
-    writer.writeDateValue("deletedOn", inventoryStorageUnit.deletedOn);
-    writer.writeNumberValue("householdId", inventoryStorageUnit.householdId);
-    writer.writeNumberValue("id", inventoryStorageUnit.id);
-    writer.writeDateValue("modifiedOn", inventoryStorageUnit.modifiedOn);
-    writer.writeStringValue("name", inventoryStorageUnit.name);
-    writer.writeStringValue("type", inventoryStorageUnit.type);
+export function serializeInventoryItemFieldInput(writer: SerializationWriter, inventoryItemFieldInput: Partial<InventoryItemFieldInput> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!inventoryItemFieldInput || isSerializingDerivedType) { return; }
+    writer.writeStringValue("label", inventoryItemFieldInput.label);
+    writer.writeStringValue("value", inventoryItemFieldInput.value);
+}
+/**
+ * Serializes information the current object
+ * @param InventoryItemFieldResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeInventoryItemFieldResponse(writer: SerializationWriter, inventoryItemFieldResponse: Partial<InventoryItemFieldResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!inventoryItemFieldResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("id", inventoryItemFieldResponse.id);
+    writer.writeStringValue("label", inventoryItemFieldResponse.label);
+    writer.writeNumberValue("sortOrder", inventoryItemFieldResponse.sortOrder);
+    writer.writeStringValue("value", inventoryItemFieldResponse.value);
+}
+/**
+ * Serializes information the current object
+ * @param InventoryItemResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeInventoryItemResponse(writer: SerializationWriter, inventoryItemResponse: Partial<InventoryItemResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!inventoryItemResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("boxId", inventoryItemResponse.boxId);
+    writer.writeStringValue("brand", inventoryItemResponse.brand);
+    writer.writeDateValue("createdOn", inventoryItemResponse.createdOn);
+    writer.writeStringValue("description", inventoryItemResponse.description);
+    writer.writeCollectionOfObjectValues<InventoryItemFieldResponse>("fields", inventoryItemResponse.fields, serializeInventoryItemFieldResponse);
+    writer.writeNumberValue("id", inventoryItemResponse.id);
+    writer.writeStringValue("model", inventoryItemResponse.model);
+    writer.writeDateValue("modifiedOn", inventoryItemResponse.modifiedOn);
+    writer.writeStringValue("name", inventoryItemResponse.name);
+    writer.writeStringValue("notes", inventoryItemResponse.notes);
+    writer.writeDateValue("purchasedOn", inventoryItemResponse.purchasedOn);
+    writer.writeNumberValue("purchasePrice", inventoryItemResponse.purchasePrice);
+    writer.writeNumberValue("quantity", inventoryItemResponse.quantity);
+    writer.writeStringValue("serialNumber", inventoryItemResponse.serialNumber);
+    writer.writeNumberValue("storageUnitId", inventoryItemResponse.storageUnitId);
+    writer.writeDateValue("warrantyExpiresOn", inventoryItemResponse.warrantyExpiresOn);
+}
+/**
+ * Serializes information the current object
+ * @param InventoryItemSummaryResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeInventoryItemSummaryResponse(writer: SerializationWriter, inventoryItemSummaryResponse: Partial<InventoryItemSummaryResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!inventoryItemSummaryResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("boxId", inventoryItemSummaryResponse.boxId);
+    writer.writeDateValue("createdOn", inventoryItemSummaryResponse.createdOn);
+    writer.writeStringValue("description", inventoryItemSummaryResponse.description);
+    writer.writeNumberValue("id", inventoryItemSummaryResponse.id);
+    writer.writeDateValue("modifiedOn", inventoryItemSummaryResponse.modifiedOn);
+    writer.writeStringValue("name", inventoryItemSummaryResponse.name);
+    writer.writeNumberValue("storageUnitId", inventoryItemSummaryResponse.storageUnitId);
+}
+/**
+ * Serializes information the current object
+ * @param InventoryStorageUnitResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeInventoryStorageUnitResponse(writer: SerializationWriter, inventoryStorageUnitResponse: Partial<InventoryStorageUnitResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!inventoryStorageUnitResponse || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", inventoryStorageUnitResponse.createdOn);
+    writer.writeNumberValue("id", inventoryStorageUnitResponse.id);
+    writer.writeDateValue("modifiedOn", inventoryStorageUnitResponse.modifiedOn);
+    writer.writeStringValue("name", inventoryStorageUnitResponse.name);
+    writer.writeStringValue("type", inventoryStorageUnitResponse.type);
 }
 /**
  * Serializes information the current object
@@ -7204,8 +7574,21 @@ export function serializeUpdateHouseholdRequest(writer: SerializationWriter, upd
 // @ts-ignore
 export function serializeUpdateInventoryBoxRequest(writer: SerializationWriter, updateInventoryBoxRequest: Partial<UpdateInventoryBoxRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateInventoryBoxRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("description", updateInventoryBoxRequest.description);
+    writer.writeStringValue("label", updateInventoryBoxRequest.label);
     writer.writeNumberValue("number", updateInventoryBoxRequest.number);
     writer.writeNumberValue("storageUnitId", updateInventoryBoxRequest.storageUnitId);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateInventoryItemFieldsRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateInventoryItemFieldsRequest(writer: SerializationWriter, updateInventoryItemFieldsRequest: Partial<UpdateInventoryItemFieldsRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateInventoryItemFieldsRequest || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfObjectValues<InventoryItemFieldInput>("fields", updateInventoryItemFieldsRequest.fields, serializeInventoryItemFieldInput);
 }
 /**
  * Serializes information the current object
@@ -7217,9 +7600,17 @@ export function serializeUpdateInventoryBoxRequest(writer: SerializationWriter, 
 export function serializeUpdateInventoryItemRequest(writer: SerializationWriter, updateInventoryItemRequest: Partial<UpdateInventoryItemRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!updateInventoryItemRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("boxId", updateInventoryItemRequest.boxId);
+    writer.writeStringValue("brand", updateInventoryItemRequest.brand);
     writer.writeStringValue("description", updateInventoryItemRequest.description);
+    writer.writeStringValue("model", updateInventoryItemRequest.model);
     writer.writeStringValue("name", updateInventoryItemRequest.name);
+    writer.writeStringValue("notes", updateInventoryItemRequest.notes);
+    writer.writeDateValue("purchasedOn", updateInventoryItemRequest.purchasedOn);
+    writer.writeNumberValue("purchasePrice", updateInventoryItemRequest.purchasePrice);
+    writer.writeNumberValue("quantity", updateInventoryItemRequest.quantity);
+    writer.writeStringValue("serialNumber", updateInventoryItemRequest.serialNumber);
     writer.writeNumberValue("storageUnitId", updateInventoryItemRequest.storageUnitId);
+    writer.writeDateValue("warrantyExpiresOn", updateInventoryItemRequest.warrantyExpiresOn);
 }
 /**
  * Serializes information the current object
@@ -7934,6 +8325,14 @@ export interface UpdateHouseholdRequest extends Parsable {
 }
 export interface UpdateInventoryBoxRequest extends Parsable {
     /**
+     * The description property
+     */
+    description?: string | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
      * The number property
      */
     number?: number | null;
@@ -7942,23 +8341,61 @@ export interface UpdateInventoryBoxRequest extends Parsable {
      */
     storageUnitId?: number | null;
 }
+export interface UpdateInventoryItemFieldsRequest extends Parsable {
+    /**
+     * The fields property
+     */
+    fields?: InventoryItemFieldInput[] | null;
+}
 export interface UpdateInventoryItemRequest extends Parsable {
     /**
      * The boxId property
      */
     boxId?: number | null;
     /**
+     * The brand property
+     */
+    brand?: string | null;
+    /**
      * The description property
      */
     description?: string | null;
+    /**
+     * The model property
+     */
+    model?: string | null;
     /**
      * The name property
      */
     name?: string | null;
     /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The purchasedOn property
+     */
+    purchasedOn?: Date | null;
+    /**
+     * The purchasePrice property
+     */
+    purchasePrice?: number | null;
+    /**
+     * The quantity property
+     */
+    quantity?: number | null;
+    /**
+     * The serialNumber property
+     */
+    serialNumber?: string | null;
+    /**
      * The storageUnitId property
      */
     storageUnitId?: number | null;
+    /**
+     * The warrantyExpiresOn property
+     */
+    warrantyExpiresOn?: Date | null;
 }
 export interface UpdateInventoryStorageUnitRequest extends Parsable {
     /**
