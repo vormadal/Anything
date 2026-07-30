@@ -42,13 +42,13 @@ describe('inventory helpers', () => {
 
     it('shows the label instead of the "Box" prefix when the box has one', () => {
       expect(formatBoxName({ number: 4, label: 'Christmas decorations' })).toBe(
-        'Christmas decorations #4'
+        '#4 Christmas decorations'
       )
     })
 
     it('falls back to the number placeholder alongside the label when the box has no number', () => {
       expect(formatBoxName({ number: null, label: 'Christmas decorations' })).toBe(
-        'Christmas decorations #?'
+        '#? Christmas decorations'
       )
     })
 

@@ -103,7 +103,7 @@ describe("BoxDetailPage", () => {
     renderWithClient(<BoxDetailPage />);
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "Christmas decorations #4" })).toBeInTheDocument()
+      expect(screen.getByRole("heading", { name: "#4 Christmas decorations" })).toBeInTheDocument()
     );
     expect(screen.getByText("Lights and ornaments")).toBeInTheDocument();
   });

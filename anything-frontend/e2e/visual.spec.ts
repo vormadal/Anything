@@ -1186,7 +1186,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
     await page.goto("/inventory/boxes/13");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: "Christmas decorations #4" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "#4 Christmas decorations" })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-box-detail-labeled.png", screenshotOptions);
   });
 
