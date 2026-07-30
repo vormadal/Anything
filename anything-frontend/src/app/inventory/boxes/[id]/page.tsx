@@ -114,7 +114,7 @@ export default function BoxDetailPage() {
         <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
           <Image
             src={headerPhoto.thumbnailUrl}
-            alt={box.label ?? formatBoxName(box)}
+            alt={formatBoxName(box)}
             fill
             sizes="(max-width: 672px) 100vw, 672px"
             className="object-cover"
@@ -122,11 +122,9 @@ export default function BoxDetailPage() {
         </div>
       )}
 
-      {/* The app header already renders the box number (via PageTitle), so the
-          page body only adds what the header can't show. */}
-      {box.label && (
-        <p className="text-base font-medium text-gray-900 dark:text-white">{box.label}</p>
-      )}
+      {/* The app header already renders the box's label and number (via
+          PageTitle → formatBoxName), so the page body only adds what the
+          header can't show. */}
       {box.description && (
         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
           {box.description}

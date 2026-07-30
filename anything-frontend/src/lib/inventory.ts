@@ -22,9 +22,14 @@ export const placePath = (id: number) => `${INVENTORY_PATH}/places/${id}`;
 export const boxPath = (id: number) => `${INVENTORY_PATH}/boxes/${id}`;
 export const itemPath = (id: number) => `${INVENTORY_PATH}/items/${id}`;
 
-/** A box has no name of its own — it is identified by the number written on it. */
-export function formatBoxName(box: Pick<InventoryBoxResponse, "number">): string {
-  return `Box ${box.number ?? "?"}`;
+/**
+ * A box has no name of its own — it is identified by the number written on
+ * it. A label, when set, replaces the generic "Box" prefix so the box reads
+ * as e.g. "#4 Christmas decorations" instead of "Box 4".
+ */
+export function formatBoxName(box: Pick<InventoryBoxResponse, "number" | "label">): string {
+  const number = box.number ?? "?";
+  return box.label ? `#${number} ${box.label}` : `Box ${number}`;
 }
 
 export function formatPlaceName(unit: Pick<InventoryStorageUnitResponse, "name">): string {
