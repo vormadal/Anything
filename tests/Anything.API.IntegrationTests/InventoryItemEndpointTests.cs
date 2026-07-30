@@ -276,6 +276,227 @@ public class InventoryItemEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.BadRequest, updateDeletedUnit.StatusCode);
     }
 
+    // --- Metadata ---
+
+    [Fact]
+    public async Task CreateAndUpdate_WithMetadataFields_RoundTripsCorrectly()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+
+        var createPayload = new
+        {
+            name = "Drill",
+            description = (string?)null,
+            boxId = (int?)null,
+            storageUnitId = (int?)null,
+            quantity = 2,
+            brand = "Bosch",
+            model = "GSB 18",
+            serialNumber = "SN-001",
+            purchasedOn = new DateTime(2024, 5, 1, 0, 0, 0, DateTimeKind.Utc),
+            purchasePrice = 149.99m,
+            warrantyExpiresOn = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
+            notes = "Bought at the hardware store"
+        };
+        var createResponse = await httpClient.PostAsJsonAsync("/api/inventory-items", createPayload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<FullItemDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(created);
+        Assert.Equal(2, created.Quantity);
+        Assert.Equal("Bosch", created.Brand);
+        Assert.Equal("GSB 18", created.Model);
+        Assert.Equal("SN-001", created.SerialNumber);
+        Assert.Equal(149.99m, created.PurchasePrice);
+        Assert.Equal("Bought at the hardware store", created.Notes);
+        Assert.Empty(created.Fields);
+
+        var getResponse = await httpClient.GetAsync($"/api/inventory-items/{created.Id}", TestContext.Current.CancellationToken);
+        var fetched = await getResponse.Content.ReadFromJsonAsync<FullItemDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Equal("Bosch", fetched!.Brand);
+
+        var updatePayload = new
+        {
+            name = "Drill",
+            description = (string?)null,
+            boxId = (int?)null,
+            storageUnitId = (int?)null,
+            quantity = 1,
+            brand = "Makita",
+            model = (string?)null,
+            serialNumber = (string?)null,
+            purchasedOn = (DateTime?)null,
+            purchasePrice = (decimal?)null,
+            warrantyExpiresOn = (DateTime?)null,
+            notes = (string?)null
+        };
+        var updateResponse = await httpClient.PutAsJsonAsync($"/api/inventory-items/{created.Id}", updatePayload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        var afterUpdate = await httpClient.GetAsync($"/api/inventory-items/{created.Id}", TestContext.Current.CancellationToken);
+        var updated = await afterUpdate.Content.ReadFromJsonAsync<FullItemDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Equal(1, updated!.Quantity);
+        Assert.Equal("Makita", updated.Brand);
+        Assert.Null(updated.Model);
+        Assert.Null(updated.PurchasePrice);
+    }
+
+    [Fact]
+    public async Task CreateInventoryItem_WithBoxInADifferentPlace_DerivesPlaceFromTheBox()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var boxsPlace = await CreateStorageUnitViaClient("Basement", null);
+        var callersClaimedPlace = await CreateStorageUnitViaClient("Attic", null);
+        var box = await CreateBoxViaClient(1, boxsPlace.Id);
+
+        var payload = new
+        {
+            name = "Item",
+            description = (string?)null,
+            boxId = box.Id,
+            storageUnitId = callersClaimedPlace.Id
+        };
+        var response = await httpClient.PostAsJsonAsync("/api/inventory-items", payload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<FullItemDto>(JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.Equal(box.Id, created!.BoxId);
+        Assert.Equal(boxsPlace.Id, created.StorageUnitId);
+    }
+
+    // --- Custom fields ---
+
+    [Fact]
+    public async Task UpdateInventoryItemFields_ReplacesWholesaleAndValidates()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var item = await CreateItemViaClient("Item with fields", null, null, null);
+
+        var setPayload = new { fields = new[] { new { label = "Warranty", value = "2 years" }, new { label = "Serial", value = "ABC" } } };
+        var setResponse = await httpClient.PutAsJsonAsync($"/api/inventory-items/{item.Id}/fields", setPayload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, setResponse.StatusCode);
+        var fields = await setResponse.Content.ReadFromJsonAsync<FieldDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(fields);
+        Assert.Equal(2, fields.Length);
+        Assert.Equal("Warranty", fields[0].Label);
+        Assert.Equal(0, fields[0].SortOrder);
+
+        // Wholesale replace: fewer fields on the second call fully replaces the first set.
+        var replacePayload = new { fields = new[] { new { label = "Only", value = "one" } } };
+        var replaceResponse = await httpClient.PutAsJsonAsync($"/api/inventory-items/{item.Id}/fields", replacePayload, TestContext.Current.CancellationToken);
+        var replaced = await replaceResponse.Content.ReadFromJsonAsync<FieldDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Single(replaced!);
+
+        var getResponse = await httpClient.GetAsync($"/api/inventory-items/{item.Id}", TestContext.Current.CancellationToken);
+        var fetched = await getResponse.Content.ReadFromJsonAsync<FullItemDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Single(fetched!.Fields);
+        Assert.Equal("Only", fetched.Fields[0].Label);
+
+        // Validation: blank label rejected
+        var invalidPayload = new { fields = new[] { new { label = "  ", value = "x" } } };
+        var invalidResponse = await httpClient.PutAsJsonAsync($"/api/inventory-items/{item.Id}/fields", invalidPayload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateInventoryItemFields_WhenItemNotFound_Returns404()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var payload = new { fields = new[] { new { label = "A", value = "b" } } };
+        var response = await httpClient.PutAsJsonAsync("/api/inventory-items/99999/fields", payload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- Attachments ---
+
+    [Fact]
+    public async Task Attachments_UploadListDownloadDelete_WorkCorrectly()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var item = await CreateItemViaClient("Item with attachments", null, null, null);
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 }); // %PDF magic bytes
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "manual.pdf");
+
+        var uploadResponse = await httpClient.PostAsync(
+            $"/api/inventory-items/{item.Id}/attachments?kind=Manual", content, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+        var uploaded = await uploadResponse.Content.ReadFromJsonAsync<AttachmentDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(uploaded);
+        Assert.Equal("manual", uploaded.Name);
+        Assert.Equal("Manual", uploaded.Kind);
+        Assert.Null(uploaded.ThumbnailUrl);
+
+        var listResponse = await httpClient.GetAsync($"/api/inventory-items/{item.Id}/attachments", TestContext.Current.CancellationToken);
+        var attachments = await listResponse.Content.ReadFromJsonAsync<AttachmentDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(attachments);
+        Assert.Single(attachments);
+
+        var downloadResponse = await httpClient.GetAsync(
+            $"/api/inventory-items/{item.Id}/attachments/{attachments[0].Id}/download", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
+
+        var deleteResponse = await httpClient.DeleteAsync(
+            $"/api/inventory-items/{item.Id}/attachments/{attachments[0].Id}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var afterDelete = await httpClient.GetAsync($"/api/inventory-items/{item.Id}/attachments", TestContext.Current.CancellationToken);
+        var remaining = await afterDelete.Content.ReadFromJsonAsync<AttachmentDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.Empty(remaining!);
+    }
+
+    [Fact]
+    public async Task Attachments_ImageFile_HasThumbnailUrl()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var item = await CreateItemViaClient("Item with photo", null, null, null);
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF }); // JPEG magic bytes
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        content.Add(fileContent, "file", "item.jpg");
+
+        var uploadResponse = await httpClient.PostAsync(
+            $"/api/inventory-items/{item.Id}/attachments?kind=Photo", content, TestContext.Current.CancellationToken);
+        var uploaded = await uploadResponse.Content.ReadFromJsonAsync<AttachmentDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(uploaded);
+        Assert.NotNull(uploaded.ThumbnailUrl);
+    }
+
+    [Fact]
+    public async Task Attachments_InvalidKind_ReturnsBadRequest()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var item = await CreateItemViaClient("Item", null, null, null);
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x01 });
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "test.pdf");
+
+        var response = await httpClient.PostAsync(
+            $"/api/inventory-items/{item.Id}/attachments?kind=NotAKind", content, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Attachments_NotFound_WhenItemDoesNotExist()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+
+        var listResponse = await httpClient.GetAsync("/api/inventory-items/99999/attachments", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, listResponse.StatusCode);
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x01 });
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "test.pdf");
+
+        var uploadResponse = await httpClient.PostAsync("/api/inventory-items/99999/attachments", content, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, uploadResponse.StatusCode);
+    }
+
     // --- Helpers ---
 
     private async Task<InventoryItemResponse> CreateItemViaClient(string name, string? description, int? boxId, int? storageUnitId)
@@ -317,4 +538,14 @@ public class InventoryItemEndpointTests : IntegrationTestBase
     private record InventoryItemResponse(int Id, string Name, string? Description, int? BoxId, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record InventoryBoxResponse(int Id, int Number, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record InventoryStorageUnitResponse(int Id, string Name, string? Type, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
+
+    private record FullItemDto(
+        int Id, string Name, string? Description, int? BoxId, int? StorageUnitId,
+        int? Quantity, string? Brand, string? Model, string? SerialNumber,
+        DateTime? PurchasedOn, decimal? PurchasePrice, DateTime? WarrantyExpiresOn, string? Notes,
+        DateTime CreatedOn, DateTime? ModifiedOn, FieldDto[] Fields);
+
+    private record FieldDto(int Id, string Label, string Value, int SortOrder);
+
+    private record AttachmentDto(int Id, string Name, string ContentType, string Kind, string Url, string? ThumbnailUrl, int SortOrder, DateTime CreatedOn);
 }

@@ -1,6 +1,7 @@
 using Anything.Application.Features.Inventory.Commands;
 using Anything.Application.Features.Inventory.Queries;
 using Anything.Application.UnitTests.Helpers;
+using Anything.Contracts.Inventory;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -30,7 +31,7 @@ public class CreateInventoryBoxHandlerTests
 
         var result = await handler.Handle(new CreateInventoryBoxCommand(5, null), TestContext.Current.CancellationToken);
 
-        Assert.IsType<Created<InventoryBox>>(result);
+        Assert.IsType<Created<InventoryBoxResponse>>(result);
         _boxRepo.Received(1).Add(Arg.Is<InventoryBox>(b => b.Number == 5));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
@@ -54,7 +55,7 @@ public class CreateInventoryBoxHandlerTests
 
         var result = await handler.Handle(new CreateInventoryBoxCommand(3, 1), TestContext.Current.CancellationToken);
 
-        Assert.IsType<Created<InventoryBox>>(result);
+        Assert.IsType<Created<InventoryBoxResponse>>(result);
         _boxRepo.Received(1).Add(Arg.Is<InventoryBox>(b => b.StorageUnitId == 1));
     }
 }
@@ -150,6 +151,23 @@ public class UpdateInventoryItemHandlerTests
         Assert.Equal("desc", entity.Description);
         Assert.Equal(now.UtcDateTime, entity.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WithBoxInAContradictingPlace_TakesTheBoxsPlaceOverTheCallers()
+    {
+        var entity = new InventoryItem { Id = 1, Name = "Old", StorageUnitId = 9 };
+        _itemRepo.Query().Returns(new List<InventoryItem> { entity }.AsAsyncQueryable());
+        // Box 1 actually lives in place 5, but the caller's command still says 9.
+        _boxRepo.Query().Returns(new List<InventoryBox> { new InventoryBox { Id = 1, Number = 1, StorageUnitId = 5 } }.AsAsyncQueryable());
+
+        var result = await new UpdateInventoryItemHandler(_itemRepo, _boxRepo, _storageRepo, _householdContext, _unitOfWork, _timeProvider)
+            .Handle(new UpdateInventoryItemCommand(1, "Old", null, 1, 9), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal(1, entity.BoxId);
+        Assert.Equal(5, entity.StorageUnitId);
+        _storageRepo.DidNotReceive().Query();
     }
 }
 
@@ -294,7 +312,7 @@ public class GetInventoryBoxByIdHandlerTests
     {
         _repo.Query().Returns(new List<InventoryBox> { new InventoryBox { Id = 1, Number = 5 } }.AsAsyncQueryable());
         var result = await new GetInventoryBoxByIdHandler(_repo, _householdContext).Handle(new GetInventoryBoxByIdQuery(1), TestContext.Current.CancellationToken);
-        var ok = Assert.IsType<Ok<InventoryBox>>(result);
+        var ok = Assert.IsType<Ok<InventoryBoxResponse>>(result);
         Assert.Equal(5, ok.Value!.Number);
     }
 }
@@ -323,13 +341,19 @@ public class GetInventoryItemsHandlerTests
 public class GetInventoryItemByIdHandlerTests
 {
     private readonly IRepository<InventoryItem> _repo = Substitute.For<IRepository<InventoryItem>>();
+    private readonly IRepository<InventoryItemField> _fieldRepo = Substitute.For<IRepository<InventoryItemField>>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
+
+    public GetInventoryItemByIdHandlerTests()
+    {
+        _fieldRepo.Query().Returns(new List<InventoryItemField>().AsAsyncQueryable());
+    }
 
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
-        var result = await new GetInventoryItemByIdHandler(_repo, _householdContext).Handle(new GetInventoryItemByIdQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetInventoryItemByIdHandler(_repo, _fieldRepo, _householdContext).Handle(new GetInventoryItemByIdQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -337,9 +361,25 @@ public class GetInventoryItemByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOk()
     {
         _repo.Query().Returns(new List<InventoryItem> { new InventoryItem { Id = 1, Name = "Widget" } }.AsAsyncQueryable());
-        var result = await new GetInventoryItemByIdHandler(_repo, _householdContext).Handle(new GetInventoryItemByIdQuery(1), TestContext.Current.CancellationToken);
-        var ok = Assert.IsType<Ok<InventoryItem>>(result);
+        var result = await new GetInventoryItemByIdHandler(_repo, _fieldRepo, _householdContext).Handle(new GetInventoryItemByIdQuery(1), TestContext.Current.CancellationToken);
+        var ok = Assert.IsType<Ok<InventoryItemResponse>>(result);
         Assert.Equal("Widget", ok.Value!.Name);
+    }
+
+    [Fact]
+    public async Task Handle_WhenFound_IncludesCustomFieldsInSortOrder()
+    {
+        _repo.Query().Returns(new List<InventoryItem> { new InventoryItem { Id = 1, Name = "Widget" } }.AsAsyncQueryable());
+        _fieldRepo.Query().Returns(new List<InventoryItemField>
+        {
+            new() { Id = 1, ItemId = 1, Label = "Second", Value = "B", SortOrder = 1 },
+            new() { Id = 2, ItemId = 1, Label = "First", Value = "A", SortOrder = 0 }
+        }.AsAsyncQueryable());
+
+        var result = await new GetInventoryItemByIdHandler(_repo, _fieldRepo, _householdContext).Handle(new GetInventoryItemByIdQuery(1), TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<InventoryItemResponse>>(result);
+        Assert.Equal(["First", "Second"], ok.Value!.Fields.Select(f => f.Label));
     }
 }
 
@@ -382,7 +422,7 @@ public class GetInventoryStorageUnitByIdHandlerTests
     {
         _repo.Query().Returns(new List<InventoryStorageUnit> { new InventoryStorageUnit { Id = 1, Name = "Freezer" } }.AsAsyncQueryable());
         var result = await new GetInventoryStorageUnitByIdHandler(_repo, _householdContext).Handle(new GetInventoryStorageUnitByIdQuery(1), TestContext.Current.CancellationToken);
-        var ok = Assert.IsType<Ok<InventoryStorageUnit>>(result);
+        var ok = Assert.IsType<Ok<InventoryStorageUnitResponse>>(result);
         Assert.Equal("Freezer", ok.Value!.Name);
     }
 }

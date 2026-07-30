@@ -109,4 +109,33 @@ public class CreateInventoryItemHandlerTests
         // Storage unit should not have been checked
         _storageUnitRepo.DidNotReceive().Query();
     }
+
+    [Fact]
+    public async Task Handle_WithBoxInAContradictingPlace_TakesTheBoxsPlaceOverTheCallers()
+    {
+        // Box 1 actually lives in place 5, but the caller claims place 9 — the
+        // box must win so an item can never claim a box while disagreeing
+        // about which place that box is in.
+        _boxRepo.Query().Returns(new List<InventoryBox> { new InventoryBox { Id = 1, Number = 1, StorageUnitId = 5 } }.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, 9), TestContext.Current.CancellationToken);
+
+        Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        _itemRepo.Received(1).Add(Arg.Is<InventoryItem>(i => i.BoxId == 1 && i.StorageUnitId == 5));
+        // The caller's (wrong) storage unit is never even looked up.
+        _storageUnitRepo.DidNotReceive().Query();
+    }
+
+    [Fact]
+    public async Task Handle_WithBoxInNoPlace_ClearsTheCallersStorageUnit()
+    {
+        _boxRepo.Query().Returns(new List<InventoryBox> { new InventoryBox { Id = 1, Number = 1, StorageUnitId = null } }.AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new CreateInventoryItemCommand("Item", null, 1, 9), TestContext.Current.CancellationToken);
+
+        Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        _itemRepo.Received(1).Add(Arg.Is<InventoryItem>(i => i.BoxId == 1 && i.StorageUnitId == null));
+    }
 }

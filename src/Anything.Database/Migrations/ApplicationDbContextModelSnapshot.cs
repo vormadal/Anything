@@ -406,6 +406,66 @@ namespace Anything.Database.Migrations
                     b.ToTable("HouseholdMembers");
                 });
 
+            modelBuilder.Entity("Anything.Core.Entities.InventoryAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BoxId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("StorageUnitId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BoxId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("StorageUnitId");
+
+                    b.ToTable("InventoryAttachments");
+                });
+
             modelBuilder.Entity("Anything.Core.Entities.InventoryBox", b =>
                 {
                     b.Property<int>("Id")
@@ -420,8 +480,16 @@ namespace Anything.Database.Migrations
                     b.Property<DateTime?>("DeletedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<int>("HouseholdId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
@@ -452,6 +520,10 @@ namespace Anything.Database.Migrations
                     b.Property<int?>("BoxId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Brand")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -465,6 +537,10 @@ namespace Anything.Database.Migrations
                     b.Property<int>("HouseholdId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -473,8 +549,28 @@ namespace Anything.Database.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal?>("PurchasePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PurchasedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<int?>("StorageUnitId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("WarrantyExpiresOn")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -485,6 +581,43 @@ namespace Anything.Database.Migrations
                     b.HasIndex("StorageUnitId");
 
                     b.ToTable("InventoryItems");
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.InventoryItemField", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("InventoryItemFields");
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.InventoryStorageUnit", b =>
@@ -1474,6 +1607,24 @@ namespace Anything.Database.Migrations
                     b.Navigation("Household");
                 });
 
+            modelBuilder.Entity("Anything.Core.Entities.InventoryAttachment", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.InventoryBox", null)
+                        .WithMany()
+                        .HasForeignKey("BoxId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Anything.Core.Entities.InventoryItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Anything.Core.Entities.InventoryStorageUnit", null)
+                        .WithMany()
+                        .HasForeignKey("StorageUnitId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("Anything.Core.Entities.InventoryBox", b =>
                 {
                     b.HasOne("Anything.Core.Entities.Household", null)
@@ -1505,6 +1656,15 @@ namespace Anything.Database.Migrations
                         .WithMany()
                         .HasForeignKey("StorageUnitId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Anything.Core.Entities.InventoryItemField", b =>
+                {
+                    b.HasOne("Anything.Core.Entities.InventoryItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.InventoryStorageUnit", b =>

@@ -1,7 +1,6 @@
 using Anything.Application.Features.Inventory.Commands;
 using Anything.Application.Features.Inventory.Queries;
 using Anything.Contracts.Inventory;
-using Anything.Core.Entities;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
 
@@ -25,23 +24,25 @@ public static class InventoryBoxEndpoints
             return await mediator.Send(new GetInventoryBoxByIdQuery(id));
         })
         .WithName("GetInventoryBoxById")
-        .Produces<InventoryBox>()
+        .Produces<InventoryBoxResponse>()
         .Produces(404)
         .RequireAuthorization();
 
         group.MapPost("/", async (CreateInventoryBoxRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new CreateInventoryBoxCommand(request.Number, request.StorageUnitId));
+            return await mediator.Send(new CreateInventoryBoxCommand(
+                request.Number, request.StorageUnitId, request.Label, request.Description));
         })
         .WithName("CreateInventoryBox")
-        .Produces<InventoryBox>(StatusCodes.Status201Created)
+        .Produces<InventoryBoxResponse>(StatusCodes.Status201Created)
         .Produces(400)
         .WithParameterValidation()
         .RequireAuthorization();
 
         group.MapPut("/{id}", async (int id, UpdateInventoryBoxRequest request, IMediator mediator) =>
         {
-            return await mediator.Send(new UpdateInventoryBoxCommand(id, request.Number, request.StorageUnitId));
+            return await mediator.Send(new UpdateInventoryBoxCommand(
+                id, request.Number, request.StorageUnitId, request.Label, request.Description));
         })
         .WithName("UpdateInventoryBox")
         .Produces(204)
@@ -55,6 +56,42 @@ public static class InventoryBoxEndpoints
             return await mediator.Send(new DeleteInventoryBoxCommand(id));
         })
         .WithName("DeleteInventoryBox")
+        .Produces(204)
+        .Produces(404)
+        .RequireAuthorization();
+
+        group.MapGet("/{id}/attachments", async (int id, IMediator mediator) =>
+            await mediator.Send(new GetInventoryBoxAttachmentsQuery(id)))
+        .WithName("GetInventoryBoxAttachments")
+        .Produces<InventoryAttachmentResponse[]>()
+        .Produces(404)
+        .RequireAuthorization();
+
+        group.MapGet("/{id}/attachments/{attachmentId}/download", async (int id, int attachmentId, IMediator mediator) =>
+            await mediator.Send(new DownloadInventoryBoxAttachmentQuery(id, attachmentId)))
+        .WithName("DownloadInventoryBoxAttachment")
+        .Produces(200)
+        .Produces(404)
+        .RequireAuthorization();
+
+        group.MapPost("/{id}/attachments", async (int id, IFormFile? file, string? kind, string? name, IMediator mediator) =>
+        {
+            if (file is null || file.Length == 0)
+                return Results.BadRequest("No file uploaded or file is empty.");
+            await using var stream = file.OpenReadStream();
+            return await mediator.Send(new UploadInventoryBoxAttachmentCommand(
+                id, stream, file.FileName, file.ContentType, file.Length, kind, name));
+        })
+        .WithName("UploadInventoryBoxAttachment")
+        .Produces<InventoryAttachmentResponse>(StatusCodes.Status201Created)
+        .Produces(400)
+        .Produces(404)
+        .DisableAntiforgery()
+        .RequireAuthorization();
+
+        group.MapDelete("/{id}/attachments/{attachmentId}", async (int id, int attachmentId, IMediator mediator) =>
+            await mediator.Send(new DeleteInventoryBoxAttachmentCommand(id, attachmentId)))
+        .WithName("DeleteInventoryBoxAttachment")
         .Produces(204)
         .Produces(404)
         .RequireAuthorization();

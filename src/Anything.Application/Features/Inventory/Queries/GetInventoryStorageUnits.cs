@@ -1,3 +1,5 @@
+using Anything.Application.Features.Inventory;
+using Anything.Contracts.Inventory;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -6,15 +8,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Inventory.Queries;
 
-public record GetInventoryStorageUnitsQuery : IRequest<List<InventoryStorageUnit>>;
+public record GetInventoryStorageUnitsQuery : IRequest<List<InventoryStorageUnitResponse>>;
 
 public class GetInventoryStorageUnitsHandler(IRepository<InventoryStorageUnit> repository, IHouseholdContext householdContext)
-    : IRequestHandler<GetInventoryStorageUnitsQuery, List<InventoryStorageUnit>>
+    : IRequestHandler<GetInventoryStorageUnitsQuery, List<InventoryStorageUnitResponse>>
 {
-    public async Task<List<InventoryStorageUnit>> Handle(GetInventoryStorageUnitsQuery query, CancellationToken ct = default)
+    public async Task<List<InventoryStorageUnitResponse>> Handle(GetInventoryStorageUnitsQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        var storageUnits = await repository.Query()
             .Where(s => s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
             .ToListAsync(ct);
+        return storageUnits.Select(InventoryMapping.ToResponse).ToList();
     }
 }

@@ -92,13 +92,14 @@ public class HomePreferenceEndpointTests : IntegrationTestBase
 
         Assert.NotNull(result);
         // The three saved cards keep their order; the remaining known cards
-        // (quickcreate, search) are appended as visible defaults.
-        Assert.Equal(["bills", "foodplan", "lists", "quickcreate", "search"], result.Select(r => r.CardKey).ToList());
+        // (quickcreate, notes, search) are appended as visible defaults.
+        Assert.Equal(["bills", "foodplan", "lists", "quickcreate", "notes", "search"], result.Select(r => r.CardKey).ToList());
         Assert.False(result[0].IsVisible);
         Assert.True(result[1].IsVisible);
         Assert.True(result[2].IsVisible);
         Assert.True(result[3].IsVisible);
         Assert.True(result[4].IsVisible);
+        Assert.True(result[5].IsVisible);
     }
 
     [Fact]

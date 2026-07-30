@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anything.Application.Features.Inventory.Commands;
 
-public record UpdateInventoryBoxCommand(int Id, int Number, int? StorageUnitId) : IRequest<IResult>;
+public record UpdateInventoryBoxCommand(int Id, int Number, int? StorageUnitId, string? Label = null, string? Description = null) : IRequest<IResult>;
 
 public class UpdateInventoryBoxHandler(
     IRepository<InventoryBox> boxRepository,
@@ -35,6 +35,8 @@ public class UpdateInventoryBoxHandler(
 
         box.Number = command.Number;
         box.StorageUnitId = command.StorageUnitId;
+        box.Label = command.Label;
+        box.Description = command.Description;
         box.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
