@@ -7,7 +7,7 @@ namespace Anything.Application.Features.Inventory;
 public static class InventoryMapping
 {
     public static InventoryStorageUnitResponse ToResponse(InventoryStorageUnit storageUnit) =>
-        new(storageUnit.Id, storageUnit.Name, storageUnit.Type, storageUnit.CreatedOn, storageUnit.ModifiedOn);
+        new(storageUnit.Id, storageUnit.Name, storageUnit.Type, storageUnit.ParentId, storageUnit.CreatedOn, storageUnit.ModifiedOn);
 
     public static InventoryBoxResponse ToResponse(InventoryBox box) =>
         new(box.Id, box.Number, box.Label, box.Description, box.StorageUnitId, box.CreatedOn, box.ModifiedOn);

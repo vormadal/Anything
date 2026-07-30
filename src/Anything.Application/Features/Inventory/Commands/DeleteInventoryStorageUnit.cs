@@ -29,9 +29,11 @@ public class DeleteInventoryStorageUnitHandler(
             .AnyAsync(b => b.StorageUnitId == command.Id && b.DeletedOn == null, ct);
         var hasActiveItems = await itemRepo.Query()
             .AnyAsync(i => i.StorageUnitId == command.Id && i.DeletedOn == null, ct);
+        var hasActiveChildren = await storageUnitRepo.Query()
+            .AnyAsync(s => s.ParentId == command.Id && s.DeletedOn == null, ct);
 
-        if (hasActiveBoxes || hasActiveItems)
-            return Results.Conflict("Cannot delete storage unit while active boxes or items are associated with it.");
+        if (hasActiveBoxes || hasActiveItems || hasActiveChildren)
+            return Results.Conflict("Cannot delete storage unit while active boxes, items, or child places are associated with it.");
 
         storageUnit.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);

@@ -15,5 +15,10 @@ public class InventoryStorageUnitConfiguration : IEntityTypeConfiguration<Invent
             .WithMany()
             .HasForeignKey(e => e.HouseholdId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<InventoryStorageUnit>()
+            .WithMany()
+            .HasForeignKey(e => e.ParentId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
     }
 }

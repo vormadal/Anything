@@ -177,6 +177,63 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         Assert.Empty(result);
     }
 
+    // --- Hierarchy (Parent/Child places) ---
+
+    [Fact]
+    public async Task Create_WithValidParent_NestsUnderParent()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var parent = await CreateStorageUnitViaClient("Summerhouse", null);
+
+        var response = await httpClient.PostAsJsonAsync(
+            "/api/inventory-storage-units", new { name = "Shed", type = (string?)null, parentId = parent.Id });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var created = await response.Content.ReadFromJsonAsync<InventoryStorageUnitResponse>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(created);
+        Assert.Equal(parent.Id, created.ParentId);
+    }
+
+    [Fact]
+    public async Task Create_WithInvalidParent_Returns400()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+
+        var response = await httpClient.PostAsJsonAsync(
+            "/api/inventory-storage-units", new { name = "Shed", type = (string?)null, parentId = 99999 });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_CreatingACycle_Returns400()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var parent = await CreateStorageUnitViaClient("Summerhouse", null);
+        var child = await CreateStorageUnitViaClient("Shed", null);
+
+        var nest = await httpClient.PutAsJsonAsync(
+            $"/api/inventory-storage-units/{child.Id}", new { name = child.Name, type = (string?)null, parentId = parent.Id });
+        Assert.Equal(HttpStatusCode.NoContent, nest.StatusCode);
+
+        // Making the parent a child of its own child would create a cycle.
+        var cycle = await httpClient.PutAsJsonAsync(
+            $"/api/inventory-storage-units/{parent.Id}", new { name = parent.Name, type = (string?)null, parentId = child.Id });
+        Assert.Equal(HttpStatusCode.BadRequest, cycle.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_WithActiveChildPlace_Returns409()
+    {
+        var httpClient = await GetAuthenticatedHttpClientAsync();
+        var parent = await CreateStorageUnitViaClient("Summerhouse", null);
+        var createChild = await httpClient.PostAsJsonAsync(
+            "/api/inventory-storage-units", new { name = "Shed", type = (string?)null, parentId = parent.Id });
+        Assert.Equal(HttpStatusCode.Created, createChild.StatusCode);
+
+        var deleteResponse = await httpClient.DeleteAsync($"/api/inventory-storage-units/{parent.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, deleteResponse.StatusCode);
+    }
+
     // --- Validation ---
 
     [Fact]
@@ -356,7 +413,7 @@ public class InventoryStorageUnitEndpointTests : IntegrationTestBase
         return result;
     }
 
-    private record InventoryStorageUnitResponse(int Id, string Name, string? Type, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
+    private record InventoryStorageUnitResponse(int Id, string Name, string? Type, int? ParentId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record InventoryBoxResponse(int Id, int Number, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record InventoryItemResponse(int Id, string Name, string? Description, int? BoxId, int? StorageUnitId, DateTime CreatedOn, DateTime? ModifiedOn, DateTime? DeletedOn);
     private record AttachmentDto(int Id, string Name, string ContentType, string Kind, string Url, string? ThumbnailUrl, int SortOrder, DateTime CreatedOn);

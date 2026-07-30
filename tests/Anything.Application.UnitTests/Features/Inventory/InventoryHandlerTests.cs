@@ -220,16 +220,40 @@ public class CreateInventoryStorageUnitHandlerTests
     }
 
     [Fact]
-    public async Task Handle_CreatesStorageUnitAndReturnsEntity()
+    public async Task Handle_CreatesStorageUnitAndReturnsCreated()
     {
         var handler = new CreateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
 
-        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Fridge", "refrigerator"), TestContext.Current.CancellationToken);
+        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Fridge", "refrigerator", null), TestContext.Current.CancellationToken);
 
-        Assert.Equal("Fridge", result.Name);
-        Assert.Equal("refrigerator", result.Type);
+        var created = Assert.IsType<Created<InventoryStorageUnitResponse>>(result);
+        Assert.Equal("Fridge", created.Value?.Name);
+        Assert.Equal("refrigerator", created.Value?.Type);
         _repo.Received(1).Add(Arg.Is<InventoryStorageUnit>(s => s.Name == "Fridge"));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WithValidParent_CreatesNestedStorageUnit()
+    {
+        _repo.Query().Returns(new List<InventoryStorageUnit> { new InventoryStorageUnit { Id = 1, Name = "Summerhouse" } }.AsAsyncQueryable());
+        var handler = new CreateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
+
+        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Shed", null, 1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created<InventoryStorageUnitResponse>>(result);
+        _repo.Received(1).Add(Arg.Is<InventoryStorageUnit>(s => s.ParentId == 1));
+    }
+
+    [Fact]
+    public async Task Handle_WithInvalidParent_ReturnsBadRequest()
+    {
+        _repo.Query().Returns(new List<InventoryStorageUnit>().AsAsyncQueryable());
+        var handler = new CreateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider);
+
+        var result = await handler.Handle(new CreateInventoryStorageUnitCommand("Shed", null, 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
     }
 }
 
@@ -250,7 +274,7 @@ public class UpdateInventoryStorageUnitHandlerTests
     {
         _repo.Query().Returns(new List<InventoryStorageUnit>().AsAsyncQueryable());
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "X", null), TestContext.Current.CancellationToken);
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "X", null, null), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -263,13 +287,65 @@ public class UpdateInventoryStorageUnitHandlerTests
         _repo.Query().Returns(new List<InventoryStorageUnit> { entity }.AsAsyncQueryable());
 
         var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
-            .Handle(new UpdateInventoryStorageUnitCommand(1, "New Fridge", "refrigerator"), TestContext.Current.CancellationToken);
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "New Fridge", "refrigerator", null), TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal("New Fridge", entity.Name);
         Assert.Equal("refrigerator", entity.Type);
         Assert.Equal(now.UtcDateTime, entity.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WithValidParent_SetsParentIdAndReturnsNoContent()
+    {
+        var entity = new InventoryStorageUnit { Id = 1, Name = "Shed" };
+        var parent = new InventoryStorageUnit { Id = 2, Name = "Summerhouse" };
+        _repo.Query().Returns(new List<InventoryStorageUnit> { entity, parent }.AsAsyncQueryable());
+
+        var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", null, 2), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal(2, entity.ParentId);
+    }
+
+    [Fact]
+    public async Task Handle_WithSelfAsParent_ReturnsBadRequest()
+    {
+        var entity = new InventoryStorageUnit { Id = 1, Name = "Shed" };
+        _repo.Query().Returns(new List<InventoryStorageUnit> { entity }.AsAsyncQueryable());
+
+        var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", null, 1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WithDescendantAsParent_ReturnsBadRequest()
+    {
+        // 1 (Summerhouse) -> 2 (Shed) already; trying to make 1's parent be 2 would create a cycle.
+        var summerhouse = new InventoryStorageUnit { Id = 1, Name = "Summerhouse" };
+        var shed = new InventoryStorageUnit { Id = 2, Name = "Shed", ParentId = 1 };
+        _repo.Query().Returns(new List<InventoryStorageUnit> { summerhouse, shed }.AsAsyncQueryable());
+
+        var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "Summerhouse", null, 2), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_WithInvalidParent_ReturnsBadRequest()
+    {
+        var entity = new InventoryStorageUnit { Id = 1, Name = "Shed" };
+        _repo.Query().Returns(new List<InventoryStorageUnit> { entity }.AsAsyncQueryable());
+
+        var result = await new UpdateInventoryStorageUnitHandler(_repo, _householdContext, _unitOfWork, _timeProvider)
+            .Handle(new UpdateInventoryStorageUnitCommand(1, "Shed", null, 99), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
     }
 }
 

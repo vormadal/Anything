@@ -85,6 +85,22 @@ public class DeleteInventoryStorageUnitHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WithActiveChildPlace_ReturnsConflict()
+    {
+        var parent = new InventoryStorageUnit { Id = 1, Name = "Summerhouse" };
+        var child = new InventoryStorageUnit { Id = 2, Name = "Shed", ParentId = 1 };
+        _storageUnitRepo.Query().Returns(new List<InventoryStorageUnit> { parent, child }.AsAsyncQueryable());
+
+        _boxRepo.Query().Returns(new List<InventoryBox>().AsAsyncQueryable());
+        _itemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new DeleteInventoryStorageUnitCommand(1), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Conflict<string>>(result);
+    }
+
+    [Fact]
     public async Task Handle_WithNoActiveChildren_SoftDeletesSuccessfully()
     {
         var unit = new InventoryStorageUnit { Id = 1, Name = "Unit" };
