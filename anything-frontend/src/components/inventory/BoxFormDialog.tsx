@@ -15,7 +15,7 @@ import {
   useInventoryBoxes,
   useInventoryStorageUnits,
   useUpdateInventoryBox,
-  type InventoryBox,
+  type InventoryBoxResponse,
 } from "@/hooks/useInventory";
 import { InventorySelect } from "@/components/inventory/InventorySelect";
 import {
@@ -27,7 +27,7 @@ import { formatPlaceName, nextBoxNumber } from "@/lib/inventory";
 
 interface BoxFormDialogProps {
   /** Omit to create a new box; pass a box to edit it. */
-  box?: InventoryBox;
+  box?: InventoryBoxResponse;
   /** Pre-selects the place when creating from a place page. */
   defaultPlaceId?: number | null;
   onClose: () => void;

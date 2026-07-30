@@ -11,18 +11,18 @@ import {
   unplacedItems,
 } from '@/lib/inventory'
 import type {
-  InventoryBox,
-  InventoryItem,
-  InventoryStorageUnit,
+  InventoryBoxResponse,
+  InventoryItemSummaryResponse,
+  InventoryStorageUnitResponse,
 } from '@/lib/api-client/models/index'
 
-const summerhouse: InventoryStorageUnit = { id: 1, name: 'Summerhouse' }
-const basement: InventoryStorageUnit = { id: 2, name: 'Basement storage room' }
+const summerhouse: InventoryStorageUnitResponse = { id: 1, name: 'Summerhouse' }
+const basement: InventoryStorageUnitResponse = { id: 2, name: 'Basement storage room' }
 const places = [summerhouse, basement]
 
-const boxInSummerhouse: InventoryBox = { id: 10, number: 4, storageUnitId: 1 }
-const boxInBasement: InventoryBox = { id: 11, number: 7, storageUnitId: 2 }
-const homelessBox: InventoryBox = { id: 12, number: 9, storageUnitId: null }
+const boxInSummerhouse: InventoryBoxResponse = { id: 10, number: 4, storageUnitId: 1 }
+const boxInBasement: InventoryBoxResponse = { id: 11, number: 7, storageUnitId: 2 }
+const homelessBox: InventoryBoxResponse = { id: 12, number: 9, storageUnitId: null }
 const boxes = [boxInSummerhouse, boxInBasement, homelessBox]
 
 describe('inventory helpers', () => {
@@ -41,7 +41,7 @@ describe('inventory helpers', () => {
   })
 
   describe('grouping', () => {
-    const items: InventoryItem[] = [
+    const items: InventoryItemSummaryResponse[] = [
       { id: 100, name: 'Christmas lights', boxId: 10, storageUnitId: 1 },
       { id: 101, name: 'Deck chair', boxId: null, storageUnitId: 1 },
       { id: 102, name: 'Paint tins', boxId: 11, storageUnitId: 2 },
@@ -100,22 +100,22 @@ describe('inventory helpers', () => {
 
   describe('describeItemLocation', () => {
     it('reads place then box', () => {
-      const item: InventoryItem = { id: 1, name: 'Lights', boxId: 10, storageUnitId: 1 }
+      const item: InventoryItemSummaryResponse = { id: 1, name: 'Lights', boxId: 10, storageUnitId: 1 }
       expect(describeItemLocation(item, boxes, places)).toBe('Summerhouse · Box 4')
     })
 
     it('trusts the box over a stale storageUnitId', () => {
-      const item: InventoryItem = { id: 1, name: 'Lights', boxId: 10, storageUnitId: 2 }
+      const item: InventoryItemSummaryResponse = { id: 1, name: 'Lights', boxId: 10, storageUnitId: 2 }
       expect(describeItemLocation(item, boxes, places)).toBe('Summerhouse · Box 4')
     })
 
     it('reads just the place for a loose item', () => {
-      const item: InventoryItem = { id: 1, name: 'Chair', boxId: null, storageUnitId: 2 }
+      const item: InventoryItemSummaryResponse = { id: 1, name: 'Chair', boxId: null, storageUnitId: 2 }
       expect(describeItemLocation(item, boxes, places)).toBe('Basement storage room')
     })
 
     it('says so when the item is nowhere', () => {
-      const item: InventoryItem = { id: 1, name: 'Tent', boxId: null, storageUnitId: null }
+      const item: InventoryItemSummaryResponse = { id: 1, name: 'Tent', boxId: null, storageUnitId: null }
       expect(describeItemLocation(item, boxes, places)).toBe('Not placed yet')
     })
   })

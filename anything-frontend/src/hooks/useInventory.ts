@@ -3,12 +3,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type {
-  InventoryBox,
-  InventoryItem,
-  InventoryStorageUnit,
+  InventoryBoxResponse,
+  InventoryItemResponse,
+  InventoryItemSummaryResponse,
+  InventoryStorageUnitResponse,
 } from "@/lib/api-client/models/index";
 
-export type { InventoryBox, InventoryItem, InventoryStorageUnit };
+export type {
+  InventoryBoxResponse,
+  InventoryItemResponse,
+  InventoryItemSummaryResponse,
+  InventoryStorageUnitResponse,
+};
 
 const STORAGE_UNITS_KEY = ["inventoryStorageUnits"] as const;
 const BOXES_KEY = ["inventoryBoxes"] as const;
@@ -52,7 +58,7 @@ export function useInventoryStorageUnits() {
     // Refetch on re-entry so a place created or renamed on a detail page shows
     // without a manual refresh — same reasoning as useNotes/useRecipes.
     refetchOnMount: "always",
-    queryFn: async (): Promise<InventoryStorageUnit[]> => {
+    queryFn: async (): Promise<InventoryStorageUnitResponse[]> => {
       const units = await apiClient.api.inventoryStorageUnits.get();
       return units ?? [];
     },
@@ -65,7 +71,7 @@ export function useInventoryStorageUnit(id: number) {
     enabled: id > 0,
     refetchOnMount: "always",
     queryFn: () =>
-      apiClient.api.inventoryStorageUnits.byId(id).get() as Promise<InventoryStorageUnit>,
+      apiClient.api.inventoryStorageUnits.byId(id).get() as Promise<InventoryStorageUnitResponse>,
   });
 }
 
@@ -118,7 +124,7 @@ export function useInventoryBoxes() {
   return useQuery({
     queryKey: BOXES_KEY,
     refetchOnMount: "always",
-    queryFn: async (): Promise<InventoryBox[]> => {
+    queryFn: async (): Promise<InventoryBoxResponse[]> => {
       const boxes = await apiClient.api.inventoryBoxes.get();
       return boxes ?? [];
     },
@@ -130,7 +136,7 @@ export function useInventoryBox(id: number) {
     queryKey: [BOX_KEY, id],
     enabled: id > 0,
     refetchOnMount: "always",
-    queryFn: () => apiClient.api.inventoryBoxes.byId(id).get() as Promise<InventoryBox>,
+    queryFn: () => apiClient.api.inventoryBoxes.byId(id).get() as Promise<InventoryBoxResponse>,
   });
 }
 
@@ -186,7 +192,7 @@ export function useInventoryItems() {
   return useQuery({
     queryKey: ITEMS_KEY,
     refetchOnMount: "always",
-    queryFn: async (): Promise<InventoryItem[]> => {
+    queryFn: async (): Promise<InventoryItemSummaryResponse[]> => {
       const items = await apiClient.api.inventoryItems.get();
       return items ?? [];
     },
@@ -198,7 +204,7 @@ export function useInventoryItem(id: number) {
     queryKey: [ITEM_KEY, id],
     enabled: id > 0,
     refetchOnMount: "always",
-    queryFn: () => apiClient.api.inventoryItems.byId(id).get() as Promise<InventoryItem>,
+    queryFn: () => apiClient.api.inventoryItems.byId(id).get() as Promise<InventoryItemResponse>,
   });
 }
 

@@ -1,7 +1,7 @@
 import type {
-  InventoryBox,
-  InventoryItem,
-  InventoryStorageUnit,
+  InventoryBoxResponse,
+  InventoryItemSummaryResponse,
+  InventoryStorageUnitResponse,
 } from "@/lib/api-client/models/index";
 
 export const INVENTORY_PATH = "/inventory";
@@ -11,34 +11,34 @@ export const boxPath = (id: number) => `${INVENTORY_PATH}/boxes/${id}`;
 export const itemPath = (id: number) => `${INVENTORY_PATH}/items/${id}`;
 
 /** A box has no name of its own — it is identified by the number written on it. */
-export function formatBoxName(box: Pick<InventoryBox, "number">): string {
+export function formatBoxName(box: Pick<InventoryBoxResponse, "number">): string {
   return `Box ${box.number ?? "?"}`;
 }
 
-export function formatPlaceName(unit: Pick<InventoryStorageUnit, "name">): string {
+export function formatPlaceName(unit: Pick<InventoryStorageUnitResponse, "name">): string {
   return unit.name ?? "Unnamed place";
 }
 
-export function boxesInPlace(boxes: InventoryBox[], placeId: number): InventoryBox[] {
+export function boxesInPlace(boxes: InventoryBoxResponse[], placeId: number): InventoryBoxResponse[] {
   return boxes.filter((box) => box.storageUnitId === placeId);
 }
 
-export function itemsInBox(items: InventoryItem[], boxId: number): InventoryItem[] {
+export function itemsInBox(items: InventoryItemSummaryResponse[], boxId: number): InventoryItemSummaryResponse[] {
   return items.filter((item) => item.boxId === boxId);
 }
 
 /** Every item in a place, whether or not it sits in one of the place's boxes. */
-export function itemsInPlace(items: InventoryItem[], placeId: number): InventoryItem[] {
+export function itemsInPlace(items: InventoryItemSummaryResponse[], placeId: number): InventoryItemSummaryResponse[] {
   return items.filter((item) => item.storageUnitId === placeId);
 }
 
 /** Items in a place that are not inside any of its boxes — loose on a shelf. */
-export function looseItemsInPlace(items: InventoryItem[], placeId: number): InventoryItem[] {
+export function looseItemsInPlace(items: InventoryItemSummaryResponse[], placeId: number): InventoryItemSummaryResponse[] {
   return itemsInPlace(items, placeId).filter((item) => !item.boxId);
 }
 
 /** Items with no place at all, so they'd otherwise be invisible on the overview. */
-export function unplacedItems(items: InventoryItem[]): InventoryItem[] {
+export function unplacedItems(items: InventoryItemSummaryResponse[]): InventoryItemSummaryResponse[] {
   return items.filter((item) => !item.storageUnitId && !item.boxId);
 }
 
@@ -55,7 +55,7 @@ export interface Placement {
  */
 export function resolvePlacement(
   placement: Placement,
-  boxes: InventoryBox[]
+  boxes: InventoryBoxResponse[]
 ): Placement {
   if (placement.boxId) {
     const box = boxes.find((b) => b.id === placement.boxId);
@@ -66,9 +66,9 @@ export function resolvePlacement(
 
 /** Human-readable "where is it" line for an item, e.g. "Summerhouse · Box 4". */
 export function describeItemLocation(
-  item: InventoryItem,
-  boxes: InventoryBox[],
-  places: InventoryStorageUnit[]
+  item: InventoryItemSummaryResponse,
+  boxes: InventoryBoxResponse[],
+  places: InventoryStorageUnitResponse[]
 ): string {
   const box = item.boxId ? boxes.find((b) => b.id === item.boxId) : undefined;
   const placeId = box?.storageUnitId ?? item.storageUnitId;
@@ -83,7 +83,7 @@ export function describeItemLocation(
 }
 
 /** Suggests the next free box number so the user doesn't have to remember. */
-export function nextBoxNumber(boxes: InventoryBox[]): number {
+export function nextBoxNumber(boxes: InventoryBoxResponse[]): number {
   const highest = boxes.reduce((max, box) => Math.max(max, box.number ?? 0), 0);
   return highest + 1;
 }

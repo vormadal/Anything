@@ -13,7 +13,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import {
   useCreateInventoryStorageUnit,
   useUpdateInventoryStorageUnit,
-  type InventoryStorageUnit,
+  type InventoryStorageUnitResponse,
 } from "@/hooks/useInventory";
 import {
   FIELD_INPUT_CLASS,
@@ -23,7 +23,7 @@ import {
 
 interface PlaceFormDialogProps {
   /** Omit to create a new place; pass a place to edit it. */
-  place?: InventoryStorageUnit;
+  place?: InventoryStorageUnitResponse;
   onClose: () => void;
 }
 

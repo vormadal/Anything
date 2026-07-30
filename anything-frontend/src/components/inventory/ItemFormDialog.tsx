@@ -15,7 +15,7 @@ import {
   useInventoryBoxes,
   useInventoryStorageUnits,
   useUpdateInventoryItem,
-  type InventoryItem,
+  type InventoryItemResponse,
 } from "@/hooks/useInventory";
 import { InventorySelect } from "@/components/inventory/InventorySelect";
 import {
@@ -27,7 +27,7 @@ import { formatBoxName, formatPlaceName, resolvePlacement } from "@/lib/inventor
 
 interface ItemFormDialogProps {
   /** Omit to create a new item; pass an item to edit it. */
-  item?: InventoryItem;
+  item?: InventoryItemResponse;
   defaultPlaceId?: number | null;
   defaultBoxId?: number | null;
   onClose: () => void;
