@@ -1120,6 +1120,27 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("note-new-created.png", screenshotOptions);
   });
 
+  test("note import - pick files", async ({ page }) => {
+    await page.goto("/notes/import");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Choose exported files")).toBeVisible();
+    await expect(page).toHaveScreenshot("note-import-pick.png", screenshotOptions);
+  });
+
+  test("note import - review list", async ({ page }) => {
+    await page.goto("/notes/import");
+    await page.waitForLoadState("networkidle");
+    // setInputFiles bypasses the input's `accept` filter (no OS dialog is
+    // involved), matching how a drag-and-drop delivers files.
+    await page.locator('input[type="file"]').setInputFiles([
+      { name: "Grocery list.txt", mimeType: "text/plain", buffer: Buffer.from("Milk\nEggs\nBread") },
+      { name: "Trip packing.txt", mimeType: "text/plain", buffer: Buffer.from("Passport\nCharger") },
+    ]);
+    await expect(page.getByText("Grocery list")).toBeVisible();
+    await expect(page.getByText("Trip packing")).toBeVisible();
+    await expect(page).toHaveScreenshot("note-import-review.png", screenshotOptions);
+  });
+
   test("home page - notes card", async ({ page }) => {
     await page.route("**/api/home/card-preferences**", (route) => {
       if (route.request().method() === "GET") {

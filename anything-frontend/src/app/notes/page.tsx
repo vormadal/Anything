@@ -8,7 +8,7 @@ import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, Upload } from "lucide-react";
 
 export default function NotesPage() {
   const router = useRouter();
@@ -17,13 +17,23 @@ export default function NotesPage() {
 
   useEffect(() => {
     setHeaderActions(
-      <Link
-        href="/notes/new"
-        aria-label="Create note"
-        className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-      >
-        <Plus className="h-5 w-5" />
-      </Link>,
+      <div className="ml-auto flex items-center gap-1">
+        <Link
+          href="/notes/import"
+          aria-label="Import from Samsung Notes"
+          title="Import from Samsung Notes"
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+        >
+          <Upload className="h-5 w-5" />
+        </Link>
+        <Link
+          href="/notes/new"
+          aria-label="Create note"
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+        >
+          <Plus className="h-5 w-5" />
+        </Link>
+      </div>,
       false
     );
     return () => setHeaderActions(null);

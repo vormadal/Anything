@@ -1,5 +1,6 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
+import { TextEncoder, TextDecoder } from 'node:util'
 
 // Radix UI components produce document-level side effects when dialogs/menus are open.
 // In React 19 concurrent mode, the useEffect cleanups that reverse these side effects
@@ -44,4 +45,12 @@ if (typeof Blob !== 'undefined' && !Blob.prototype.text) {
       reader.readAsText(this)
     })
   }
+}
+
+// jest-environment-jsdom's global scope doesn't include TextEncoder/TextDecoder
+// (real browsers do) — needed by the Samsung Notes .docx importer, which reads
+// XML out of a zip archive as bytes.
+if (typeof globalThis.TextEncoder === 'undefined') {
+  globalThis.TextEncoder = TextEncoder
+  globalThis.TextDecoder = TextDecoder
 }

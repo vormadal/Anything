@@ -56,7 +56,19 @@ const NoteImage = TiptapImage.extend<NoteImageOptions>({
   addAttributes() {
     return {
       ...this.parent?.(),
-      storageKey: { default: null },
+      // Custom attribute names survive live editing (ProseMirror sets DOM
+      // attributes directly, case intact) but not a round trip through an
+      // HTML string — `DOMParser(..., "text/html")` lowercases attribute
+      // names, so the default `element.getAttribute("storageKey")` fallback
+      // would miss it. The importer's `generateJSON(html, ...)` step is
+      // exactly that round trip, so this needs an explicit, already-lowercase
+      // `data-*` mapping.
+      storageKey: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-storage-key"),
+        renderHTML: (attributes) =>
+          attributes.storageKey ? { "data-storage-key": attributes.storageKey } : {},
+      },
     };
   },
   addProseMirrorPlugins() {
