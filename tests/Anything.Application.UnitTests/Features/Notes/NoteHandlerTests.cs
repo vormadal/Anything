@@ -7,6 +7,7 @@ using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Search;
 using Anything.Core.Services;
+using Anything.Core.Upload;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -252,6 +253,17 @@ public class UploadNoteImageHandlerTests
     public async Task Handle_DisallowedContentType_ReturnsBadRequest()
     {
         var command = new UploadNoteImageCommand(new MemoryStream(new byte[10]), "notes.pdf", "application/pdf", 10);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_FileExceedsMaxSize_ReturnsBadRequest()
+    {
+        var command = new UploadNoteImageCommand(
+            Stream.Null, "photo.png", "image/png", UploadLimits.MaxFileSizeBytes + 1);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 

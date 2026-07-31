@@ -1,6 +1,7 @@
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
+using Anything.Core.Upload;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,9 @@ public class UploadBillAttachmentHandler(
 
         if (command.ContentLength == 0)
             return Results.BadRequest(InvalidFile);
+
+        if (UploadLimits.ExceedsMaxFileSize(command.ContentLength))
+            return Results.BadRequest(UploadLimits.FileTooLargeMessage);
 
         var storageKey = await imageStorageService.Upload(
             command.FileStream,

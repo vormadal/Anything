@@ -47,8 +47,9 @@ export function AddPhotoMenu({ onUpload, isUploading, variant = "overlay" }: Add
         setProgress({ done: index, total: files.length });
         await onUpload({ file, kind: InventoryAttachmentKinds.Photo });
       }
-    } catch {
-      toast.error(files.length > 1 ? "Failed to upload every photo" : "Failed to upload photo");
+    } catch (err) {
+      const fallback = files.length > 1 ? "Failed to upload every photo" : "Failed to upload photo";
+      toast.error(err instanceof Error ? err.message : fallback);
     } finally {
       setProgress(null);
       // Cleared so re-picking the same file still fires `change`.

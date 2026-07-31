@@ -69,8 +69,8 @@ export function InventoryDocuments({
     try {
       await onUpload({ file: pendingDocumentFile, kind: documentKind });
       closeDocumentDialog();
-    } catch {
-      toast.error("Failed to upload document");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload document");
     }
   }
 

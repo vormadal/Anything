@@ -4,6 +4,7 @@ using Anything.Application.Configuration;
 using Anything.Core.Constants;
 using Anything.Core.Entities;
 using Anything.Core.Services;
+using Anything.Core.Upload;
 using Anything.Database;
 using Anything.API;
 using Anything.API.Endpoints;
@@ -72,14 +73,15 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(UserRoles.Admin, policy => policy.RequireRole(UserRoles.Admin));
 });
 
-// Allow large file uploads (up to 10 MB)
+// Transport-layer headroom over UploadLimits.MaxFileSizeBytes — see its
+// remarks for why the two are deliberately different sizes.
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
+    serverOptions.Limits.MaxRequestBodySize = UploadLimits.MaxRequestBodyBytes;
 });
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10 MB
+    options.MultipartBodyLengthLimit = UploadLimits.MaxRequestBodyBytes;
 });
 
 // Add OpenAPI/Swagger

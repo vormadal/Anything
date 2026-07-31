@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { MultipartBody } from "@microsoft/kiota-abstractions";
 import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
 import type {
   InventoryAttachmentResponse,
   InventoryBoxResponse,
@@ -318,8 +319,6 @@ export function useDeleteInventoryItem() {
 // identical (mirroring the backend's shared `InventoryAttachment` table), so
 // upload/download are written once here and reused for all three owners.
 
-const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
-
 interface AttachmentsRequestBuilder {
   get(): Promise<InventoryAttachmentResponse[] | undefined>;
   post(
@@ -336,22 +335,19 @@ async function uploadInventoryAttachment(
   builder: AttachmentsRequestBuilder,
   data: { file: File; kind?: string; name?: string }
 ): Promise<void> {
-  if (data.file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-    throw new Error(
-      `File is too large (${(data.file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is 10 MB.`
-    );
-  }
+  const file = await prepareImageForUpload(data.file);
+  assertUploadSize(file);
 
   const multipartBody = createMultipartBody();
   // Kiota's multipart serializer only supports string/ArrayBuffer/Uint8Array
   // part content — passing the File object itself throws before any request.
-  const fileContent = await data.file.arrayBuffer();
+  const fileContent = await file.arrayBuffer();
   multipartBody.addOrReplacePart(
     "file",
-    data.file.type || "application/octet-stream",
+    file.type || "application/octet-stream",
     fileContent,
     undefined,
-    data.file.name
+    file.name
   );
 
   try {
@@ -359,7 +355,7 @@ async function uploadInventoryAttachment(
   } catch (e) {
     const kiota = e as { responseStatusCode?: number; message?: string };
     if (kiota.responseStatusCode === 413) {
-      throw new Error("File is too large. Please use a file under 10 MB.");
+      throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
     }
     throw new Error(kiota.message || "Failed to upload attachment");
   }
