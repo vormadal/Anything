@@ -10,7 +10,11 @@ namespace Anything.Application.Features.Inventory.Queries;
 
 public record GetInventoryItemsQuery : IRequest<List<InventoryItemSummaryResponse>>;
 
-public class GetInventoryItemsHandler(IRepository<InventoryItem> repository, IHouseholdContext householdContext)
+public class GetInventoryItemsHandler(
+    IRepository<InventoryItem> repository,
+    IRepository<InventoryAttachment> attachmentRepository,
+    IImageStorageService imageStorageService,
+    IHouseholdContext householdContext)
     : IRequestHandler<GetInventoryItemsQuery, List<InventoryItemSummaryResponse>>
 {
     public async Task<List<InventoryItemSummaryResponse>> Handle(GetInventoryItemsQuery query, CancellationToken ct = default)
@@ -18,6 +22,14 @@ public class GetInventoryItemsHandler(IRepository<InventoryItem> repository, IHo
         var items = await repository.Query()
             .Where(i => i.DeletedOn == null && i.HouseholdId == householdContext.HouseholdId)
             .ToListAsync(ct);
-        return items.Select(InventoryMapping.ToSummary).ToList();
+
+        var thumbnails = await InventoryThumbnailLookup.Load(
+            attachmentRepository,
+            imageStorageService,
+            InventoryAttachmentOwner.Item,
+            items.Select(i => i.Id).ToList(),
+            ct);
+
+        return items.Select(i => InventoryMapping.ToSummary(i, thumbnails.GetValueOrDefault(i.Id))).ToList();
     }
 }
