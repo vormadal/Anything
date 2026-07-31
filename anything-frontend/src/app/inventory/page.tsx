@@ -125,6 +125,7 @@ export default function InventoryPage() {
                   href={itemPath(item.id ?? 0)}
                   title={item.name ?? ""}
                   subtitle={describeItemLocation(item, allBoxes, allPlaces)}
+                  thumbnailUrl={item.thumbnailUrl}
                 />
               ))}
             </InventoryList>
@@ -169,6 +170,7 @@ export default function InventoryPage() {
                       subtitle={subtitle}
                       count={itemCount}
                       icon={<Box className="h-4 w-4" />}
+                      thumbnailUrl={place.thumbnailUrl}
                     />
                   );
                 })}
@@ -186,6 +188,7 @@ export default function InventoryPage() {
                     href={itemPath(item.id ?? 0)}
                     title={item.name ?? ""}
                     subtitle={item.description}
+                    thumbnailUrl={item.thumbnailUrl}
                   />
                 ))}
               </InventoryList>

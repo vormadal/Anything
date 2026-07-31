@@ -108,12 +108,14 @@ describe("BoxDetailPage", () => {
     expect(screen.getByText("Lights and ornaments")).toBeInTheDocument();
   });
 
-  it("shows the photos and documents sections", async () => {
+  it("shows the photo gallery and documents sections", async () => {
     mockLoaded();
 
     renderWithClient(<BoxDetailPage />);
 
-    await waitFor(() => expect(screen.getByText("Photos")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Add photo/ })).toBeInTheDocument()
+    );
     expect(screen.getByText("Documents")).toBeInTheDocument();
   });
 });

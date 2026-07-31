@@ -351,6 +351,40 @@ const mockStorageItems = [
   { id: 105, name: "Camping tent", description: "Four person", boxId: null, storageUnitId: null, householdId: 1, createdOn: "2024-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
 ];
 
+// Photo attachments are shaped identically across items, boxes and places, so the
+// per-test overrides below build them from one factory.
+function mockPhotoAttachment(id: number, name: string, sortOrder = 0) {
+  return {
+    id,
+    name,
+    contentType: "image/jpeg",
+    kind: "Photo",
+    thumbnailUrl: PLACEHOLDER_IMAGE,
+    url: PLACEHOLDER_IMAGE,
+    sortOrder,
+    createdOn: "2024-01-01T00:00:00Z",
+  };
+}
+
+// A photo-only item (no box, no place, no metadata) used by the gallery tests, so the
+// screenshot is dominated by the gallery itself.
+const mockPhotoItem = {
+  id: 107,
+  name: "Garden gnome",
+  description: null,
+  boxId: null,
+  storageUnitId: null,
+  fields: [],
+  createdOn: "2024-01-01T00:00:00Z",
+  modifiedOn: null,
+};
+
+const mockThreePhotos = [
+  mockPhotoAttachment(1, "front", 0),
+  mockPhotoAttachment(2, "back", 1),
+  mockPhotoAttachment(3, "underside", 2),
+];
+
 const mockRecipeDetail = {
   id: 1, name: "Pasta Carbonara", notes: "Classic Italian.",
   cookTimeMinutes: 30, servings: 4, servingsType: "People",
@@ -1140,8 +1174,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("heading", { name: "Basement storage room" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Box 1/ })).toBeVisible();
     await expect(page.getByText("Loose items")).toBeVisible();
-    // Phase 3 addition: every place gets a photos/documents section.
-    await expect(page.getByRole("heading", { name: "Photos" })).toBeVisible();
+    // Every place gets a photo gallery; with no photos it shows its add entry point.
+    await expect(page.getByRole("button", { name: /Add photo/ })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-place-detail.png", screenshotOptions);
   });
 
@@ -1166,8 +1200,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "Box 1" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Christmas lights/ })).toBeVisible();
-    // Phase 3 addition: every box gets a photos/documents section.
-    await expect(page.getByRole("heading", { name: "Photos" })).toBeVisible();
+    // Every box gets a photo gallery; with no photos it shows its add entry point.
+    await expect(page.getByRole("button", { name: /Add photo/ })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-box-detail.png", screenshotOptions);
   });
 
@@ -1198,9 +1232,9 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("heading", { name: "Christmas lights" })).toBeVisible();
     await expect(page.getByText("Two strings, warm white")).toBeVisible();
     await expect(page.getByRole("link", { name: "Box 1" })).toBeVisible();
-    // Phase 3 additions: present on every item, even with nothing in them yet.
+    // Present on every item, even with nothing in them yet.
     await expect(page.getByRole("heading", { name: "Custom fields" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Photos" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Add photo/ })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-item-detail.png", screenshotOptions);
   });
 
@@ -1236,38 +1270,19 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("storage - item detail with a photo", async ({ page }) => {
-    const photoItem = {
-      id: 107,
-      name: "Garden gnome",
-      description: null,
-      boxId: null,
-      storageUnitId: null,
-      fields: [],
-      createdOn: "2024-01-01T00:00:00Z",
-      modifiedOn: null,
-    };
-    await page.route(/\/api\/inventory-items\/107$/, (route) => route.fulfill({ json: photoItem }));
+    await page.route(/\/api\/inventory-items\/107$/, (route) =>
+      route.fulfill({ json: mockPhotoItem })
+    );
     await page.route(/\/api\/inventory-items\/107\/attachments$/, (route) =>
-      route.fulfill({
-        json: [
-          {
-            id: 1,
-            name: "front",
-            contentType: "image/jpeg",
-            kind: "Photo",
-            thumbnailUrl: PLACEHOLDER_IMAGE,
-            url: PLACEHOLDER_IMAGE,
-            sortOrder: 0,
-            createdOn: "2024-01-01T00:00:00Z",
-          },
-        ],
-      })
+      route.fulfill({ json: [mockPhotoAttachment(1, "front")] })
     );
 
     await page.goto("/inventory/items/107");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "Garden gnome" })).toBeVisible();
     await expect(page.getByRole("img", { name: "front" })).toBeVisible();
+    // A lone photo gets no dots or counter.
+    await expect(page.getByText("1 / 1")).toHaveCount(0);
     await expect(page).toHaveScreenshot("storage-item-detail-photo.png", screenshotOptions);
   });
 
@@ -1309,26 +1324,14 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("storage - box detail with a photo header", async ({ page }) => {
     await page.route(/\/api\/inventory-boxes\/10\/attachments$/, (route) =>
-      route.fulfill({
-        json: [
-          {
-            id: 3,
-            name: "box-front",
-            contentType: "image/jpeg",
-            kind: "Photo",
-            thumbnailUrl: PLACEHOLDER_IMAGE,
-            url: PLACEHOLDER_IMAGE,
-            sortOrder: 0,
-            createdOn: "2024-01-01T00:00:00Z",
-          },
-        ],
-      })
+      route.fulfill({ json: [mockPhotoAttachment(3, "box-front")] })
     );
 
     await page.goto("/inventory/boxes/10");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "Box 1" })).toBeVisible();
-    await expect(page.getByRole("img", { name: "Box 1" })).toBeVisible();
+    // The gallery names each photo after the attachment, not the box.
+    await expect(page.getByRole("img", { name: "box-front" })).toBeVisible();
     await expect(page).toHaveScreenshot("storage-box-detail-photo.png", screenshotOptions);
   });
 
@@ -1353,6 +1356,95 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByLabel("Quantity")).toBeVisible();
     await expect(page.getByLabel("Warranty expires")).toBeVisible();
     await expect(page).toHaveScreenshot("storage-item-dialog-details.png", screenshotOptions);
+  });
+
+  test("storage - place detail with a photo", async ({ page }) => {
+    await page.route(/\/api\/inventory-storage-units\/1\/attachments$/, (route) =>
+      route.fulfill({ json: [mockPhotoAttachment(4, "basement-shelves")] })
+    );
+
+    await page.goto("/inventory/places/1");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Basement storage room" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "basement-shelves" })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-place-detail-photo.png", screenshotOptions);
+  });
+
+  test("storage - item detail with several swipeable photos", async ({ page }) => {
+    await page.route(/\/api\/inventory-items\/107$/, (route) =>
+      route.fulfill({ json: mockPhotoItem })
+    );
+    await page.route(/\/api\/inventory-items\/107\/attachments$/, (route) =>
+      route.fulfill({ json: mockThreePhotos })
+    );
+
+    await page.goto("/inventory/items/107");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("img", { name: "front" })).toBeVisible();
+    // Dots and a counter only appear once there is more than one photo.
+    await expect(page.getByText("1 / 3")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Show photo 3" })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-item-detail-photos.png", screenshotOptions);
+  });
+
+  test("storage - fullscreen photo viewer", async ({ page }) => {
+    await page.route(/\/api\/inventory-items\/107$/, (route) =>
+      route.fulfill({ json: mockPhotoItem })
+    );
+    await page.route(/\/api\/inventory-items\/107\/attachments$/, (route) =>
+      route.fulfill({ json: mockThreePhotos })
+    );
+
+    await page.goto("/inventory/items/107");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "View back full screen" }).click();
+
+    // Scoped to the dialog: the hero underneath tracks the tapped photo, so its own
+    // counter and dots read the same.
+    const viewer = page.getByRole("dialog");
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByRole("button", { name: "Delete photo" })).toBeVisible();
+    // No arrow buttons at this width — the phone viewport swipes instead.
+    await expect(viewer.getByText("2 / 3")).toBeVisible();
+    await expect(viewer.getByRole("button", { name: "Show photo 3" })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-photo-viewer.png", screenshotOptions);
+  });
+
+  test("storage - add photo menu", async ({ page }) => {
+    await page.route(/\/api\/inventory-items\/107$/, (route) =>
+      route.fulfill({ json: mockPhotoItem })
+    );
+    await page.route(/\/api\/inventory-items\/107\/attachments$/, (route) =>
+      route.fulfill({ json: [mockPhotoAttachment(1, "front")] })
+    );
+
+    await page.goto("/inventory/items/107");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /Add photo/ }).click();
+
+    await expect(page.getByRole("menuitem", { name: "Take photo" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Choose from library" })).toBeVisible();
+    await expect(page).toHaveScreenshot("storage-add-photo-menu.png", screenshotOptions);
+  });
+
+  test("storage - overview rows with thumbnails", async ({ page }) => {
+    await page.route("**/api/inventory-storage-units**", (route) =>
+      route.fulfill({
+        json: mockStoragePlaces.map((place) => ({ ...place, thumbnailUrl: PLACEHOLDER_IMAGE })),
+      })
+    );
+    await page.route("**/api/inventory-items**", (route) =>
+      route.fulfill({
+        json: mockStorageItems.map((item) => ({ ...item, thumbnailUrl: PLACEHOLDER_IMAGE })),
+      })
+    );
+
+    await page.goto("/inventory");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("link", { name: /Basement storage room/ })).toBeVisible();
+    // One thumbnail per place row plus one per unplaced item.
+    await expect(page.locator("a img")).toHaveCount(4);
+    await expect(page).toHaveScreenshot("storage-overview-thumbnails.png", screenshotOptions);
   });
 
   test("storage - new box dialog", async ({ page }) => {
