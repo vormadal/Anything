@@ -48,6 +48,22 @@ public static class NoteEndpoints
         .WithParameterValidation()
         .RequireAuthorization();
 
+        // Not nested under a note id: an image can be added before the note it
+        // belongs to has been created (see UploadNoteImageHandler).
+        group.MapPost("/images", async (IFormFile? file, IMediator mediator) =>
+        {
+            if (file is null || file.Length == 0)
+                return Results.BadRequest("No file uploaded or file is empty.");
+            await using var stream = file.OpenReadStream();
+            return await mediator.Send(new UploadNoteImageCommand(
+                stream, file.FileName, file.ContentType, file.Length));
+        })
+        .WithName("UploadNoteImage")
+        .Produces<NoteImageResponse>(StatusCodes.Status201Created)
+        .Produces(400)
+        .DisableAntiforgery()
+        .RequireAuthorization();
+
         group.MapPut("/{id}", async (int id, UpdateNoteRequest request, IMediator mediator) =>
         {
             return await mediator.Send(new UpdateNoteCommand(id, request.Title, request.ContentJson));
