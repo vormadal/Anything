@@ -1198,6 +1198,15 @@ export function createMeasurementUnitFromDiscriminatorValue(parseNode: ParseNode
 export function createMergeRecommendationsRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoMergeRecommendationsRequest;
 }
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {NoteImageResponse}
+ */
+// @ts-ignore
+export function createNoteImageResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoNoteImageResponse;
+}
 export interface CreateNoteRequest extends Parsable {
     /**
      * The contentJson property
@@ -3148,6 +3157,18 @@ export function deserializeIntoMergeRecommendationsRequest(mergeRecommendationsR
 }
 /**
  * The deserialization information for the current model
+ * @param NoteImageResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoNoteImageResponse(noteImageResponse: Partial<NoteImageResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "storageKey": n => { noteImageResponse.storageKey = n.getStringValue(); },
+        "url": n => { noteImageResponse.url = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param NoteResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -5005,6 +5026,16 @@ export interface MergeRecommendationsRequest extends Parsable {
      */
     targetId?: number | null;
 }
+export interface NoteImageResponse extends Parsable {
+    /**
+     * The storageKey property
+     */
+    storageKey?: string | null;
+    /**
+     * The url property
+     */
+    url?: string | null;
+}
 export interface NoteResponse extends Parsable {
     /**
      * The contentJson property
@@ -6735,6 +6766,18 @@ export function serializeMergeRecommendationsRequest(writer: SerializationWriter
     writer.writeStringValue("preferredUnit", mergeRecommendationsRequest.preferredUnit);
     writer.writeCollectionOfPrimitiveValues<number>("sourceIds", mergeRecommendationsRequest.sourceIds);
     writer.writeNumberValue("targetId", mergeRecommendationsRequest.targetId);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param NoteImageResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeNoteImageResponse(writer: SerializationWriter, noteImageResponse: Partial<NoteImageResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!noteImageResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("storageKey", noteImageResponse.storageKey);
+    writer.writeStringValue("url", noteImageResponse.url);
 }
 /**
  * Serializes information the current object
