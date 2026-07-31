@@ -1,8 +1,8 @@
 "use client";
 
 import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
-import { useEffect } from "react";
-import { noteExtensions } from "@/lib/notes/extensions";
+import { useEffect, useMemo } from "react";
+import { createNoteExtensions, type UploadNoteImageFn } from "@/lib/notes/extensions";
 import { NoteEditorToolbar } from "./NoteEditorToolbar";
 import { NOTE_PROSE_CLASSES } from "./noteProseClasses";
 
@@ -17,6 +17,8 @@ interface NoteEditorProps {
   onChange: (document: JSONContent) => void;
   /** Marks the editing surface for assistive tech; defaults to "Note content". */
   label?: string;
+  /** Uploads an image and reports where it landed, for the toolbar button and paste/drop. */
+  onUploadImage: UploadNoteImageFn;
 }
 
 const DEFAULT_LABEL = "Note content";
@@ -35,9 +37,15 @@ const SURFACE_CLASSES = "flex grow flex-col bg-white dark:bg-gray-800";
  * touches the DOM on construction, and keeping it out of the server bundle also
  * keeps the editor off pages that only render note summaries.
  */
-export function NoteEditor({ value, onChange, label = DEFAULT_LABEL }: NoteEditorProps) {
+export function NoteEditor({ value, onChange, label = DEFAULT_LABEL, onUploadImage }: NoteEditorProps) {
+  // Built once, alongside `value` above: the editor itself is only ever
+  // created on mount (see useEditor's default `deps = []`), so rebuilding
+  // this on every render would be wasted work.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- read once, mirrors `value`
+  const extensions = useMemo(() => createNoteExtensions(onUploadImage), []);
+
   const editor = useEditor({
-    extensions: noteExtensions,
+    extensions,
     content: value,
     // Required under the App Router: rendering the editor during the first
     // client render would mismatch the server-rendered markup.
@@ -66,7 +74,7 @@ export function NoteEditor({ value, onChange, label = DEFAULT_LABEL }: NoteEdito
       {/* Pinned under the app header so formatting stays reachable however far
           down a long note the user has scrolled. */}
       <div className="sticky top-14 z-30 bg-white dark:bg-gray-800">
-        <NoteEditorToolbar editor={editor} />
+        <NoteEditorToolbar editor={editor} onUploadImage={onUploadImage} />
       </div>
       <EditorContent editor={editor} className="flex grow flex-col" />
     </div>

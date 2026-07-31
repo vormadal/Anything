@@ -234,6 +234,25 @@ const mockNoteDetail = {
   modifiedOn: "2025-01-14T18:30:00Z",
 };
 
+// A note whose body includes an image, to cover image rendering in the editor.
+const mockNoteDetailWithImage = {
+  id: 3,
+  title: "Plant watering",
+  contentJson: JSON.stringify({
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        content: [{ type: "text", text: "Watering schedule, with a photo of the setup:" }],
+      },
+      { type: "image", attrs: { src: PLACEHOLDER_IMAGE, storageKey: "notes/plant-setup.png" } },
+    ],
+  }),
+  contentText: "Watering schedule, with a photo of the setup:",
+  createdOn: "2025-01-05T09:00:00Z",
+  modifiedOn: null,
+};
+
 // A note with no body, to cover the "nothing written yet" detail state.
 const mockEmptyNoteDetail = {
   id: 2,
@@ -1027,6 +1046,20 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     // The placeholder is CSS-generated, so assert on the editing surface itself.
     await expect(page.getByRole("textbox", { name: "Note content" })).toBeVisible();
     await expect(page).toHaveScreenshot("note-detail-empty.png", screenshotOptions);
+  });
+
+  test("note detail - with an embedded image", async ({ page }) => {
+    await page.route(/\/api\/notes\/\d+$/, (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: mockNoteDetailWithImage });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/notes/3");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("img")).toBeVisible();
+    await expect(page).toHaveScreenshot("note-detail-with-image.png", screenshotOptions);
   });
 
   test("note - autosave indicator after an edit", async ({ page }) => {

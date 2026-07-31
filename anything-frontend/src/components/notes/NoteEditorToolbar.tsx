@@ -11,9 +11,14 @@ import {
   ListOrdered,
   Quote,
   Code,
+  Image as ImageIcon,
   Undo2,
   Redo2,
 } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import type { UploadNoteImageFn } from "@/lib/notes/extensions";
 
 interface ToolbarAction {
   label: string;
@@ -127,7 +132,67 @@ function ToolbarButton({ action, editor }: { action: ToolbarAction; editor: Edit
   );
 }
 
-export function NoteEditorToolbar({ editor }: { editor: Editor }) {
+/**
+ * Unlike the declarative `ToolbarAction`s above, adding an image is
+ * asynchronous (upload, then insert) and needs its own file input, so it
+ * can't be expressed as a plain `run(editor)` callback.
+ */
+function ImageToolbarButton({
+  editor,
+  onUploadImage,
+}: {
+  editor: Editor;
+  onUploadImage: UploadNoteImageFn;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const isOnline = useOnlineStatus();
+
+  const handleFileSelected = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { src, storageKey } = await onUploadImage(file);
+      editor.chain().focus().insertContent({ type: "image", attrs: { src, storageKey } }).run();
+    } catch {
+      toast.error(`Couldn't add "${file.name}" to the note.`);
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={(e) => handleFileSelected(e.target.files?.[0])}
+      />
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading || !isOnline}
+        aria-label="Add image"
+        title={isOnline ? "Add image" : "Adding an image requires an internet connection"}
+        className={`${BUTTON_BASE} ${BUTTON_INACTIVE}`}
+      >
+        <ImageIcon className="h-4 w-4" />
+      </button>
+    </>
+  );
+}
+
+export function NoteEditorToolbar({
+  editor,
+  onUploadImage,
+}: {
+  editor: Editor;
+  onUploadImage: UploadNoteImageFn;
+}) {
   return (
     <div
       role="toolbar"
@@ -137,6 +202,7 @@ export function NoteEditorToolbar({ editor }: { editor: Editor }) {
       {FORMATTING_ACTIONS.map((action) => (
         <ToolbarButton key={action.label} action={action} editor={editor} />
       ))}
+      <ImageToolbarButton editor={editor} onUploadImage={onUploadImage} />
       <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
       {HISTORY_ACTIONS.map((action) => (
         <ToolbarButton key={action.label} action={action} editor={editor} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { JSONContent } from "@tiptap/react";
 import { MoreVertical, Pencil, Trash2 } from "lucide-react";
@@ -14,7 +14,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNoteAutosave } from "@/hooks/useNoteAutosave";
+import { useUploadNoteImage } from "@/hooks/useNotes";
 import { EMPTY_NOTE_DOCUMENT, isNoteDocumentEmpty } from "@/lib/notes/noteDocument";
+import type { UploadNoteImageFn } from "@/lib/notes/extensions";
 import { NoteSaveIndicator } from "./NoteSaveIndicator";
 import { RenameNoteDialog } from "./RenameNoteDialog";
 
@@ -67,6 +69,15 @@ export function NoteWorkspace({
     initialDocument,
     onCreated,
   });
+
+  const uploadNoteImage = useUploadNoteImage();
+  const handleUploadImage: UploadNoteImageFn = useCallback(
+    async (file) => {
+      const image = await uploadNoteImage.mutateAsync(file);
+      return { src: image.url, storageKey: image.storageKey };
+    },
+    [uploadNoteImage]
+  );
 
   // Kept in a ref so an inline callback from the page doesn't rebuild the header
   // on every render.
@@ -129,7 +140,7 @@ export function NoteWorkspace({
       {readOnly ? (
         <ReadOnlyNote document={initialDocument} />
       ) : (
-        <NoteEditor value={initialDocument} onChange={setDocument} />
+        <NoteEditor value={initialDocument} onChange={setDocument} onUploadImage={handleUploadImage} />
       )}
 
       <RenameNoteDialog
