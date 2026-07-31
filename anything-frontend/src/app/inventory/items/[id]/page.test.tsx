@@ -149,9 +149,33 @@ describe("ItemDetailPage", () => {
 
     await waitFor(() => expect(screen.getByDisplayValue("Color")).toBeInTheDocument());
     expect(screen.getByDisplayValue("Blue")).toBeInTheDocument();
-    expect(screen.getByText("Photos")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add photo/ })).toBeInTheDocument();
     expect(screen.getByText("Documents")).toBeInTheDocument();
-    expect(screen.getByText("No photos yet.")).toBeInTheDocument();
     expect(screen.getByText("No documents yet.")).toBeInTheDocument();
+  });
+
+  it("shows the item's photos as a hero gallery, like boxes and places", async () => {
+    mockItemGet.mockResolvedValue({
+      id: 100,
+      name: "Christmas lights",
+      description: null,
+      boxId: null,
+      storageUnitId: null,
+      fields: [],
+    });
+    mockBoxesGet.mockResolvedValue([]);
+    mockUnitsGet.mockResolvedValue([]);
+    mockAttachmentsGet.mockResolvedValue([
+      { id: 1, name: "front", contentType: "image/jpeg", kind: "Photo", url: "https://example.com/front.jpg" },
+      { id: 2, name: "back", contentType: "image/jpeg", kind: "Photo", url: "https://example.com/back.jpg" },
+    ]);
+
+    renderWithClient(<ItemDetailPage />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("img", { name: "front" })).toBeInTheDocument()
+    );
+    expect(screen.getByRole("img", { name: "back" })).toBeInTheDocument();
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
   });
 });

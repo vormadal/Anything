@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Box, Package, Plus } from "lucide-react";
-import Image from "next/image";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { useHeaderActions } from "@/context/PageActionsContext";
@@ -26,10 +25,10 @@ import { PlaceFormDialog } from "@/components/inventory/PlaceFormDialog";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
 import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
 import { InventoryList, InventoryRow } from "@/components/inventory/InventoryRow";
-import { InventoryAttachments } from "@/components/inventory/InventoryAttachments";
+import { InventoryDocuments } from "@/components/inventory/InventoryDocuments";
+import { InventoryPhotoGallery } from "@/components/inventory/InventoryPhotoGallery";
 import {
   INVENTORY_PATH,
-  InventoryAttachmentKinds,
   boxPath,
   boxesInPlace,
   childPlaces,
@@ -67,7 +66,6 @@ export default function PlaceDetailPage() {
   const uploadAttachment = useUploadInventoryStorageUnitAttachment(placeId);
   const downloadAttachment = useDownloadInventoryStorageUnitAttachment(placeId);
   const deleteAttachment = useDeleteInventoryStorageUnitAttachment(placeId);
-  const headerPhoto = attachments.data?.find((a) => a.kind === InventoryAttachmentKinds.Photo);
 
   // Refs keep the header effect's deps stable, matching the lists detail page.
   const openEditRef = useRef(() => setEditOpen(true));
@@ -135,17 +133,14 @@ export default function PlaceDetailPage() {
           ‹ {formatPlaceName(parent)}
         </Link>
       )}
-      {headerPhoto?.thumbnailUrl && (
-        <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-          <Image
-            src={headerPhoto.thumbnailUrl}
-            alt={formatPlaceName(place)}
-            fill
-            sizes="(max-width: 672px) 100vw, 672px"
-            className="object-cover"
-          />
-        </div>
-      )}
+      <InventoryPhotoGallery
+        attachments={attachments.data}
+        label={formatPlaceName(place)}
+        onUpload={(data) => uploadAttachment.mutateAsync(data)}
+        isUploading={uploadAttachment.isPending}
+        onDelete={(id) => deleteAttachment.mutateAsync(id)}
+        isDeleting={deleteAttachment.isPending}
+      />
 
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => setAddPlaceOpen(true)}>
@@ -178,6 +173,7 @@ export default function PlaceDetailPage() {
                   subtitle={`${boxCount} ${boxCount === 1 ? "box" : "boxes"} · ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
                   count={itemCount}
                   icon={<Box className="h-4 w-4" />}
+                  thumbnailUrl={child.thumbnailUrl}
                 />
               );
             })}
@@ -203,6 +199,7 @@ export default function PlaceDetailPage() {
                   subtitle={`${count} ${count === 1 ? "item" : "items"}`}
                   count={count}
                   icon={<Box className="h-4 w-4" />}
+                  thumbnailUrl={box.thumbnailUrl}
                 />
               );
             })}
@@ -221,13 +218,14 @@ export default function PlaceDetailPage() {
                 title={item.name ?? ""}
                 subtitle={item.description}
                 icon={<Package className="h-4 w-4" />}
+                thumbnailUrl={item.thumbnailUrl}
               />
             ))}
           </InventoryList>
         </section>
       )}
 
-      <InventoryAttachments
+      <InventoryDocuments
         attachments={attachments.data}
         isLoading={attachments.isLoading}
         onUpload={(data) => uploadAttachment.mutateAsync(data)}

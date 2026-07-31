@@ -10,7 +10,11 @@ namespace Anything.Application.Features.Inventory.Queries;
 
 public record GetInventoryStorageUnitsQuery : IRequest<List<InventoryStorageUnitResponse>>;
 
-public class GetInventoryStorageUnitsHandler(IRepository<InventoryStorageUnit> repository, IHouseholdContext householdContext)
+public class GetInventoryStorageUnitsHandler(
+    IRepository<InventoryStorageUnit> repository,
+    IRepository<InventoryAttachment> attachmentRepository,
+    IImageStorageService imageStorageService,
+    IHouseholdContext householdContext)
     : IRequestHandler<GetInventoryStorageUnitsQuery, List<InventoryStorageUnitResponse>>
 {
     public async Task<List<InventoryStorageUnitResponse>> Handle(GetInventoryStorageUnitsQuery query, CancellationToken ct = default)
@@ -18,6 +22,16 @@ public class GetInventoryStorageUnitsHandler(IRepository<InventoryStorageUnit> r
         var storageUnits = await repository.Query()
             .Where(s => s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
             .ToListAsync(ct);
-        return storageUnits.Select(InventoryMapping.ToResponse).ToList();
+
+        var thumbnails = await InventoryThumbnailLookup.Load(
+            attachmentRepository,
+            imageStorageService,
+            InventoryAttachmentOwner.StorageUnit,
+            storageUnits.Select(s => s.Id).ToList(),
+            ct);
+
+        return storageUnits
+            .Select(s => InventoryMapping.ToResponse(s, thumbnails.GetValueOrDefault(s.Id)))
+            .ToList();
     }
 }

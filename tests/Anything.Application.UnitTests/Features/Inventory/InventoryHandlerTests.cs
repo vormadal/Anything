@@ -2,6 +2,7 @@ using Anything.Application.Features.Inventory.Commands;
 using Anything.Application.Features.Inventory.Queries;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Contracts.Inventory;
+using Anything.Core.Constants;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -347,9 +348,34 @@ public class UpdateInventoryStorageUnitHandlerTests
     }
 }
 
+/// <summary>
+/// Shared doubles for the query handlers that resolve list thumbnails. Without a stubbed
+/// <c>Query()</c> the attachment repo substitute returns null and <c>ToListAsync</c> throws.
+/// </summary>
+internal static class InventoryTestDoubles
+{
+    public const string ThumbnailUrl = "https://imgproxy.test/thumb.webp";
+
+    public static IRepository<InventoryAttachment> AttachmentRepo(params InventoryAttachment[] attachments)
+    {
+        var repo = Substitute.For<IRepository<InventoryAttachment>>();
+        repo.Query().Returns(attachments.ToList().AsAsyncQueryable());
+        return repo;
+    }
+
+    public static IImageStorageService ImageStorage()
+    {
+        var images = Substitute.For<IImageStorageService>();
+        images.GetImageUrl(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string>()).Returns(ThumbnailUrl);
+        return images;
+    }
+}
+
 public class GetInventoryBoxesHandlerTests
 {
     private readonly IRepository<InventoryBox> _repo = Substitute.For<IRepository<InventoryBox>>();
+    private readonly IRepository<InventoryAttachment> _attachmentRepo = InventoryTestDoubles.AttachmentRepo();
+    private readonly IImageStorageService _imageStorage = InventoryTestDoubles.ImageStorage();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
@@ -361,23 +387,48 @@ public class GetInventoryBoxesHandlerTests
             new() { Id = 2, Number = 2, DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetInventoryBoxesHandler(_repo, _householdContext).Handle(new GetInventoryBoxesQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetInventoryBoxesHandler(_repo, _attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryBoxesQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal(1, result[0].Number);
+    }
+
+    [Fact]
+    public async Task Handle_IncludesFirstPhotoThumbnail()
+    {
+        _repo.Query().Returns(new List<InventoryBox> { new() { Id = 1, Number = 1 } }.AsAsyncQueryable());
+        var attachmentRepo = InventoryTestDoubles.AttachmentRepo(
+            new InventoryAttachment
+            {
+                Id = 9,
+                BoxId = 1,
+                Kind = InventoryAttachmentKinds.Photo,
+                ContentType = "image/jpeg",
+                Name = "front.jpg",
+                StorageKey = "inventory/front.jpg"
+            });
+
+        var result = await new GetInventoryBoxesHandler(_repo, attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryBoxesQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(InventoryTestDoubles.ThumbnailUrl, result[0].ThumbnailUrl);
     }
 }
 
 public class GetInventoryBoxByIdHandlerTests
 {
     private readonly IRepository<InventoryBox> _repo = Substitute.For<IRepository<InventoryBox>>();
+    private readonly IRepository<InventoryAttachment> _attachmentRepo = InventoryTestDoubles.AttachmentRepo();
+    private readonly IImageStorageService _imageStorage = InventoryTestDoubles.ImageStorage();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<InventoryBox>().AsAsyncQueryable());
-        var result = await new GetInventoryBoxByIdHandler(_repo, _householdContext).Handle(new GetInventoryBoxByIdQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetInventoryBoxByIdHandler(_repo, _attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryBoxByIdQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -385,7 +436,8 @@ public class GetInventoryBoxByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOk()
     {
         _repo.Query().Returns(new List<InventoryBox> { new InventoryBox { Id = 1, Number = 5 } }.AsAsyncQueryable());
-        var result = await new GetInventoryBoxByIdHandler(_repo, _householdContext).Handle(new GetInventoryBoxByIdQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetInventoryBoxByIdHandler(_repo, _attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryBoxByIdQuery(1), TestContext.Current.CancellationToken);
         var ok = Assert.IsType<Ok<InventoryBoxResponse>>(result);
         Assert.Equal(5, ok.Value!.Number);
     }
@@ -394,6 +446,8 @@ public class GetInventoryBoxByIdHandlerTests
 public class GetInventoryItemsHandlerTests
 {
     private readonly IRepository<InventoryItem> _repo = Substitute.For<IRepository<InventoryItem>>();
+    private readonly IRepository<InventoryAttachment> _attachmentRepo = InventoryTestDoubles.AttachmentRepo();
+    private readonly IImageStorageService _imageStorage = InventoryTestDoubles.ImageStorage();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
@@ -405,10 +459,66 @@ public class GetInventoryItemsHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetInventoryItemsHandler(_repo, _householdContext).Handle(new GetInventoryItemsQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetInventoryItemsHandler(_repo, _attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryItemsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Widget", result[0].Name);
+    }
+
+    [Fact]
+    public async Task Handle_UsesLowestSortOrderPhotoAndIgnoresDocuments()
+    {
+        _repo.Query().Returns(new List<InventoryItem> { new() { Id = 1, Name = "Widget" } }.AsAsyncQueryable());
+        var attachmentRepo = InventoryTestDoubles.AttachmentRepo(
+            new InventoryAttachment
+            {
+                Id = 1,
+                ItemId = 1,
+                Kind = InventoryAttachmentKinds.Receipt,
+                ContentType = "application/pdf",
+                Name = "receipt.pdf",
+                StorageKey = "inventory/receipt.pdf",
+                SortOrder = 0
+            },
+            new InventoryAttachment
+            {
+                Id = 2,
+                ItemId = 1,
+                Kind = InventoryAttachmentKinds.Photo,
+                ContentType = "image/jpeg",
+                Name = "second.jpg",
+                StorageKey = "inventory/second.jpg",
+                SortOrder = 2
+            },
+            new InventoryAttachment
+            {
+                Id = 3,
+                ItemId = 1,
+                Kind = InventoryAttachmentKinds.Photo,
+                ContentType = "image/jpeg",
+                Name = "first.jpg",
+                StorageKey = "inventory/first.jpg",
+                SortOrder = 1
+            });
+        var images = InventoryTestDoubles.ImageStorage();
+
+        var result = await new GetInventoryItemsHandler(_repo, attachmentRepo, images, _householdContext)
+            .Handle(new GetInventoryItemsQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(InventoryTestDoubles.ThumbnailUrl, result[0].ThumbnailUrl);
+        images.Received(1).GetImageUrl("inventory/first.jpg", Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Handle_WithoutPhotos_LeavesThumbnailNull()
+    {
+        _repo.Query().Returns(new List<InventoryItem> { new() { Id = 1, Name = "Widget" } }.AsAsyncQueryable());
+
+        var result = await new GetInventoryItemsHandler(_repo, _attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryItemsQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Null(result[0].ThumbnailUrl);
     }
 }
 
@@ -460,6 +570,8 @@ public class GetInventoryItemByIdHandlerTests
 public class GetInventoryStorageUnitsHandlerTests
 {
     private readonly IRepository<InventoryStorageUnit> _repo = Substitute.For<IRepository<InventoryStorageUnit>>();
+    private readonly IRepository<InventoryAttachment> _attachmentRepo = InventoryTestDoubles.AttachmentRepo();
+    private readonly IImageStorageService _imageStorage = InventoryTestDoubles.ImageStorage();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
@@ -471,23 +583,49 @@ public class GetInventoryStorageUnitsHandlerTests
             new() { Id = 2, Name = "Deleted", DeletedOn = DateTime.UtcNow }
         }.AsAsyncQueryable());
 
-        var result = await new GetInventoryStorageUnitsHandler(_repo, _householdContext).Handle(new GetInventoryStorageUnitsQuery(), TestContext.Current.CancellationToken);
+        var result = await new GetInventoryStorageUnitsHandler(_repo, _attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryStorageUnitsQuery(), TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal("Fridge", result[0].Name);
+    }
+
+    [Fact]
+    public async Task Handle_IgnoresAnotherOwnersPhoto()
+    {
+        _repo.Query().Returns(new List<InventoryStorageUnit> { new() { Id = 1, Name = "Fridge" } }.AsAsyncQueryable());
+        // Same attachment id space, but attached to a box — must not leak onto the place.
+        var attachmentRepo = InventoryTestDoubles.AttachmentRepo(
+            new InventoryAttachment
+            {
+                Id = 4,
+                BoxId = 1,
+                Kind = InventoryAttachmentKinds.Photo,
+                ContentType = "image/jpeg",
+                Name = "box.jpg",
+                StorageKey = "inventory/box.jpg"
+            });
+
+        var result = await new GetInventoryStorageUnitsHandler(_repo, attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryStorageUnitsQuery(), TestContext.Current.CancellationToken);
+
+        Assert.Null(result[0].ThumbnailUrl);
     }
 }
 
 public class GetInventoryStorageUnitByIdHandlerTests
 {
     private readonly IRepository<InventoryStorageUnit> _repo = Substitute.For<IRepository<InventoryStorageUnit>>();
+    private readonly IRepository<InventoryAttachment> _attachmentRepo = InventoryTestDoubles.AttachmentRepo();
+    private readonly IImageStorageService _imageStorage = InventoryTestDoubles.ImageStorage();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
 
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<InventoryStorageUnit>().AsAsyncQueryable());
-        var result = await new GetInventoryStorageUnitByIdHandler(_repo, _householdContext).Handle(new GetInventoryStorageUnitByIdQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetInventoryStorageUnitByIdHandler(_repo, _attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryStorageUnitByIdQuery(1), TestContext.Current.CancellationToken);
         Assert.IsType<NotFound>(result);
     }
 
@@ -495,7 +633,8 @@ public class GetInventoryStorageUnitByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsOk()
     {
         _repo.Query().Returns(new List<InventoryStorageUnit> { new InventoryStorageUnit { Id = 1, Name = "Freezer" } }.AsAsyncQueryable());
-        var result = await new GetInventoryStorageUnitByIdHandler(_repo, _householdContext).Handle(new GetInventoryStorageUnitByIdQuery(1), TestContext.Current.CancellationToken);
+        var result = await new GetInventoryStorageUnitByIdHandler(_repo, _attachmentRepo, _imageStorage, _householdContext)
+            .Handle(new GetInventoryStorageUnitByIdQuery(1), TestContext.Current.CancellationToken);
         var ok = Assert.IsType<Ok<InventoryStorageUnitResponse>>(result);
         Assert.Equal("Freezer", ok.Value!.Name);
     }

@@ -21,7 +21,8 @@ import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog"
 import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
 import { WarrantyBadge } from "@/components/inventory/WarrantyBadge";
 import { CustomFieldsEditor } from "@/components/inventory/CustomFieldsEditor";
-import { InventoryAttachments } from "@/components/inventory/InventoryAttachments";
+import { InventoryDocuments } from "@/components/inventory/InventoryDocuments";
+import { InventoryPhotoGallery } from "@/components/inventory/InventoryPhotoGallery";
 import {
   INVENTORY_PATH,
   boxPath,
@@ -135,6 +136,15 @@ export default function ItemDetailPage() {
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-5">
       <PageTitle>{item.name ?? "Item"}</PageTitle>
 
+      <InventoryPhotoGallery
+        attachments={attachments.data}
+        label={item.name ?? "Item"}
+        onUpload={(data) => uploadAttachment.mutateAsync(data)}
+        isUploading={uploadAttachment.isPending}
+        onDelete={(id) => deleteAttachment.mutateAsync(id)}
+        isDeleting={deleteAttachment.isPending}
+      />
+
       {/* The app header already renders the item name (via PageTitle). No
           section headers here — description vs. location is distinguished by
           size/weight/color alone, matching how a business card separates a
@@ -191,7 +201,7 @@ export default function ItemDetailPage() {
 
       <CustomFieldsEditor itemId={itemId} fields={item.fields ?? []} />
 
-      <InventoryAttachments
+      <InventoryDocuments
         attachments={attachments.data}
         isLoading={attachments.isLoading}
         onUpload={(data) => uploadAttachment.mutateAsync(data)}

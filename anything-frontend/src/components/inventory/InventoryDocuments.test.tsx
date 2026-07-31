@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithClient } from "@/__tests__/utils/test-utils";
-import { InventoryAttachments } from "./InventoryAttachments";
+import { InventoryDocuments } from "./InventoryDocuments";
 
 jest.mock("sonner", () => ({
   toast: { success: jest.fn(), error: jest.fn() },
@@ -26,50 +26,33 @@ function baseProps() {
   };
 }
 
-describe("InventoryAttachments", () => {
-  it("shows empty states for photos and documents", () => {
-    renderWithClient(<InventoryAttachments {...baseProps()} />);
-    expect(screen.getByText("No photos yet.")).toBeInTheDocument();
+describe("InventoryDocuments", () => {
+  it("shows an empty state for documents", () => {
+    renderWithClient(<InventoryDocuments {...baseProps()} />);
     expect(screen.getByText("No documents yet.")).toBeInTheDocument();
   });
 
-  it("splits attachments into a photo strip and a document list", () => {
+  it("leaves photos to the gallery and lists only documents", () => {
     const props = baseProps();
     renderWithClient(
-      <InventoryAttachments
+      <InventoryDocuments
         {...props}
         attachments={[
-          { id: 1, name: "front", contentType: "image/jpeg", kind: "Photo", thumbnailUrl: "https://example.com/thumb.jpg" },
+          { id: 1, name: "front", contentType: "image/jpeg", kind: "Photo", url: "https://example.com/front.jpg" },
           { id: 2, name: "manual", contentType: "application/pdf", kind: "Manual" },
         ]}
       />
     );
 
-    expect(screen.queryByText("No photos yet.")).not.toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "front" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "front" })).not.toBeInTheDocument();
     expect(screen.getByText("manual")).toBeInTheDocument();
     expect(screen.getByText("Manual")).toBeInTheDocument();
-  });
-
-  it("uploads a chosen photo with kind Photo", async () => {
-    const user = userEvent.setup();
-    const props = baseProps();
-    renderWithClient(<InventoryAttachments {...props} />);
-
-    const file = new File(["contents"], "photo.jpg", { type: "image/jpeg" });
-    const input = screen.getByRole("button", { name: /Add photo/ })
-      .parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(input, file);
-
-    await waitFor(() =>
-      expect(props.onUpload).toHaveBeenCalledWith({ file, kind: "Photo" })
-    );
   });
 
   it("opens a kind dialog before uploading a document", async () => {
     const user = userEvent.setup();
     const props = baseProps();
-    renderWithClient(<InventoryAttachments {...props} />);
+    renderWithClient(<InventoryDocuments {...props} />);
 
     const file = new File(["contents"], "receipt.pdf", { type: "application/pdf" });
     const input = screen.getByRole("button", { name: /Add document/ })
@@ -89,7 +72,7 @@ describe("InventoryAttachments", () => {
     const user = userEvent.setup();
     const props = baseProps();
     renderWithClient(
-      <InventoryAttachments
+      <InventoryDocuments
         {...props}
         attachments={[{ id: 2, name: "manual", contentType: "application/pdf", kind: "Manual" }]}
       />
@@ -100,11 +83,11 @@ describe("InventoryAttachments", () => {
     expect(props.onDownload).toHaveBeenCalledWith({ attachmentId: 2, name: "manual" });
   });
 
-  it("deletes an attachment", async () => {
+  it("deletes a document", async () => {
     const user = userEvent.setup();
     const props = baseProps();
     renderWithClient(
-      <InventoryAttachments
+      <InventoryDocuments
         {...props}
         attachments={[{ id: 2, name: "manual", contentType: "application/pdf", kind: "Manual" }]}
       />

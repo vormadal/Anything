@@ -7,7 +7,7 @@ Reusable UI components shared across multiple pages.
 - Root level — feature-specific shared components:
   - Dialogs: `AddToFoodPlanDialog`, `CompleteListDialog`, `CreateLocationDialog`, `CreateVendorDialog`, `EditListNameDialog`
   - `suggestions/` — tab bodies for the consolidated Suggestions admin page (`SuggestionsTab`, `CategoriesTab`, `ImportExportTab`)
-  - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed; item metadata sits behind an "Add more details" toggle, collapsed by default), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, `WarrantyBadge` (renders `describeWarranty` from `@/lib/inventory`), `CustomFieldsEditor` (item-only; wholesale replace via `useUpdateInventoryItemFields`), `InventoryAttachments` (photos + documents section reused by items/boxes/places — takes the owner's attachment hook results as props rather than knowing which owner it's attached to), and `inventoryFormStyles.ts` for the repeated Tailwind field classes
+  - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed; item metadata sits behind an "Add more details" toggle, collapsed by default), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, `WarrantyBadge` (renders `describeWarranty` from `@/lib/inventory`), `CustomFieldsEditor` (item-only; wholesale replace via `useUpdateInventoryItemFields`), the photo/document components below, and `inventoryFormStyles.ts` for the repeated Tailwind field classes
   - Layout/nav: `AppLayout`, `PageTitle`
   - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`
   - Auth: `AuthGuard`
@@ -25,6 +25,21 @@ Reusable UI components shared across multiple pages.
 - Page-specific components (used by only one route) live next to the route's `page.tsx`, not here.
 - `button.test.tsx` is an example of a unit test for a UI primitive — follow that pattern when adding new ui/ components.
 - New components with distinct visual states (dialogs, multi-step flows) must be covered by a Playwright visual snapshot — see `.claude/rules/e2e.md` for the authoritative rule.
+
+## Inventory photos (`inventory/`)
+
+Attachments split across four components. All four are presentational — each detail page owns the attachment hooks (list/upload/download/delete) for *its* entity and passes the results down, so no component knows whether it's attached to an item, a box or a place.
+
+- `InventoryPhotoGallery` — the hero at the top of every item/box/place page. Swipes between photos in place, opens `InventoryPhotoViewer` on tap, and carries the `AddPhotoMenu` overlay (or a dashed empty-state placeholder when there are no photos yet).
+- `InventoryPhotoViewer` — fullscreen lightbox: swipe, arrow keys, prev/next buttons (`sm:` and up only — phones swipe), delete the photo on screen, and close itself when the last one goes. Mount it **keyed by the tapped index** and only while open; that's what resets the strip without syncing state back through an effect (`react-hooks/set-state-in-effect` is an error here, not a warning).
+- `PhotoStrip` / `PhotoIndicators` — the shared scroll-snap mechanics behind both. CSS `snap-x snap-mandatory` on an `overflow-x-auto` flex row gives touch swipe, trackpad and scrollbar behaviour with **no carousel dependency**; the active index comes from `Math.round(scrollLeft / clientWidth)` in an `onScroll` handler. Guard `clientWidth === 0` and a missing `scrollTo` — jsdom has neither.
+- `InventoryDocuments` — manuals/receipts/warranty docs only (everything whose `kind` isn't `Photo`), with the kind-picker dialog on upload.
+- `AddPhotoMenu` — dropdown with **Take photo** and **Choose from library**, backed by two hidden inputs. They have to be two: `capture="environment"` forces the camera and cannot be combined with `multiple`, so only the library picker is multi-select. Library files upload sequentially, one request each.
+
+Two things worth knowing when touching these:
+
+- **Photos render `url`, not `thumbnailUrl`.** The API returns both (`InventoryAttachmentMapping`): a 300×300 `fill` thumbnail and a 1920×1080 `fit` render. The old banner stretched the 300px one across the full page width; the gallery uses `url`. `thumbnailUrl` is for the 40×40 slot in `InventoryRow`, fed by the list endpoints' own `thumbnailUrl` field rather than a per-row attachments call.
+- **Tapping a slide scrolls the hero too.** The slide is a `<button>`, so clicking it natively scrolls it into view and the hero's index follows the viewer's. Harmless, but it means a Playwright assertion on the counter or dots must be scoped to `getByRole("dialog")` or it hits two elements.
 
 ## Rich text (`notes/`)
 

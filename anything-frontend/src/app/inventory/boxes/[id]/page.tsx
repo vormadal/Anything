@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Package, Plus } from "lucide-react";
-import Image from "next/image";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { useHeaderActions } from "@/context/PageActionsContext";
@@ -24,10 +23,10 @@ import { ItemFormDialog } from "@/components/inventory/ItemFormDialog";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
 import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
 import { InventoryList, InventoryRow } from "@/components/inventory/InventoryRow";
-import { InventoryAttachments } from "@/components/inventory/InventoryAttachments";
+import { InventoryDocuments } from "@/components/inventory/InventoryDocuments";
+import { InventoryPhotoGallery } from "@/components/inventory/InventoryPhotoGallery";
 import {
   INVENTORY_PATH,
-  InventoryAttachmentKinds,
   formatBoxName,
   formatPlaceName,
   itemPath,
@@ -54,7 +53,6 @@ export default function BoxDetailPage() {
   const uploadAttachment = useUploadInventoryBoxAttachment(boxId);
   const downloadAttachment = useDownloadInventoryBoxAttachment(boxId);
   const deleteAttachment = useDeleteInventoryBoxAttachment(boxId);
-  const headerPhoto = attachments.data?.find((a) => a.kind === InventoryAttachmentKinds.Photo);
 
   const openEditRef = useRef(() => setEditOpen(true));
   const openDeleteRef = useRef(() => setDeleteOpen(true));
@@ -110,17 +108,14 @@ export default function BoxDetailPage() {
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">
       <PageTitle>{formatBoxName(box)}</PageTitle>
 
-      {headerPhoto?.thumbnailUrl && (
-        <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-          <Image
-            src={headerPhoto.thumbnailUrl}
-            alt={formatBoxName(box)}
-            fill
-            sizes="(max-width: 672px) 100vw, 672px"
-            className="object-cover"
-          />
-        </div>
-      )}
+      <InventoryPhotoGallery
+        attachments={attachments.data}
+        label={formatBoxName(box)}
+        onUpload={(data) => uploadAttachment.mutateAsync(data)}
+        isUploading={uploadAttachment.isPending}
+        onDelete={(id) => deleteAttachment.mutateAsync(id)}
+        isDeleting={deleteAttachment.isPending}
+      />
 
       {/* The app header already renders the box's label and number (via
           PageTitle → formatBoxName), so the page body only adds what the
@@ -166,12 +161,13 @@ export default function BoxDetailPage() {
               title={item.name ?? ""}
               subtitle={item.description}
               icon={<Package className="h-4 w-4" />}
+              thumbnailUrl={item.thumbnailUrl}
             />
           ))}
         </InventoryList>
       )}
 
-      <InventoryAttachments
+      <InventoryDocuments
         attachments={attachments.data}
         isLoading={attachments.isLoading}
         onUpload={(data) => uploadAttachment.mutateAsync(data)}
