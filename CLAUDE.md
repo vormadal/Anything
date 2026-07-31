@@ -161,7 +161,20 @@ Notes (`/api/notes`) — household-scoped rich-text notes. `GET /` returns
 is a ProseMirror/Tiptap document stored as JSON, with its flattened plain text
 derived server-side by `NoteContent.ExtractPlainText` on every write — that
 extractor also surfaces a node's `attrs.label`, which is what will keep a future
-"reference a recipe/list" node searchable without backend changes.
+"reference a recipe/list" node searchable without backend changes. The editor
+schema also has an `image` node (`storageKey` + `src`, uploaded via
+`POST /api/notes/images` — not scoped to a note id, since a note isn't created
+until its first line is finished); the note toolbar's image button and
+paste/drop both go through it. `contentJson`'s `StringLength` was raised to
+500,000 to make room for longer notes coming from elsewhere. **Import** lives
+entirely client-side at `/notes/import`
+(`anything-frontend/src/lib/notes/import/`): a `.txt`/`.docx` file is unzipped
+and converted to HTML by hand (Word's `document.xml`, `numbering.xml` and
+relationships resolved without registering OOXML namespaces — matched by their
+literal `w:`-prefixed tag/attribute names, since that's how the browser's
+`DOMParser` preserves them), then run through `generateJSON(html,
+noteExtensions)` — the same schema the editor itself uses — so an imported
+document can never contain something the editor can't open.
 
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
