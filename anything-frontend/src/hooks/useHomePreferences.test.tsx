@@ -199,5 +199,69 @@ describe('useHomePreferences hooks', () => {
 
       expect(queryClient.getQueryData(['homeCardPreferences'])).toEqual(original)
     })
+
+    // Regression test: dragging to reorder and toggling a switch each fire their own
+    // mutation, and doing both in quick succession (before the first PUT settles) used to
+    // let the two requests race over the network. If the earlier request's response landed
+    // last, its onSuccess handler reasserted its own (now stale) snapshot over the cache,
+    // silently reverting the later edit — the home page would then show the wrong cards
+    // after navigating back, even though nothing had actually failed.
+    it('keeps the latest edit when two mutations are triggered before either settles', async () => {
+      const resolvers: Array<() => void> = []
+      mockPut.mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolvers.push(resolve)
+          })
+      )
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      })
+      queryClient.setQueryData(['homeCardPreferences'], [
+        { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
+        { cardKey: 'lists', sortOrder: 1, isVisible: true },
+        { cardKey: 'bills', sortOrder: 2, isVisible: false },
+      ])
+      const Wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      )
+      Wrapper.displayName = 'TestQueryClientWrapper'
+
+      const { result } = renderHook(() => useUpdateHomeCardPreferences(), { wrapper: Wrapper })
+
+      // Toggle "lists" off (request A)...
+      await act(async () => {
+        result.current.mutate([
+          { cardKey: 'foodplan', isVisible: true },
+          { cardKey: 'lists', isVisible: false },
+          { cardKey: 'bills', isVisible: false },
+        ])
+      })
+
+      // ...then quickly toggle "bills" on (request B), before A's PUT resolves.
+      await act(async () => {
+        result.current.mutate([
+          { cardKey: 'foodplan', isVisible: true },
+          { cardKey: 'lists', isVisible: false },
+          { cardKey: 'bills', isVisible: true },
+        ])
+      })
+
+      // Scope-serialized mutations mean B's PUT does not start until A settles.
+      await waitFor(() => expect(resolvers.length).toBe(1))
+      await act(async () => resolvers[0]())
+
+      await waitFor(() => expect(resolvers.length).toBe(2))
+      await act(async () => resolvers[1]())
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(queryClient.getQueryData(['homeCardPreferences'])).toEqual([
+        { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
+        { cardKey: 'lists', sortOrder: 1, isVisible: false },
+        { cardKey: 'bills', sortOrder: 2, isVisible: true },
+      ])
+    })
   })
 })
