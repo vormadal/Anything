@@ -2967,6 +2967,7 @@ export function deserializeIntoInventoryBoxResponse(inventoryBoxResponse: Partia
         "modifiedOn": n => { inventoryBoxResponse.modifiedOn = n.getDateValue(); },
         "number": n => { inventoryBoxResponse.number = n.getNumberValue(); },
         "storageUnitId": n => { inventoryBoxResponse.storageUnitId = n.getNumberValue(); },
+        "thumbnailUrl": n => { inventoryBoxResponse.thumbnailUrl = n.getStringValue(); },
     }
 }
 /**
@@ -3036,6 +3037,7 @@ export function deserializeIntoInventoryItemSummaryResponse(inventoryItemSummary
         "modifiedOn": n => { inventoryItemSummaryResponse.modifiedOn = n.getDateValue(); },
         "name": n => { inventoryItemSummaryResponse.name = n.getStringValue(); },
         "storageUnitId": n => { inventoryItemSummaryResponse.storageUnitId = n.getNumberValue(); },
+        "thumbnailUrl": n => { inventoryItemSummaryResponse.thumbnailUrl = n.getStringValue(); },
     }
 }
 /**
@@ -3051,6 +3053,7 @@ export function deserializeIntoInventoryStorageUnitResponse(inventoryStorageUnit
         "modifiedOn": n => { inventoryStorageUnitResponse.modifiedOn = n.getDateValue(); },
         "name": n => { inventoryStorageUnitResponse.name = n.getStringValue(); },
         "parentId": n => { inventoryStorageUnitResponse.parentId = n.getNumberValue(); },
+        "thumbnailUrl": n => { inventoryStorageUnitResponse.thumbnailUrl = n.getStringValue(); },
     }
 }
 /**
@@ -4711,6 +4714,10 @@ export interface InventoryBoxResponse extends Parsable {
      * The storageUnitId property
      */
     storageUnitId?: number | null;
+    /**
+     * The thumbnailUrl property
+     */
+    thumbnailUrl?: string | null;
 }
 export interface InventoryItemFieldInput extends Parsable {
     /**
@@ -4835,6 +4842,10 @@ export interface InventoryItemSummaryResponse extends Parsable {
      * The storageUnitId property
      */
     storageUnitId?: number | null;
+    /**
+     * The thumbnailUrl property
+     */
+    thumbnailUrl?: string | null;
 }
 export interface InventoryStorageUnitResponse extends Parsable {
     /**
@@ -4857,6 +4868,10 @@ export interface InventoryStorageUnitResponse extends Parsable {
      * The parentId property
      */
     parentId?: number | null;
+    /**
+     * The thumbnailUrl property
+     */
+    thumbnailUrl?: string | null;
 }
 export interface InviteResponse extends Parsable {
     /**
@@ -6543,6 +6558,7 @@ export function serializeInventoryBoxResponse(writer: SerializationWriter, inven
     writer.writeDateValue("modifiedOn", inventoryBoxResponse.modifiedOn);
     writer.writeNumberValue("number", inventoryBoxResponse.number);
     writer.writeNumberValue("storageUnitId", inventoryBoxResponse.storageUnitId);
+    writer.writeStringValue("thumbnailUrl", inventoryBoxResponse.thumbnailUrl);
 }
 /**
  * Serializes information the current object
@@ -6612,6 +6628,7 @@ export function serializeInventoryItemSummaryResponse(writer: SerializationWrite
     writer.writeDateValue("modifiedOn", inventoryItemSummaryResponse.modifiedOn);
     writer.writeStringValue("name", inventoryItemSummaryResponse.name);
     writer.writeNumberValue("storageUnitId", inventoryItemSummaryResponse.storageUnitId);
+    writer.writeStringValue("thumbnailUrl", inventoryItemSummaryResponse.thumbnailUrl);
 }
 /**
  * Serializes information the current object
@@ -6627,6 +6644,7 @@ export function serializeInventoryStorageUnitResponse(writer: SerializationWrite
     writer.writeDateValue("modifiedOn", inventoryStorageUnitResponse.modifiedOn);
     writer.writeStringValue("name", inventoryStorageUnitResponse.name);
     writer.writeNumberValue("parentId", inventoryStorageUnitResponse.parentId);
+    writer.writeStringValue("thumbnailUrl", inventoryStorageUnitResponse.thumbnailUrl);
 }
 /**
  * Serializes information the current object
