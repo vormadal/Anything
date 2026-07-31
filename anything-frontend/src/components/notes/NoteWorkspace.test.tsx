@@ -12,10 +12,12 @@ jest.mock("next/navigation", () => ({
 
 const mockCreateNote = jest.fn();
 const mockUpdateNote = jest.fn();
+const mockUploadNoteImage = jest.fn();
 
 jest.mock("@/hooks/useNotes", () => ({
   useCreateNote: () => ({ mutateAsync: mockCreateNote }),
   useUpdateNote: () => ({ mutateAsync: mockUpdateNote }),
+  useUploadNoteImage: () => ({ mutateAsync: mockUploadNoteImage }),
 }));
 
 // ProseMirror needs layout APIs jsdom doesn't implement, so the editor is

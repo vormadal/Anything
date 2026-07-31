@@ -2,6 +2,7 @@ using Anything.Application.Features.Notes;
 using Anything.Application.Features.Notes.Commands;
 using Anything.Application.Features.Notes.Queries;
 using Anything.Application.UnitTests.Helpers;
+using Anything.Contracts.Notes;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Search;
@@ -228,6 +229,64 @@ public class GetNoteByIdHandlerTests : NoteHandlerTestBase
 
         Assert.NotNull(result);
         Assert.Equal(SimpleDoc, result.ContentJson);
+    }
+}
+
+public class UploadNoteImageHandlerTests
+{
+    private readonly IImageStorageService _storageService = Substitute.For<IImageStorageService>();
+
+    private UploadNoteImageHandler CreateHandler() => new(_storageService);
+
+    [Fact]
+    public async Task Handle_EmptyFile_ReturnsBadRequest()
+    {
+        var command = new UploadNoteImageCommand(Stream.Null, "photo.png", "image/png", 0);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_DisallowedContentType_ReturnsBadRequest()
+    {
+        var command = new UploadNoteImageCommand(new MemoryStream(new byte[10]), "notes.pdf", "application/pdf", 10);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_ValidUpload_ReturnsCreatedWithUrl()
+    {
+        _storageService
+            .Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), Arg.Any<string>())
+            .Returns("notes/test.png");
+        _storageService.GetImageUrl("notes/test.png", 1600, 1600, "fit").Returns("https://images.example/notes/test.png");
+
+        var command = new UploadNoteImageCommand(new MemoryStream(new byte[10]), "photo.png", "image/png", 10);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        var created = Assert.IsType<Created<NoteImageResponse>>(result);
+        Assert.Equal("notes/test.png", created.Value!.StorageKey);
+        Assert.Equal("https://images.example/notes/test.png", created.Value.Url);
+        await _storageService.Received(1).Upload(
+            Arg.Any<Stream>(), "photo.png", "image/png", 10, Arg.Any<CancellationToken>(), "notes");
+    }
+
+    [Fact]
+    public async Task Handle_ContentTypeWithParameters_IsAllowed()
+    {
+        _storageService
+            .Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), Arg.Any<string>())
+            .Returns("notes/test.jpg");
+
+        var command = new UploadNoteImageCommand(new MemoryStream(new byte[10]), "photo.jpg", "image/jpeg; charset=binary", 10);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created<NoteImageResponse>>(result);
     }
 }
 

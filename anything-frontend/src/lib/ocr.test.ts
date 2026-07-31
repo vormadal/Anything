@@ -1,4 +1,4 @@
-import { classifyOcrLines, downscaleImage } from "./ocr";
+import { classifyOcrLines } from "./ocr";
 
 describe("classifyOcrLines", () => {
   it("uses the first non-empty line as the name", () => {
@@ -267,11 +267,3 @@ describe("classifyOcrLines", () => {
   });
 });
 
-describe("downscaleImage", () => {
-  it("falls back to the original file when the image cannot be decoded", async () => {
-    const file = new File(["not an image"], "photo.jpg", { type: "image/jpeg" });
-
-    // jsdom has no createImageBitmap, so decoding fails and the file is returned.
-    await expect(downscaleImage(file)).resolves.toBe(file);
-  });
-});

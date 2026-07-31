@@ -180,6 +180,67 @@ public class NoteEndpointTests : IntegrationTestBase
         Assert.DoesNotContain(results, r => r.EntityType == "Note" && r.EntityId == created.Id);
     }
 
+    // --- Images ---
+
+    [Fact]
+    public async Task UploadNoteImage_WithValidImage_ReturnsCreatedWithUrl()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent([0x89, 0x50, 0x4E, 0x47]); // PNG magic bytes
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "file", "sketch.png");
+
+        var response = await client.PostAsync($"{NotesRoute}/images", content, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var image = await response.Content.ReadFromJsonAsync<NoteImageDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(image);
+        Assert.False(string.IsNullOrEmpty(image.StorageKey));
+        Assert.False(string.IsNullOrEmpty(image.Url));
+    }
+
+    [Fact]
+    public async Task UploadNoteImage_WithDisallowedContentType_ReturnsBadRequest()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent([0x25, 0x50, 0x44, 0x46]); // PDF magic bytes
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "notes.pdf");
+
+        var response = await client.PostAsync($"{NotesRoute}/images", content, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadNoteImage_WithoutFile_ReturnsBadRequest()
+    {
+        var client = await GetOrCreateAuthenticatedHttpClient();
+
+        using var content = new MultipartFormDataContent();
+
+        var response = await client.PostAsync($"{NotesRoute}/images", content, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadNoteImage_RequiresAuthentication()
+    {
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent([0x89, 0x50, 0x4E, 0x47]);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "file", "sketch.png");
+
+        var response = await HttpClient.PostAsync($"{NotesRoute}/images", content, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     // --- Authorization ---
 
     [Fact]
@@ -202,6 +263,12 @@ public class NoteEndpointTests : IntegrationTestBase
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Snippet { get; set; }
+    }
+
+    private class NoteImageDto
+    {
+        public string StorageKey { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
     }
 
     private class SearchResultDto

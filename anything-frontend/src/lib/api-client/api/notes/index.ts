@@ -4,6 +4,8 @@
 // @ts-ignore
 import { createHttpValidationProblemDetailsFromDiscriminatorValue, createNoteResponseFromDiscriminatorValue, createNoteSummaryResponseFromDiscriminatorValue, serializeCreateNoteRequest, serializeNoteResponse, type CreateNoteRequest, type HttpValidationProblemDetails, type NoteResponse, type NoteSummaryResponse } from '../../models/index';
 // @ts-ignore
+import { ImagesRequestBuilderRequestsMetadata, type ImagesRequestBuilder } from './images/index';
+// @ts-ignore
 import { NotesItemRequestBuilderRequestsMetadata, type NotesItemRequestBuilder } from './item/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
@@ -12,6 +14,10 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  * Builds and executes requests for operations under /api/notes
  */
 export interface NotesRequestBuilder extends BaseRequestBuilder<NotesRequestBuilder> {
+    /**
+     * The images property
+     */
+    get images(): ImagesRequestBuilder;
     /**
      * Gets an item from the ApiSdk.api.notes.item collection
      * @param id Unique identifier of the item
@@ -62,6 +68,9 @@ export const NotesRequestBuilderNavigationMetadata: Record<Exclude<keyof NotesRe
     byId: {
         requestsMetadata: NotesItemRequestBuilderRequestsMetadata,
         pathParametersMappings: ["id"],
+    },
+    images: {
+        requestsMetadata: ImagesRequestBuilderRequestsMetadata,
     },
 };
 /**
