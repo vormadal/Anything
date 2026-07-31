@@ -37,6 +37,7 @@ export function PhotoStrip({
 }: PhotoStripProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const hasScrolledRef = useRef(false);
+  const scrollTargetRef = useRef<number | null>(null);
 
   // Keeps the strip in step with an index changed from outside (arrow buttons, keyboard).
   // The first run jumps without animating so the viewer opens on the tapped photo.
@@ -46,6 +47,7 @@ export function PhotoStrip({
     const width = el.clientWidth;
     if (width === 0) return;
     if (Math.round(el.scrollLeft / width) === activeIndex) return;
+    scrollTargetRef.current = activeIndex;
     el.scrollTo({ left: activeIndex * width, behavior: hasScrolledRef.current ? "smooth" : "auto" });
     hasScrolledRef.current = true;
   }, [activeIndex]);
@@ -56,6 +58,15 @@ export function PhotoStrip({
     const width = el.clientWidth;
     if (width === 0) return;
     const index = Math.round(el.scrollLeft / width);
+
+    // A smooth scroll we started ourselves passes over every slide in between. Reporting
+    // those would set the index back to a slide we're scrolling away from, which in turn
+    // re-targets the effect — jumping to photo 3 would stall on photo 2.
+    if (scrollTargetRef.current !== null) {
+      if (index === scrollTargetRef.current) scrollTargetRef.current = null;
+      return;
+    }
+
     if (index !== activeIndex && index >= 0 && index < photos.length) {
       hasScrolledRef.current = true;
       onActiveIndexChange(index);
@@ -66,6 +77,9 @@ export function PhotoStrip({
     <div
       ref={scrollerRef}
       onScroll={handleScroll}
+      // Grabbing the strip cancels the "ignore this scroll" guard, so a swipe that
+      // interrupts a smooth scroll is still tracked.
+      onPointerDown={() => { scrollTargetRef.current = null; }}
       className={["flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden", className]
         .filter(Boolean)
         .join(" ")}
