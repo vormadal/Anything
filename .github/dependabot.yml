@@ -57,6 +57,14 @@ updates:
         patterns:
           - "@tanstack/react-query*"
           - "@tanstack/query-*"
+      tiptap:
+        patterns:
+          - "@tiptap/*"
+      next:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+          - "@next/*"
     ignore:
       - dependency-name: "eslint"
         versions: ["10.x", "11.x"]
