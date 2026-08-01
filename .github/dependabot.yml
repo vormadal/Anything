@@ -60,6 +60,13 @@ updates:
       tiptap:
         patterns:
           - "@tiptap/*"
+      # Radix pins its internal dependencies to exact versions, so bumping one
+      # @radix-ui package alone nests a duplicate copy of the shared primitives
+      # (react-dismissable-layer & friends) — and those hold module-level state.
+      # Grouping keeps the tree deduped. See CLAUDE.md "Non-obvious gotchas".
+      radix:
+        patterns:
+          - "@radix-ui/*"
       next:
         patterns:
           - "next"
@@ -68,6 +75,14 @@ updates:
     ignore:
       - dependency-name: "eslint"
         versions: ["10.x", "11.x"]
+      # TypeScript 7 is blocked upstream, not here: no released typescript-eslint
+      # accepts it (peer is ">=4.8.4 <6.1.0", so ESLint crashes in
+      # typescript-estree), and Next.js 16.2.x does not recognise the TS 7
+      # package layout ("do not have the required package(s) installed" during
+      # `next build`). Drop this once eslint-config-next ships a TS 7-capable
+      # typescript-eslint and Next.js detects TS 7.
+      - dependency-name: "typescript"
+        versions: ["7.x"]
       - dependency-name: "@microsoft/kiota-abstractions"
         versions: [">1.0.0-preview.100"]
       - dependency-name: "@microsoft/kiota-http-fetchlibrary"
