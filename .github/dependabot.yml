@@ -24,6 +24,9 @@ updates:
         patterns:
           - "Microsoft.Extensions.*"
           - "Microsoft.AspNetCore.*"
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry*"
 
   # Frontend dependencies
   - package-ecosystem: "npm"
@@ -49,6 +52,11 @@ updates:
           - "jest"
           - "jest-*"
           - "@types/jest"
+          - "@testing-library/jest-dom"
+      tanstack-query:
+        patterns:
+          - "@tanstack/react-query*"
+          - "@tanstack/query-*"
     ignore:
       - dependency-name: "eslint"
         versions: ["10.x", "11.x"]
