@@ -28,6 +28,12 @@ export function useUpdateHomeCardPreferences() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // Toggling/reordering fires a mutation per action, and drag or rapid taps can start a
+    // second one before the first's PUT settles. A shared scope runs same-scope mutations
+    // in FIFO order (the next one waits for the previous to settle) instead of letting them
+    // race over the network, so an out-of-order response can no longer land last and have
+    // its onSuccess clobber the cache with a stale, already-superseded snapshot.
+    scope: { id: "homeCardPreferences" },
     mutationFn: (cards: { cardKey: string; isVisible: boolean }[]) =>
       apiClient.api.home.cardPreferences.put({ cards }),
     onMutate: async (cards) => {
