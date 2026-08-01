@@ -1,3 +1,4 @@
+using Anything.Application.Common;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
@@ -23,7 +24,6 @@ public class UploadRecipeImageHandler(
     IHouseholdContext householdContext) : IRequestHandler<UploadRecipeImageCommand, IResult>
 {
     private const string RecipeNotFound = "Recipe not found.";
-    private const string InvalidFile = "No file uploaded or file is empty.";
 
     public async Task<IResult> Handle(UploadRecipeImageCommand command, CancellationToken ct = default)
     {
@@ -33,8 +33,8 @@ public class UploadRecipeImageHandler(
         if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
-        if (command.ContentLength == 0)
-            return Results.BadRequest(InvalidFile);
+        if (UploadValidation.ValidateFileSize(command.ContentLength) is { } sizeError)
+            return sizeError;
 
         var storageKey = await imageStorageService.Upload(
             command.ImageStream,

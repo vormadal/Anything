@@ -1,3 +1,4 @@
+using Anything.Application.Common;
 using Anything.Application.Features.Inventory;
 using Anything.Core.Constants;
 using Anything.Core.Entities;
@@ -27,7 +28,6 @@ public class UploadInventoryBoxAttachmentHandler(
     TimeProvider timeProvider) : IRequestHandler<UploadInventoryBoxAttachmentCommand, IResult>
 {
     private const string BoxNotFound = "Box not found.";
-    private const string InvalidFile = "No file uploaded or file is empty.";
     private const string InvalidKind = "Invalid attachment kind.";
 
     public async Task<IResult> Handle(UploadInventoryBoxAttachmentCommand command, CancellationToken ct = default)
@@ -37,8 +37,8 @@ public class UploadInventoryBoxAttachmentHandler(
         if (!boxExists)
             return Results.NotFound(BoxNotFound);
 
-        if (command.ContentLength == 0)
-            return Results.BadRequest(InvalidFile);
+        if (UploadValidation.ValidateFileSize(command.ContentLength) is { } sizeError)
+            return sizeError;
 
         var kind = string.IsNullOrWhiteSpace(command.Kind) ? InventoryAttachmentKinds.Other : command.Kind;
         if (!InventoryAttachmentKinds.All.Contains(kind))

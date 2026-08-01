@@ -6,6 +6,7 @@ using Anything.Contracts.Bills;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
+using Anything.Core.Upload;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using Xunit;
@@ -1065,6 +1066,18 @@ public class UploadBillAttachmentHandlerTests
         _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Test" } }.AsAsyncQueryable());
 
         var command = new UploadBillAttachmentCommand(1, Stream.Null, "file.pdf", "application/pdf", 0);
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_FileExceedsMaxSize_ReturnsBadRequest()
+    {
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Test" } }.AsAsyncQueryable());
+
+        var command = new UploadBillAttachmentCommand(
+            1, Stream.Null, "file.pdf", "application/pdf", UploadLimits.MaxFileSizeBytes + 1);
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);

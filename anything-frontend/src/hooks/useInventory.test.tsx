@@ -103,6 +103,11 @@ jest.mock('@/lib/apiClient', () => ({
     },
   },
   createMultipartBody: () => ({ addOrReplacePart: mockAddOrReplacePart }),
+  buildFileUploadBody: async (file: File) => {
+    const fileContent = await file.arrayBuffer()
+    mockAddOrReplacePart('file', file.type || 'application/octet-stream', fileContent, undefined, file.name)
+    return { addOrReplacePart: mockAddOrReplacePart }
+  },
 }))
 
 function createWrapper() {

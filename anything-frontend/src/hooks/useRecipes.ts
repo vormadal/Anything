@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
+import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
 import type {
   Recipe,
   RecipeListItemResponse,
@@ -462,33 +463,18 @@ export function useImportRecipe() {
   });
 }
 
-const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+export async function uploadRecipeImageFile(recipeId: number, imageFile: File): Promise<void> {
+  const file = await prepareImageForUpload(imageFile);
+  assertUploadSize(file);
 
-export async function uploadRecipeImageFile(recipeId: number, file: File): Promise<void> {
-  if (file.size > MAX_IMAGE_SIZE_BYTES) {
-    throw new Error(
-      `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is 10 MB.`
-    );
-  }
-
-  const multipartBody = createMultipartBody();
-  // Kiota's multipart serializer only supports string/ArrayBuffer/Uint8Array
-  // part content — passing the File object itself throws before any request.
-  const fileContent = await file.arrayBuffer();
-  multipartBody.addOrReplacePart(
-    "file",
-    file.type || "application/octet-stream",
-    fileContent,
-    undefined,
-    file.name
-  );
+  const multipartBody = await buildFileUploadBody(file);
 
   try {
     await apiClient.api.recipes.byId(recipeId).images.upload.post(multipartBody);
   } catch (e) {
     const kiota = e as { responseStatusCode?: number };
     if (kiota.responseStatusCode === 413) {
-      throw new Error("File is too large. Please use an image under 10 MB.");
+      throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
     }
     if (kiota.responseStatusCode === 401 || kiota.responseStatusCode === 403) {
       throw new Error("You are not authorised to upload images.");

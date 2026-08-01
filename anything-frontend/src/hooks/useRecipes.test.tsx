@@ -102,6 +102,7 @@ jest.mock('@/lib/apiClient', () => ({
     },
   },
   createMultipartBody: () => mockMultipartBodyInstance,
+  buildFileUploadBody: async () => mockMultipartBodyInstance,
   HOUSEHOLD_ID_KEY: 'householdId',
   HOUSEHOLD_HEADER: 'X-Household-Id',
 }))

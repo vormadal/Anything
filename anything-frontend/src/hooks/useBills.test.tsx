@@ -76,6 +76,7 @@ jest.mock('@/lib/apiClient', () => ({
     },
   },
   createMultipartBody: () => ({ addOrReplacePart: jest.fn() }),
+  buildFileUploadBody: async () => ({ addOrReplacePart: jest.fn() }),
 }))
 
 function createWrapper() {
@@ -334,6 +335,31 @@ describe('useBills hooks', () => {
       result.current.mutate({ billId: 1, file: new File(['content'], 'invoice.pdf', { type: 'application/pdf' }) })
 
       await waitFor(() => expect(result.current.isError).toBe(true))
+    })
+
+    it('rejects a file over the 10 MB limit without calling the API', async () => {
+      const bigFile = new File([new ArrayBuffer(11 * 1024 * 1024)], 'huge.pdf', { type: 'application/pdf' })
+      const { result } = renderHook(() => useUploadBillAttachment(), { wrapper: createWrapper() })
+
+      await act(async () => {
+        result.current.mutate({ billId: 1, file: bigFile })
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+      expect(result.current.error?.message).toContain('too large')
+      expect(mockAttachmentsPost).not.toHaveBeenCalled()
+    })
+
+    it('maps a 413 response to a friendly message', async () => {
+      mockAttachmentsPost.mockRejectedValueOnce({ responseStatusCode: 413, message: 'Payload Too Large' })
+      const { result } = renderHook(() => useUploadBillAttachment(), { wrapper: createWrapper() })
+
+      await act(async () => {
+        result.current.mutate({ billId: 1, file: new File(['content'], 'invoice.pdf', { type: 'application/pdf' }) })
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+      expect(result.current.error?.message).toBe('File is too large. Please use a file under 10 MB.')
     })
   })
 

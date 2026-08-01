@@ -188,3 +188,22 @@ export const apiClient = createApiClient(adapter);
 export function createMultipartBody(): MultipartBody {
   return new MultipartBody();
 }
+
+/**
+ * Builds the single-file multipart body every upload mutation sends under the
+ * part name "file". Kiota's multipart serializer only supports
+ * string/ArrayBuffer/Uint8Array part content — passing the File object itself
+ * throws before any request, so the file is read into an ArrayBuffer first.
+ */
+export async function buildFileUploadBody(file: File): Promise<MultipartBody> {
+  const multipartBody = createMultipartBody();
+  const fileContent = await file.arrayBuffer();
+  multipartBody.addOrReplacePart(
+    "file",
+    file.type || "application/octet-stream",
+    fileContent,
+    undefined,
+    file.name
+  );
+  return multipartBody;
+}

@@ -39,6 +39,7 @@ jest.mock('@/lib/apiClient', () => ({
     },
   },
   createMultipartBody: () => ({ addOrReplacePart: jest.fn() }),
+  buildFileUploadBody: async () => ({ addOrReplacePart: jest.fn() }),
 }))
 
 jest.mock('@/hooks/useRecommendations', () => ({

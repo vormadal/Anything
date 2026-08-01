@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
+import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
 import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, BillAttachmentResponse } from "@/lib/api-client/models/index";
 
 // Re-export API model type so consumers can import it from this hook
@@ -257,21 +258,19 @@ export function useUploadBillAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { billId: number; file: File; name?: string }) => {
-      const buffer = await data.file.arrayBuffer();
-      const multipartBody = createMultipartBody();
-      multipartBody.addOrReplacePart(
-        "file",
-        data.file.type || "application/octet-stream",
-        buffer,
-        undefined,
-        data.file.name
-      );
+      const file = await prepareImageForUpload(data.file);
+      assertUploadSize(file);
+
+      const multipartBody = await buildFileUploadBody(file);
       try {
         await apiClient.api.bills.byId(data.billId).attachments.post(multipartBody, {
           queryParameters: { name: data.name },
         });
       } catch (e) {
-        const kiota = e as { message?: string };
+        const kiota = e as { responseStatusCode?: number; message?: string };
+        if (kiota.responseStatusCode === 413) {
+          throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
+        }
         throw new Error(kiota.message || "Failed to upload attachment");
       }
     },
