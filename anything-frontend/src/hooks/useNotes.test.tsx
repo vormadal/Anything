@@ -14,6 +14,7 @@ jest.mock("@/lib/apiClient", () => ({
     },
   },
   createMultipartBody: () => ({ addOrReplacePart: jest.fn() }),
+  buildFileUploadBody: async () => ({ addOrReplacePart: jest.fn() }),
 }));
 
 function createWrapper() {

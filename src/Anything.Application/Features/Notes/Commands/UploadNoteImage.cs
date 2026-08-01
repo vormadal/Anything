@@ -1,6 +1,6 @@
+using Anything.Application.Common;
 using Anything.Contracts.Notes;
 using Anything.Core.Services;
-using Anything.Core.Upload;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 
@@ -26,7 +26,6 @@ public record UploadNoteImageCommand(
 public class UploadNoteImageHandler(IImageStorageService imageStorageService)
     : IRequestHandler<UploadNoteImageCommand, IResult>
 {
-    private const string InvalidFile = "No file uploaded or file is empty.";
     private const string InvalidContentType = "Only PNG, JPEG, WebP and GIF images can be added to a note.";
     private const string StorageFolder = "notes";
 
@@ -41,11 +40,8 @@ public class UploadNoteImageHandler(IImageStorageService imageStorageService)
 
     public async Task<IResult> Handle(UploadNoteImageCommand command, CancellationToken ct = default)
     {
-        if (command.ContentLength == 0)
-            return Results.BadRequest(InvalidFile);
-
-        if (UploadLimits.ExceedsMaxFileSize(command.ContentLength))
-            return Results.BadRequest(UploadLimits.FileTooLargeMessage);
+        if (UploadValidation.ValidateFileSize(command.ContentLength) is { } sizeError)
+            return sizeError;
 
         if (!IsAllowedContentType(command.ContentType))
             return Results.BadRequest(InvalidContentType);

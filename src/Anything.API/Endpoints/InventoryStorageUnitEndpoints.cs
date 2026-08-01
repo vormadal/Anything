@@ -74,9 +74,9 @@ public static class InventoryStorageUnitEndpoints
 
         group.MapPost("/{id}/attachments", async (int id, IFormFile? file, string? kind, string? name, IMediator mediator) =>
         {
-            if (file is null || file.Length == 0)
-                return Results.BadRequest("No file uploaded or file is empty.");
-            await using var stream = file.OpenReadStream();
+            if (UploadEndpointValidation.ValidateFile(file) is { } fileError)
+                return fileError;
+            await using var stream = file!.OpenReadStream();
             return await mediator.Send(new UploadInventoryStorageUnitAttachmentCommand(
                 id, stream, file.FileName, file.ContentType, file.Length, kind, name));
         })

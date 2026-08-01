@@ -1,9 +1,9 @@
+using Anything.Application.Common;
 using Anything.Application.Features.Inventory;
 using Anything.Core.Constants;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Anything.Core.Services;
-using Anything.Core.Upload;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +28,6 @@ public class UploadInventoryStorageUnitAttachmentHandler(
     TimeProvider timeProvider) : IRequestHandler<UploadInventoryStorageUnitAttachmentCommand, IResult>
 {
     private const string StorageUnitNotFound = "Storage unit not found.";
-    private const string InvalidFile = "No file uploaded or file is empty.";
     private const string InvalidKind = "Invalid attachment kind.";
 
     public async Task<IResult> Handle(UploadInventoryStorageUnitAttachmentCommand command, CancellationToken ct = default)
@@ -38,11 +37,8 @@ public class UploadInventoryStorageUnitAttachmentHandler(
         if (!storageUnitExists)
             return Results.NotFound(StorageUnitNotFound);
 
-        if (command.ContentLength == 0)
-            return Results.BadRequest(InvalidFile);
-
-        if (UploadLimits.ExceedsMaxFileSize(command.ContentLength))
-            return Results.BadRequest(UploadLimits.FileTooLargeMessage);
+        if (UploadValidation.ValidateFileSize(command.ContentLength) is { } sizeError)
+            return sizeError;
 
         var kind = string.IsNullOrWhiteSpace(command.Kind) ? InventoryAttachmentKinds.Other : command.Kind;
         if (!InventoryAttachmentKinds.All.Contains(kind))

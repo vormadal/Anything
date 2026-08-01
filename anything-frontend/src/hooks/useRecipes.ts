@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
 import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
 import type {
   Recipe,
@@ -467,17 +467,7 @@ export async function uploadRecipeImageFile(recipeId: number, imageFile: File): 
   const file = await prepareImageForUpload(imageFile);
   assertUploadSize(file);
 
-  const multipartBody = createMultipartBody();
-  // Kiota's multipart serializer only supports string/ArrayBuffer/Uint8Array
-  // part content — passing the File object itself throws before any request.
-  const fileContent = await file.arrayBuffer();
-  multipartBody.addOrReplacePart(
-    "file",
-    file.type || "application/octet-stream",
-    fileContent,
-    undefined,
-    file.name
-  );
+  const multipartBody = await buildFileUploadBody(file);
 
   try {
     await apiClient.api.recipes.byId(recipeId).images.upload.post(multipartBody);

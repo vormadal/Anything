@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
 import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
 import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, BillAttachmentResponse } from "@/lib/api-client/models/index";
 
@@ -261,15 +261,7 @@ export function useUploadBillAttachment() {
       const file = await prepareImageForUpload(data.file);
       assertUploadSize(file);
 
-      const buffer = await file.arrayBuffer();
-      const multipartBody = createMultipartBody();
-      multipartBody.addOrReplacePart(
-        "file",
-        file.type || "application/octet-stream",
-        buffer,
-        undefined,
-        file.name
-      );
+      const multipartBody = await buildFileUploadBody(file);
       try {
         await apiClient.api.bills.byId(data.billId).attachments.post(multipartBody, {
           queryParameters: { name: data.name },

@@ -314,9 +314,9 @@ public static class RecipeEndpoints
 
         group.MapPost("/{id}/images/upload", async (int id, IFormFile? file, IMediator mediator) =>
         {
-            if (file == null || file.Length == 0)
-                return Results.BadRequest("No file uploaded or file is empty.");
-            await using var stream = file.OpenReadStream();
+            if (UploadEndpointValidation.ValidateFile(file) is { } fileError)
+                return fileError;
+            await using var stream = file!.OpenReadStream();
             return await mediator.Send(new UploadRecipeImageCommand(id, stream, file.FileName, file.ContentType, file.Length));
         })
         .WithName("UploadRecipeImage")

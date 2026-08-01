@@ -21,6 +21,7 @@ public static class UploadLimits
     public const int MaxFileSizeBytes = 10 * 1024 * 1024;
     public const int MaxRequestBodyBytes = 12 * 1024 * 1024;
 
+    public const string EmptyFileMessage = "No file uploaded or file is empty.";
     public const string FileTooLargeMessage = "File is too large. Maximum allowed size is 10 MB.";
 
     /// <summary>Whether an upload's declared content length exceeds <see cref="MaxFileSizeBytes"/>.</summary>

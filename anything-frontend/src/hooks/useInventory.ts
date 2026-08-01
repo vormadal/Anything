@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { MultipartBody } from "@microsoft/kiota-abstractions";
-import { apiClient, createMultipartBody } from "@/lib/apiClient";
+import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
 import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
 import type {
   InventoryAttachmentResponse,
@@ -338,17 +338,7 @@ async function uploadInventoryAttachment(
   const file = await prepareImageForUpload(data.file);
   assertUploadSize(file);
 
-  const multipartBody = createMultipartBody();
-  // Kiota's multipart serializer only supports string/ArrayBuffer/Uint8Array
-  // part content — passing the File object itself throws before any request.
-  const fileContent = await file.arrayBuffer();
-  multipartBody.addOrReplacePart(
-    "file",
-    file.type || "application/octet-stream",
-    fileContent,
-    undefined,
-    file.name
-  );
+  const multipartBody = await buildFileUploadBody(file);
 
   try {
     await builder.post(multipartBody, { queryParameters: { kind: data.kind, name: data.name } });
