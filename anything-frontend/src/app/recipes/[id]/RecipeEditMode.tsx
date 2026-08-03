@@ -2,21 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Check, GripVertical, Clock, X, ImageIcon } from "lucide-react";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -42,11 +32,15 @@ import { useRecommendations } from "@/hooks/useRecommendations";
 import { useUnits } from "@/hooks/useUnits";
 import { RecipeImageUpload } from "@/components/RecipeImageUpload";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import type { RecipeIngredient, RecipeStep } from "@/lib/api-client/models/index";
+
+const getIngredientId = (ingredient: RecipeIngredient) => ingredient.id ?? 0;
+const getStepId = (step: RecipeStep) => step.id ?? 0;
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useSortableOrder } from "@/hooks/useSortableOrder";
 
 const OFFLINE_TITLE = "Editing a recipe requires an internet connection";
 
@@ -277,32 +271,32 @@ export function RecipeEditMode({ recipeId }: Props) {
   const reorderIngredients = useReorderRecipeIngredients(recipeId);
   const reorderSteps = useReorderRecipeSteps(recipeId);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+  const sortedSteps = useMemo(
+    () => (steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : []),
+    [steps]
   );
 
-  const handleIngredientDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !ingredients) return;
-    const oldIndex = ingredients.findIndex((i) => i.id === active.id);
-    const newIndex = ingredients.findIndex((i) => i.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(ingredients, oldIndex, newIndex);
-    reorderIngredients.mutate(reordered.map((i) => i.id ?? 0));
-  };
+  const {
+    orderedItems: orderedIngredients,
+    sortableIds: ingredientIds,
+    sensors,
+    handleDragEnd: handleIngredientDragEnd,
+  } = useSortableOrder({
+    items: ingredients,
+    getId: getIngredientId,
+    onReorder: (reordered) =>
+      reorderIngredients.mutate(reordered.map(getIngredientId)),
+  });
 
-  const handleStepDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = sortedSteps.findIndex((s) => s.id === active.id);
-    const newIndex = sortedSteps.findIndex((s) => s.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(sortedSteps, oldIndex, newIndex);
-    reorderSteps.mutate(reordered.map((s) => s.id ?? 0));
-  };
+  const {
+    orderedItems: orderedSteps,
+    sortableIds: stepIds,
+    handleDragEnd: handleStepDragEnd,
+  } = useSortableOrder({
+    items: sortedSteps,
+    getId: getStepId,
+    onReorder: (reordered) => reorderSteps.mutate(reordered.map(getStepId)),
+  });
 
   const saveMetadataIfChanged = useCallback(async () => {
     const parsedCookTime = effectiveEditCookTimeMinutes ? Number(effectiveEditCookTimeMinutes) : null;
@@ -494,7 +488,6 @@ export function RecipeEditMode({ recipeId }: Props) {
     }
   };
 
-  const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
   const heroImageUrl = images?.[0]?.originalUrl ?? "";
 
   return (
@@ -702,10 +695,10 @@ export function RecipeEditMode({ recipeId }: Props) {
                 onDragEnd={handleIngredientDragEnd}
               >
                 <SortableContext
-                  items={ingredients.map((i) => i.id ?? 0)}
+                  items={ingredientIds}
                   strategy={verticalListSortingStrategy}
                 >
-                  {ingredients.map((ingredient) => {
+                  {orderedIngredients?.map((ingredient) => {
                     const id = ingredient.id ?? 0;
                     return (
                       <SortableIngredientItem
@@ -813,10 +806,10 @@ export function RecipeEditMode({ recipeId }: Props) {
                 onDragEnd={handleStepDragEnd}
               >
                 <SortableContext
-                  items={sortedSteps.map((s) => s.id ?? 0)}
+                  items={stepIds}
                   strategy={verticalListSortingStrategy}
                 >
-                  {sortedSteps.map((step, index) => (
+                  {orderedSteps?.map((step, index) => (
                     <SortableStepItem
                       key={step.id}
                       step={step}

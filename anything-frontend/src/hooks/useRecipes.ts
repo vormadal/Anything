@@ -318,7 +318,14 @@ export function useReorderRecipeSteps(recipeId: number) {
         ["recipeSteps", recipeId],
         (old) => {
           if (!old) return old;
-          return ids.map((id) => old.find((s) => s.id === id)).filter(Boolean) as RecipeStep[];
+          const reordered = ids
+            .map((id) => old.find((s) => s.id === id))
+            .filter(Boolean) as RecipeStep[];
+          // Every consumer re-sorts steps by `order`, so reordering the array alone
+          // would be undone on render. Redeal the existing `order` values along the
+          // new sequence, keeping whatever numbering the server uses.
+          const orders = reordered.map((s) => s.order ?? 0).sort((a, b) => a - b);
+          return reordered.map((step, index) => ({ ...step, order: orders[index] }));
         }
       );
       return { previous };

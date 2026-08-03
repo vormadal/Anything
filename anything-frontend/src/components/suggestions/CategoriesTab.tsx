@@ -11,25 +11,18 @@ import {
 import { toast } from "sonner";
 import { X, Pencil, Plus, GripVertical } from "lucide-react";
 import { useState } from "react";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { SuggestionCategory } from "@/lib/api-client/models/index";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useSortableOrder } from "@/hooks/useSortableOrder";
+
+const getCategoryId = (category: SuggestionCategory) => category.id ?? 0;
 
 function DraggableCategoryItem({
   category,
@@ -115,24 +108,13 @@ export function CategoriesTab() {
   const reorderCategories = useReorderSuggestionCategories();
   const isOnline = useOnlineStatus();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !categories) return;
-
-    const oldIndex = categories.findIndex((c) => c.id === active.id);
-    const newIndex = categories.findIndex((c) => c.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(categories, oldIndex, newIndex);
-    reorderCategories.mutate(reordered.map((c) => c.id ?? 0));
-  };
+  const { orderedItems: orderedCategories, sortableIds, sensors, handleDragEnd } =
+    useSortableOrder({
+      items: categories,
+      getId: getCategoryId,
+      onReorder: (reordered) =>
+        reorderCategories.mutate(reordered.map(getCategoryId)),
+    });
 
   const handleCreate = async () => {
     if (!createName.trim()) return;
@@ -251,11 +233,11 @@ export function CategoriesTab() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={categories.map((c) => c.id ?? 0)}
+            items={sortableIds}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2">
-              {categories.map((category) => (
+              {orderedCategories?.map((category) => (
                 <DraggableCategoryItem
                   key={category.id}
                   category={category}

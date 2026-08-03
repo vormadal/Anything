@@ -22,6 +22,7 @@ import {
   useReimportRecipe,
   useImportRecipeTags,
   useExportRecipeTags,
+  useReorderRecipeSteps,
 } from '@/hooks/useRecipes'
 
 // Mock the apiClient module
@@ -728,6 +729,50 @@ describe('useRecipes hooks', () => {
 
       expect(mockById).toHaveBeenCalledWith(1)
       expect(mockImagesUploadPost).toHaveBeenCalled()
+    })
+  })
+
+  describe('useReorderRecipeSteps', () => {
+    it('renumbers `order` optimistically so the new order survives the consumers\' sort', async () => {
+      // gcTime must outlive the test: the cache entry is seeded without an observer.
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false, gcTime: Infinity },
+          mutations: { retry: false },
+        },
+      })
+      const Wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      )
+      Wrapper.displayName = 'ReorderStepsWrapper'
+
+      queryClient.setQueryData(['recipeSteps', 1], [
+        { id: 10, text: 'first', order: 1 },
+        { id: 11, text: 'second', order: 2 },
+        { id: 12, text: 'third', order: 3 },
+      ])
+      let resolvePut: () => void = () => {}
+      mockStepsReorderPut.mockReturnValueOnce(new Promise<void>((res) => { resolvePut = () => res() }))
+
+      const { result } = renderHook(() => useReorderRecipeSteps(1), { wrapper: Wrapper })
+
+      act(() => {
+        result.current.mutate([12, 10, 11])
+      })
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(['recipeSteps', 1]) as { id: number; order: number }[]
+        expect(cached.map((s) => s.id)).toEqual([12, 10, 11])
+      })
+
+      const cached = queryClient.getQueryData(['recipeSteps', 1]) as { id: number; order: number }[]
+      // Sorting by `order` — as every recipe view does — must keep the dropped order.
+      expect([...cached].sort((a, b) => a.order - b.order).map((s) => s.id)).toEqual([12, 10, 11])
+
+      await act(async () => {
+        resolvePut()
+      })
+      expect(mockStepsReorderPut).toHaveBeenCalledWith({ ids: [12, 10, 11] })
     })
   })
 
