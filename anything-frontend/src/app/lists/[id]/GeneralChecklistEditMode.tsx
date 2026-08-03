@@ -15,27 +15,20 @@ import { ListItemsStatus } from "@/components/ListItemsStatus";
 import { usePendingItemIds } from "@/lib/offline/outboxStore";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useSortableOrder } from "@/hooks/useSortableOrder";
 
 interface Props {
   listId: number;
 }
+
+const getItemId = (item: ShoppingListItem) => item.id ?? 0;
 
 function DraggableChecklistItem({
   item,
@@ -171,12 +164,18 @@ export function GeneralChecklistEditMode({ listId }: Props) {
   const removeItem = useRemoveShoppingListItem(listId);
   const pendingItemIds = usePendingItemIds(listId);
   const isOnline = useOnlineStatus();
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+
+  const { orderedItems, sortableIds, sensors, handleDragEnd } = useSortableOrder({
+    items,
+    getId: getItemId,
+    onReorder: (reordered) =>
+      reorderItems.mutate(reordered.map(getItemId), {
+        onError: () => {
+          toast.error("Failed to reorder items. Please try again.");
+        },
+      }),
+    disabled: !isOnline,
+  });
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,26 +225,6 @@ export function GeneralChecklistEditMode({ listId }: Props) {
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    if (!isOnline) return;
-    const { active, over } = event;
-    if (!over || active.id === over.id || !items) return;
-
-    const oldIndex = items.findIndex((i) => i.id === active.id);
-    const newIndex = items.findIndex((i) => i.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(items, oldIndex, newIndex);
-    reorderItems.mutate(
-      reordered.map((item) => item.id ?? 0),
-      {
-        onError: () => {
-          toast.error("Failed to reorder items. Please try again.");
-        },
-      }
-    );
-  };
-
   const isBusy = addItem.isPending || updateItem.isPending || removeItem.isPending || reorderItems.isPending;
 
   return (
@@ -281,11 +260,11 @@ export function GeneralChecklistEditMode({ listId }: Props) {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={items.map((item) => item.id ?? 0)}
+            items={sortableIds}
             strategy={verticalListSortingStrategy}
           >
             <ul>
-              {items.map((item) => (
+              {orderedItems?.map((item) => (
                 <DraggableChecklistItem
                   key={item.id}
                   item={item}

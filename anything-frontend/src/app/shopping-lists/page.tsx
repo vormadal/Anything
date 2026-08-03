@@ -9,25 +9,18 @@ import { useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { Plus, GripVertical } from "lucide-react";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useSortableOrder } from "@/hooks/useSortableOrder";
 import type { ShoppingListResponse } from "@/lib/api-client/models/index";
+
+const getListId = (list: ShoppingListResponse) => list.id ?? 0;
 
 function DraggableShoppingListItem({
   list,
@@ -91,25 +84,13 @@ export default function ShoppingListsPage() {
   const { setHeaderActions } = useHeaderActions();
   const isOnline = useOnlineStatus();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    if (!isOnline) return;
-    const { active, over } = event;
-    if (!over || active.id === over.id || !lists) return;
-
-    const oldIndex = lists.findIndex((l) => l.id === active.id);
-    const newIndex = lists.findIndex((l) => l.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(lists, oldIndex, newIndex);
-    reorderLists.mutate(reordered.map((l) => l.id ?? 0));
-  };
+  const { orderedItems: orderedLists, sortableIds, sensors, handleDragEnd } =
+    useSortableOrder({
+      items: lists,
+      getId: getListId,
+      onReorder: (reordered) => reorderLists.mutate(reordered.map(getListId)),
+      disabled: !isOnline,
+    });
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,11 +201,11 @@ export default function ShoppingListsPage() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={lists.map((l) => l.id ?? 0)}
+            items={sortableIds}
             strategy={verticalListSortingStrategy}
           >
             <div>
-              {lists.map((list) => (
+              {orderedLists?.map((list) => (
                 <DraggableShoppingListItem
                   key={list.id}
                   list={list}
