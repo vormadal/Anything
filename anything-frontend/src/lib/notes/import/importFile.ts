@@ -1,9 +1,17 @@
 import type { ParsedImport } from "./types";
 import { parseTextFile } from "./plainText";
 import { parseDocxFile } from "./docx";
+import { parseMarkdownFile } from "./markdown";
 import { LARGE_NOTE_HTML_LENGTH, titleFromFileName } from "./shared";
 
-const SUPPORTED_EXTENSIONS = new Set(["txt", "docx"]);
+type ImportParser = (file: File) => Promise<ParsedImport>;
+
+const PARSERS_BY_EXTENSION: Record<string, ImportParser> = {
+  txt: parseTextFile,
+  md: parseMarkdownFile,
+  markdown: parseMarkdownFile,
+  docx: parseDocxFile,
+};
 
 function extensionOf(fileName: string): string {
   return fileName.split(".").pop()?.toLowerCase() ?? "";
@@ -11,19 +19,19 @@ function extensionOf(fileName: string): string {
 
 /** Converts one file picked for import into HTML ready for `buildNoteDocument`. */
 export async function parseImportFile(file: File): Promise<ParsedImport> {
-  const extension = extensionOf(file.name);
-  if (!SUPPORTED_EXTENSIONS.has(extension)) {
+  const parser = PARSERS_BY_EXTENSION[extensionOf(file.name)];
+  if (!parser) {
     return {
       fileName: file.name,
       title: titleFromFileName(file.name),
       html: "",
       images: [],
       warnings: [],
-      fatalError: "Only .txt and .docx files can be imported.",
+      fatalError: "Only .txt, .md and .docx files can be imported.",
     };
   }
 
-  const parsed = extension === "docx" ? await parseDocxFile(file) : await parseTextFile(file);
+  const parsed = await parser(file);
   if (parsed.html.length <= LARGE_NOTE_HTML_LENGTH) return parsed;
 
   return {

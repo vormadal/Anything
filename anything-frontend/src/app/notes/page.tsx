@@ -10,6 +10,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Plus, Upload } from "lucide-react";
 
+const IMPORT_LABEL = "Import notes";
+
 export default function NotesPage() {
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
@@ -20,8 +22,8 @@ export default function NotesPage() {
       <div className="ml-auto flex items-center gap-1">
         <Link
           href="/notes/import"
-          aria-label="Import from Samsung Notes"
-          title="Import from Samsung Notes"
+          aria-label={IMPORT_LABEL}
+          title={IMPORT_LABEL}
           className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
         >
           <Upload className="h-5 w-5" />

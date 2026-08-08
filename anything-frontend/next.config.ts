@@ -4,7 +4,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // Kiota ships its abstractions as ESM; transpiling it lets Jest (via next/jest)
   // transform the package when hooks import runtime helpers like DateOnly directly.
-  transpilePackages: ["@microsoft/kiota-abstractions"],
+  // `marked` (the notes markdown importer) is ESM-only for the same reason —
+  // next/jest hardcodes `/node_modules/` in transformIgnorePatterns unless a
+  // package is listed here, so a jest.config override alone can't reach it.
+  transpilePackages: ["@microsoft/kiota-abstractions", "marked"],
   async redirects() {
     return [
       { source: '/shopping-lists', destination: '/lists', permanent: true },

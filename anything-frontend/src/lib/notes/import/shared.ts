@@ -8,14 +8,19 @@ export function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** Trims a candidate title to what the API accepts, falling back when it's blank. */
+export function clampNoteTitle(candidate: string): string {
+  const title = candidate.trim();
+  if (!title) return UNTITLED_NOTE_TITLE;
+  return title.length > NOTE_TITLE_MAX_LENGTH ? title.slice(0, NOTE_TITLE_MAX_LENGTH).trimEnd() : title;
+}
+
 /**
  * Samsung Notes names each exported file after the note itself, so the
  * filename stem is the title — clamped to what the API accepts.
  */
 export function titleFromFileName(fileName: string): string {
-  const stem = fileName.replace(/\.[^./\\]+$/, "").trim();
-  if (!stem) return UNTITLED_NOTE_TITLE;
-  return stem.length > NOTE_TITLE_MAX_LENGTH ? stem.slice(0, NOTE_TITLE_MAX_LENGTH).trimEnd() : stem;
+  return clampNoteTitle(fileName.replace(/\.[^./\\]+$/, ""));
 }
 
 let placeholderCounter = 0;

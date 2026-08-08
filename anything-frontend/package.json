@@ -47,6 +47,7 @@
     "fflate": "^0.8.3",
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.27.0",
+    "marked": "^18.0.9",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8",
