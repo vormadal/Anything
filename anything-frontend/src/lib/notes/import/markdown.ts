@@ -3,7 +3,10 @@ import type { ParsedImport } from "./types";
 import { clampNoteTitle, titleFromFileName } from "./shared";
 
 const FRONT_MATTER_FENCE_PATTERN = /^---[ \t]*$/;
-const FRONT_MATTER_TITLE_PATTERN = /^title:[ \t]*(.*)$/;
+// No `[ \t]*` before the capture: it would overlap with `(.*)`, giving the
+// engine an ambiguous split to backtrack over on every non-title line. The
+// value is trimmed after capture instead.
+const FRONT_MATTER_TITLE_PATTERN = /^title:(.*)$/;
 const SURROUNDING_QUOTES_PATTERN = /^"(.*)"$|^'(.*)'$/;
 const REMOTE_IMAGE_PATTERN = /^https?:\/\//i;
 const LOCAL_IMAGE_WARNING = "Images stored next to this file weren't imported.";
