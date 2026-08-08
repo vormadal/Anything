@@ -1,5 +1,7 @@
 import { parseMarkdownFile } from "./markdown";
 
+const FILE_NAME = "note.md";
+
 function markdownFile(name: string, content: string): File {
   return new File([content], name, { type: "text/markdown" });
 }
@@ -13,31 +15,31 @@ describe("parseMarkdownFile", () => {
   });
 
   it("converts inline emphasis, strikethrough and code", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "**bold** *italic* ~~gone~~ `code`"));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "**bold** *italic* ~~gone~~ `code`"));
 
     expect(result.html).toBe("<p><strong>bold</strong> <em>italic</em> <del>gone</del> <code>code</code></p>");
   });
 
   it("keeps a nested list nested", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "- fruit\n  - apple\n- bread"));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "- fruit\n  - apple\n- bread"));
 
     expect(result.html).toBe("<ul><li>fruit<ul><li>apple</li></ul></li><li>bread</li></ul>");
   });
 
   it("keeps a link's target", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "See [the docs](https://example.test/docs)."));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "See [the docs](https://example.test/docs)."));
 
     expect(result.html).toBe('<p>See <a href="https://example.test/docs">the docs</a>.</p>');
   });
 
   it("keeps a fenced code block's language", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "```js\nconst a = 1;\n```"));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "```js\nconst a = 1;\n```"));
 
     expect(result.html).toBe('<pre><code class="language-js">const a = 1;\n</code></pre>');
   });
 
   it("keeps a single line break as a hard break", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "first line\nsecond line"));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "first line\nsecond line"));
 
     expect(result.html).toBe("<p>first line<br>second line</p>");
   });
@@ -45,19 +47,19 @@ describe("parseMarkdownFile", () => {
   it("flattens a table's cells into paragraphs", async () => {
     const table = "| Item | Qty |\n| --- | --- |\n| Milk | 2 |";
 
-    const result = await parseMarkdownFile(markdownFile("note.md", table));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, table));
 
     expect(result.html).toBe("<p>Item</p><p>Qty</p><p>Milk</p><p>2</p>");
   });
 
   it("turns task items into checked and unchecked list items", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "- [ ] pack\n- [x] book flight"));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "- [ ] pack\n- [x] book flight"));
 
     expect(result.html).toBe("<ul><li>☐ pack</li><li>☑ book flight</li></ul>");
   });
 
   it("keeps an image hosted at an absolute URL", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "![a cat](https://example.test/cat.png)"));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "![a cat](https://example.test/cat.png)"));
 
     expect(result.html).toBe('<p><img src="https://example.test/cat.png" alt="a cat"></p>');
     expect(result.warnings).toEqual([]);
@@ -66,14 +68,14 @@ describe("parseMarkdownFile", () => {
   it("drops an image stored next to the file and warns once", async () => {
     const body = "The kitchen:\n\n![one](./img/one.png)\n\n![two](img/two.png)";
 
-    const result = await parseMarkdownFile(markdownFile("note.md", body));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, body));
 
     expect(result.html).toBe("<p>The kitchen:</p>");
     expect(result.warnings).toEqual(["Images stored next to this file weren't imported."]);
   });
 
   it("warns that a note is empty when its only content was an unreachable image", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "![one](./img/one.png)"));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "![one](./img/one.png)"));
 
     expect(result.warnings).toEqual([
       "Images stored next to this file weren't imported.",
@@ -82,7 +84,7 @@ describe("parseMarkdownFile", () => {
   });
 
   it("never produces images to upload", async () => {
-    const result = await parseMarkdownFile(markdownFile("note.md", "![a cat](https://example.test/cat.png)"));
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, "![a cat](https://example.test/cat.png)"));
 
     expect(result.images).toEqual([]);
   });

@@ -2,9 +2,9 @@ import { marked } from "marked";
 import type { ParsedImport } from "./types";
 import { clampNoteTitle, titleFromFileName } from "./shared";
 
-const FRONT_MATTER_PATTERN = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
-const FRONT_MATTER_TITLE_PATTERN = /^title:[ \t]*(.*)$/m;
-const SURROUNDING_QUOTES_PATTERN = /^["'](.*)["']$/;
+const FRONT_MATTER_FENCE_PATTERN = /^---[ \t]*$/;
+const FRONT_MATTER_TITLE_PATTERN = /^title:[ \t]*(.*)$/;
+const SURROUNDING_QUOTES_PATTERN = /^"(.*)"$|^'(.*)'$/;
 const REMOTE_IMAGE_PATTERN = /^https?:\/\//i;
 const LOCAL_IMAGE_WARNING = "Images stored next to this file weren't imported.";
 const EMPTY_NOTE_WARNING = "This note is empty.";
@@ -16,18 +16,35 @@ interface MarkdownSource {
   title: string | null;
 }
 
+function unquote(value: string): string {
+  const quoted = SURROUNDING_QUOTES_PATTERN.exec(value);
+  return quoted ? (quoted[1] ?? quoted[2]) : value;
+}
+
 /**
  * Splits off a leading YAML front matter block (Obsidian, Jekyll and friends
  * write one). Only `title` is read — the rest is metadata the note has nowhere
  * to put, and leaving the block in the body would render as a stray heading.
+ * Scanned line by line rather than with one regex over the whole document: the
+ * block is delimited by whole lines, and a lazy `[\s\S]*?` spanning the file
+ * would backtrack across it on every document that has no front matter at all.
  */
 function readFrontMatter(markdown: string): MarkdownSource {
-  const match = FRONT_MATTER_PATTERN.exec(markdown);
-  if (!match) return { body: markdown, title: null };
+  const lines = markdown.split(/\r?\n/);
+  if (!FRONT_MATTER_FENCE_PATTERN.test(lines[0])) return { body: markdown, title: null };
 
-  const declared = FRONT_MATTER_TITLE_PATTERN.exec(match[1])?.[1].trim() ?? "";
-  const title = SURROUNDING_QUOTES_PATTERN.exec(declared)?.[1] ?? declared;
-  return { body: markdown.slice(match[0].length), title: title || null };
+  const closing = lines.findIndex((line, index) => index > 0 && FRONT_MATTER_FENCE_PATTERN.test(line));
+  if (closing === -1) return { body: markdown, title: null };
+
+  const declared = lines
+    .slice(1, closing)
+    .map((line) => FRONT_MATTER_TITLE_PATTERN.exec(line)?.[1].trim())
+    .find((value) => !!value);
+
+  return {
+    body: lines.slice(closing + 1).join("\n"),
+    title: declared ? unquote(declared) : null,
+  };
 }
 
 /**
