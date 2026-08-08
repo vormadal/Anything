@@ -181,9 +181,9 @@ followed by a `DOMParser` pass that degrades what the schema has no node for:
 tables flatten to one paragraph per cell (as in `docx.ts`), GFM task items become
 `☐`/`☑` text, and image references — markdown embeds no bytes — are kept only
 when absolute, with relative paths dropped and warned about. YAML front matter is
-stripped, its `title` preferred over the filename. Adding a fourth format means
-one more entry in `PARSERS_BY_EXTENSION` (`importFile.ts`) and the page's
-`accept` list.
+stripped, its `title` preferred over the filename. The three-stage pipeline, and
+what adding a fourth format takes, are documented in
+[`anything-frontend/src/lib/agent.md`](anything-frontend/src/lib/agent.md).
 
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)

@@ -13,6 +13,7 @@ Shared utilities and the generated API client.
 - `roles.ts` — household role constants (`HOUSEHOLD_ROLES`) and role-check helpers (`isAdmin`, `canManageHousehold`, `isHouseholdOwner`)
 - `utils.ts` — generic helpers (class merging via `cn()`, etc.)
 - `offline/` — offline-first read caching for the whole app, plus a write outbox scoped to shopping list / general checklist items only (see below)
+- `notes/` — the note editor's Tiptap schema (`extensions.ts`), document (de)serialization (`noteDocument.ts`), and the client-side document importer behind `/notes/import` (`import/`, see below)
 
 ## Key Patterns
 
@@ -22,6 +23,64 @@ Shared utilities and the generated API client.
 - The base URL defaults to `http://localhost:5238` and is overridden by `NEXT_PUBLIC_API_URL` in production.
 - Never cast API response types to `any`; use the generated model types from `api-client/models/index`.
 - **Never use raw `fetch` or `apiFetch` for API calls** — use the configured `apiClient`. If the endpoint you need isn't in the generated client yet, do **not** reach for `apiFetch` as a stopgap: push the backend change (or open the PR) first so the `update-api-client` workflow regenerates and commits `api-client/**`, pull/rebase those changes, then implement the call against the regenerated `apiClient`. This holds even when the file you're editing already uses raw `fetch`/`apiFetch` — and when you touch such a file, migrate its legacy calls to `apiClient` as part of your change rather than copying the pattern.
+
+## Note import (`notes/import/`)
+
+Converting an exported document into a note happens **entirely in the browser** — the API only ever
+sees the finished ProseMirror JSON (`POST /api/notes`) and any extracted images (`POST /api/notes/images`).
+There is no server-side conversion to keep in sync.
+
+Every format follows the same three stages:
+
+1. **Parse** — `importFile.ts` looks the file's extension up in `PARSERS_BY_EXTENSION` and delegates.
+   Each parser returns a `ParsedImport` (`types.ts`): `html`, a `title`, extracted `images` (each with a
+   `placeholderId` standing in for its eventual `src`), user-facing `warnings`, and — for a file that
+   couldn't be read at all — a `fatalError` **instead of** `html`, which the review UI renders as a
+   disabled row. Parsers never throw; an unreadable file is a `fatalError`, not an exception.
+2. **Upload** — `app/notes/import/page.tsx`'s `importOne` uploads each extracted image. Best-effort:
+   a failed upload is swallowed and that one image is dropped from the note.
+3. **Build** — `buildNoteDocument.ts` swaps each placeholder `src` for the uploaded URL (dropping any
+   `<img>` whose upload failed) and runs the HTML through `generateJSON(html, noteExtensions)`.
+
+**The `generateJSON` step is the safety net, and it is why parsers can emit slightly richer HTML than
+the schema supports.** It runs the HTML through the *editor's own* extension list, so anything the
+schema has no node or mark for is silently dropped — an imported note can never contain something the
+editor can't reopen. The corollary: silence is the failure mode. If a construct is worth keeping, the
+parser has to degrade it into a node the schema *does* have (see the table and task-item handling in
+`markdown.ts`), because otherwise it vanishes with no warning.
+
+Per-format notes:
+
+| File | Parser | Behaviour |
+|---|---|---|
+| `.txt` | `plainText.ts` | One `<p>` per line, everything escaped. |
+| `.md` / `.markdown` | `markdown.ts` | `marked` → HTML, then a `DOMParser` pass that degrades what the schema lacks. |
+| `.docx` | `docx.ts` (+ `docxRuns.ts`, `docxNumbering.ts`) | Unzipped with `fflate`; OOXML matched by literal `w:`-prefixed names rather than registered namespaces, since that's how `DOMParser` preserves them. |
+
+Adding a fourth format is: a new `parse<Format>File` returning `ParsedImport`, one entry in
+`PARSERS_BY_EXTENSION`, the `accept` list and dropzone sub-label on the import page, and the
+`fatalError` copy (asserted verbatim in `importFile.test.ts` and `app/notes/import/page.test.tsx`).
+The `LARGE_NOTE_HTML_LENGTH` guard is applied centrally by the dispatcher, so a new parser gets it free.
+
+Gotchas that cost time:
+
+- **An ESM-only parsing dependency needs `transpilePackages` in `next.config.ts`, not a
+  `transformIgnorePatterns` override.** `marked` ships ESM only and fails Jest with
+  `SyntaxError: Unexpected token 'export'` otherwise; `npm run build` passes either way, so only the
+  Jest run catches it. Full explanation in CLAUDE.md → CI Automation & Deployment.
+- **Markdown embeds no image bytes.** `markdown.ts` returns `images: []` always — an absolute
+  `http(s)` source is kept pointing at its original URL (`storageKey` stays null, which `NoteImage`
+  allows), and a path relative to the exported file is dropped with a warning, since this app never
+  received the file it names. Only `.docx` actually extracts blobs to upload.
+- **Custom image attributes must be `data-*` and already lowercase.** `generateJSON` round-trips
+  through `DOMParser(..., "text/html")`, which lowercases attribute names — hence `data-storage-key`
+  rather than `storageKey` (see the comment in `notes/extensions.ts`).
+- **Word list nesting is flattened on purpose** (`w:ilvl` ignored) — but markdown nesting is *not*,
+  because `marked` emits real nested `<ul>`/`<ol>` and Tiptap's `listItem` content (`paragraph block*`)
+  accepts them. Don't "fix" the asymmetry.
+- **Tests build their fixtures in-process** — `new File([...], "name.md")` for text formats, and
+  `docx.test.ts`'s `buildDocxFile()` helper over `fflate`'s `zipSync` for Word. There are no binary
+  fixture files in the repo; keep it that way.
 
 ## Offline support (`offline/`)
 
