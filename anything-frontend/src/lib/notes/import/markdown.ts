@@ -1,0 +1,128 @@
+import { marked } from "marked";
+import type { ParsedImport } from "./types";
+import { clampNoteTitle, titleFromFileName } from "./shared";
+
+const FRONT_MATTER_PATTERN = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+const FRONT_MATTER_TITLE_PATTERN = /^title:[ \t]*(.*)$/m;
+const SURROUNDING_QUOTES_PATTERN = /^["'](.*)["']$/;
+const REMOTE_IMAGE_PATTERN = /^https?:\/\//i;
+const LOCAL_IMAGE_WARNING = "Images stored next to this file weren't imported.";
+const EMPTY_NOTE_WARNING = "This note is empty.";
+
+interface MarkdownSource {
+  /** The document with any front matter removed. */
+  body: string;
+  /** The front matter's `title`, when it had one. */
+  title: string | null;
+}
+
+/**
+ * Splits off a leading YAML front matter block (Obsidian, Jekyll and friends
+ * write one). Only `title` is read — the rest is metadata the note has nowhere
+ * to put, and leaving the block in the body would render as a stray heading.
+ */
+function readFrontMatter(markdown: string): MarkdownSource {
+  const match = FRONT_MATTER_PATTERN.exec(markdown);
+  if (!match) return { body: markdown, title: null };
+
+  const declared = FRONT_MATTER_TITLE_PATTERN.exec(match[1])?.[1].trim() ?? "";
+  const title = SURROUNDING_QUOTES_PATTERN.exec(declared)?.[1] ?? declared;
+  return { body: markdown.slice(match[0].length), title: title || null };
+}
+
+/**
+ * Every cell becomes its own paragraph — the note schema has no table node, so
+ * a table's structure can't survive the import, only its text. Cell contents
+ * are moved rather than copied so inline marks (links, bold, code) come along.
+ */
+function flattenTable(table: Element): void {
+  const doc = table.ownerDocument;
+  const flattened = doc.createDocumentFragment();
+
+  for (const cell of Array.from(table.querySelectorAll("th, td"))) {
+    if (!cell.textContent?.trim()) continue;
+    const paragraph = doc.createElement("p");
+    paragraph.append(...Array.from(cell.childNodes));
+    flattened.append(paragraph);
+  }
+
+  table.replaceWith(flattened);
+}
+
+/**
+ * A GFM task item renders as a checkbox input, which the note schema has no
+ * node for and would silently drop along with its checked state. Swapping in a
+ * ballot-box character keeps that state visible as text in an ordinary list.
+ */
+function replaceTaskCheckbox(checkbox: Element): void {
+  const marker = checkbox.hasAttribute("checked") ? "☑" : "☐";
+  checkbox.replaceWith(checkbox.ownerDocument.createTextNode(marker));
+}
+
+/**
+ * Markdown references images rather than embedding them, so there are no bytes
+ * to upload. An absolute `http(s)` source still resolves from the note, but a
+ * path relative to the exported file points at something this app never
+ * received. A paragraph left with nothing but the dropped image goes with it,
+ * rather than becoming a blank line in the note. Returns whether any image was
+ * dropped.
+ */
+function pruneUnreachableImages(body: HTMLElement): boolean {
+  let dropped = false;
+
+  for (const image of Array.from(body.querySelectorAll("img"))) {
+    if (REMOTE_IMAGE_PATTERN.test(image.getAttribute("src") ?? "")) continue;
+
+    const paragraph = image.parentElement;
+    image.remove();
+    if (paragraph?.tagName === "P" && !paragraph.hasChildNodes()) paragraph.remove();
+    dropped = true;
+  }
+
+  return dropped;
+}
+
+/**
+ * Collapses the newlines marked writes between block tags, so the output
+ * matches the single-line HTML the other importers build by hand. Safe because
+ * `breaks: true` leaves no bare newline inside a paragraph's inline content,
+ * and marked escapes `<`/`>` inside code blocks — a newline in code is never
+ * preceded by a literal `>`.
+ */
+function toCompactHtml(body: HTMLElement): string {
+  return body.innerHTML.replace(/>\n+</g, "><").trim();
+}
+
+/**
+ * Converts a Markdown (`.md`) file into HTML for `generateJSON`. Anything the
+ * note schema has no node for — a horizontal rule, raw HTML — is dropped there
+ * rather than here; this pass only handles the constructs worth degrading into
+ * something the schema *does* have instead of losing outright.
+ */
+export async function parseMarkdownFile(file: File): Promise<ParsedImport> {
+  const { body: markdown, title } = readFrontMatter(await file.text());
+
+  // Soft line breaks become `<br>` instead of folding into the previous line:
+  // a note is written line by line, so the author's line breaks are closer to
+  // what they saw in the app they exported from.
+  const rendered = marked.parse(markdown, { async: false, gfm: true, breaks: true });
+  const { body } = new DOMParser().parseFromString(rendered, "text/html");
+
+  for (const table of Array.from(body.querySelectorAll("table"))) flattenTable(table);
+  for (const checkbox of Array.from(body.querySelectorAll('input[type="checkbox"]'))) {
+    replaceTaskCheckbox(checkbox);
+  }
+  const droppedImages = pruneUnreachableImages(body);
+
+  const html = toCompactHtml(body);
+  const warnings = droppedImages ? [LOCAL_IMAGE_WARNING] : [];
+  if (!html.replace(/<p><\/p>/g, "").trim()) warnings.push(EMPTY_NOTE_WARNING);
+
+  return {
+    fileName: file.name,
+    title: title ? clampNoteTitle(title) : titleFromFileName(file.name),
+    html,
+    images: [],
+    warnings,
+  };
+}

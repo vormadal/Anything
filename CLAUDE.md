@@ -174,7 +174,16 @@ relationships resolved without registering OOXML namespaces — matched by their
 literal `w:`-prefixed tag/attribute names, since that's how the browser's
 `DOMParser` preserves them), then run through `generateJSON(html,
 noteExtensions)` — the same schema the editor itself uses — so an imported
-document can never contain something the editor can't open.
+document can never contain something the editor can't open. A `.md`/`.markdown`
+file takes the same route via `marked` (`breaks: true`, so a note's line breaks
+survive as `<br>` and every remaining newline sits strictly between block tags),
+followed by a `DOMParser` pass that degrades what the schema has no node for:
+tables flatten to one paragraph per cell (as in `docx.ts`), GFM task items become
+`☐`/`☑` text, and image references — markdown embeds no bytes — are kept only
+when absolute, with relative paths dropped and warned about. YAML front matter is
+stripped, its `title` preferred over the filename. Adding a fourth format means
+one more entry in `PARSERS_BY_EXTENSION` (`importFile.ts`) and the page's
+`accept` list.
 
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
@@ -219,6 +228,7 @@ Non-obvious gotchas:
 - **A shared helper under `Anything.Application.Features` must not be named `*Query`, `*Command` or `*Handler`.** `CqrsPatternTests` and `NamingConventionTests` assert that *every* type in that namespace with one of those suffixes implements `IRequest`/`IRequestHandler`, so a plain static helper called e.g. `InventoryThumbnailQuery` fails the architecture tests with nothing wrong in the code itself. Name it for what it does (`InventoryThumbnailLookup`, `*Mapping`).
 - **Filter a nullable FK with a `List<int?>`, not `.Value`.** `ids.Contains(a.ItemId)` where `ids` is `List<int?>` translates to a plain `= ANY(@ids)`; `ids.Contains(a.ItemId.Value)` leans on EF's nullable unwrapping and can throw at translation time. Nothing local catches this — the unit tests' `AsAsyncQueryable` provider is LINQ-to-objects and executes untranslatable expressions happily, and `dotnet build` has no opinion. Same class of trap as the raw-SQL translations `SearchEndpointTests` exists to cover.
 - **Adding a constructor parameter to a query handler breaks its unit tests at compile time**, since `InventoryHandlerTests` and friends construct handlers positionally. A repository substitute also needs `.Query()` stubbed (`Substitute.For<IRepository<T>>()` returns null otherwise, and `ToListAsync` NREs) — `InventoryTestDoubles` in `InventoryHandlerTests.cs` is the shared factory for that.
+- **An ESM-only npm package breaks Jest, and `transformIgnorePatterns` can't fix it — add it to `transpilePackages` in `next.config.ts`.** Packages shipping only ESM (`marked`, `@microsoft/kiota-abstractions`) fail with `SyntaxError: Unexpected token 'export'` in Jest, because next/jest **hardcodes** `/node_modules/` as the first ignore pattern and only *appends* a custom `transformIgnorePatterns` (see `next/dist/build/jest/jest.js`) — a `/node_modules/(?!(pkg)/)` override in `jest.config.mjs` is silently outranked. Listing the package in `transpilePackages` is what makes next/jest emit `/node_modules/(?!.pnpm)(?!(pkg)/)` instead. `npm run build` passes either way, so only the Jest run catches it.
 - **Adding a key to `HomeCardKeys.All` breaks `HomePreferenceEndpointTests`**, which asserts the exact default card list and sort orders. Update it in the same change; the frontend's `DEFAULT_HOME_CARD_ORDER` in `anything-frontend/src/app/HomeCards.tsx` mirrors the same list and needs the matching entry.
 - **Model-changing pushes break `update-api-client` on the first push — this is expected.** When a push adds/changes an entity, `update-ef-migrations` and `update-api-client` run in parallel on the *same* pre-migration commit. `update-api-client` boots the API, whose startup `MigrateAsync` escalates `PendingModelChangesWarning` to a fatal error because the migration doesn't exist yet, so Swagger never comes up and Kiota generation times out (exit 124). `update-ef-migrations` meanwhile commits the migration. To regenerate the client you must re-trigger `update-api-client` on a commit that *already contains* the migration — and it only triggers on `src/Anything.{API,Contracts,Application,Core}/**` (NOT `src/Anything.Database/**`, where migrations live). Fix: after the migration lands, make a small backend-path change (e.g. XML-doc the new contracts) in your next push, then pull/rebase the regenerated client before validating the frontend.
 - **Snapshot bot `[skip ci]` commits don't re-trigger PR checks.** The PR's `Visual Snapshot Tests` check does NOT rerun on the baseline-containing commit — the PR stays red with the pre-baseline failure as its latest check. After the bot commit lands, push a small non-`[skip ci]` commit (docs, comment) to sync the PR and rerun checks on a tip that includes the baselines.

@@ -82,21 +82,24 @@ export default function ImportNotesPage() {
   if (phase === "pick") {
     return (
       <div className="container mx-auto max-w-lg space-y-4 px-4 py-4">
-        <PageTitle>Import from Samsung Notes</PageTitle>
+        <PageTitle>Import notes</PageTitle>
         <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-800">
-          <ol className="list-inside list-decimal space-y-1 text-sm text-gray-600 dark:text-gray-400">
-            {INSTRUCTIONS.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
+          <div className="space-y-1">
+            <h2 className="text-sm font-medium text-gray-900 dark:text-white">Exporting from Samsung Notes</h2>
+            <ol className="list-inside list-decimal space-y-1 text-sm text-gray-600 dark:text-gray-400">
+              {INSTRUCTIONS.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
           <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 p-8 text-gray-500 transition-colors hover:border-blue-500 dark:border-gray-600 dark:text-gray-400 dark:hover:border-blue-400">
             <Upload className="h-8 w-8" />
             <span className="text-sm font-medium">Choose exported files</span>
-            <span className="text-xs">.txt or .docx — you can pick several at once</span>
+            <span className="text-xs">.txt, .md or .docx — you can pick several at once</span>
             <input
               type="file"
               multiple
-              accept=".txt,.docx"
+              accept=".txt,.md,.markdown,.docx"
               className="sr-only"
               onChange={(e) => handleFilesSelected(e.target.files)}
             />

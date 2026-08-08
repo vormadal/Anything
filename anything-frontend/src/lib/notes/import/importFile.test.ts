@@ -9,6 +9,19 @@ describe("parseImportFile", () => {
     expect(result.fatalError).toBeUndefined();
   });
 
+  it("routes a .md file to the markdown parser", async () => {
+    const result = await parseImportFile(new File(["# Hello"], "note.md", { type: "text/markdown" }));
+
+    expect(result.html).toBe("<h1>Hello</h1>");
+    expect(result.fatalError).toBeUndefined();
+  });
+
+  it("routes a .MARKDOWN file (case-insensitively) to the markdown parser", async () => {
+    const result = await parseImportFile(new File(["# Hello"], "note.MARKDOWN"));
+
+    expect(result.html).toBe("<h1>Hello</h1>");
+  });
+
   it("routes a .DOCX file (case-insensitively) to the Word parser", async () => {
     const file = new File(["not really a docx"], "Note.DOCX");
 
@@ -20,7 +33,7 @@ describe("parseImportFile", () => {
   it("rejects an unsupported file type without reading it", async () => {
     const result = await parseImportFile(new File(["<html/>"], "note.pdf", { type: "application/pdf" }));
 
-    expect(result.fatalError).toBe("Only .txt and .docx files can be imported.");
+    expect(result.fatalError).toBe("Only .txt, .md and .docx files can be imported.");
     expect(result.title).toBe("note");
   });
 

@@ -1123,7 +1123,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("note import - pick files", async ({ page }) => {
     await page.goto("/notes/import");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText("Choose exported files")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Exporting from Samsung Notes" })).toBeVisible();
+    await expect(page.getByText(".txt, .md or .docx — you can pick several at once")).toBeVisible();
     await expect(page).toHaveScreenshot("note-import-pick.png", screenshotOptions);
   });
 
@@ -1139,6 +1140,22 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByText("Grocery list")).toBeVisible();
     await expect(page.getByText("Trip packing")).toBeVisible();
     await expect(page).toHaveScreenshot("note-import-review.png", screenshotOptions);
+  });
+
+  test("note import - markdown review", async ({ page }) => {
+    const markdown = "# Weekend\n\n- [x] book flight\n- [ ] pack\n\n![map](./img/map.png)";
+    await page.goto("/notes/import");
+    await page.waitForLoadState("networkidle");
+    await page.locator('input[type="file"]').setInputFiles([
+      { name: "Weekend plans.md", mimeType: "text/markdown", buffer: Buffer.from(markdown) },
+      { name: "Reading list.markdown", mimeType: "text/markdown", buffer: Buffer.from("- Dune\n- Solaris") },
+    ]);
+    await expect(page.getByText("Weekend plans")).toBeVisible();
+    await expect(page.getByText("Reading list")).toBeVisible();
+    // The relative image path can't be resolved from an exported .md, so this
+    // row carries the dropped-image warning while the other one doesn't.
+    await expect(page.getByText("Images stored next to this file weren't imported.")).toBeVisible();
+    await expect(page).toHaveScreenshot("note-import-markdown-review.png", screenshotOptions);
   });
 
   test("home page - notes card", async ({ page }) => {

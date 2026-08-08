@@ -56,6 +56,32 @@ describe("ImportNotesPage", () => {
     );
   });
 
+  it("imports a markdown file as a formatted note", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<ImportNotesPage />);
+
+    const recipe = new File(["# Pancakes\n\n- flour\n- eggs"], "Pancakes.md", { type: "text/markdown" });
+    await user.upload(pickFilesInput(), [recipe]);
+
+    await user.click(await screen.findByRole("button", { name: "Import 1 note" }));
+
+    await waitFor(() => expect(screen.getByText("1 note imported.")).toBeVisible());
+    expect(mockNotesPost).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Pancakes", contentJson: expect.stringContaining('"heading"') })
+    );
+  });
+
+  it("warns that a markdown file's local images can't come along", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<ImportNotesPage />);
+
+    const withImage = new File(["Look:\n\n![kitchen](./img/kitchen.png)"], "House.md", { type: "text/markdown" });
+    await user.upload(pickFilesInput(), [withImage]);
+
+    expect(await screen.findByText("Images stored next to this file weren't imported.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Import 1 note" })).toBeEnabled();
+  });
+
   it("disables a file it can't parse and excludes it from the import count", async () => {
     renderWithClient(<ImportNotesPage />);
     const unsupported = new File(["%PDF"], "note.pdf", { type: "application/pdf" });
@@ -67,7 +93,7 @@ describe("ImportNotesPage", () => {
     Object.defineProperty(pickFilesInput(), "files", { value: [unsupported] });
     fireEvent.change(pickFilesInput());
 
-    expect(await screen.findByText("Only .txt and .docx files can be imported.")).toBeVisible();
+    expect(await screen.findByText("Only .txt, .md and .docx files can be imported.")).toBeVisible();
     expect(screen.getByText("Nothing selected")).toBeVisible();
   });
 
