@@ -1102,6 +1102,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     // The title lives in the top bar only — there is no title field on the page.
     await expect(page.getByRole("heading", { name: "Wifi password", level: 1 })).toBeVisible();
     await expect(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
+    // Named explicitly because a toolbar button is a small fraction of a
+    // mostly-blank full-page screenshot — under the snapshot comparison's
+    // diff-ratio threshold, so a baseline predating it would still "match".
+    await expect(page.getByRole("button", { name: "Insert table" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Rename note" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
     await expect(page).toHaveScreenshot("note-detail.png", screenshotOptions);

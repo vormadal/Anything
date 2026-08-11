@@ -98,6 +98,55 @@ function cellSpan(tcPr: Element | undefined): number {
 }
 
 /**
+ * The cells of one `w:tr`, in document order.
+ *
+ * `openMerges` maps a grid column to the cell currently merging downwards
+ * through it, and is carried across rows by the caller — reading a row both
+ * consults it (to extend a merge) and updates it (to open or close one).
+ */
+function convertRow(
+  row: Element,
+  isHeaderRow: boolean,
+  openMerges: (TableCellModel | null)[],
+  ctx: DocxRunContext,
+  numbering: DocxNumbering
+): TableCellModel[] {
+  const cells: TableCellModel[] = [];
+  let column = 0;
+
+  for (const tc of directChildren(row, "w:tc")) {
+    const tcPr = directChildren(tc, "w:tcPr")[0];
+    const span = cellSpan(tcPr);
+    const vMerge = tcPr?.getElementsByTagName("w:vMerge")[0];
+    const startsMerge = vMerge?.getAttribute("w:val") === "restart";
+
+    if (vMerge && !startsMerge) {
+      // A continuation contributes a row to whatever started the merge; an
+      // orphan (no starter, e.g. a truncated document) is simply dropped.
+      const starter = openMerges[column];
+      if (starter) starter.rowspan += 1;
+      column += span;
+      continue;
+    }
+
+    const cell: TableCellModel = {
+      tag: isHeaderRow ? "th" : "td",
+      colspan: span,
+      rowspan: 1,
+      html: convertBlocks(directChildren(tc, "w:p", "w:tbl"), ctx, numbering),
+    };
+    cells.push(cell);
+    for (let covered = column; covered < column + span; covered++) {
+      openMerges[covered] = startsMerge ? cell : null;
+    }
+    column += span;
+  }
+
+
+  return cells;
+}
+
+/**
  * Converts a `w:tbl` to an HTML table.
  *
  * Word writes a `w:tc` at *every* grid position, marking the continuations of
@@ -112,47 +161,13 @@ function convertTable(table: Element, ctx: DocxRunContext, numbering: DocxNumber
   if (rows.length === 0) return "";
 
   const declaredHeaders = rows.filter(isDeclaredHeaderRow);
-  const headerRows = new Set(declaredHeaders.length > 0 ? declaredHeaders : []);
+  const headerRows = new Set(declaredHeaders);
   if (headerRows.size === 0 && looksLikeHeaderRow(rows[0])) headerRows.add(rows[0]);
 
-  // Grid column index -> the cell currently merging downwards through it.
+  // Grid column index -> the cell currently merging downwards through it,
+  // carried across rows because a merge spans them.
   const openMerges: (TableCellModel | null)[] = [];
-  const modelled: TableCellModel[][] = [];
-
-  for (const row of rows) {
-    const cells: TableCellModel[] = [];
-    let column = 0;
-
-    for (const tc of directChildren(row, "w:tc")) {
-      const tcPr = directChildren(tc, "w:tcPr")[0];
-      const span = cellSpan(tcPr);
-      const vMerge = tcPr?.getElementsByTagName("w:vMerge")[0];
-      const startsMerge = vMerge?.getAttribute("w:val") === "restart";
-
-      if (vMerge && !startsMerge) {
-        // A continuation contributes a row to whatever started the merge; an
-        // orphan (no starter, e.g. a truncated document) is simply dropped.
-        const starter = openMerges[column];
-        if (starter) starter.rowspan += 1;
-        column += span;
-        continue;
-      }
-
-      const cell: TableCellModel = {
-        tag: headerRows.has(row) ? "th" : "td",
-        colspan: span,
-        rowspan: 1,
-        html: convertBlocks(directChildren(tc, "w:p", "w:tbl"), ctx, numbering),
-      };
-      cells.push(cell);
-      for (let covered = column; covered < column + span; covered++) {
-        openMerges[covered] = startsMerge ? cell : null;
-      }
-      column += span;
-    }
-
-    modelled.push(cells);
-  }
+  const modelled = rows.map((row) => convertRow(row, headerRows.has(row), openMerges, ctx, numbering));
 
   const body = modelled
     .filter((cells) => cells.length > 0)
