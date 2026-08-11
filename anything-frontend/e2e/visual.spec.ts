@@ -256,6 +256,16 @@ const mockNoteDetailWithImage = {
 // A note whose body includes tables: a plain one, and a six-column one that is
 // wider than the phone viewport, so the snapshot covers the wrapper's
 // horizontal scroll as well as ordinary table typography.
+/** Serves one note fixture from `GET /api/notes/{id}`, leaving other verbs to the default mocks. */
+const routeNoteDetail = (page: Page, note: object) =>
+  page.route(/\/api\/notes\/\d+$/, (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: note });
+    } else {
+      route.continue();
+    }
+  });
+
 const mockNoteDetailWithTable = {
   id: 4,
   title: "Camping kit",
@@ -1112,13 +1122,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("note detail - empty body", async ({ page }) => {
-    await page.route(/\/api\/notes\/\d+$/, (route) => {
-      if (route.request().method() === "GET") {
-        route.fulfill({ json: mockEmptyNoteDetail });
-      } else {
-        route.continue();
-      }
-    });
+    await routeNoteDetail(page, mockEmptyNoteDetail);
     await page.goto("/notes/2");
     await page.waitForLoadState("networkidle");
     // The placeholder is CSS-generated, so assert on the editing surface itself.
@@ -1127,13 +1131,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("note detail - with an embedded image", async ({ page }) => {
-    await page.route(/\/api\/notes\/\d+$/, (route) => {
-      if (route.request().method() === "GET") {
-        route.fulfill({ json: mockNoteDetailWithImage });
-      } else {
-        route.continue();
-      }
-    });
+    await routeNoteDetail(page, mockNoteDetailWithImage);
     await page.goto("/notes/3");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("img")).toBeVisible();
@@ -1141,13 +1139,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("note detail - with tables", async ({ page }) => {
-    await page.route(/\/api\/notes\/\d+$/, (route) => {
-      if (route.request().method() === "GET") {
-        route.fulfill({ json: mockNoteDetailWithTable });
-      } else {
-        route.continue();
-      }
-    });
+    await routeNoteDetail(page, mockNoteDetailWithTable);
     await page.goto("/notes/4");
     await page.waitForLoadState("networkidle");
     // Assert the table actually rendered before screenshotting: a baseline
@@ -1158,13 +1150,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("note detail - table controls with the caret in a cell", async ({ page }) => {
-    await page.route(/\/api\/notes\/\d+$/, (route) => {
-      if (route.request().method() === "GET") {
-        route.fulfill({ json: mockNoteDetailWithTable });
-      } else {
-        route.continue();
-      }
-    });
+    await routeNoteDetail(page, mockNoteDetailWithTable);
     await page.goto("/notes/4");
     await page.waitForLoadState("networkidle");
     await page.getByRole("cell", { name: "Tent" }).click();
@@ -1180,13 +1166,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "onLine", { get: () => false, configurable: true });
     });
-    await page.route(/\/api\/notes\/\d+$/, (route) => {
-      if (route.request().method() === "GET") {
-        route.fulfill({ json: mockNoteDetailWithTable });
-      } else {
-        route.continue();
-      }
-    });
+    await routeNoteDetail(page, mockNoteDetailWithTable);
     await page.goto("/notes/4");
     await page.waitForLoadState("networkidle");
     // The read-only renderer shares NOTE_PROSE_CLASSES with the editor, so this
