@@ -56,7 +56,7 @@ export function NoteEditor({ value, onChange, label = DEFAULT_LABEL, onUploadIma
         "aria-label": label,
         "aria-multiline": "true",
         // `note-editor` is the hook the placeholder CSS in globals.css targets.
-        class: `note-editor ${NOTE_PROSE_CLASSES} grow w-full px-4 py-3 focus:outline-none`,
+        class: `note-editor ${NOTE_PROSE_CLASSES} grow w-full min-w-0 px-4 py-3 focus:outline-none`,
       },
     },
     onUpdate: ({ editor: updated }) => onChange(updated.getJSON()),
@@ -76,7 +76,7 @@ export function NoteEditor({ value, onChange, label = DEFAULT_LABEL, onUploadIma
       <div className="sticky top-14 z-30 bg-white dark:bg-gray-800">
         <NoteEditorToolbar editor={editor} onUploadImage={onUploadImage} />
       </div>
-      <EditorContent editor={editor} className="flex grow flex-col" />
+      <EditorContent editor={editor} className="flex min-w-0 grow flex-col" />
     </div>
   );
 }

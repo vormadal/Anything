@@ -25,6 +25,15 @@ function hasUnderline(rPr: Element | undefined): boolean {
   return !!el && el.getAttribute("w:val") !== "none";
 }
 
+/**
+ * Whether a run is bold. Exported for `docx.ts`'s header-row heuristic — a
+ * table that doesn't declare a repeating header row is treated as having one
+ * when its whole first row is bold.
+ */
+export function isBoldRun(run: Element): boolean {
+  return isToggleOn(run.getElementsByTagName("w:rPr")[0] ?? undefined, "w:b");
+}
+
 function renderRun(run: Element, ctx: DocxRunContext): string {
   let inner = "";
   for (const child of Array.from(run.children)) {

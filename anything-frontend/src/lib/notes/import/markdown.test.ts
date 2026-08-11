@@ -44,12 +44,27 @@ describe("parseMarkdownFile", () => {
     expect(result.html).toBe("<p>first line<br>second line</p>");
   });
 
-  it("flattens a table's cells into paragraphs", async () => {
+  it("keeps a table's rows and cells", async () => {
     const table = "| Item | Qty |\n| --- | --- |\n| Milk | 2 |";
 
     const result = await parseMarkdownFile(markdownFile(FILE_NAME, table));
 
-    expect(result.html).toBe("<p>Item</p><p>Qty</p><p>Milk</p><p>2</p>");
+    expect(result.html).toBe(
+      "<table><thead><tr><th>Item</th><th>Qty</th></tr></thead>" +
+        "<tbody><tr><td>Milk</td><td>2</td></tr></tbody></table>"
+    );
+  });
+
+  it("keeps inline marks and column alignment inside a table", async () => {
+    const table = "| Item | Qty |\n| --- | ---: |\n| **Milk** | 2 |";
+
+    const result = await parseMarkdownFile(markdownFile(FILE_NAME, table));
+
+    expect(result.html).toContain("<td><strong>Milk</strong></td>");
+    // `marked` writes the alignment as an `align` attribute, which the note
+    // schema's cell reads into its `align` attribute (it accepts either that
+    // or a `text-align` style).
+    expect(result.html).toContain('<td align="right">2</td>');
   });
 
   it("turns task items into checked and unchecked list items", async () => {

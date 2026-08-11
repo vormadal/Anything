@@ -2,7 +2,7 @@ import { unzipSync } from "fflate";
 import type { ParsedImport, ParsedImportImage } from "./types";
 import { mimeTypeForFileName, nextImagePlaceholderId, titleFromFileName } from "./shared";
 import { DocxNumbering } from "./docxNumbering";
-import { renderParagraphInline, type DocxRunContext } from "./docxRuns";
+import { isBoldRun, renderParagraphInline, type DocxRunContext } from "./docxRuns";
 
 const HEADING_STYLE_PATTERN = /^Heading(\d)$/i;
 const MAX_HEADING_LEVEL = 6;
@@ -42,21 +42,134 @@ function renderList(list: OpenList): string {
 }
 
 /**
- * Every cell's paragraphs become their own `<p>` — the note schema has no
- * table node, so a table's structure can't survive the import, only its text.
+ * Word's XML nests: a table's own `w:tr`s sit alongside those of any table
+ * inside one of its cells, and `getElementsByTagName` would return both. Every
+ * structural lookup here walks direct children instead.
  */
-function convertTable(table: Element, ctx: DocxRunContext): string {
-  let html = "";
-  for (const cell of Array.from(table.getElementsByTagName("w:tc"))) {
-    for (const paragraph of Array.from(cell.getElementsByTagName("w:p"))) {
-      const inline = renderParagraphInline(paragraph, ctx);
-      if (inline) html += `<p>${inline}</p>`;
-    }
-  }
-  return html;
+function directChildren(parent: Element, ...tagNames: string[]): Element[] {
+  return Array.from(parent.children).filter((child) => tagNames.includes(child.tagName));
 }
 
-function convertBody(body: Element, ctx: DocxRunContext, numbering: DocxNumbering): string {
+/** A `w:val` that turns an OOXML toggle off rather than on. */
+const OFF_VALUES = ["false", "0", "off"];
+
+function isToggleElementOn(element: Element | undefined): boolean {
+  if (!element) return false;
+  const val = element.getAttribute("w:val")?.toLowerCase();
+  return val === null || val === undefined || !OFF_VALUES.includes(val);
+}
+
+/** `w:tblHeader` marks a row Word repeats across page breaks — i.e. a header row. */
+function isDeclaredHeaderRow(row: Element): boolean {
+  const trPr = directChildren(row, "w:trPr")[0];
+  return isToggleElementOn(trPr?.getElementsByTagName("w:tblHeader")[0]);
+}
+
+/**
+ * Most Word tables never set `w:tblHeader` — it means "repeat this row on each
+ * page", not "this row is a header" — so a fully bold first row is taken as
+ * one. A wrong guess either way is one click of the toolbar's header toggle.
+ */
+function looksLikeHeaderRow(row: Element): boolean {
+  const runs = directChildren(row, "w:tc")
+    .flatMap((cell) => Array.from(cell.getElementsByTagName("w:r")))
+    .filter((run) => (run.textContent ?? "").trim().length > 0);
+
+  return runs.length > 0 && runs.every(isBoldRun);
+}
+
+interface TableCellModel {
+  tag: "td" | "th";
+  colspan: number;
+  /** Grows as later rows contribute `w:vMerge` continuations. */
+  rowspan: number;
+  html: string;
+}
+
+function renderCell(cell: TableCellModel): string {
+  const colspan = cell.colspan > 1 ? ` colspan="${cell.colspan}"` : "";
+  const rowspan = cell.rowspan > 1 ? ` rowspan="${cell.rowspan}"` : "";
+  return `<${cell.tag}${colspan}${rowspan}>${cell.html}</${cell.tag}>`;
+}
+
+function cellSpan(tcPr: Element | undefined): number {
+  const declared = Number(tcPr?.getElementsByTagName("w:gridSpan")[0]?.getAttribute("w:val"));
+  return Number.isNaN(declared) || declared < 1 ? 1 : declared;
+}
+
+/**
+ * Converts a `w:tbl` to an HTML table.
+ *
+ * Word writes a `w:tc` at *every* grid position, marking the continuations of
+ * a vertical merge with a `w:vMerge` that has no `w:val` (only the cell that
+ * starts one carries `w:val="restart"`). Those continuations are dropped and
+ * counted onto the starting cell's `rowspan` instead, which is how HTML says
+ * the same thing — so cells are modelled first and serialised at the end, once
+ * every row that might extend a merge has been read.
+ */
+function convertTable(table: Element, ctx: DocxRunContext, numbering: DocxNumbering): string {
+  const rows = directChildren(table, "w:tr");
+  if (rows.length === 0) return "";
+
+  const declaredHeaders = rows.filter(isDeclaredHeaderRow);
+  const headerRows = new Set(declaredHeaders.length > 0 ? declaredHeaders : []);
+  if (headerRows.size === 0 && looksLikeHeaderRow(rows[0])) headerRows.add(rows[0]);
+
+  // Grid column index -> the cell currently merging downwards through it.
+  const openMerges: (TableCellModel | null)[] = [];
+  const modelled: TableCellModel[][] = [];
+
+  for (const row of rows) {
+    const cells: TableCellModel[] = [];
+    let column = 0;
+
+    for (const tc of directChildren(row, "w:tc")) {
+      const tcPr = directChildren(tc, "w:tcPr")[0];
+      const span = cellSpan(tcPr);
+      const vMerge = tcPr?.getElementsByTagName("w:vMerge")[0];
+      const startsMerge = vMerge?.getAttribute("w:val") === "restart";
+
+      if (vMerge && !startsMerge) {
+        // A continuation contributes a row to whatever started the merge; an
+        // orphan (no starter, e.g. a truncated document) is simply dropped.
+        const starter = openMerges[column];
+        if (starter) starter.rowspan += 1;
+        column += span;
+        continue;
+      }
+
+      const cell: TableCellModel = {
+        tag: headerRows.has(row) ? "th" : "td",
+        colspan: span,
+        rowspan: 1,
+        html: convertBlocks(directChildren(tc, "w:p", "w:tbl"), ctx, numbering),
+      };
+      cells.push(cell);
+      for (let covered = column; covered < column + span; covered++) {
+        openMerges[covered] = startsMerge ? cell : null;
+      }
+      column += span;
+    }
+
+    modelled.push(cells);
+  }
+
+  const body = modelled
+    .filter((cells) => cells.length > 0)
+    .map((cells) => `<tr>${cells.map(renderCell).join("")}</tr>`)
+    .join("");
+
+  // No `thead`: the note schema has no node for it, and ProseMirror descends
+  // through both wrappers, so one `tbody` keeps this to a single code path.
+  return body ? `<table><tbody>${body}</tbody></table>` : "";
+}
+
+/**
+ * Converts a run of block-level Word elements. Shared by the document body and
+ * by each table cell, so a list or a heading inside a cell converts exactly as
+ * it would outside one.
+ */
+function convertBlocks(children: Element[], ctx: DocxRunContext, numbering: DocxNumbering): string {
   let html = "";
   let openList: OpenList | null = null;
   const flushList = () => {
@@ -64,7 +177,7 @@ function convertBody(body: Element, ctx: DocxRunContext, numbering: DocxNumberin
     openList = null;
   };
 
-  for (const child of Array.from(body.children)) {
+  for (const child of children) {
     if (child.tagName === "w:p") {
       const numId = paragraphNumId(child);
       const inline = renderParagraphInline(child, ctx);
@@ -84,7 +197,7 @@ function convertBody(body: Element, ctx: DocxRunContext, numbering: DocxNumberin
       html += level ? `<h${level}>${inline}</h${level}>` : `<p>${inline}</p>`;
     } else if (child.tagName === "w:tbl") {
       flushList();
-      html += convertTable(child, ctx);
+      html += convertTable(child, ctx, numbering);
     }
   }
   flushList();
@@ -167,7 +280,7 @@ export async function parseDocxFile(file: File): Promise<ParsedImport> {
   };
 
   const body = doc.getElementsByTagName("w:body")[0];
-  const html = body ? convertBody(body, ctx, numbering) : "";
+  const html = body ? convertBlocks(Array.from(body.children), ctx, numbering) : "";
   const warnings = html.replace(/<p><\/p>/g, "").trim() ? [] : ["This note is empty."];
 
   return { fileName: file.name, title: titleFromFileName(file.name), html, images, warnings };

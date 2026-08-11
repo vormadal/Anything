@@ -51,25 +51,6 @@ function readFrontMatter(markdown: string): MarkdownSource {
 }
 
 /**
- * Every cell becomes its own paragraph — the note schema has no table node, so
- * a table's structure can't survive the import, only its text. Cell contents
- * are moved rather than copied so inline marks (links, bold, code) come along.
- */
-function flattenTable(table: Element): void {
-  const doc = table.ownerDocument;
-  const flattened = doc.createDocumentFragment();
-
-  for (const cell of Array.from(table.querySelectorAll("th, td"))) {
-    if (!cell.textContent?.trim()) continue;
-    const paragraph = doc.createElement("p");
-    paragraph.append(...Array.from(cell.childNodes));
-    flattened.append(paragraph);
-  }
-
-  table.replaceWith(flattened);
-}
-
-/**
  * A GFM task item renders as a checkbox input, which the note schema has no
  * node for and would silently drop along with its checked state. Swapping in a
  * ballot-box character keeps that state visible as text in an ordinary list.
@@ -117,7 +98,9 @@ function toCompactHtml(body: HTMLElement): string {
  * Converts a Markdown (`.md`) file into HTML for `generateJSON`. Anything the
  * note schema has no node for — a horizontal rule, raw HTML — is dropped there
  * rather than here; this pass only handles the constructs worth degrading into
- * something the schema *does* have instead of losing outright.
+ * something the schema *does* have instead of losing outright. Tables are not
+ * among them any more: the schema has table nodes, so `marked`'s GFM table
+ * markup passes through untouched.
  */
 export async function parseMarkdownFile(file: File): Promise<ParsedImport> {
   const { body: markdown, title } = readFrontMatter(await file.text());
@@ -128,7 +111,8 @@ export async function parseMarkdownFile(file: File): Promise<ParsedImport> {
   const rendered = marked.parse(markdown, { async: false, gfm: true, breaks: true });
   const { body } = new DOMParser().parseFromString(rendered, "text/html");
 
-  for (const table of Array.from(body.querySelectorAll("table"))) flattenTable(table);
+  // GFM tables pass straight through: `marked` emits real table markup and the
+  // note schema has nodes for all of it.
   for (const checkbox of Array.from(body.querySelectorAll('input[type="checkbox"]'))) {
     replaceTaskCheckbox(checkbox);
   }

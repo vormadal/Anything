@@ -150,3 +150,33 @@ describe("isNoteDocumentEmpty", () => {
     ).toBe(false);
   });
 });
+
+describe("note documents containing a table", () => {
+  const tableDocument = {
+    type: "doc",
+    content: [
+      {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: [
+              {
+                type: "tableHeader",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "Shopping" }] }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  it("derives a title from the first cell of a leading table", () => {
+    expect(deriveNoteTitle(tableDocument)).toBe("Shopping");
+  });
+
+  it("does not treat a table-only note as empty", () => {
+    expect(isNoteDocumentEmpty(tableDocument)).toBe(false);
+  });
+});

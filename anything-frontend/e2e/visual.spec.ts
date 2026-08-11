@@ -253,6 +253,80 @@ const mockNoteDetailWithImage = {
   modifiedOn: null,
 };
 
+// A note whose body includes tables: a plain one, and a six-column one that is
+// wider than the phone viewport, so the snapshot covers the wrapper's
+// horizontal scroll as well as ordinary table typography.
+const mockNoteDetailWithTable = {
+  id: 4,
+  title: "Camping kit",
+  contentJson: JSON.stringify({
+    type: "doc",
+    content: [
+      { type: "paragraph", content: [{ type: "text", text: "What each of us is bringing:" }] },
+      {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: [
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Item" }] }] },
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Qty" }] }] },
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Who" }] }] },
+            ],
+          },
+          {
+            type: "tableRow",
+            content: [
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Tent" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "1" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Alex" }] }] },
+            ],
+          },
+          {
+            type: "tableRow",
+            content: [
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Stove" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "2" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Sam" }] }] },
+            ],
+          },
+        ],
+      },
+      { type: "paragraph", content: [{ type: "text", text: "Meal plan:" }] },
+      {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: [
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Day" }] }] },
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Breakfast" }] }] },
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Lunch" }] }] },
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Dinner" }] }] },
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Driver" }] }] },
+              { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Notes" }] }] },
+            ],
+          },
+          {
+            type: "tableRow",
+            content: [
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Friday" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Porridge and coffee" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Sandwiches" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Chilli from the pot" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Alex" }] }] },
+              { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Arrive before dark" }] }] },
+            ],
+          },
+        ],
+      },
+    ],
+  }),
+  contentText: "What each of us is bringing: Item Qty Who Tent 1 Alex Stove 2 Sam",
+  createdOn: "2025-01-06T09:00:00Z",
+  modifiedOn: null,
+};
+
 // A note with no body, to cover the "nothing written yet" detail state.
 const mockEmptyNoteDetail = {
   id: 2,
@@ -1060,6 +1134,62 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("img")).toBeVisible();
     await expect(page).toHaveScreenshot("note-detail-with-image.png", screenshotOptions);
+  });
+
+  test("note detail - with tables", async ({ page }) => {
+    await page.route(/\/api\/notes\/\d+$/, (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: mockNoteDetailWithTable });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/notes/4");
+    await page.waitForLoadState("networkidle");
+    // Assert the table actually rendered before screenshotting: a baseline
+    // generated before the table nodes existed would otherwise pass silently.
+    await expect(page.getByRole("columnheader", { name: "Item" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "Tent" })).toBeVisible();
+    await expect(page).toHaveScreenshot("note-detail-with-table.png", screenshotOptions);
+  });
+
+  test("note detail - table controls with the caret in a cell", async ({ page }) => {
+    await page.route(/\/api\/notes\/\d+$/, (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: mockNoteDetailWithTable });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/notes/4");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("cell", { name: "Tent" }).click();
+    // Clicking a cell only moves the selection, which changes no React state —
+    // this row appearing is what proves the toolbar subscribes to the editor
+    // rather than reading it during render.
+    await expect(page.getByRole("toolbar", { name: "Table" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add row" })).toBeVisible();
+    await expect(page).toHaveScreenshot("note-detail-table-toolbar.png", screenshotOptions);
+  });
+
+  test("note detail - table in the read-only offline view", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "onLine", { get: () => false, configurable: true });
+    });
+    await page.route(/\/api\/notes\/\d+$/, (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: mockNoteDetailWithTable });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/notes/4");
+    await page.waitForLoadState("networkidle");
+    // The read-only renderer shares NOTE_PROSE_CLASSES with the editor, so this
+    // is what proves a table looks the same in both surfaces.
+    await expect(page.getByRole("columnheader", { name: "Item" })).toBeVisible();
+    await expect(page.getByRole("toolbar", { name: "Formatting" })).toHaveCount(0);
+    await expect(page).toHaveScreenshot("note-detail-table-readonly.png", screenshotOptions);
   });
 
   test("note - autosave indicator after an edit", async ({ page }) => {

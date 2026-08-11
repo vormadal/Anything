@@ -1,6 +1,7 @@
 import StarterKit from "@tiptap/starter-kit";
 import { Placeholder } from "@tiptap/extensions";
 import TiptapImage, { type ImageOptions } from "@tiptap/extension-image";
+import { TableKit } from "@tiptap/extension-table";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import type { Editor, Extensions } from "@tiptap/react";
 import { toast } from "sonner";
@@ -133,6 +134,13 @@ export function createNoteExtensions(onUploadImage?: UploadNoteImageFn): Extensi
       horizontalRule: false,
     }),
     Placeholder.configure({ placeholder: NOTE_PLACEHOLDER }),
+    // Column resizing stays off: drag handles are awkward on a phone, and it
+    // keeps `colwidth` attributes out of the stored document. Turning it off
+    // does not cost the wrapper element — Tiptap installs its own `TableView`
+    // node view (a `div.tableWrapper` around the table) for exactly the
+    // non-resizable case, in the read-only renderer as well, and the prose
+    // styles scroll a too-wide table on that wrapper.
+    TableKit.configure({ table: { resizable: false } }),
     NoteImage.configure({ onUploadImage }),
   ];
 }
