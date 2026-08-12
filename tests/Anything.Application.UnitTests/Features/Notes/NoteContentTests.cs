@@ -65,6 +65,22 @@ public class NoteContentTests
         Assert.Equal("Cook Lasagne", NoteContent.ExtractPlainText(doc));
     }
 
+    // The frontend's `listEmbed` node is that extension point in production use:
+    // it stores a list reference, not the list's items, so its `label` is the
+    // only thing that can keep the note findable by the list's name.
+    [Fact]
+    public void ExtractPlainText_IncludesEmbeddedListLabels()
+    {
+        const string doc = """
+        {"type":"doc","content":[
+            {"type":"paragraph","content":[{"type":"text","text":"Pick up:"}]},
+            {"type":"listEmbed","attrs":{"listId":7,"label":"Weekly Groceries"}}
+        ]}
+        """;
+
+        Assert.Equal("Pick up: Weekly Groceries", NoteContent.ExtractPlainText(doc));
+    }
+
     [Fact]
     public void ExtractPlainText_CollapsesWhitespaceBetweenBlocks()
     {

@@ -2,6 +2,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Placeholder } from "@tiptap/extensions";
 import TiptapImage, { type ImageOptions } from "@tiptap/extension-image";
 import { TableKit } from "@tiptap/extension-table";
+import { ListEmbed } from "./listEmbed";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import type { Editor, Extensions } from "@tiptap/react";
 import { toast } from "sonner";
@@ -113,14 +114,17 @@ const NoteImage = TiptapImage.extend<NoteImageOptions>({
  * The note editor's node/mark schema, shared by the editable editor and the
  * read-only renderer so both always agree on what a stored document can contain.
  *
- * **This is the extension point for referencing other entities.** A recipe or
- * shopping-list reference becomes a custom Tiptap node appended to this array —
+ * **This is the extension point for referencing other entities**, and
+ * `ListEmbed` is the worked example: a block node holding only
+ * `attrs: { listId, label }`, rendered as an interactive card by a React node
+ * view. A reference to something else (a recipe, say) follows the same shape —
  * conventionally an inline, atomic node named `entityReference` with
  * `attrs: { entityType, entityId, label }` and no text child. The backend
- * extractor already understands that shape: `NoteContent.AppendObjectNode`
- * flattens a node's `attrs.label` into the search index, so a referenced
- * recipe stays findable by name without any backend change. Registering the
- * node here makes it render in both modes at once.
+ * extractor already understands all of these: `NoteContent.AppendObjectNode`
+ * flattens any node's `attrs.label` into the search index, so a referenced
+ * entity stays findable by name without any backend change. Registering the
+ * node here makes it render in both modes at once — which is why a node view
+ * must tolerate `editor.isEditable === false`.
  *
  * Pass `onUploadImage` for an interactive editor to enable paste/drop image
  * upload; omit it for read-only rendering and for document conversion (e.g.
@@ -142,6 +146,7 @@ export function createNoteExtensions(onUploadImage?: UploadNoteImageFn): Extensi
     // styles scroll a too-wide table on that wrapper.
     TableKit.configure({ table: { resizable: false } }),
     NoteImage.configure({ onUploadImage }),
+    ListEmbed,
   ];
 }
 

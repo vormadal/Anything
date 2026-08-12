@@ -337,6 +337,25 @@ const mockNoteDetailWithTable = {
   modifiedOn: null,
 };
 
+// A note that embeds a list. The document stores only the reference — the card
+// itself is rendered by a React node view that reads the real list through the
+// checklist API (mocked above as "Weekly Groceries" / mockShoppingListItems).
+const mockNoteDetailWithList = {
+  id: 5,
+  title: "Sunday prep",
+  contentJson: JSON.stringify({
+    type: "doc",
+    content: [
+      { type: "paragraph", content: [{ type: "text", text: "Pick these up on the way home:" }] },
+      { type: "listEmbed", attrs: { listId: 1, label: "Weekly Groceries" } },
+      { type: "paragraph", content: [{ type: "text", text: "Then start the dough." }] },
+    ],
+  }),
+  contentText: "Pick these up on the way home: Weekly Groceries Then start the dough.",
+  createdOn: "2025-01-07T09:00:00Z",
+  modifiedOn: null,
+};
+
 // A note with no body, to cover the "nothing written yet" detail state.
 const mockEmptyNoteDetail = {
   id: 2,
@@ -1174,6 +1193,49 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("columnheader", { name: "Item" })).toBeVisible();
     await expect(page.getByRole("toolbar", { name: "Formatting" })).toHaveCount(0);
     await expect(page).toHaveScreenshot("note-detail-table-readonly.png", screenshotOptions);
+  });
+
+  test("note detail - with an embedded list", async ({ page }) => {
+    await routeNoteDetail(page, mockNoteDetailWithList);
+    await page.goto("/notes/5");
+    await page.waitForLoadState("networkidle");
+    // Assert the node view actually mounted and fetched the real list before
+    // screenshotting — a baseline taken before the node existed would otherwise
+    // keep passing against a note that silently renders nothing.
+    await expect(page.getByText("Weekly Groceries")).toBeVisible();
+    await expect(page.getByText("Milk")).toBeVisible();
+    await expect(page.getByText("2 loaves")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Remove list from note" })).toBeVisible();
+    await expect(page).toHaveScreenshot("note-detail-with-list.png", screenshotOptions);
+  });
+
+  test("note - insert list dialog", async ({ page }) => {
+    await page.goto("/notes/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Insert list" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Weekly Groceries/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Hardware Store/ })).toBeVisible();
+    await expect(page).toHaveScreenshot("note-insert-list-dialog.png", screenshotOptions);
+  });
+
+  test("note detail - embedded list in the read-only offline view", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "onLine", { get: () => false, configurable: true });
+    });
+    await routeNoteDetail(page, mockNoteDetailWithList);
+    await page.goto("/notes/5");
+    await page.waitForLoadState("networkidle");
+    // The read-only renderer builds from the same extension list as the editor,
+    // so this is what proves the node view mounts there too — with its rows
+    // inert, since only an editable note offers to tick items off. (The API is
+    // mocked, so the items still load; the genuinely offline "nothing cached"
+    // fallback is covered by EmbeddedList.test.tsx.)
+    await expect(page.getByText("Weekly Groceries")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Check item" }).first()).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Remove list from note" })).toHaveCount(0);
+    await expect(page.getByRole("toolbar", { name: "Formatting" })).toHaveCount(0);
+    await expect(page).toHaveScreenshot("note-detail-list-readonly.png", screenshotOptions);
   });
 
   test("note - autosave indicator after an edit", async ({ page }) => {

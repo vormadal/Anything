@@ -30,4 +30,10 @@ export const NOTE_PROSE_CLASSES = [
   // The class prosemirror-tables puts on a multi-cell selection. Beats the
   // `th` background above on specificity, so a selected header cell highlights.
   "[&_.selectedCell]:bg-blue-100 [&_.selectedCell]:dark:bg-blue-900/40",
+  // An embedded list is a card, not prose: its own `ul`/`li` must not pick up
+  // the bullet styling above. Three-part selectors, so they outrank it whatever
+  // order Tailwind emits them in.
+  "[&_[data-list-embed]]:my-3",
+  "[&_[data-list-embed]_ul]:list-none [&_[data-list-embed]_ul]:pl-0 [&_[data-list-embed]_ul]:my-0",
+  "[&_[data-list-embed]_li]:my-0",
 ].join(" ");

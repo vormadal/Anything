@@ -1,13 +1,28 @@
-import { render, screen, waitFor } from "@testing-library/react";
+// The insert-list button mounts a dialog that queries the household's lists,
+// so the toolbar now needs a QueryClient around it.
+import { render, screen, waitFor } from "@/__tests__/utils/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { Editor } from "@tiptap/react";
+import type { ShoppingListResponse } from "@/lib/api-client/models/index";
 import { NoteEditorToolbar } from "./NoteEditorToolbar";
 
 jest.mock("sonner", () => ({
   toast: { error: jest.fn() },
 }));
 
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+  usePathname: () => "/notes/1",
+}));
+
+
 const { toast } = jest.requireMock("sonner") as { toast: { error: jest.Mock } };
+
+let mockLists: ShoppingListResponse[] = [];
+
+jest.mock("@/hooks/useShoppingLists", () => ({
+  useShoppingLists: () => ({ data: mockLists, isLoading: false }),
+}));
 
 /**
  * The toolbar only calls `editor.chain().focus().<command>().run()`, a couple
@@ -21,6 +36,7 @@ type StubChain = Record<string, (...args: unknown[]) => unknown>;
 /** Every command the toolbar can dispatch, recorded per name. */
 const COMMANDS = [
   "insertContent",
+  "insertListEmbed",
   "toggleBold",
   "insertTable",
   "addRowAfter",
@@ -139,5 +155,35 @@ describe("NoteEditorToolbar table controls", () => {
     render(<NoteEditorToolbar editor={createStubEditor(["table", "tableHeader"])} onUploadImage={noUpload} />);
 
     expect(screen.getByRole("button", { name: "Toggle header row" })).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("NoteEditorToolbar insert-list button", () => {
+  const noUpload = jest.fn();
+
+  beforeEach(() => {
+    mockLists = [
+      { id: 7, name: "Groceries", type: 1, uncheckedItemCount: 2 },
+      { id: 8, name: "Packing", type: 0, uncheckedItemCount: 0 },
+    ];
+  });
+
+  it("embeds the picked list, keeping its name as the label", async () => {
+    const editor = createStubEditor();
+    render(<NoteEditorToolbar editor={editor} onUploadImage={noUpload} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Insert list" }));
+    await user.click(await screen.findByRole("button", { name: /Groceries/ }));
+
+    await waitFor(() =>
+      expect(editor._commands.insertListEmbed).toHaveBeenCalledWith({ listId: 7, label: "Groceries" })
+    );
+  });
+
+  it("does not offer to nest a list inside a table", () => {
+    render(<NoteEditorToolbar editor={createStubEditor(["table"])} onUploadImage={noUpload} />);
+
+    expect(screen.getByRole("button", { name: "Insert list" })).toBeDisabled();
   });
 });
