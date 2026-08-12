@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/*
+ * Dark mode is a *screen* concern. Both channels that carry dark styling in
+ * this app — Tailwind's `dark:` variant (redefined here) and the `:root`
+ * variable block below — are keyed on `prefers-color-scheme`, which keeps
+ * matching while the page is being printed. Adding the `screen` media type
+ * excludes print, so a printout always renders from the light palette and looks
+ * the same whatever colour scheme the device happens to be in.
+ */
+@custom-variant dark {
+  @media screen and (prefers-color-scheme: dark) {
+    @slot;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
@@ -20,7 +34,7 @@
   --popover-foreground: #0a0a0a;
 }
 
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #fafafa;
@@ -167,4 +181,128 @@ body {
   height: 0;
   pointer-events: none;
   color: var(--color-gray-400, #9ca3af);
+}
+
+/*
+ * Printing a note.
+ *
+ * Triggered by the Print action in a note's ⋮ menu, which just calls
+ * `window.print()` on the live page — the rendered DOM is the only place an
+ * embedded list actually has contents (`ListEmbed.renderHTML` emits an empty
+ * div), so there is nothing to serialise and re-render.
+ *
+ * No `!important` anywhere: Tailwind emits its utilities inside
+ * `@layer utilities`, and an unlayered rule like these outranks every layered
+ * one regardless of specificity. Inheritance is the exception — a `text-sm`
+ * sitting on the element itself still beats an inherited size — which is why
+ * the type rules below target `.note-prose` directly.
+ */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  /*
+   * `dark:` utilities and the `:root` overrides are already excluded from print
+   * (see the `screen` media type at the top of this file); this covers the
+   * remaining channel, the colours the browser paints itself.
+   */
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /*
+   * Sizes in `pt` rather than the screen's `text-sm`: a point is defined
+   * against the physical page, so the same note prints at the same size from a
+   * phone and a laptop. Two-class selectors to outrank the `text-sm` /
+   * `[&_h1]:text-xl` utilities carried by these very elements.
+   */
+  .note-print-root .note-prose {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  .note-print-root .note-prose h1 {
+    font-size: 17pt;
+  }
+  .note-print-root .note-prose h2 {
+    font-size: 14pt;
+  }
+  .note-print-root .note-prose h3 {
+    font-size: 12pt;
+  }
+  .note-print-root .note-prose pre,
+  .note-print-root .note-prose code {
+    font-size: 9.5pt;
+  }
+
+  /*
+   * Whether a background colour prints at all depends on the browser and on the
+   * user's "Background graphics" setting, so anything whose meaning rests on a
+   * fill is inconsistent by nature. Drop these three and let the borders and
+   * font weight carry the distinction instead. Deliberately not
+   * `print-color-adjust: exact`, which would swing it the other way and flood
+   * the page with ink.
+   */
+  .note-print-root th,
+  .note-print-root pre,
+  .note-print-root [data-list-embed] * {
+    background: transparent;
+  }
+
+  /* The screen layout is a flex column sized to the viewport; paper needs
+     ordinary block flow so the note paginates. */
+  .note-print-root,
+  .note-print-root > *,
+  .note-print-root .note-editor {
+    display: block;
+  }
+
+  /* Undoes `[&_.tableWrapper]:overflow-x-auto` from noteProseClasses.ts, which
+     would otherwise clip a wide table at the edge of the paper. */
+  .note-print-root .tableWrapper {
+    overflow: visible;
+  }
+
+  img {
+    max-width: 100%;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid-page;
+  }
+
+  table,
+  img,
+  blockquote,
+  pre,
+  [data-list-embed] {
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  /* The placeholder is `showOnlyWhenEditable`, so without this an empty note
+     prints the words "Start writing…". */
+  .note-editor p.is-empty:first-child::before {
+    content: none;
+  }
+
+  /* Radix menus and dialogs and Sonner toasts mount into `document.body`,
+     outside the note subtree — the guarantee that an open ⋮ menu never lands on
+     the page, whatever the browser was painting when `window.print()` blocked. */
+  [data-radix-popper-content-wrapper],
+  [data-sonner-toaster],
+  [role="dialog"] {
+    display: none;
+  }
 }
