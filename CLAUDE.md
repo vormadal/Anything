@@ -200,6 +200,22 @@ that — when the whole first row is bold; `markdown.ts` simply lets `marked`'s
 GFM table markup through. Neither emits `<thead>`: the schema has no node for it
 and ProseMirror descends through it anyway.
 
+A note can also **embed one of the household's lists** (`listEmbed`, the schema's
+first React node view — `EmbeddedList.tsx`). The document stores only
+`attrs: { listId, label }`; the items come from the same
+`useShoppingListItems`/`useUpdateShoppingListItem` hooks the `/lists/{id}` page
+uses, on the same query keys, so an embed shares that page's cache and inherits
+SSE live-sync, optimistic updates and the offline outbox for nothing. Ticking an
+item off is the only mutation offered in a note, and because item state never
+touches `ContentJson`, it doesn't dirty the note or wake autosave. Two
+consequences worth knowing: `label` is the list's name **as of insertion** and is
+deliberately never written back (that would be a document edit), so a renamed
+list stays searchable under its old name until the note is next edited; and
+queries — unlike this app's mutations — keep React Query's default `"online"`
+network mode, so offline an embed shows persisted items if the list was opened
+before and a fallback message if it wasn't. No backend change was needed for any
+of this: `NoteContent.ExtractPlainText` already flattens any node's `attrs.label`.
+
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
 - `GET /{id}` — Get by ID

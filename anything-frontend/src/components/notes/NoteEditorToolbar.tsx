@@ -9,6 +9,7 @@ import {
   Heading1,
   Heading2,
   List,
+  ListChecks,
   ListOrdered,
   Quote,
   Code,
@@ -27,6 +28,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { UploadNoteImageFn } from "@/lib/notes/extensions";
+import { EmbedListDialog } from "./EmbedListDialog";
 
 interface ToolbarAction {
   label: string;
@@ -266,6 +268,38 @@ function ImageToolbarButton({
   );
 }
 
+const INSERT_LIST_LABEL = "Insert list";
+
+/**
+ * Also not a declarative `ToolbarAction`: picking which list to embed needs a
+ * dialog, and the list of lists needs the network.
+ */
+function ListEmbedToolbarButton({ editor, disabled }: { editor: Editor; disabled: boolean }) {
+  const [open, setOpen] = useState(false);
+  const isOnline = useOnlineStatus();
+
+  const handleSelect = (listId: number, name: string) => {
+    editor.chain().focus().insertListEmbed({ listId, label: name }).run();
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setOpen(true)}
+        disabled={disabled || !isOnline}
+        aria-label={INSERT_LIST_LABEL}
+        title={isOnline ? INSERT_LIST_LABEL : "Inserting a list requires an internet connection"}
+        className={`${BUTTON_BASE} ${BUTTON_INACTIVE}`}
+      >
+        <ListChecks className="h-4 w-4" />
+      </button>
+      <EmbedListDialog open={open} onOpenChange={setOpen} onSelect={handleSelect} />
+    </>
+  );
+}
+
 export function NoteEditorToolbar({
   editor,
   onUploadImage,
@@ -304,6 +338,9 @@ export function NoteEditorToolbar({
       <div role="toolbar" aria-label="Formatting" className={ROW_CLASSES}>
         {FORMATTING_ACTIONS.map(renderAction)}
         <ImageToolbarButton editor={editor} onUploadImage={onUploadImage} />
+        {/* Disabled inside a table for the same reason "Insert table" is:
+            a cell accepts any block, and a card nested in a cell is misery. */}
+        <ListEmbedToolbarButton editor={editor} disabled={state.inTable} />
         <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
         {HISTORY_ACTIONS.map(renderAction)}
       </div>
