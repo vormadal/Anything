@@ -130,7 +130,7 @@ describe("parseDocxFile", () => {
     expect(result.html).toContain(`<img src="${result.images[0].placeholderId}">`);
   });
 
-  it("flattens a table's cells into paragraphs", async () => {
+  it("converts a table's rows and cells", async () => {
     const body =
       "<w:tbl><w:tr>" +
       `<w:tc>${paragraph("Left")}</w:tc>` +
@@ -139,7 +139,109 @@ describe("parseDocxFile", () => {
 
     const result = await parseDocxFile(buildDocxFile({ body }));
 
-    expect(result.html).toBe("<p>Left</p><p>Right</p>");
+    expect(result.html).toBe(
+      "<table><tbody><tr><td><p>Left</p></td><td><p>Right</p></td></tr></tbody></table>"
+    );
+  });
+
+  it("keeps a horizontally merged cell's span", async () => {
+    const body =
+      "<w:tbl><w:tr>" +
+      `<w:tc><w:tcPr><w:gridSpan w:val="2"/></w:tcPr>${paragraph("Wide")}</w:tc>` +
+      "</w:tr></w:tbl>";
+
+    const result = await parseDocxFile(buildDocxFile({ body }));
+
+    expect(result.html).toContain('<td colspan="2"><p>Wide</p></td>');
+  });
+
+  it("turns a vertically merged cell's continuation into a rowspan", async () => {
+    const body =
+      "<w:tbl>" +
+      "<w:tr>" +
+      `<w:tc><w:tcPr><w:vMerge w:val="restart"/></w:tcPr>${paragraph("Tall")}</w:tc>` +
+      `<w:tc>${paragraph("One")}</w:tc>` +
+      "</w:tr>" +
+      "<w:tr>" +
+      `<w:tc><w:tcPr><w:vMerge/></w:tcPr>${paragraph("")}</w:tc>` +
+      `<w:tc>${paragraph("Two")}</w:tc>` +
+      "</w:tr>" +
+      "</w:tbl>";
+
+    const result = await parseDocxFile(buildDocxFile({ body }));
+
+    expect(result.html).toBe(
+      "<table><tbody>" +
+        '<tr><td rowspan="2"><p>Tall</p></td><td><p>One</p></td></tr>' +
+        "<tr><td><p>Two</p></td></tr>" +
+        "</tbody></table>"
+    );
+  });
+
+  it("renders a repeated header row as header cells", async () => {
+    const body =
+      "<w:tbl>" +
+      `<w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc>${paragraph("Item")}</w:tc></w:tr>` +
+      `<w:tr><w:tc>${paragraph("Milk")}</w:tc></w:tr>` +
+      "</w:tbl>";
+
+    const result = await parseDocxFile(buildDocxFile({ body }));
+
+    expect(result.html).toContain("<th><p>Item</p></th>");
+    expect(result.html).toContain("<td><p>Milk</p></td>");
+  });
+
+  it("treats a fully bold first row as a header row", async () => {
+    const body =
+      "<w:tbl>" +
+      `<w:tr><w:tc>${paragraph("Item", "<w:b/>")}</w:tc></w:tr>` +
+      `<w:tr><w:tc>${paragraph("Milk")}</w:tc></w:tr>` +
+      "</w:tbl>";
+
+    const result = await parseDocxFile(buildDocxFile({ body }));
+
+    expect(result.html).toContain("<th><p><strong>Item</strong></p></th>");
+    expect(result.html).toContain("<td><p>Milk</p></td>");
+  });
+
+  it("keeps a plain first row as data cells", async () => {
+    const body =
+      "<w:tbl>" +
+      `<w:tr><w:tc>${paragraph("Item")}</w:tc></w:tr>` +
+      `<w:tr><w:tc>${paragraph("Milk")}</w:tc></w:tr>` +
+      "</w:tbl>";
+
+    const result = await parseDocxFile(buildDocxFile({ body }));
+
+    expect(result.html).not.toContain("<th>");
+  });
+
+  it("converts a list inside a cell as a list", async () => {
+    const numbering =
+      '<?xml version="1.0"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+      '<w:num w:numId="1"><w:abstractNumId w:val="1"/></w:num>' +
+      '<w:abstractNum w:abstractNumId="1"><w:lvl w:ilvl="0"><w:numFmt w:val="bullet"/></w:lvl></w:abstractNum>' +
+      "</w:numbering>";
+    const item = (text: string) =>
+      `<w:p><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>${text}</w:t></w:r></w:p>`;
+    const body = `<w:tbl><w:tr><w:tc>${item("First")}${item("Second")}</w:tc></w:tr></w:tbl>`;
+
+    const result = await parseDocxFile(buildDocxFile({ body, numbering }));
+
+    expect(result.html).toBe(
+      "<table><tbody><tr><td><ul><li><p>First</p></li><li><p>Second</p></li></ul></td></tr></tbody></table>"
+    );
+  });
+
+  it("converts a table nested inside a cell without duplicating its cells", async () => {
+    const inner = `<w:tbl><w:tr><w:tc>${paragraph("Inner")}</w:tc></w:tr></w:tbl>`;
+    const body = `<w:tbl><w:tr><w:tc>${inner}</w:tc></w:tr></w:tbl>`;
+
+    const result = await parseDocxFile(buildDocxFile({ body }));
+
+    expect(result.html).toBe(
+      "<table><tbody><tr><td><table><tbody><tr><td><p>Inner</p></td></tr></tbody></table></td></tr></tbody></table>"
+    );
   });
 
   it("warns when the note has no content", async () => {

@@ -10,8 +10,9 @@ export type UploadedImagesByPlaceholder = Map<string, { src: string; storageKey:
  * Swaps each image's placeholder `src` for where it was uploaded, then parses
  * the resulting HTML into a note document. `generateJSON` runs the HTML
  * through the note editor's own schema, so a node or mark the editor doesn't
- * support (a table, an unrecognised style) is silently dropped rather than
- * producing a document the editor can't open.
+ * support (a horizontal rule, which `createNoteExtensions` disables, or an
+ * unrecognised style) is silently dropped rather than producing a document the
+ * editor can't open.
  *
  * An image whose upload failed is dropped rather than left with a broken
  * `note-import-placeholder://` `src` — the placeholder is only ever

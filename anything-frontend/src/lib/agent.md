@@ -46,15 +46,34 @@ Every format follows the same three stages:
 the schema supports.** It runs the HTML through the *editor's own* extension list, so anything the
 schema has no node or mark for is silently dropped — an imported note can never contain something the
 editor can't reopen. The corollary: silence is the failure mode. If a construct is worth keeping, the
-parser has to degrade it into a node the schema *does* have (see the table and task-item handling in
+parser has to degrade it into a node the schema *does* have (see the task-item handling in
 `markdown.ts`), because otherwise it vanishes with no warning.
+
+**Tables are converted, not degraded.** The schema has `table`/`tableRow`/`tableHeader`/`tableCell`,
+so both parsers emit real table markup. `markdown.ts` just lets `marked`'s GFM tables through
+(cell alignment survives too — the cell node's `align` attribute parses `marked`'s `align="…"` as
+well as a `text-align` style). `docx.ts`'s `convertTable` is the involved one:
+
+- It walks **direct** `w:tr`/`w:tc` children, never `getElementsByTagName` — the latter reaches into
+  a table nested in a cell and duplicates its cells (the bug the old flattening code had).
+- Word writes a `w:tc` at *every* grid position, marking the continuations of a vertical merge with a
+  `w:vMerge` carrying no `w:val` (only the starter has `w:val="restart"`). Continuations are dropped
+  and counted onto the starter's `rowspan`, which is why cells are modelled first and serialised only
+  once every row has been read. `w:gridSpan` maps straight to `colspan`.
+- A row is a header when it declares `w:trPr > w:tblHeader`, or — since that attribute means "repeat
+  across page breaks" and most real documents never set it — when its whole first row is bold.
+- Neither parser emits `<thead>`: the schema has no node for it and ProseMirror descends through it
+  anyway, so one `<tbody>` keeps this to a single code path. A bare-text or empty `<td>` needs no
+  wrapping pass either; `tableCell`'s `block+` content makes the parser insert the paragraph.
+- Cell content goes through the same `convertBlocks` the document body uses, so a list or heading
+  inside a cell converts exactly as it would outside one.
 
 Per-format notes:
 
 | File | Parser | Behaviour |
 |---|---|---|
 | `.txt` | `plainText.ts` | One `<p>` per line, everything escaped. |
-| `.md` / `.markdown` | `markdown.ts` | `marked` → HTML, then a `DOMParser` pass that degrades what the schema lacks. |
+| `.md` / `.markdown` | `markdown.ts` | `marked` → HTML, then a `DOMParser` pass that degrades what the schema lacks. GFM tables pass through untouched. |
 | `.docx` | `docx.ts` (+ `docxRuns.ts`, `docxNumbering.ts`) | Unzipped with `fflate`; OOXML matched by literal `w:`-prefixed names rather than registered namespaces, since that's how `DOMParser` preserves them. |
 
 Adding a fourth format is: a new `parse<Format>File` returning `ParsedImport`, one entry in

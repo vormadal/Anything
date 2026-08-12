@@ -17,4 +17,17 @@ export const NOTE_PROSE_CLASSES = [
   "[&_pre]:bg-gray-100 [&_pre]:dark:bg-gray-900 [&_pre]:rounded-md [&_pre]:p-3 [&_pre]:overflow-x-auto [&_pre]:text-xs [&_pre]:my-2",
   "[&_code]:font-mono [&_code]:text-xs",
   "[&_strong]:font-semibold",
+  // Tiptap wraps every table in a `div.tableWrapper` (its own node view, which
+  // is installed precisely because column resizing is off) — that wrapper, not
+  // the table, is what scrolls when a table is wider than a phone screen.
+  "[&_.tableWrapper]:my-3 [&_.tableWrapper]:max-w-full [&_.tableWrapper]:overflow-x-auto",
+  "[&_table]:w-full [&_table]:border-collapse",
+  "[&_th]:border [&_th]:border-gray-300 [&_th]:dark:border-gray-600 [&_th]:bg-gray-50 [&_th]:dark:bg-gray-700/50 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold [&_th]:align-top",
+  "[&_td]:border [&_td]:border-gray-300 [&_td]:dark:border-gray-600 [&_td]:px-2 [&_td]:py-1 [&_td]:align-top",
+  // Cell content is `block+`, so every cell holds a paragraph that would
+  // otherwise take `[&_p]:my-2` above and make every row twice as tall.
+  "[&_td_p]:my-0 [&_th_p]:my-0",
+  // The class prosemirror-tables puts on a multi-cell selection. Beats the
+  // `th` background above on specificity, so a selected header cell highlights.
+  "[&_.selectedCell]:bg-blue-100 [&_.selectedCell]:dark:bg-blue-900/40",
 ].join(" ");

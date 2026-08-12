@@ -178,12 +178,27 @@ document can never contain something the editor can't open. A `.md`/`.markdown`
 file takes the same route via `marked` (`breaks: true`, so a note's line breaks
 survive as `<br>` and every remaining newline sits strictly between block tags),
 followed by a `DOMParser` pass that degrades what the schema has no node for:
-tables flatten to one paragraph per cell (as in `docx.ts`), GFM task items become
-`☐`/`☑` text, and image references — markdown embeds no bytes — are kept only
-when absolute, with relative paths dropped and warned about. YAML front matter is
+GFM task items become `☐`/`☑` text, and image references — markdown embeds no
+bytes — are kept only when absolute, with relative paths dropped and warned
+about. Tables are **not** degraded any more (see the table note below). YAML front matter is
 stripped, its `title` preferred over the filename. The three-stage pipeline, and
 what adding a fourth format takes, are documented in
 [`anything-frontend/src/lib/agent.md`](anything-frontend/src/lib/agent.md).
+
+The editor schema also has **tables** (`@tiptap/extension-table`'s `TableKit`,
+pinned to the exact version the rest of the `@tiptap/*` stack sits on — its
+peers are exact, so a caret range pulls in a second `@tiptap/pm` and two
+ProseMirror copies). Column resizing is deliberately off, which does *not* cost
+the `div.tableWrapper` element — Tiptap installs its own `TableView` node view
+for precisely the non-resizable case, in the read-only renderer too, and
+`NOTE_PROSE_CLASSES` scrolls a too-wide table on that wrapper. Both importers
+now produce real tables: `docx.ts` walks `w:tr`/`w:tc` (direct children only, so
+a nested table isn't double-counted), turning `w:gridSpan` into `colspan` and
+`w:vMerge` continuations into the starter cell's `rowspan`, and treating a row
+as a header when it declares `w:tblHeader` or — since most Word tables never set
+that — when the whole first row is bold; `markdown.ts` simply lets `marked`'s
+GFM table markup through. Neither emits `<thead>`: the schema has no node for it
+and ProseMirror descends through it anyway.
 
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
