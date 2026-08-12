@@ -1135,6 +1135,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     // mostly-blank full-page screenshot — under the snapshot comparison's
     // diff-ratio threshold, so a baseline predating it would still "match".
     await expect(page.getByRole("button", { name: "Insert table" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Insert list" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Rename note" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
     await expect(page).toHaveScreenshot("note-detail.png", screenshotOptions);
