@@ -28,7 +28,7 @@ const DEFAULT_LABEL = "Note content";
  * everything below the header — so the whole page is the writing surface and a
  * click anywhere in it lands the caret.
  */
-const SURFACE_CLASSES = "flex grow flex-col bg-white dark:bg-gray-800";
+const SURFACE_CLASSES = "flex grow flex-col bg-white dark:bg-gray-800 print:block";
 
 /**
  * The rich-text editing surface for a note.
@@ -73,10 +73,10 @@ export function NoteEditor({ value, onChange, label = DEFAULT_LABEL, onUploadIma
     <div className={SURFACE_CLASSES}>
       {/* Pinned under the app header so formatting stays reachable however far
           down a long note the user has scrolled. */}
-      <div className="sticky top-14 z-30 bg-white dark:bg-gray-800">
+      <div className="sticky top-14 z-30 bg-white dark:bg-gray-800 print:hidden">
         <NoteEditorToolbar editor={editor} onUploadImage={onUploadImage} />
       </div>
-      <EditorContent editor={editor} className="flex min-w-0 grow flex-col" />
+      <EditorContent editor={editor} className="flex min-w-0 grow flex-col print:block" />
     </div>
   );
 }

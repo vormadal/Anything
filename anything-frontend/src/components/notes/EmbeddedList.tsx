@@ -19,7 +19,7 @@ const HEADER_CLASSES =
   "flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30";
 const MESSAGE_CLASSES = "px-3 py-4 text-center text-sm text-gray-600 dark:text-gray-400";
 const REMOVE_CLASSES =
-  "shrink-0 rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white";
+  "shrink-0 rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white print:hidden";
 
 function EmbeddedListItems({
   items,

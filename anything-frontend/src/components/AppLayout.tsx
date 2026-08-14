@@ -124,8 +124,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     // A flex column so a page can claim the space the header leaves with `grow`
     // (the note editor does) instead of guessing at a `calc(100dvh - …)` — the
     // header is 57px, not the 56px its h-14 suggests, thanks to its border.
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 print:block print:bg-none">
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 print:hidden">
         <div className="flex items-center h-14 px-4">
           {leftAction.type === "back" ? (
             <Button
@@ -155,7 +155,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <OfflineBanner />
+      <div className="print:hidden">
+        <OfflineBanner />
+      </div>
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent side="left" className="w-72 flex flex-col p-0">
@@ -247,7 +249,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </SheetContent>
       </Sheet>
 
-      <main className="flex grow flex-col">{children}</main>
+      <main className="flex grow flex-col print:block">{children}</main>
       <CookingModeDrawer />
       <OnboardingTourDialog
         open={tour.open}

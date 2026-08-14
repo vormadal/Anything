@@ -5,6 +5,10 @@
  * dependency, and the note schema is small enough to style directly.
  */
 export const NOTE_PROSE_CLASSES = [
+  // A plain marker, not a utility: the print stylesheet in globals.css needs a
+  // stable hook on whichever element carries this typography, and a two-class
+  // selector through it is what lets a `pt` size outrank the `text-sm` here.
+  "note-prose",
   "text-sm text-gray-900 dark:text-gray-100 leading-relaxed",
   "[&_p]:my-2",
   "[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2",

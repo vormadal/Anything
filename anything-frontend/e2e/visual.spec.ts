@@ -1210,6 +1210,74 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("note-detail-with-list.png", screenshotOptions);
   });
 
+  // ---- Notes: printing ----
+  //
+  // `emulateMedia({ media: "print" })` renders the page under the print
+  // stylesheet, so these screenshots are what actually comes out of the
+  // printer — app chrome gone, light palette, block flow.
+
+  test("note detail - print menu", async ({ page }) => {
+    await page.goto("/notes/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "More options" }).click();
+    await expect(page.getByRole("menuitem", { name: "Print" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Delete" })).toBeVisible();
+    await expect(page).toHaveScreenshot("note-print-menu.png", screenshotOptions);
+  });
+
+  test("note detail - print layout", async ({ page }) => {
+    await page.emulateMedia({ media: "print" });
+    await page.goto("/notes/1");
+    await page.waitForLoadState("networkidle");
+    // The body survives; every piece of app chrome around it does not.
+    await expect(page.getByRole("heading", { name: "Guest network" })).toBeVisible();
+    await expect(page.getByText("Reboot it if the lights go red")).toBeVisible();
+    await expect(page.getByRole("toolbar", { name: "Formatting" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "More options" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Rename note" })).toHaveCount(0);
+    await expect(page).toHaveScreenshot("note-detail-print.png", screenshotOptions);
+  });
+
+  test("note detail - print layout is light even in dark mode", async ({ page }) => {
+    await page.emulateMedia({ media: "print", colorScheme: "dark" });
+    await page.goto("/notes/1");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Guest network" })).toBeVisible();
+
+    // The real regression assertion, and the reason it is not a PNG diff: a
+    // mostly-white page turning dark still lands under maxDiffPixelRatio often
+    // enough to pass. Both channels carrying dark styling are scoped to
+    // `screen` in globals.css precisely so `prefers-color-scheme: dark` cannot
+    // reach paper — so the printed colours must not depend on the scheme at
+    // all. Comparing the two rather than pinning literals keeps this off the
+    // browser's colour serialisation (`text-gray-900` reports as `lab(...)`).
+    const printedColours = () =>
+      page.locator(".note-prose").first().evaluate((el) => ({
+        text: getComputedStyle(el).color,
+        page: getComputedStyle(document.body).backgroundColor,
+      }));
+
+    const inDark = await printedColours();
+    await page.emulateMedia({ media: "print", colorScheme: "light" });
+    expect(inDark).toEqual(await printedColours());
+    expect(inDark.page).toBe("rgb(255, 255, 255)");
+
+    await page.emulateMedia({ media: "print", colorScheme: "dark" });
+    await expect(page).toHaveScreenshot("note-detail-print-dark.png", screenshotOptions);
+  });
+
+  test("note detail - print layout with an embedded list", async ({ page }) => {
+    await page.emulateMedia({ media: "print" });
+    await routeNoteDetail(page, mockNoteDetailWithList);
+    await page.goto("/notes/5");
+    await page.waitForLoadState("networkidle");
+    // The embed's rows are content and print; its ✕ is editor chrome and does not.
+    await expect(page.getByText("Weekly Groceries")).toBeVisible();
+    await expect(page.getByText("Milk")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Remove list from note" })).toHaveCount(0);
+    await expect(page).toHaveScreenshot("note-detail-list-print.png", screenshotOptions);
+  });
+
   test("note - insert list dialog", async ({ page }) => {
     await page.goto("/notes/1");
     await page.waitForLoadState("networkidle");

@@ -187,4 +187,41 @@ describe("NoteWorkspace", () => {
 
     expect(onDelete).toHaveBeenCalled();
   });
+
+  describe("printing", () => {
+    // jsdom's own `window.print` throws "not implemented", so it is replaced
+    // rather than spied on.
+    const originalPrint = window.print;
+    let printed: jest.Mock;
+
+    beforeEach(() => {
+      printed = jest.fn();
+      window.print = printed;
+    });
+
+    afterEach(() => {
+      window.print = originalPrint;
+    });
+
+    it("prints the note from the overflow menu", async () => {
+      const user = userEvent.setup();
+      renderWorkspace({ noteId: 7, initialTitle: "Wifi password", onDelete: jest.fn() });
+
+      await user.click(screen.getByRole("button", { name: "More options" }));
+      await user.click(await screen.findByText("Print"));
+
+      // Deferred out of the Radix `onSelect` so the menu is gone first.
+      await waitFor(() => expect(printed).toHaveBeenCalled());
+    });
+
+    it("offers Print on a note that cannot be deleted", async () => {
+      const user = userEvent.setup();
+      renderWorkspace();
+
+      await user.click(screen.getByRole("button", { name: "More options" }));
+
+      expect(await screen.findByText("Print")).toBeInTheDocument();
+      expect(screen.queryByText("Delete")).not.toBeInTheDocument();
+    });
+  });
 });

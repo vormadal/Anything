@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { JSONContent } from "@tiptap/react";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Printer, Trash2 } from "lucide-react";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,15 @@ export function NoteWorkspace({
 
   const canDelete = onDelete !== undefined;
 
+  // Deferred: `window.print()` blocks the main thread, so calling it straight
+  // from `onSelect` can freeze the page with the menu still painted over it.
+  // (The print stylesheet hides Radix portals regardless — this only keeps the
+  // print dialog from opening on top of a visibly-open menu.) Stable, so the
+  // header effect below needs no new dependency.
+  const handlePrint = useCallback(() => {
+    setTimeout(() => window.print(), 0);
+  }, []);
+
   useEffect(() => {
     setLeftAction({ type: "back", href: NOTES_PATH });
     setHeaderActions(
@@ -103,14 +112,20 @@ export function NoteWorkspace({
             <Pencil className="h-5 w-5" />
           </Button>
         )}
-        {canDelete && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="More options">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+        {/* Always rendered: Print needs no saved note and works offline, so
+            the menu is no longer gated on Delete being available. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="More options">
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={handlePrint}>
+              <Printer className="h-4 w-4" />
+              Print
+            </DropdownMenuItem>
+            {canDelete && (
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                 onSelect={() => onDeleteRef.current?.()}
@@ -118,9 +133,9 @@ export function NoteWorkspace({
                 <Trash2 className="h-4 w-4" />
                 Delete
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>,
       false,
     );
@@ -129,12 +144,12 @@ export function NoteWorkspace({
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [canDelete, readOnly, status, setHeaderActions, setLeftAction]);
+  }, [canDelete, handlePrint, readOnly, status, setHeaderActions, setLeftAction]);
 
   return (
     // `grow` against AppLayout's column: the note gets every pixel the header
     // leaves, full width, with no title field competing for the space.
-    <div className="flex grow flex-col">
+    <div className="note-print-root flex grow flex-col">
       <PageTitle>{title}</PageTitle>
 
       {readOnly ? (
