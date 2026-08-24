@@ -409,6 +409,7 @@ public class AddBillPriceHandlerTests
     {
         var bill = new Bill { Id = 1, Name = "Netflix" };
         _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
+        _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var command = new AddBillPriceCommand(1, 19.99m, effectiveDate, null, "Price increase");
 
@@ -425,6 +426,7 @@ public class AddBillPriceHandlerTests
     {
         var bill = new Bill { Id = 1, Name = "Netflix" };
         _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
+        _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
         var command = new AddBillPriceCommand(1, 10m, DateTime.UtcNow, null, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
