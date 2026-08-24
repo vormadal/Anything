@@ -79,4 +79,23 @@ internal static class BillHelpers
         return Enum.TryParse(value, ignoreCase: true, out frequency)
             && Enum.IsDefined(frequency);
     }
+
+    /// <summary>
+    /// Two date ranges [a.Start, a.End) and [b.Start, b.End) overlap when
+    /// a.Start &lt; b.End and b.Start &lt; a.End. An open-ended range (EndDate == null)
+    /// is treated as extending to <see cref="DateTime.MaxValue"/> for this comparison.
+    /// </summary>
+    internal static bool IsOverlappingPriceRange(DateTime effectiveDate, DateTime? endDate, List<BillPriceHistory> existing)
+    {
+        foreach (var entry in existing)
+        {
+            var existingEnd = entry.EndDate ?? DateTime.MaxValue;
+            var newEnd = endDate ?? DateTime.MaxValue;
+
+            if (effectiveDate < existingEnd && newEnd > entry.EffectiveDate)
+                return true;
+        }
+
+        return false;
+    }
 }

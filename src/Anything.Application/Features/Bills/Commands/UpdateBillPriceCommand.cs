@@ -41,12 +41,12 @@ public class UpdateBillPriceHandler(
         var effectiveDate = command.EffectiveDate.ToUniversalTime();
         var endDate = command.EndDate?.ToUniversalTime();
 
-        // Validate price range for overlaps with other entries (excluding self)
+        // Overlap check excludes this entry itself
         var otherEntries = await priceHistoryRepository.Query()
             .Where(ph => ph.BillId == command.BillId && ph.Id != command.HistoryId)
             .ToListAsync(ct);
 
-        if (IsOverlappingWithExisting(effectiveDate, endDate, otherEntries))
+        if (BillHelpers.IsOverlappingPriceRange(effectiveDate, endDate, otherEntries))
             return Results.Conflict("The specified date range overlaps with an existing price history entry.");
 
         entry.Amount = command.Amount;
@@ -57,20 +57,5 @@ public class UpdateBillPriceHandler(
 
         await unitOfWork.SaveChanges(ct);
         return Results.NoContent();
-    }
-
-    private static bool IsOverlappingWithExisting(DateTime effectiveDate, DateTime? endDate, List<BillPriceHistory> existing)
-    {
-        foreach (var entry in existing)
-        {
-            // Check if ranges overlap
-            var existingEnd = entry.EndDate ?? DateTime.MaxValue;
-            var newEnd = endDate ?? DateTime.MaxValue;
-
-            if (effectiveDate < existingEnd && newEnd > entry.EffectiveDate)
-                return true;
-        }
-
-        return false;
     }
 }
