@@ -4,6 +4,20 @@
 // @ts-ignore
 import { type AdditionalDataHolder, type ApiError, type DateOnly, type Parsable, type ParseNode, type SerializationWriter } from '@microsoft/kiota-abstractions';
 
+export interface AddBillAmountEntryRequest extends Parsable {
+    /**
+     * The amount property
+     */
+    amount?: number | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The periodDate property
+     */
+    periodDate?: Date | null;
+}
 export interface AddBillPriceRequest extends Parsable {
     /**
      * The amount property
@@ -13,6 +27,10 @@ export interface AddBillPriceRequest extends Parsable {
      * The effectiveDate property
      */
     effectiveDate?: Date | null;
+    /**
+     * The endDate property
+     */
+    endDate?: Date | null;
     /**
      * The notes property
      */
@@ -94,6 +112,10 @@ export interface Bill extends Parsable {
      */
     frequency?: number | null;
     /**
+     * The hasVariableAmount property
+     */
+    hasVariableAmount?: boolean | null;
+    /**
      * The householdId property
      */
     householdId?: number | null;
@@ -105,6 +127,10 @@ export interface Bill extends Parsable {
      * The isAutomated property
      */
     isAutomated?: boolean | null;
+    /**
+     * The isRecurring property
+     */
+    isRecurring?: boolean | null;
     /**
      * The locationId property
      */
@@ -129,6 +155,36 @@ export interface Bill extends Parsable {
      * The vendorId property
      */
     vendorId?: number | null;
+}
+export interface BillAmountEntryResponse extends Parsable {
+    /**
+     * The amount property
+     */
+    amount?: number | null;
+    /**
+     * The billId property
+     */
+    billId?: number | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The periodDate property
+     */
+    periodDate?: Date | null;
 }
 export interface BillAttachmentResponse extends Parsable {
     /**
@@ -186,6 +242,10 @@ export interface BillPriceHistory extends Parsable {
      */
     effectiveDate?: Date | null;
     /**
+     * The endDate property
+     */
+    endDate?: Date | null;
+    /**
      * The id property
      */
     id?: number | null;
@@ -215,6 +275,10 @@ export interface BillPriceHistoryResponse extends Parsable {
      * The effectiveDate property
      */
     effectiveDate?: Date | null;
+    /**
+     * The endDate property
+     */
+    endDate?: Date | null;
     /**
      * The id property
      */
@@ -250,6 +314,10 @@ export interface BillResponse extends Parsable {
      */
     frequency?: string | null;
     /**
+     * The hasVariableAmount property
+     */
+    hasVariableAmount?: boolean | null;
+    /**
      * The id property
      */
     id?: number | null;
@@ -257,6 +325,10 @@ export interface BillResponse extends Parsable {
      * The isAutomated property
      */
     isAutomated?: boolean | null;
+    /**
+     * The isRecurring property
+     */
+    isRecurring?: boolean | null;
     /**
      * The locationId property
      */
@@ -365,6 +437,15 @@ export interface CopyItemsToTemplateRequest extends Parsable {
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {AddBillAmountEntryRequest}
+ */
+// @ts-ignore
+export function createAddBillAmountEntryRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoAddBillAmountEntryRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {AddBillPriceRequest}
  */
 // @ts-ignore
@@ -419,6 +500,15 @@ export function createAddToShoppingListRequestFromDiscriminatorValue(parseNode: 
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {BillAmountEntryResponse}
+ */
+// @ts-ignore
+export function createBillAmountEntryResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoBillAmountEntryResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {BillAttachmentResponse}
  */
 // @ts-ignore
@@ -462,6 +552,10 @@ export interface CreateBillRequest extends Parsable {
      */
     frequency?: string | null;
     /**
+     * The hasVariableAmount property
+     */
+    hasVariableAmount?: boolean | null;
+    /**
      * The initialAmount property
      */
     initialAmount?: number | null;
@@ -473,6 +567,10 @@ export interface CreateBillRequest extends Parsable {
      * The isAutomated property
      */
     isAutomated?: boolean | null;
+    /**
+     * The isRecurring property
+     */
+    isRecurring?: boolean | null;
     /**
      * The locationId property
      */
@@ -2080,6 +2178,19 @@ export interface CreateVendorRequest extends Parsable {
 }
 /**
  * The deserialization information for the current model
+ * @param AddBillAmountEntryRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoAddBillAmountEntryRequest(addBillAmountEntryRequest: Partial<AddBillAmountEntryRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "amount": n => { addBillAmountEntryRequest.amount = n.getNumberValue(); },
+        "notes": n => { addBillAmountEntryRequest.notes = n.getStringValue(); },
+        "periodDate": n => { addBillAmountEntryRequest.periodDate = n.getDateValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param AddBillPriceRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -2088,6 +2199,7 @@ export function deserializeIntoAddBillPriceRequest(addBillPriceRequest: Partial<
     return {
         "amount": n => { addBillPriceRequest.amount = n.getNumberValue(); },
         "effectiveDate": n => { addBillPriceRequest.effectiveDate = n.getDateValue(); },
+        "endDate": n => { addBillPriceRequest.endDate = n.getDateValue(); },
         "notes": n => { addBillPriceRequest.notes = n.getStringValue(); },
     }
 }
@@ -2165,15 +2277,34 @@ export function deserializeIntoBill(bill: Partial<Bill> | undefined = {}) : Reco
         "createdOn": n => { bill.createdOn = n.getDateValue(); },
         "deletedOn": n => { bill.deletedOn = n.getDateValue(); },
         "frequency": n => { bill.frequency = n.getNumberValue(); },
+        "hasVariableAmount": n => { bill.hasVariableAmount = n.getBooleanValue(); },
         "householdId": n => { bill.householdId = n.getNumberValue(); },
         "id": n => { bill.id = n.getNumberValue(); },
         "isAutomated": n => { bill.isAutomated = n.getBooleanValue(); },
+        "isRecurring": n => { bill.isRecurring = n.getBooleanValue(); },
         "locationId": n => { bill.locationId = n.getNumberValue(); },
         "managementUrl": n => { bill.managementUrl = n.getStringValue(); },
         "modifiedOn": n => { bill.modifiedOn = n.getDateValue(); },
         "name": n => { bill.name = n.getStringValue(); },
         "notes": n => { bill.notes = n.getStringValue(); },
         "vendorId": n => { bill.vendorId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param BillAmountEntryResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoBillAmountEntryResponse(billAmountEntryResponse: Partial<BillAmountEntryResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "amount": n => { billAmountEntryResponse.amount = n.getNumberValue(); },
+        "billId": n => { billAmountEntryResponse.billId = n.getNumberValue(); },
+        "createdOn": n => { billAmountEntryResponse.createdOn = n.getDateValue(); },
+        "id": n => { billAmountEntryResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { billAmountEntryResponse.modifiedOn = n.getDateValue(); },
+        "notes": n => { billAmountEntryResponse.notes = n.getStringValue(); },
+        "periodDate": n => { billAmountEntryResponse.periodDate = n.getDateValue(); },
     }
 }
 /**
@@ -2207,6 +2338,7 @@ export function deserializeIntoBillPriceHistory(billPriceHistory: Partial<BillPr
         "billId": n => { billPriceHistory.billId = n.getNumberValue(); },
         "createdOn": n => { billPriceHistory.createdOn = n.getDateValue(); },
         "effectiveDate": n => { billPriceHistory.effectiveDate = n.getDateValue(); },
+        "endDate": n => { billPriceHistory.endDate = n.getDateValue(); },
         "id": n => { billPriceHistory.id = n.getNumberValue(); },
         "modifiedOn": n => { billPriceHistory.modifiedOn = n.getDateValue(); },
         "notes": n => { billPriceHistory.notes = n.getStringValue(); },
@@ -2224,6 +2356,7 @@ export function deserializeIntoBillPriceHistoryResponse(billPriceHistoryResponse
         "billId": n => { billPriceHistoryResponse.billId = n.getNumberValue(); },
         "createdOn": n => { billPriceHistoryResponse.createdOn = n.getDateValue(); },
         "effectiveDate": n => { billPriceHistoryResponse.effectiveDate = n.getDateValue(); },
+        "endDate": n => { billPriceHistoryResponse.endDate = n.getDateValue(); },
         "id": n => { billPriceHistoryResponse.id = n.getNumberValue(); },
         "modifiedOn": n => { billPriceHistoryResponse.modifiedOn = n.getDateValue(); },
         "notes": n => { billPriceHistoryResponse.notes = n.getStringValue(); },
@@ -2242,8 +2375,10 @@ export function deserializeIntoBillResponse(billResponse: Partial<BillResponse> 
         "createdOn": n => { billResponse.createdOn = n.getDateValue(); },
         "currentAmount": n => { billResponse.currentAmount = n.getNumberValue(); },
         "frequency": n => { billResponse.frequency = n.getStringValue(); },
+        "hasVariableAmount": n => { billResponse.hasVariableAmount = n.getBooleanValue(); },
         "id": n => { billResponse.id = n.getNumberValue(); },
         "isAutomated": n => { billResponse.isAutomated = n.getBooleanValue(); },
+        "isRecurring": n => { billResponse.isRecurring = n.getBooleanValue(); },
         "locationId": n => { billResponse.locationId = n.getNumberValue(); },
         "locationName": n => { billResponse.locationName = n.getStringValue(); },
         "managementUrl": n => { billResponse.managementUrl = n.getStringValue(); },
@@ -2339,9 +2474,11 @@ export function deserializeIntoCreateBillRequest(createBillRequest: Partial<Crea
     return {
         "category": n => { createBillRequest.category = n.getStringValue(); },
         "frequency": n => { createBillRequest.frequency = n.getStringValue(); },
+        "hasVariableAmount": n => { createBillRequest.hasVariableAmount = n.getBooleanValue(); },
         "initialAmount": n => { createBillRequest.initialAmount = n.getNumberValue(); },
         "initialEffectiveDate": n => { createBillRequest.initialEffectiveDate = n.getDateValue(); },
         "isAutomated": n => { createBillRequest.isAutomated = n.getBooleanValue(); },
+        "isRecurring": n => { createBillRequest.isRecurring = n.getBooleanValue(); },
         "locationId": n => { createBillRequest.locationId = n.getNumberValue(); },
         "managementUrl": n => { createBillRequest.managementUrl = n.getStringValue(); },
         "name": n => { createBillRequest.name = n.getStringValue(); },
@@ -3930,6 +4067,7 @@ export function deserializeIntoUpdateBillPriceRequest(updateBillPriceRequest: Pa
     return {
         "amount": n => { updateBillPriceRequest.amount = n.getNumberValue(); },
         "effectiveDate": n => { updateBillPriceRequest.effectiveDate = n.getDateValue(); },
+        "endDate": n => { updateBillPriceRequest.endDate = n.getDateValue(); },
         "notes": n => { updateBillPriceRequest.notes = n.getStringValue(); },
     }
 }
@@ -3943,7 +4081,9 @@ export function deserializeIntoUpdateBillRequest(updateBillRequest: Partial<Upda
     return {
         "category": n => { updateBillRequest.category = n.getStringValue(); },
         "frequency": n => { updateBillRequest.frequency = n.getStringValue(); },
+        "hasVariableAmount": n => { updateBillRequest.hasVariableAmount = n.getBooleanValue(); },
         "isAutomated": n => { updateBillRequest.isAutomated = n.getBooleanValue(); },
+        "isRecurring": n => { updateBillRequest.isRecurring = n.getBooleanValue(); },
         "locationId": n => { updateBillRequest.locationId = n.getNumberValue(); },
         "managementUrl": n => { updateBillRequest.managementUrl = n.getStringValue(); },
         "name": n => { updateBillRequest.name = n.getStringValue(); },
@@ -5690,6 +5830,19 @@ export interface SeasonalTagRuleResponse extends Parsable {
 }
 /**
  * Serializes information the current object
+ * @param AddBillAmountEntryRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeAddBillAmountEntryRequest(writer: SerializationWriter, addBillAmountEntryRequest: Partial<AddBillAmountEntryRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!addBillAmountEntryRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", addBillAmountEntryRequest.amount);
+    writer.writeStringValue("notes", addBillAmountEntryRequest.notes);
+    writer.writeDateValue("periodDate", addBillAmountEntryRequest.periodDate);
+}
+/**
+ * Serializes information the current object
  * @param AddBillPriceRequest The instance to serialize from.
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param writer Serialization writer to use to serialize this model
@@ -5699,6 +5852,7 @@ export function serializeAddBillPriceRequest(writer: SerializationWriter, addBil
     if (!addBillPriceRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("amount", addBillPriceRequest.amount);
     writer.writeDateValue("effectiveDate", addBillPriceRequest.effectiveDate);
+    writer.writeDateValue("endDate", addBillPriceRequest.endDate);
     writer.writeStringValue("notes", addBillPriceRequest.notes);
 }
 /**
@@ -5776,15 +5930,34 @@ export function serializeBill(writer: SerializationWriter, bill: Partial<Bill> |
     writer.writeDateValue("createdOn", bill.createdOn);
     writer.writeDateValue("deletedOn", bill.deletedOn);
     writer.writeNumberValue("frequency", bill.frequency);
+    writer.writeBooleanValue("hasVariableAmount", bill.hasVariableAmount);
     writer.writeNumberValue("householdId", bill.householdId);
     writer.writeNumberValue("id", bill.id);
     writer.writeBooleanValue("isAutomated", bill.isAutomated);
+    writer.writeBooleanValue("isRecurring", bill.isRecurring);
     writer.writeNumberValue("locationId", bill.locationId);
     writer.writeStringValue("managementUrl", bill.managementUrl);
     writer.writeDateValue("modifiedOn", bill.modifiedOn);
     writer.writeStringValue("name", bill.name);
     writer.writeStringValue("notes", bill.notes);
     writer.writeNumberValue("vendorId", bill.vendorId);
+}
+/**
+ * Serializes information the current object
+ * @param BillAmountEntryResponse The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeBillAmountEntryResponse(writer: SerializationWriter, billAmountEntryResponse: Partial<BillAmountEntryResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!billAmountEntryResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", billAmountEntryResponse.amount);
+    writer.writeNumberValue("billId", billAmountEntryResponse.billId);
+    writer.writeDateValue("createdOn", billAmountEntryResponse.createdOn);
+    writer.writeNumberValue("id", billAmountEntryResponse.id);
+    writer.writeDateValue("modifiedOn", billAmountEntryResponse.modifiedOn);
+    writer.writeStringValue("notes", billAmountEntryResponse.notes);
+    writer.writeDateValue("periodDate", billAmountEntryResponse.periodDate);
 }
 /**
  * Serializes information the current object
@@ -5818,6 +5991,7 @@ export function serializeBillPriceHistory(writer: SerializationWriter, billPrice
     writer.writeNumberValue("billId", billPriceHistory.billId);
     writer.writeDateValue("createdOn", billPriceHistory.createdOn);
     writer.writeDateValue("effectiveDate", billPriceHistory.effectiveDate);
+    writer.writeDateValue("endDate", billPriceHistory.endDate);
     writer.writeNumberValue("id", billPriceHistory.id);
     writer.writeDateValue("modifiedOn", billPriceHistory.modifiedOn);
     writer.writeStringValue("notes", billPriceHistory.notes);
@@ -5835,6 +6009,7 @@ export function serializeBillPriceHistoryResponse(writer: SerializationWriter, b
     writer.writeNumberValue("billId", billPriceHistoryResponse.billId);
     writer.writeDateValue("createdOn", billPriceHistoryResponse.createdOn);
     writer.writeDateValue("effectiveDate", billPriceHistoryResponse.effectiveDate);
+    writer.writeDateValue("endDate", billPriceHistoryResponse.endDate);
     writer.writeNumberValue("id", billPriceHistoryResponse.id);
     writer.writeDateValue("modifiedOn", billPriceHistoryResponse.modifiedOn);
     writer.writeStringValue("notes", billPriceHistoryResponse.notes);
@@ -5853,8 +6028,10 @@ export function serializeBillResponse(writer: SerializationWriter, billResponse:
     writer.writeDateValue("createdOn", billResponse.createdOn);
     writer.writeNumberValue("currentAmount", billResponse.currentAmount);
     writer.writeStringValue("frequency", billResponse.frequency);
+    writer.writeBooleanValue("hasVariableAmount", billResponse.hasVariableAmount);
     writer.writeNumberValue("id", billResponse.id);
     writer.writeBooleanValue("isAutomated", billResponse.isAutomated);
+    writer.writeBooleanValue("isRecurring", billResponse.isRecurring);
     writer.writeNumberValue("locationId", billResponse.locationId);
     writer.writeStringValue("locationName", billResponse.locationName);
     writer.writeStringValue("managementUrl", billResponse.managementUrl);
@@ -5950,9 +6127,11 @@ export function serializeCreateBillRequest(writer: SerializationWriter, createBi
     if (!createBillRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("category", createBillRequest.category);
     writer.writeStringValue("frequency", createBillRequest.frequency);
+    writer.writeBooleanValue("hasVariableAmount", createBillRequest.hasVariableAmount);
     writer.writeNumberValue("initialAmount", createBillRequest.initialAmount);
     writer.writeDateValue("initialEffectiveDate", createBillRequest.initialEffectiveDate);
     writer.writeBooleanValue("isAutomated", createBillRequest.isAutomated);
+    writer.writeBooleanValue("isRecurring", createBillRequest.isRecurring);
     writer.writeNumberValue("locationId", createBillRequest.locationId);
     writer.writeStringValue("managementUrl", createBillRequest.managementUrl);
     writer.writeStringValue("name", createBillRequest.name);
@@ -7543,6 +7722,7 @@ export function serializeUpdateBillPriceRequest(writer: SerializationWriter, upd
     if (!updateBillPriceRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("amount", updateBillPriceRequest.amount);
     writer.writeDateValue("effectiveDate", updateBillPriceRequest.effectiveDate);
+    writer.writeDateValue("endDate", updateBillPriceRequest.endDate);
     writer.writeStringValue("notes", updateBillPriceRequest.notes);
 }
 /**
@@ -7556,7 +7736,9 @@ export function serializeUpdateBillRequest(writer: SerializationWriter, updateBi
     if (!updateBillRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("category", updateBillRequest.category);
     writer.writeStringValue("frequency", updateBillRequest.frequency);
+    writer.writeBooleanValue("hasVariableAmount", updateBillRequest.hasVariableAmount);
     writer.writeBooleanValue("isAutomated", updateBillRequest.isAutomated);
+    writer.writeBooleanValue("isRecurring", updateBillRequest.isRecurring);
     writer.writeNumberValue("locationId", updateBillRequest.locationId);
     writer.writeStringValue("managementUrl", updateBillRequest.managementUrl);
     writer.writeStringValue("name", updateBillRequest.name);
@@ -8284,6 +8466,10 @@ export interface UpdateBillPriceRequest extends Parsable {
      */
     effectiveDate?: Date | null;
     /**
+     * The endDate property
+     */
+    endDate?: Date | null;
+    /**
      * The notes property
      */
     notes?: string | null;
@@ -8298,9 +8484,17 @@ export interface UpdateBillRequest extends Parsable {
      */
     frequency?: string | null;
     /**
+     * The hasVariableAmount property
+     */
+    hasVariableAmount?: boolean | null;
+    /**
      * The isAutomated property
      */
     isAutomated?: boolean | null;
+    /**
+     * The isRecurring property
+     */
+    isRecurring?: boolean | null;
     /**
      * The locationId property
      */
