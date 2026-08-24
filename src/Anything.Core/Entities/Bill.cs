@@ -12,6 +12,8 @@ public class Bill
     public string? ManagementUrl { get; set; }
     public string? Category { get; set; }
     public string? Notes { get; set; }
+    public bool IsRecurring { get; set; }
+    public bool HasVariableAmount { get; set; }
     public DateTime CreatedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
     public DateTime? DeletedOn { get; set; }

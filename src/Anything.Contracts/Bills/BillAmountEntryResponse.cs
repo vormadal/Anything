@@ -1,12 +1,10 @@
 namespace Anything.Contracts.Bills;
 
-public record BillPriceHistoryResponse(
+public record BillAmountEntryResponse(
     int Id,
     int BillId,
     decimal Amount,
-    DateTime EffectiveDate,
-    DateTime? EndDate,
+    DateTime PeriodDate,
     string? Notes,
-    decimal? PreviousAmount,
     DateTime CreatedOn,
     DateTime? ModifiedOn);

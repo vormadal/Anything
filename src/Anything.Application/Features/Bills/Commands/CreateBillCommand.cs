@@ -16,6 +16,8 @@ public record CreateBillCommand(
     string? ManagementUrl,
     string? Category,
     string? Notes,
+    bool IsRecurring,
+    bool HasVariableAmount,
     decimal? InitialAmount,
     DateTime? InitialEffectiveDate) : IRequest<IResult>;
 
@@ -32,7 +34,14 @@ public class CreateBillHandler(
         if (!BillHelpers.TryParseFrequency(command.Frequency, out var frequency))
             return Results.BadRequest($"Invalid frequency '{command.Frequency}'.");
 
+        // Apply recurrence invariant: if not recurring, force Frequency = None and HasVariableAmount = false
+        if (!command.IsRecurring)
+        {
+            frequency = PaymentFrequency.None;
+        }
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
+        var isVariableAmount = command.IsRecurring && command.HasVariableAmount;
 
         var bill = new Bill
         {
@@ -45,6 +54,8 @@ public class CreateBillHandler(
             ManagementUrl = command.ManagementUrl,
             Category = command.Category,
             Notes = command.Notes,
+            IsRecurring = command.IsRecurring,
+            HasVariableAmount = isVariableAmount,
             CreatedOn = now
         };
 
@@ -77,6 +88,8 @@ public class CreateBillHandler(
             bill.ManagementUrl,
             bill.Category,
             bill.Notes,
+            bill.IsRecurring,
+            bill.HasVariableAmount,
             command.InitialAmount,
             BillHelpers.ComputeMonthlyEquivalent(frequency, command.InitialAmount),
             false,

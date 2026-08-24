@@ -13,6 +13,8 @@ public record BillResponse(
     string? ManagementUrl,
     string? Category,
     string? Notes,
+    bool IsRecurring,
+    bool HasVariableAmount,
     decimal? CurrentAmount,
     decimal? MonthlyEquivalent,
     bool PriceIncreased,

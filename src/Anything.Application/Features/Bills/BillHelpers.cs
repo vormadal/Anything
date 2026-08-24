@@ -57,6 +57,8 @@ internal static class BillHelpers
             bill.ManagementUrl,
             bill.Category,
             bill.Notes,
+            bill.IsRecurring,
+            bill.HasVariableAmount,
             current?.Amount,
             ComputeMonthlyEquivalent(bill.Frequency, current?.Amount),
             priceIncreased,

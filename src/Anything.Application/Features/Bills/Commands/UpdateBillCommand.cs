@@ -16,7 +16,9 @@ public record UpdateBillCommand(
     int? LocationId,
     string? ManagementUrl,
     string? Category,
-    string? Notes) : IRequest<IResult>;
+    string? Notes,
+    bool IsRecurring,
+    bool HasVariableAmount) : IRequest<IResult>;
 
 public class UpdateBillHandler(
     IRepository<Bill> repository,
@@ -36,6 +38,14 @@ public class UpdateBillHandler(
         if (bill is null)
             return Results.NotFound();
 
+        // Apply recurrence invariant: if not recurring, force Frequency = None and HasVariableAmount = false
+        if (!command.IsRecurring)
+        {
+            frequency = PaymentFrequency.None;
+        }
+
+        var isVariableAmount = command.IsRecurring && command.HasVariableAmount;
+
         bill.Name = command.Name;
         bill.VendorId = command.VendorId;
         bill.Frequency = frequency;
@@ -44,6 +54,8 @@ public class UpdateBillHandler(
         bill.ManagementUrl = command.ManagementUrl;
         bill.Category = command.Category;
         bill.Notes = command.Notes;
+        bill.IsRecurring = command.IsRecurring;
+        bill.HasVariableAmount = isVariableAmount;
         bill.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 
         await unitOfWork.SaveChanges(ct);
