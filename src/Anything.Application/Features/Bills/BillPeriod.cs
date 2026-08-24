@@ -31,15 +31,22 @@ internal static class BillPeriod
     /// </summary>
     public static DateTime GetPeriodEnd(PaymentFrequency frequency, DateTime date)
     {
-        return GetPeriodStart(frequency, date.AddYears(frequency == PaymentFrequency.Annually ? 1 : 0)
-            .AddMonths(frequency == PaymentFrequency.SemiAnnually ? 6 : frequency == PaymentFrequency.Quarterly ? 3 : 0)
-            .AddDays(frequency switch
-            {
-                PaymentFrequency.Weekly => 7,
-                PaymentFrequency.BiWeekly => 14,
-                PaymentFrequency.Monthly => 30,
-                _ => 0
-            })) - TimeSpan.FromTicks(1);
+        if (frequency == PaymentFrequency.None)
+            return date;
+
+        var currentStart = GetPeriodStart(frequency, date);
+        var nextStart = frequency switch
+        {
+            PaymentFrequency.Weekly => currentStart.AddDays(7),
+            PaymentFrequency.BiWeekly => currentStart.AddDays(14),
+            PaymentFrequency.Monthly => currentStart.AddMonths(1),
+            PaymentFrequency.Quarterly => currentStart.AddMonths(3),
+            PaymentFrequency.SemiAnnually => currentStart.AddMonths(6),
+            PaymentFrequency.Annually => currentStart.AddYears(1),
+            _ => currentStart
+        };
+
+        return nextStart - TimeSpan.FromTicks(1);
     }
 
     /// <summary>
