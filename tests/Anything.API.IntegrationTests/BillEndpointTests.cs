@@ -44,7 +44,7 @@ public class BillEndpointTests : IntegrationTestBase
         Assert.Empty(emptyResult);
 
         // Create with None frequency
-        var created = await CreateBillAsync("One-time expense", "None", false);
+        var created = await CreateBillAsync("One-time expense", "None", false, isRecurring: false);
         Assert.True(created.Id > 0);
         Assert.Equal("One-time expense", created.Name);
         Assert.Equal("None", created.Frequency);
@@ -127,7 +127,7 @@ public class BillEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         // Create a one-time bill
-        var bill = await CreateBillAsync("One-time expense", "None", false);
+        var bill = await CreateBillAsync("One-time expense", "None", false, isRecurring: false);
         var now = DateTime.UtcNow;
         var pricePayload = new
         {
@@ -255,10 +255,10 @@ public class BillEndpointTests : IntegrationTestBase
 
     // --- Helpers ---
 
-    private async Task<BillDto> CreateBillAsync(string name, string frequency, bool isAutomated)
+    private async Task<BillDto> CreateBillAsync(string name, string frequency, bool isAutomated, bool isRecurring = true)
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var payload = new { name, frequency, isAutomated };
+        var payload = new { name, frequency, isAutomated, isRecurring };
         var response = await client.PostAsJsonAsync("/api/bills", payload, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<BillDto>(JsonOptions, TestContext.Current.CancellationToken);

@@ -190,7 +190,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_InvalidFrequency_ReturnsBadRequest()
     {
-        var command = new CreateBillCommand("Netflix", null, "InvalidFreq", true, null, null, null, null, null, null);
+        var command = new CreateBillCommand("Netflix", null, "InvalidFreq", true, null, null, null, null, true, false, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -200,7 +200,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_WithoutInitialPrice_CreatesBillAndSavesOnce()
     {
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, null, null);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, false, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -215,7 +215,7 @@ public class CreateBillHandlerTests
     public async Task Handle_WithInitialPrice_CreatesBillAndPriceInSingleSave()
     {
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, 15.99m, effectiveDate);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, false, 15.99m, effectiveDate);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -228,7 +228,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_WithInitialPriceNoDate_UsesNowAsEffectiveDate()
     {
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, 15.99m, null);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, false, 15.99m, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -239,7 +239,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_SetsCreatedOnTimestamp()
     {
-        var command = new CreateBillCommand("Netflix", null, "Annually", false, null, null, null, null, null, null);
+        var command = new CreateBillCommand("Netflix", null, "Annually", false, null, null, null, null, true, false, null, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -265,7 +265,7 @@ public class UpdateBillHandlerTests
     [Fact]
     public async Task Handle_InvalidFrequency_ReturnsBadRequest()
     {
-        var command = new UpdateBillCommand(1, "Netflix", null, "BadFreq", false, null, null, null, null);
+        var command = new UpdateBillCommand(1, "Netflix", null, "BadFreq", false, null, null, null, null, true, false);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -276,7 +276,7 @@ public class UpdateBillHandlerTests
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<Bill>().AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null);
+        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null, true, false);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -287,7 +287,7 @@ public class UpdateBillHandlerTests
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null);
+        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null, true, false);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -299,7 +299,7 @@ public class UpdateBillHandlerTests
     {
         var bill = new Bill { Id = 1, Name = "Old", Frequency = PaymentFrequency.Monthly };
         _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "New Name", 5, "Weekly", true, 10, "https://manage.example.com", "Utilities", "Note");
+        var command = new UpdateBillCommand(1, "New Name", 5, "Weekly", true, 10, "https://manage.example.com", "Utilities", "Note", true, false);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -386,7 +386,7 @@ public class AddBillPriceHandlerTests
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
         _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
-        var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null);
+        var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -397,7 +397,7 @@ public class AddBillPriceHandlerTests
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
         _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
-        var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null);
+        var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -410,7 +410,7 @@ public class AddBillPriceHandlerTests
         var bill = new Bill { Id = 1, Name = "Netflix" };
         _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var command = new AddBillPriceCommand(1, 19.99m, effectiveDate, "Price increase");
+        var command = new AddBillPriceCommand(1, 19.99m, effectiveDate, null, "Price increase");
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -425,7 +425,7 @@ public class AddBillPriceHandlerTests
     {
         var bill = new Bill { Id = 1, Name = "Netflix" };
         _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new AddBillPriceCommand(1, 10m, DateTime.UtcNow, null);
+        var command = new AddBillPriceCommand(1, 10m, DateTime.UtcNow, null, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -454,7 +454,7 @@ public class UpdateBillPriceHandlerTests
     public async Task Handle_EntryNotFound_ReturnsNotFound()
     {
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
-        var command = new UpdateBillPriceCommand(1, 99, 25m, DateTime.UtcNow, null);
+        var command = new UpdateBillPriceCommand(1, 99, 25m, DateTime.UtcNow, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -466,7 +466,7 @@ public class UpdateBillPriceHandlerTests
     {
         var entry = new BillPriceHistory { Id = 5, BillId = 2, Amount = 10m, EffectiveDate = DateTime.UtcNow };
         _priceRepo.Query().Returns(new List<BillPriceHistory> { entry }.AsAsyncQueryable());
-        var command = new UpdateBillPriceCommand(1, 5, 25m, DateTime.UtcNow, null);
+        var command = new UpdateBillPriceCommand(1, 5, 25m, DateTime.UtcNow, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -479,7 +479,7 @@ public class UpdateBillPriceHandlerTests
         var entry = new BillPriceHistory { Id = 5, BillId = 1, Amount = 10m, EffectiveDate = DateTime.UtcNow };
         _priceRepo.Query().Returns(new List<BillPriceHistory> { entry }.AsAsyncQueryable());
         var newDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc);
-        var command = new UpdateBillPriceCommand(1, 5, 25m, newDate, "Updated note");
+        var command = new UpdateBillPriceCommand(1, 5, 25m, newDate, null, "Updated note");
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
