@@ -38,6 +38,7 @@ public class GetBillPriceHistoryHandler(
                     entry.BillId,
                     entry.Amount,
                     entry.EffectiveDate,
+                    entry.EndDate,
                     entry.Notes,
                     previous?.Amount,
                     entry.CreatedOn,
