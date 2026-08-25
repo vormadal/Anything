@@ -192,8 +192,10 @@ describe('BillDetailPage', () => {
 
     render(<BillDetailPage />)
 
+    // A fixed-amount bill has nothing to switch between, so the section
+    // header is the plain "History" label rather than a tab control.
     await waitFor(() => {
-      expect(screen.getByText('Price history')).toBeInTheDocument()
+      expect(screen.getByText('History')).toBeInTheDocument()
     })
   })
 
@@ -262,7 +264,7 @@ describe('BillDetailPage', () => {
 
     render(<BillDetailPage />)
 
-    await waitFor(() => expect(screen.getByText('Price history')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('History')).toBeInTheDocument())
 
     // No badge rendered
     expect(screen.queryByText(/\+.*%/)).not.toBeInTheDocument()
@@ -305,13 +307,13 @@ describe('BillDetailPage', () => {
     })
   })
 
-  it('should not show the Amount entries section for a fixed-amount bill', async () => {
+  it('should not show the Amount entries tab for a fixed-amount bill', async () => {
     mockBillByIdGet.mockResolvedValue(mockBill)
     mockPriceHistoryGet.mockResolvedValue([])
 
     render(<BillDetailPage />)
 
-    await waitFor(() => expect(screen.getByText('Price history')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('History')).toBeInTheDocument())
 
     expect(screen.queryByText('Amount entries')).not.toBeInTheDocument()
   })
@@ -330,6 +332,43 @@ describe('BillDetailPage', () => {
       expect(screen.getByText('Amount entries')).toBeInTheDocument()
       expect(screen.getByText(/January/)).toBeInTheDocument()
     })
+  })
+
+  it('should default to the Amount entries tab and show their average', async () => {
+    const variableBill = { ...mockBill, hasVariableAmount: true }
+    mockBillByIdGet.mockResolvedValue(variableBill)
+    mockPriceHistoryGet.mockResolvedValue(mockPriceHistory)
+    mockAmountEntriesGet.mockResolvedValue([
+      { id: 1, billId: 1, amount: 40, periodDate: '2025-01-01T00:00:00Z', createdOn: '2025-01-01T00:00:00Z' },
+      { id: 2, billId: 1, amount: 60, periodDate: '2025-02-01T00:00:00Z', createdOn: '2025-02-01T00:00:00Z' },
+    ])
+
+    render(<BillDetailPage />)
+
+    // Both price history and amount entries exist for this bill, but only one
+    // is visible at a time — the average confirms the amount-entries tab (not
+    // price history) is the one showing by default.
+    await waitFor(() => {
+      expect(screen.getByText(/Average.*over 2 entries/)).toBeInTheDocument()
+    })
+    expect(screen.queryByText('No price entries yet.')).not.toBeInTheDocument()
+  })
+
+  it('should switch to the Price history tab and hide amount entries', async () => {
+    const variableBill = { ...mockBill, hasVariableAmount: true }
+    mockBillByIdGet.mockResolvedValue(variableBill)
+    mockPriceHistoryGet.mockResolvedValue(mockPriceHistory)
+    mockAmountEntriesGet.mockResolvedValue([
+      { id: 1, billId: 1, amount: 45.5, periodDate: '2025-01-01T00:00:00Z', notes: 'January', createdOn: '2025-01-01T00:00:00Z' },
+    ])
+
+    render(<BillDetailPage />)
+
+    await waitFor(() => expect(screen.getByText(/January/)).toBeInTheDocument())
+
+    fireEvent.click(screen.getByText('Price history'))
+
+    await waitFor(() => expect(screen.queryByText(/January/)).not.toBeInTheDocument())
   })
 
   it('should show empty amount entries message when none exist', async () => {

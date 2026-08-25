@@ -74,7 +74,7 @@ interface BillSummaryResponse {
   totalCurrentYearAmount: number;
 }
 
-interface BillPriceHistoryResponse {
+export interface BillPriceHistoryResponse {
   id: number;
   billId: number;
   amount: number;

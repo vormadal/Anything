@@ -9,7 +9,7 @@ Reusable UI components shared across multiple pages.
   - `suggestions/` — tab bodies for the consolidated Suggestions admin page (`SuggestionsTab`, `CategoriesTab`, `ImportExportTab`)
   - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed; item metadata sits behind an "Add more details" toggle, collapsed by default), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, `WarrantyBadge` (renders `describeWarranty` from `@/lib/inventory`), `CustomFieldsEditor` (item-only; wholesale replace via `useUpdateInventoryItemFields`), the photo/document components below, and `inventoryFormStyles.ts` for the repeated Tailwind field classes
   - Layout/nav: `AppLayout`, `PageTitle`
-  - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`, `BillRecurrenceFields` (Recurring/One-time + Payment/Date toggles, shared by `bills/new` and `bills/[id]/edit` so the two forms can't drift out of sync with the backend's recurrence invariant), `BillEntryForm` (the "quick add" amount+date+notes form shared by the price-history and amount-entries sections of `bills/[id]`)
+  - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`, `BillRecurrenceFields` (Recurring/One-time + Payment/Date toggles, shared by `bills/new` and `bills/[id]/edit` so the two forms can't drift out of sync with the backend's recurrence invariant), `BillEntryForm` (the "quick add" amount+date+notes form shared by the price-history and amount-entries sections of `bills/[id]`), `BillHistorySection` (the single tab-switched History section on `bills/[id]` — see "Bills detail page" below)
   - Auth: `AuthGuard`
   - Error: `ErrorBoundary`
   - PWA: `ServiceWorkerRegistration`, `OfflineBanner` (shown app-wide via `useOnlineStatus()`; the underlying offline read/write support is scoped to shopping list / general checklist items only — see `src/lib/agent.md`)
@@ -62,6 +62,10 @@ The note editor is Tiptap (ProseMirror). `NoteWorkspace` is the whole note scree
 ### Full-height pages
 
 `AppLayout` is a flex column (`min-h-screen`) whose `<main>` is `flex flex-1 flex-col`, so a page that should fill the viewport uses `flex-1` rather than a `calc(100dvh - …)` guess. Don't reintroduce the guess: the header is **57px**, not the 56px its `h-14` suggests, because of its bottom border — subtracting `3.5rem` leaves the page 1px scrollable.
+
+## Bills detail page
+
+`bills/[id]/page.tsx`'s summary card shows one current amount, computed server-side from the *most recent price history entry* (`BillHelpers.ToBillResponse` in the backend — never from amount entries, even for a variable-amount bill). Price history and amount entries are both historic breakdowns of that same number, so they share one `BillHistorySection` behind a tab switch instead of stacking as two always-visible lists — showing all three (current amount, price history, amount entries) on screen at once was confusing. A fixed-amount bill (`hasVariableAmount: false`) only ever has price history, so `BillHistorySection` skips the tab control entirely for it and just shows a plain "History" header — there's nothing to switch between. `BillHistorySection` also computes and displays the average of the currently-visible amount entries; there's no equivalent for price history, since a price is a point-in-time contracted value rather than a distribution worth averaging.
 
 ## Toast usage rules (sonner)
 

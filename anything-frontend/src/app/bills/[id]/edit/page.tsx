@@ -114,6 +114,18 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
           />
         </div>
 
+        <BillRecurrenceFields
+          idPrefix="edit-bill"
+          isRecurring={isRecurring}
+          onIsRecurringChange={setIsRecurring}
+          isAutomated={isAutomated}
+          onIsAutomatedChange={setIsAutomated}
+          frequency={frequency}
+          onFrequencyChange={setFrequency}
+          hasVariableAmount={hasVariableAmount}
+          onHasVariableAmountChange={setHasVariableAmount}
+        />
+
         {/* Vendor */}
         <div>
           <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -127,18 +139,6 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
             onCreateNew={(n) => setVendorDialog(n)}
           />
         </div>
-
-        <BillRecurrenceFields
-          idPrefix="edit-bill"
-          isRecurring={isRecurring}
-          onIsRecurringChange={setIsRecurring}
-          isAutomated={isAutomated}
-          onIsAutomatedChange={setIsAutomated}
-          frequency={frequency}
-          onFrequencyChange={setFrequency}
-          hasVariableAmount={hasVariableAmount}
-          onHasVariableAmountChange={setHasVariableAmount}
-        />
 
         {/* Location + Category */}
         <div className="grid grid-cols-2 gap-3">

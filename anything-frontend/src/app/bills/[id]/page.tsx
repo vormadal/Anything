@@ -20,23 +20,20 @@ import {
   FREQUENCY_LABELS,
 } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
-import { BillEntryForm } from "@/components/BillEntryForm";
+import { BillHistorySection } from "@/components/BillHistorySection";
 import { toast } from "sonner";
 import { isSafeUrl } from "@/lib/utils";
+import { formatCurrency } from "@/lib/billFormat";
 import {
   ExternalLink,
   Pencil,
   Trash2,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Plus,
   Zap,
   Hand,
   Paperclip,
   FileText,
   ChevronRight,
-  Receipt,
 } from "lucide-react";
 import {
   Dialog,
@@ -46,77 +43,6 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("da-DK", {
-    style: "currency",
-    currency: "DKK",
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("da-DK", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function PriceChangeBadge({
-  current,
-  previous,
-}: {
-  current: number;
-  previous?: number;
-}) {
-  // Treat only null/undefined as "missing"; 0 is a valid previous value.
-  if (previous == null) return null;
-
-  const diff = current - previous;
-
-  // Avoid division by zero when previous is 0.
-  if (previous === 0) {
-    if (diff === 0) {
-      return (
-        <span className="inline-flex items-center gap-0.5 text-xs text-gray-400">
-          <Minus className="h-3 w-3" />0%
-        </span>
-      );
-    }
-    if (diff > 0) {
-      return (
-        <span className="inline-flex items-center gap-0.5 text-xs text-red-500">
-          <TrendingUp className="h-3 w-3" />+{formatCurrency(Math.abs(diff))}
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-0.5 text-xs text-green-500">
-        <TrendingDown className="h-3 w-3" />-{formatCurrency(Math.abs(diff))}
-      </span>
-    );
-  }
-
-  const pct = Math.abs((diff / previous) * 100).toFixed(1);
-  if (diff > 0)
-    return (
-      <span className="inline-flex items-center gap-0.5 text-xs text-red-500">
-        <TrendingUp className="h-3 w-3" />+{pct}%
-      </span>
-    );
-  if (diff < 0)
-    return (
-      <span className="inline-flex items-center gap-0.5 text-xs text-green-500">
-        <TrendingDown className="h-3 w-3" />-{pct}%
-      </span>
-    );
-  return (
-    <span className="inline-flex items-center gap-0.5 text-xs text-gray-400">
-      <Minus className="h-3 w-3" />0%
-    </span>
-  );
-}
 
 export default function BillDetailPage() {
   const params = useParams();
@@ -384,179 +310,45 @@ export default function BillDetailPage() {
         </div>
       </div>
 
-      {/* Price history */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Price history
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-            onClick={() => setShowAddPrice(!showAddPrice)}
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Add entry
-          </Button>
-        </div>
-
-        {/* Add price form */}
-        {showAddPrice && (
-          <BillEntryForm
-            onSubmit={handleAddPrice}
-            amount={newAmount}
-            onAmountChange={setNewAmount}
-            date={newDate}
-            onDateChange={setNewDate}
-            dateAriaLabel="Effective date"
-            notes={newNotes}
-            onNotesChange={setNewNotes}
-            onCancel={() => setShowAddPrice(false)}
-            isPending={addPrice.isPending}
-            isOnline={isOnline}
-            offlineTitle="Adding a price entry requires an internet connection"
-          >
-            <div>
-              <label htmlFor="bill-price-end-date" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Valid until (optional)
-              </label>
-              <input
-                id="bill-price-end-date"
-                type="date"
-                value={newEndDate}
-                onChange={(e) => setNewEndDate(e.target.value)}
-                min={newDate}
-                className="w-full px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </BillEntryForm>
-        )}
-
-        {historyLoading && (
-          <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
-            Loading...
-          </div>
-        )}
-        {!historyLoading && (history ?? []).length === 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              No price entries yet.
-            </p>
-          </div>
-        )}
-        {!historyLoading && (history ?? []).length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-            {(history ?? []).map((entry) => (
-              <div
-                key={entry.id}
-                className="px-4 py-3 flex items-center justify-between"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {formatCurrency(entry.amount)}
-                    </span>
-                    <PriceChangeBadge
-                      current={entry.amount}
-                      previous={entry.previousAmount}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {formatDate(entry.effectiveDate)}
-                    {entry.endDate && ` – ${formatDate(entry.endDate)}`}
-                    {entry.notes && (
-                      <span className="ml-2 text-gray-400 dark:text-gray-500">
-                        · {entry.notes}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDeletePrice(entry.id)}
-                  disabled={!isOnline}
-                  title={isOnline ? undefined : "Removing a price entry requires an internet connection"}
-                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                  aria-label="Delete price entry"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Amount entries — actual amounts paid per period, for variable-cost bills */}
-      {bill.hasVariableAmount && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-              <Receipt className="h-4 w-4" />
-              Amount entries
-            </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-              onClick={() => setShowAddAmountEntry(!showAddAmountEntry)}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Add entry
-            </Button>
-          </div>
-
-          {showAddAmountEntry && (
-            <BillEntryForm
-              onSubmit={handleAddAmountEntry}
-              amount={newEntryAmount}
-              onAmountChange={setNewEntryAmount}
-              date={newEntryPeriodDate}
-              onDateChange={setNewEntryPeriodDate}
-              dateAriaLabel="Period date"
-              notes={newEntryNotes}
-              onNotesChange={setNewEntryNotes}
-              onCancel={() => setShowAddAmountEntry(false)}
-              isPending={addAmountEntry.isPending}
-              isOnline={isOnline}
-              offlineTitle="Adding an amount entry requires an internet connection"
-            />
-          )}
-
-          {amountEntriesLoading && (
-            <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
-              Loading...
-            </div>
-          )}
-          {!amountEntriesLoading && (amountEntries ?? []).length === 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No amount entries yet.
-              </p>
-            </div>
-          )}
-          {!amountEntriesLoading && (amountEntries ?? []).length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-              {(amountEntries ?? []).map((entry) => (
-                <div key={entry.id} className="px-4 py-3">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {formatCurrency(entry.amount)}
-                  </span>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {formatDate(entry.periodDate)}
-                    {entry.notes && (
-                      <span className="ml-2 text-gray-400 dark:text-gray-500">
-                        · {entry.notes}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* History — price changes and (for variable-amount bills) actual amounts paid,
+          behind a single tab switch so the page shows one number at a time instead of
+          three overlapping ones (the summary card's current amount, price history, and
+          amount entries all at once). */}
+      <BillHistorySection
+        hasVariableAmount={bill.hasVariableAmount}
+        isOnline={isOnline}
+        priceHistory={{
+          entries: history,
+          isLoading: historyLoading,
+          isAdding: showAddPrice,
+          onToggleAdd: () => setShowAddPrice(!showAddPrice),
+          amount: newAmount,
+          onAmountChange: setNewAmount,
+          date: newDate,
+          onDateChange: setNewDate,
+          endDate: newEndDate,
+          onEndDateChange: setNewEndDate,
+          notes: newNotes,
+          onNotesChange: setNewNotes,
+          onSubmit: handleAddPrice,
+          isPending: addPrice.isPending,
+          onDelete: handleDeletePrice,
+        }}
+        amountEntries={{
+          entries: amountEntries,
+          isLoading: amountEntriesLoading,
+          isAdding: showAddAmountEntry,
+          onToggleAdd: () => setShowAddAmountEntry(!showAddAmountEntry),
+          amount: newEntryAmount,
+          onAmountChange: setNewEntryAmount,
+          date: newEntryPeriodDate,
+          onDateChange: setNewEntryPeriodDate,
+          notes: newEntryNotes,
+          onNotesChange: setNewEntryNotes,
+          onSubmit: handleAddAmountEntry,
+          isPending: addAmountEntry.isPending,
+        }}
+      />
 
       {/* Attachments */}
       <div>
