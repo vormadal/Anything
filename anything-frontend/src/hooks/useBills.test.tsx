@@ -6,12 +6,14 @@ import {
   useBillSummary,
   useBill,
   useBillPriceHistory,
+  useBillAmountEntries,
   useBillAttachments,
   useCreateBill,
   useUpdateBill,
   useDeleteBill,
   useAddBillPrice,
   useDeleteBillPrice,
+  useAddBillAmountEntry,
   useUploadBillAttachment,
   useUpdateBillAttachment,
   useDeleteBillAttachment,
@@ -39,6 +41,14 @@ const mockPriceHistory = {
   byHistoryId: (...args: unknown[]) => mockPriceHistoryById(...args),
 }
 
+const mockAmountEntriesGet = jest.fn()
+const mockAmountEntriesPost = jest.fn()
+
+const mockAmountEntries = {
+  get: (...args: unknown[]) => mockAmountEntriesGet(...args),
+  post: (...args: unknown[]) => mockAmountEntriesPost(...args),
+}
+
 const mockAttachmentsGet = jest.fn()
 const mockAttachmentsPost = jest.fn()
 const mockAttachmentItemPut = jest.fn()
@@ -61,6 +71,7 @@ const mockBillById: jest.Mock = jest.fn(() => ({
   put: mockBillByIdPut,
   delete: mockBillByIdDelete,
   priceHistory: mockPriceHistory,
+  amountEntries: mockAmountEntries,
   attachments: mockAttachments,
 }))
 
@@ -196,6 +207,7 @@ describe('useBills hooks', () => {
           name: 'Netflix',
           frequency: 'Monthly',
           isAutomated: true,
+          isRecurring: true,
           initialAmount: 99,
         })
       })
@@ -215,7 +227,7 @@ describe('useBills hooks', () => {
 
       const { result } = renderHook(() => useCreateBill(), { wrapper: createWrapper() })
 
-      result.current.mutate({ name: 'Netflix', frequency: 'Monthly', isAutomated: true })
+      result.current.mutate({ name: 'Netflix', frequency: 'Monthly', isAutomated: true, isRecurring: true })
 
       await waitFor(() => expect(result.current.isError).toBe(true))
       expect(result.current.error).toBeTruthy()
@@ -229,7 +241,7 @@ describe('useBills hooks', () => {
       const { result } = renderHook(() => useUpdateBill(), { wrapper: createWrapper() })
 
       await act(async () => {
-        result.current.mutate({ id: 1, name: 'Netflix HD', frequency: 'Monthly', isAutomated: true })
+        result.current.mutate({ id: 1, name: 'Netflix HD', frequency: 'Monthly', isAutomated: true, isRecurring: true })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
@@ -288,6 +300,40 @@ describe('useBills hooks', () => {
       expect(mockBillById).toHaveBeenCalledWith(1)
       expect(mockPriceHistoryById).toHaveBeenCalledWith(2)
       expect(mockPriceHistoryByIdDelete).toHaveBeenCalled()
+    })
+  })
+
+  describe('useBillAmountEntries', () => {
+    it('should fetch amount entries successfully', async () => {
+      const mockEntries = [
+        { id: 1, billId: 1, amount: 45.5, periodDate: '2025-01-01T00:00:00Z', createdOn: '2025-01-01T00:00:00Z' },
+        { id: 2, billId: 1, amount: 52.25, periodDate: '2025-02-01T00:00:00Z', createdOn: '2025-02-01T00:00:00Z' },
+      ]
+      mockAmountEntriesGet.mockResolvedValueOnce(mockEntries)
+
+      const { result } = renderHook(() => useBillAmountEntries(1), { wrapper: createWrapper() })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(result.current.data).toEqual(mockEntries)
+      expect(mockBillById).toHaveBeenCalledWith(1)
+    })
+  })
+
+  describe('useAddBillAmountEntry', () => {
+    it('should add an amount entry successfully', async () => {
+      mockAmountEntriesPost.mockResolvedValueOnce({ id: 3, billId: 1, amount: 60, periodDate: '2025-03-01T00:00:00Z', createdOn: '2025-03-01T00:00:00Z' })
+
+      const { result } = renderHook(() => useAddBillAmountEntry(), { wrapper: createWrapper() })
+
+      await act(async () => {
+        result.current.mutate({ billId: 1, amount: 60, periodDate: '2025-03-01T00:00:00Z' })
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(mockBillById).toHaveBeenCalledWith(1)
+      expect(mockAmountEntriesPost).toHaveBeenCalledWith(expect.objectContaining({ amount: 60 }))
     })
   })
 

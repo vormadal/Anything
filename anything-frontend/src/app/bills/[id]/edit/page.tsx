@@ -46,8 +46,12 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
 
   const [name, setName] = useState(bill.name);
   const [vendorId, setVendorId] = useState<number | undefined>(bill.vendorId);
-  const [frequency, setFrequency] = useState<string>(bill.frequency);
+  const [frequency, setFrequency] = useState<string>(
+    bill.frequency === "None" ? "Monthly" : bill.frequency
+  );
   const [isAutomated, setIsAutomated] = useState(bill.isAutomated);
+  const [isRecurring, setIsRecurring] = useState(bill.isRecurring);
+  const [hasVariableAmount, setHasVariableAmount] = useState(bill.hasVariableAmount);
   const [locationId, setLocationId] = useState<number | undefined>(bill.locationId);
   const [managementUrl, setManagementUrl] = useState(bill.managementUrl ?? "");
   const [category, setCategory] = useState(bill.category ?? "");
@@ -65,12 +69,14 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
         id: billId,
         name: name.trim(),
         vendorId,
-        frequency: frequency as PaymentFrequency,
+        frequency: isRecurring ? (frequency as PaymentFrequency) : "None",
         isAutomated,
         locationId,
         managementUrl: managementUrl.trim() || undefined,
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
+        isRecurring,
+        hasVariableAmount: isRecurring && hasVariableAmount,
       });
       router.push(`/bills/${billId}`);
     } catch {
@@ -121,24 +127,36 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
           />
         </div>
 
-        {/* Frequency + Automated */}
+        {/* Recurring + Automated */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="edit-bill-frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Frequency
-            </label>
-            <select
-              id="edit-bill-frequency"
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {PAYMENT_FREQUENCIES.map((f) => (
-                <option key={f} value={f}>
-                  {FREQUENCY_LABELS[f]}
-                </option>
-              ))}
-            </select>
+            <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Recurs
+            </p>
+            <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsRecurring(true)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  isRecurring
+                    ? "bg-blue-600 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                }`}
+              >
+                Recurring
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsRecurring(false)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  !isRecurring
+                    ? "bg-gray-600 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                }`}
+              >
+                One-time
+              </button>
+            </div>
           </div>
           <div>
             <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -170,6 +188,41 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
             </div>
           </div>
         </div>
+
+        {/* Frequency + Variable amount (only meaningful for recurring bills) */}
+        {isRecurring && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="edit-bill-frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Frequency
+              </label>
+              <select
+                id="edit-bill-frequency"
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {PAYMENT_FREQUENCIES.filter((f) => f !== "None").map((f) => (
+                  <option key={f} value={f}>
+                    {FREQUENCY_LABELS[f]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end pb-2">
+              <label htmlFor="edit-bill-variable-amount" className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                <input
+                  id="edit-bill-variable-amount"
+                  type="checkbox"
+                  checked={hasVariableAmount}
+                  onChange={(e) => setHasVariableAmount(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                />
+                Amount varies each period
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Location + Category */}
         <div className="grid grid-cols-2 gap-3">

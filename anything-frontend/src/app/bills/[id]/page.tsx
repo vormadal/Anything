@@ -7,10 +7,12 @@ import { PageTitle } from "@/components/PageTitle";
 import {
   useBill,
   useBillPriceHistory,
+  useBillAmountEntries,
   useBillAttachments,
   useDeleteBill,
   useAddBillPrice,
   useDeleteBillPrice,
+  useAddBillAmountEntry,
   useUploadBillAttachment,
   useUpdateBillAttachment,
   useDeleteBillAttachment,
@@ -33,6 +35,7 @@ import {
   Paperclip,
   FileText,
   ChevronRight,
+  Receipt,
 } from "lucide-react";
 import {
   Dialog,
@@ -120,10 +123,12 @@ export default function BillDetailPage() {
   const router = useRouter();
   const { data: bill, isLoading } = useBill(billId);
   const { data: history, isLoading: historyLoading } = useBillPriceHistory(billId);
+  const { data: amountEntries, isLoading: amountEntriesLoading } = useBillAmountEntries(billId);
   const { data: attachments, isLoading: attachmentsLoading } = useBillAttachments(billId);
   const deleteBill = useDeleteBill();
   const addPrice = useAddBillPrice();
   const deletePrice = useDeleteBillPrice();
+  const addAmountEntry = useAddBillAmountEntry();
   const uploadAttachment = useUploadBillAttachment();
   const updateAttachment = useUpdateBillAttachment();
   const deleteAttachment = useDeleteBillAttachment();
@@ -135,7 +140,12 @@ export default function BillDetailPage() {
   const [showAddPrice, setShowAddPrice] = useState(false);
   const [newAmount, setNewAmount] = useState("");
   const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
+  const [newEndDate, setNewEndDate] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [showAddAmountEntry, setShowAddAmountEntry] = useState(false);
+  const [newEntryAmount, setNewEntryAmount] = useState("");
+  const [newEntryPeriodDate, setNewEntryPeriodDate] = useState(new Date().toISOString().split("T")[0]);
+  const [newEntryNotes, setNewEntryNotes] = useState("");
   const [attachmentDialog, setAttachmentDialog] = useState<{ id: number; name: string } | null>(null);
   const [attachmentDialogName, setAttachmentDialogName] = useState("");
 
@@ -172,14 +182,40 @@ export default function BillDetailPage() {
         billId,
         amount: Number(newAmount),
         effectiveDate: new Date(newDate).toISOString(),
+        endDate: newEndDate ? new Date(newEndDate).toISOString() : undefined,
         notes: newNotes.trim() || undefined,
       });
       setShowAddPrice(false);
       setNewAmount("");
       setNewNotes("");
       setNewDate(new Date().toISOString().split("T")[0]);
+      setNewEndDate("");
+    } catch (err) {
+      const kiota = err as { responseStatusCode?: number };
+      if (kiota.responseStatusCode === 409) {
+        toast.error("This date range overlaps with an existing price entry");
+      } else {
+        toast.error("Failed to add price entry");
+      }
+    }
+  };
+
+  const handleAddAmountEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEntryAmount) return;
+    try {
+      await addAmountEntry.mutateAsync({
+        billId,
+        amount: Number(newEntryAmount),
+        periodDate: new Date(newEntryPeriodDate).toISOString(),
+        notes: newEntryNotes.trim() || undefined,
+      });
+      setShowAddAmountEntry(false);
+      setNewEntryAmount("");
+      setNewEntryNotes("");
+      setNewEntryPeriodDate(new Date().toISOString().split("T")[0]);
     } catch {
-      toast.error("Failed to add price entry");
+      toast.error("Failed to add amount entry");
     }
   };
 
@@ -386,7 +422,21 @@ export default function BillDetailPage() {
                 value={newDate}
                 onChange={(e) => setNewDate(e.target.value)}
                 required
+                aria-label="Effective date"
                 className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="bill-price-end-date" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Valid until (optional)
+              </label>
+              <input
+                id="bill-price-end-date"
+                type="date"
+                value={newEndDate}
+                onChange={(e) => setNewEndDate(e.target.value)}
+                min={newDate}
+                className="w-full px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <input
@@ -450,6 +500,7 @@ export default function BillDetailPage() {
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {formatDate(entry.effectiveDate)}
+                    {entry.endDate && ` – ${formatDate(entry.endDate)}`}
                     {entry.notes && (
                       <span className="ml-2 text-gray-400 dark:text-gray-500">
                         · {entry.notes}
@@ -472,6 +523,114 @@ export default function BillDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Amount entries — actual amounts paid per period, for variable-cost bills */}
+      {bill.hasVariableAmount && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+              <Receipt className="h-4 w-4" />
+              Amount entries
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => setShowAddAmountEntry(!showAddAmountEntry)}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Add entry
+            </Button>
+          </div>
+
+          {showAddAmountEntry && (
+            <form
+              onSubmit={handleAddAmountEntry}
+              className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3 space-y-2"
+            >
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={newEntryAmount}
+                  onChange={(e) => setNewEntryAmount(e.target.value)}
+                  placeholder="Amount"
+                  min="0.01"
+                  step="0.01"
+                  required
+                  className="flex-1 px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="date"
+                  value={newEntryPeriodDate}
+                  onChange={(e) => setNewEntryPeriodDate(e.target.value)}
+                  required
+                  aria-label="Period date"
+                  className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <input
+                type="text"
+                value={newEntryNotes}
+                onChange={(e) => setNewEntryNotes(e.target.value)}
+                placeholder="Notes (optional)"
+                className="w-full px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setShowAddAmountEntry(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="flex-1"
+                  disabled={addAmountEntry.isPending || !isOnline}
+                  title={isOnline ? undefined : "Adding an amount entry requires an internet connection"}
+                >
+                  {addAmountEntry.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {amountEntriesLoading && (
+            <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
+              Loading...
+            </div>
+          )}
+          {!amountEntriesLoading && (amountEntries ?? []).length === 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No amount entries yet.
+              </p>
+            </div>
+          )}
+          {!amountEntriesLoading && (amountEntries ?? []).length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+              {(amountEntries ?? []).map((entry) => (
+                <div key={entry.id} className="px-4 py-3">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {formatCurrency(entry.amount)}
+                  </span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {formatDate(entry.periodDate)}
+                    {entry.notes && (
+                      <span className="ml-2 text-gray-400 dark:text-gray-500">
+                        · {entry.notes}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Attachments */}
       <div>

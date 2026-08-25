@@ -142,6 +142,64 @@ const emptyBillSummary = {
   totalCurrentYearAmount: 0,
 };
 
+// A recurring, variable-amount bill — exercises the "Amount entries" section
+// and a price-history entry with an EndDate range.
+const mockVariableBill = {
+  id: 5,
+  name: "Electricity",
+  frequency: "Monthly",
+  isAutomated: true,
+  isRecurring: true,
+  hasVariableAmount: true,
+  currentAmount: 92.3,
+  monthlyEquivalent: 92.3,
+  priceIncreased: false,
+  category: "Utilities",
+  vendorId: null,
+  vendorName: null,
+  locationId: null,
+  locationName: null,
+  managementUrl: null,
+  notes: null,
+  createdOn: "2024-01-01T00:00:00Z",
+  modifiedOn: null,
+};
+
+const mockVariableBillPriceHistory = [
+  {
+    id: 1,
+    billId: 5,
+    amount: 90,
+    effectiveDate: "2025-01-01T00:00:00Z",
+    endDate: "2025-12-31T00:00:00Z",
+    notes: null,
+    previousAmount: null,
+    createdOn: "2025-01-01T00:00:00Z",
+    modifiedOn: null,
+  },
+];
+
+const mockBillAmountEntries = [
+  {
+    id: 1,
+    billId: 5,
+    amount: 85.5,
+    periodDate: "2025-11-01T00:00:00Z",
+    notes: "November usage",
+    createdOn: "2025-11-01T00:00:00Z",
+    modifiedOn: null,
+  },
+  {
+    id: 2,
+    billId: 5,
+    amount: 92.3,
+    periodDate: "2025-12-01T00:00:00Z",
+    notes: "December usage",
+    createdOn: "2025-12-01T00:00:00Z",
+    modifiedOn: null,
+  },
+];
+
 const mockRecipes = [
   { id: 1, name: "Pasta Carbonara", createdOn: "2024-01-01T00:00:00Z", modifiedOn: null },
   { id: 2, name: "Chicken Stir Fry", createdOn: "2024-01-01T00:00:00Z", modifiedOn: null },
@@ -2024,6 +2082,50 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/bills");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("bills-empty.png", screenshotOptions);
+  });
+
+  test("new bill - default recurring state", async ({ page }) => {
+    await page.goto("/bills/new");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Amount varies each period")).toBeVisible();
+    await expect(page).toHaveScreenshot("bill-new-recurring.png", screenshotOptions);
+  });
+
+  test("new bill - one-time state hides frequency", async ({ page }) => {
+    await page.goto("/bills/new");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "One-time" }).click();
+    await expect(page.getByText("Amount varies each period")).not.toBeVisible();
+    await expect(page).toHaveScreenshot("bill-new-onetime.png", screenshotOptions);
+  });
+
+  test("edit bill - recurring form pre-filled", async ({ page }) => {
+    await page.route(/\/api\/bills\/5$/, (route) =>
+      route.fulfill({ json: mockVariableBill })
+    );
+    await page.goto("/bills/5/edit");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("#edit-bill-name")).toHaveValue("Electricity");
+    await expect(page).toHaveScreenshot("bill-edit.png", screenshotOptions);
+  });
+
+  test("bill detail - variable amount with price range and amount entries", async ({ page }) => {
+    await page.route(/\/api\/bills\/5$/, (route) =>
+      route.fulfill({ json: mockVariableBill })
+    );
+    await page.route(/\/api\/bills\/5\/price-history/, (route) =>
+      route.fulfill({ json: mockVariableBillPriceHistory })
+    );
+    await page.route(/\/api\/bills\/5\/amount-entries/, (route) =>
+      route.fulfill({ json: mockBillAmountEntries })
+    );
+    await page.route(/\/api\/bills\/5\/attachments/, (route) =>
+      route.fulfill({ json: [] })
+    );
+    await page.goto("/bills/5");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Amount entries")).toBeVisible();
+    await expect(page).toHaveScreenshot("bill-detail-variable-amount.png", screenshotOptions);
   });
 
   // ---- Food Plans ----

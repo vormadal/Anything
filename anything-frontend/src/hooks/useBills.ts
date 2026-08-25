@@ -3,7 +3,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
 import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
-import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, BillAttachmentResponse } from "@/lib/api-client/models/index";
+import type {
+  CreateBillRequest,
+  UpdateBillRequest,
+  AddBillPriceRequest,
+  AddBillAmountEntryRequest,
+  BillAttachmentResponse,
+} from "@/lib/api-client/models/index";
 
 // Re-export API model type so consumers can import it from this hook
 export type { BillAttachmentResponse };
@@ -50,6 +56,8 @@ export interface BillResponse {
   managementUrl?: string;
   category?: string;
   notes?: string;
+  isRecurring: boolean;
+  hasVariableAmount: boolean;
   currentAmount?: number;
   monthlyEquivalent?: number;
   priceIncreased: boolean;
@@ -71,8 +79,19 @@ interface BillPriceHistoryResponse {
   billId: number;
   amount: number;
   effectiveDate: string;
+  endDate?: string;
   notes?: string;
   previousAmount?: number;
+  createdOn: string;
+  modifiedOn?: string;
+}
+
+export interface BillAmountEntryResponse {
+  id: number;
+  billId: number;
+  amount: number;
+  periodDate: string;
+  notes?: string;
   createdOn: string;
   modifiedOn?: string;
 }
@@ -121,6 +140,17 @@ export function useBillPriceHistory(billId: number) {
   });
 }
 
+export function useBillAmountEntries(billId: number) {
+  return useQuery({
+    queryKey: ["billAmountEntries", billId],
+    queryFn: () =>
+      apiClient.api.bills
+        .byId(billId)
+        .amountEntries.get() as unknown as Promise<BillAmountEntryResponse[]>,
+    enabled: !!billId,
+  });
+}
+
 export function useBillAttachments(billId: number) {
   return useQuery({
     queryKey: ["billAttachments", billId],
@@ -142,6 +172,8 @@ export function useCreateBill() {
       managementUrl?: string;
       category?: string;
       notes?: string;
+      isRecurring: boolean;
+      hasVariableAmount?: boolean;
       initialAmount?: number;
       initialEffectiveDate?: string;
     }) => {
@@ -154,6 +186,8 @@ export function useCreateBill() {
         managementUrl: data.managementUrl ?? null,
         category: data.category ?? null,
         notes: data.notes ?? null,
+        isRecurring: data.isRecurring,
+        hasVariableAmount: data.hasVariableAmount ?? false,
         initialAmount: data.initialAmount ?? null,
         initialEffectiveDate: data.initialEffectiveDate ? new Date(data.initialEffectiveDate) : null,
       };
@@ -179,6 +213,8 @@ export function useUpdateBill() {
       managementUrl?: string;
       category?: string;
       notes?: string;
+      isRecurring: boolean;
+      hasVariableAmount?: boolean;
     }) => {
       const body: UpdateBillRequest = {
         name: data.name,
@@ -189,6 +225,8 @@ export function useUpdateBill() {
         managementUrl: data.managementUrl ?? null,
         category: data.category ?? null,
         notes: data.notes ?? null,
+        isRecurring: data.isRecurring,
+        hasVariableAmount: data.hasVariableAmount ?? false,
       };
       return apiClient.api.bills.byId(data.id).put(body);
     },
@@ -219,11 +257,13 @@ export function useAddBillPrice() {
       billId: number;
       amount: number;
       effectiveDate: string;
+      endDate?: string;
       notes?: string;
     }) => {
       const body: AddBillPriceRequest = {
         amount: data.amount,
         effectiveDate: new Date(data.effectiveDate),
+        endDate: data.endDate ? new Date(data.endDate) : null,
         notes: data.notes ?? null,
       };
       return apiClient.api.bills.byId(data.billId).priceHistory.post(body);
@@ -250,6 +290,28 @@ export function useDeleteBillPrice() {
       queryClient.invalidateQueries({ queryKey: ["bill", variables.billId] });
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["billSummary"] });
+    },
+  });
+}
+
+export function useAddBillAmountEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      billId: number;
+      amount: number;
+      periodDate: string;
+      notes?: string;
+    }) => {
+      const body: AddBillAmountEntryRequest = {
+        amount: data.amount,
+        periodDate: new Date(data.periodDate),
+        notes: data.notes ?? null,
+      };
+      return apiClient.api.bills.byId(data.billId).amountEntries.post(body);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["billAmountEntries", variables.billId] });
     },
   });
 }

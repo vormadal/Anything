@@ -62,6 +62,8 @@ const mockBill = {
   managementUrl: 'https://netflix.com/account',
   category: 'Streaming',
   notes: 'Family plan',
+  isRecurring: true,
+  hasVariableAmount: false,
   currentAmount: 99,
   monthlyEquivalent: 99,
   priceIncreased: false,
@@ -129,6 +131,27 @@ describe('EditBillPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Monthly')).toBeInTheDocument()
     })
+  })
+
+  it('should show the variable amount checkbox for a recurring bill', async () => {
+    mockBillByIdGet.mockResolvedValue(mockBill)
+
+    render(<EditBillPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Amount varies each period')).toBeInTheDocument()
+    })
+  })
+
+  it('should hide the frequency selector for a one-time bill', async () => {
+    mockBillByIdGet.mockResolvedValue({ ...mockBill, frequency: 'None', isRecurring: false })
+
+    render(<EditBillPage />)
+
+    await waitFor(() => expect(screen.getByDisplayValue('Netflix')).toBeInTheDocument())
+
+    expect(screen.queryByLabelText('Frequency')).not.toBeInTheDocument()
+    expect(screen.queryByText('Amount varies each period')).not.toBeInTheDocument()
   })
 
   it('should submit form and navigate back on success', async () => {

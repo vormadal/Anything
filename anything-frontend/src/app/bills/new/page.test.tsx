@@ -75,6 +75,46 @@ describe('NewBillPage', () => {
     })
   })
 
+  it('should default to Recurring with the variable amount checkbox visible', async () => {
+    render(<NewBillPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Amount varies each period')).toBeInTheDocument()
+    })
+  })
+
+  it('should hide frequency and variable amount when One-time is selected', async () => {
+    render(<NewBillPage />)
+
+    await waitFor(() => expect(screen.getByText('One-time')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('One-time'))
+
+    expect(screen.queryByLabelText('Frequency')).not.toBeInTheDocument()
+    expect(screen.queryByText('Amount varies each period')).not.toBeInTheDocument()
+  })
+
+  it('should submit isRecurring: false and Frequency: None for a one-time bill', async () => {
+    mockBillPost.mockResolvedValue({ id: 1, name: 'Gift' })
+
+    render(<NewBillPage />)
+
+    await waitFor(() => expect(screen.getByPlaceholderText('e.g. Netflix, Electricity')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Netflix, Electricity'), { target: { value: 'Gift' } })
+    fireEvent.click(screen.getByText('One-time'))
+
+    const form = screen.getByText('Add bill').closest('form')
+    if (form) fireEvent.submit(form)
+
+    await waitFor(() => {
+      expect(mockBillPost).toHaveBeenCalledWith(expect.objectContaining({
+        isRecurring: false,
+        frequency: 'None',
+        hasVariableAmount: false,
+      }))
+    })
+  })
+
   it('should navigate to bills on successful create', async () => {
     mockBillPost.mockResolvedValue({ id: 1, name: 'Netflix' })
 
