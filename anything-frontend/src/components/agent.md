@@ -9,7 +9,7 @@ Reusable UI components shared across multiple pages.
   - `suggestions/` — tab bodies for the consolidated Suggestions admin page (`SuggestionsTab`, `CategoriesTab`, `ImportExportTab`)
   - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed; item metadata sits behind an "Add more details" toggle, collapsed by default), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, `WarrantyBadge` (renders `describeWarranty` from `@/lib/inventory`), `CustomFieldsEditor` (item-only; wholesale replace via `useUpdateInventoryItemFields`), the photo/document components below, and `inventoryFormStyles.ts` for the repeated Tailwind field classes
   - Layout/nav: `AppLayout`, `PageTitle`
-  - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`
+  - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`, `BillRecurrenceFields` (Recurring/One-time + Payment/Date toggles, shared by `bills/new` and `bills/[id]/edit` so the two forms can't drift out of sync with the backend's recurrence invariant), `BillEntryForm` (the "quick add" amount+date+notes form shared by the price-history and amount-entries sections of `bills/[id]`)
   - Auth: `AuthGuard`
   - Error: `ErrorBoundary`
   - PWA: `ServiceWorkerRegistration`, `OfflineBanner` (shown app-wide via `useOnlineStatus()`; the underlying offline read/write support is scoped to shopping list / general checklist items only — see `src/lib/agent.md`)
