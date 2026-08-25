@@ -20,6 +20,7 @@ import {
   FREQUENCY_LABELS,
 } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
+import { BillEntryForm } from "@/components/BillEntryForm";
 import { toast } from "sonner";
 import { isSafeUrl } from "@/lib/utils";
 import {
@@ -402,30 +403,20 @@ export default function BillDetailPage() {
 
         {/* Add price form */}
         {showAddPrice && (
-          <form
+          <BillEntryForm
             onSubmit={handleAddPrice}
-            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3 space-y-2"
+            amount={newAmount}
+            onAmountChange={setNewAmount}
+            date={newDate}
+            onDateChange={setNewDate}
+            dateAriaLabel="Effective date"
+            notes={newNotes}
+            onNotesChange={setNewNotes}
+            onCancel={() => setShowAddPrice(false)}
+            isPending={addPrice.isPending}
+            isOnline={isOnline}
+            offlineTitle="Adding a price entry requires an internet connection"
           >
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={newAmount}
-                onChange={(e) => setNewAmount(e.target.value)}
-                placeholder="Amount"
-                min="0.01"
-                step="0.01"
-                required
-                className="flex-1 px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="date"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-                required
-                aria-label="Effective date"
-                className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
             <div>
               <label htmlFor="bill-price-end-date" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                 Valid until (optional)
@@ -439,34 +430,7 @@ export default function BillDetailPage() {
                 className="w-full px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <input
-              type="text"
-              value={newNotes}
-              onChange={(e) => setNewNotes(e.target.value)}
-              placeholder="Notes (optional)"
-              className="w-full px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => setShowAddPrice(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                className="flex-1"
-                disabled={addPrice.isPending || !isOnline}
-                title={isOnline ? undefined : "Adding a price entry requires an internet connection"}
-              >
-                {addPrice.isPending ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </form>
+          </BillEntryForm>
         )}
 
         {historyLoading && (
@@ -544,58 +508,20 @@ export default function BillDetailPage() {
           </div>
 
           {showAddAmountEntry && (
-            <form
+            <BillEntryForm
               onSubmit={handleAddAmountEntry}
-              className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3 space-y-2"
-            >
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={newEntryAmount}
-                  onChange={(e) => setNewEntryAmount(e.target.value)}
-                  placeholder="Amount"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  className="flex-1 px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="date"
-                  value={newEntryPeriodDate}
-                  onChange={(e) => setNewEntryPeriodDate(e.target.value)}
-                  required
-                  aria-label="Period date"
-                  className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <input
-                type="text"
-                value={newEntryNotes}
-                onChange={(e) => setNewEntryNotes(e.target.value)}
-                placeholder="Notes (optional)"
-                className="w-full px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setShowAddAmountEntry(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="flex-1"
-                  disabled={addAmountEntry.isPending || !isOnline}
-                  title={isOnline ? undefined : "Adding an amount entry requires an internet connection"}
-                >
-                  {addAmountEntry.isPending ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            </form>
+              amount={newEntryAmount}
+              onAmountChange={setNewEntryAmount}
+              date={newEntryPeriodDate}
+              onDateChange={setNewEntryPeriodDate}
+              dateAriaLabel="Period date"
+              notes={newEntryNotes}
+              onNotesChange={setNewEntryNotes}
+              onCancel={() => setShowAddAmountEntry(false)}
+              isPending={addAmountEntry.isPending}
+              isOnline={isOnline}
+              offlineTitle="Adding an amount entry requires an internet connection"
+            />
           )}
 
           {amountEntriesLoading && (
