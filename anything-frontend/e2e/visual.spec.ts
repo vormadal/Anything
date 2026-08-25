@@ -2087,7 +2087,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("new bill - default recurring state", async ({ page }) => {
     await page.goto("/bills/new");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText("Amount varies each period")).toBeVisible();
+    await expect(page.getByText("Amount varies")).toBeVisible();
     await expect(page).toHaveScreenshot("bill-new-recurring.png", screenshotOptions);
   });
 
@@ -2095,7 +2095,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/bills/new");
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "One-time" }).click();
-    await expect(page.getByText("Amount varies each period")).not.toBeVisible();
+    await expect(page.getByText("Amount varies")).not.toBeVisible();
     await expect(page).toHaveScreenshot("bill-new-onetime.png", screenshotOptions);
   });
 

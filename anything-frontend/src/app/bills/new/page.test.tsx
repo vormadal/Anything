@@ -79,18 +79,41 @@ describe('NewBillPage', () => {
     render(<NewBillPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Amount varies each period')).toBeInTheDocument()
+      expect(screen.getByText('Amount varies')).toBeInTheDocument()
     })
   })
 
-  it('should hide frequency and variable amount when One-time is selected', async () => {
+  it('should hide frequency, variable amount, and payment when One-time is selected', async () => {
     render(<NewBillPage />)
 
     await waitFor(() => expect(screen.getByText('One-time')).toBeInTheDocument())
     fireEvent.click(screen.getByText('One-time'))
 
     expect(screen.queryByLabelText('Frequency')).not.toBeInTheDocument()
-    expect(screen.queryByText('Amount varies each period')).not.toBeInTheDocument()
+    expect(screen.queryByText('Amount varies')).not.toBeInTheDocument()
+    expect(screen.queryByText('Payment')).not.toBeInTheDocument()
+    expect(screen.queryByText('Auto')).not.toBeInTheDocument()
+    expect(screen.queryByText('Manual')).not.toBeInTheDocument()
+  })
+
+  it('should show a Date field in place of Payment when One-time is selected', async () => {
+    render(<NewBillPage />)
+
+    await waitFor(() => expect(screen.getByText('One-time')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('One-time'))
+
+    expect(screen.getByLabelText('Date')).toBeInTheDocument()
+  })
+
+  it('should show Payment again when switching back to Recurring', async () => {
+    render(<NewBillPage />)
+
+    await waitFor(() => expect(screen.getByText('One-time')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('One-time'))
+    fireEvent.click(screen.getByText('Recurring'))
+
+    expect(screen.getByText('Payment')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Date')).not.toBeInTheDocument()
   })
 
   it('should submit isRecurring: false and Frequency: None for a one-time bill', async () => {

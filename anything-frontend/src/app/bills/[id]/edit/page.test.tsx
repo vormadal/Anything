@@ -139,11 +139,11 @@ describe('EditBillPage', () => {
     render(<EditBillPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Amount varies each period')).toBeInTheDocument()
+      expect(screen.getByText('Amount varies')).toBeInTheDocument()
     })
   })
 
-  it('should hide the frequency selector for a one-time bill', async () => {
+  it('should hide the frequency selector and payment toggle for a one-time bill', async () => {
     mockBillByIdGet.mockResolvedValue({ ...mockBill, frequency: 'None', isRecurring: false })
 
     render(<EditBillPage />)
@@ -151,7 +151,10 @@ describe('EditBillPage', () => {
     await waitFor(() => expect(screen.getByDisplayValue('Netflix')).toBeInTheDocument())
 
     expect(screen.queryByLabelText('Frequency')).not.toBeInTheDocument()
-    expect(screen.queryByText('Amount varies each period')).not.toBeInTheDocument()
+    expect(screen.queryByText('Amount varies')).not.toBeInTheDocument()
+    expect(screen.queryByText('Payment')).not.toBeInTheDocument()
+    expect(screen.queryByText('Auto')).not.toBeInTheDocument()
+    expect(screen.queryByText('Manual')).not.toBeInTheDocument()
   })
 
   it('should submit form and navigate back on success', async () => {

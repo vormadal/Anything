@@ -1,6 +1,7 @@
 "use client";
 
 import { PAYMENT_FREQUENCIES, FREQUENCY_LABELS } from "@/hooks/useBills";
+import { Switch } from "@/components/ui/switch";
 
 interface BillRecurrenceFieldsProps {
   /** Prefix for element ids (e.g. "bill" or "edit-bill") to keep ids unique per form. */
@@ -13,6 +14,13 @@ interface BillRecurrenceFieldsProps {
   onFrequencyChange: (value: string) => void;
   hasVariableAmount: boolean;
   onHasVariableAmountChange: (value: boolean) => void;
+  /**
+   * Date shown in place of the Payment toggle while one-time (Payment/Auto-
+   * Manual has no meaning for a bill that isn't recurring). Omit to leave
+   * that slot empty instead — e.g. the edit form has no date field to bind.
+   */
+  oneTimeDate?: string;
+  onOneTimeDateChange?: (value: string) => void;
 }
 
 /**
@@ -32,15 +40,14 @@ export function BillRecurrenceFields({
   onFrequencyChange,
   hasVariableAmount,
   onHasVariableAmountChange,
+  oneTimeDate,
+  onOneTimeDateChange,
 }: Readonly<BillRecurrenceFieldsProps>) {
   return (
     <>
-      {/* Recurring + Automated */}
+      {/* Recurring + Automated (or a Date, while one-time) */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Recurs
-          </p>
           <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
             <button
               type="button"
@@ -66,35 +73,52 @@ export function BillRecurrenceFields({
             </button>
           </div>
         </div>
-        <div>
-          <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Payment
-          </p>
-          <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => onIsAutomatedChange(true)}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                isAutomated
-                  ? "bg-green-600 text-white"
-                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-              }`}
-            >
-              Auto
-            </button>
-            <button
-              type="button"
-              onClick={() => onIsAutomatedChange(false)}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                !isAutomated
-                  ? "bg-orange-500 text-white"
-                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-              }`}
-            >
-              Manual
-            </button>
+        {isRecurring ? (
+          <div>
+            <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Payment
+            </p>
+            <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => onIsAutomatedChange(true)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  isAutomated
+                    ? "bg-green-600 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                }`}
+              >
+                Auto
+              </button>
+              <button
+                type="button"
+                onClick={() => onIsAutomatedChange(false)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  !isAutomated
+                    ? "bg-orange-500 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                }`}
+              >
+                Manual
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          onOneTimeDateChange && (
+            <div>
+              <label htmlFor={`${idPrefix}-one-time-date`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Date
+              </label>
+              <input
+                id={`${idPrefix}-one-time-date`}
+                type="date"
+                value={oneTimeDate}
+                onChange={(e) => onOneTimeDateChange(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )
+        )}
       </div>
 
       {/* Frequency + Variable amount (only meaningful for recurring bills) */}
@@ -118,16 +142,16 @@ export function BillRecurrenceFields({
             </select>
           </div>
           <div className="flex items-end pb-2">
-            <label htmlFor={`${idPrefix}-variable-amount`} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-              <input
+            <div className="flex items-center gap-2">
+              <Switch
                 id={`${idPrefix}-variable-amount`}
-                type="checkbox"
                 checked={hasVariableAmount}
-                onChange={(e) => onHasVariableAmountChange(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                onCheckedChange={onHasVariableAmountChange}
               />
-              Amount varies each period
-            </label>
+              <label htmlFor={`${idPrefix}-variable-amount`} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                Amount varies
+              </label>
+            </div>
           </div>
         </div>
       )}
