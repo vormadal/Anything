@@ -137,6 +137,17 @@ describe('BillDetailPage', () => {
     })
   })
 
+  it('should show the category as a chip without a redundant "Category" label', async () => {
+    mockBillByIdGet.mockResolvedValue(mockBill)
+    mockPriceHistoryGet.mockResolvedValue([])
+
+    render(<BillDetailPage />)
+
+    await waitFor(() => expect(screen.getByText('Streaming')).toBeInTheDocument())
+
+    expect(screen.queryByText('Category')).not.toBeInTheDocument()
+  })
+
   it('should display vendor website link when vendorWebsite is safe', async () => {
     mockBillByIdGet.mockResolvedValue(mockBill)
     mockPriceHistoryGet.mockResolvedValue([])

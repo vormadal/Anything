@@ -2084,19 +2084,20 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("bills-empty.png", screenshotOptions);
   });
 
-  test("new bill - default recurring state", async ({ page }) => {
+  test("new bill - default one-time state", async ({ page }) => {
     await page.goto("/bills/new");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText("Amount varies")).toBeVisible();
-    await expect(page).toHaveScreenshot("bill-new-recurring.png", screenshotOptions);
-  });
-
-  test("new bill - one-time state hides frequency", async ({ page }) => {
-    await page.goto("/bills/new");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: "One-time" }).click();
+    await expect(page.getByRole("button", { name: "One-time" })).toHaveClass(/bg-gray-600/);
     await expect(page.getByText("Amount varies")).not.toBeVisible();
     await expect(page).toHaveScreenshot("bill-new-onetime.png", screenshotOptions);
+  });
+
+  test("new bill - recurring state shows frequency", async ({ page }) => {
+    await page.goto("/bills/new");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Recurring" }).click();
+    await expect(page.getByText("Amount varies")).toBeVisible();
+    await expect(page).toHaveScreenshot("bill-new-recurring.png", screenshotOptions);
   });
 
   test("edit bill - recurring form pre-filled", async ({ page }) => {

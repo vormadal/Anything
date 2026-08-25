@@ -238,7 +238,12 @@ export default function BillDetailPage() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap justify-end">
+            {bill.category && (
+              <span className="px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-medium">
+                {bill.category}
+              </span>
+            )}
             {bill.isAutomated ? (
               <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium">
                 <Zap className="h-3 w-3" />
@@ -279,12 +284,6 @@ export default function BillDetailPage() {
             <>
               <span className="text-gray-500 dark:text-gray-400">Location</span>
               <span className="text-gray-900 dark:text-white">{bill.locationName}</span>
-            </>
-          )}
-          {bill.category && (
-            <>
-              <span className="text-gray-500 dark:text-gray-400">Category</span>
-              <span className="text-gray-900 dark:text-white">{bill.category}</span>
             </>
           )}
           {bill.managementUrl && isSafeUrl(bill.managementUrl) && (

@@ -27,7 +27,7 @@ export default function NewBillPage() {
   const [vendorId, setVendorId] = useState<number | undefined>(undefined);
   const [frequency, setFrequency] = useState<string>("Monthly");
   const [isAutomated, setIsAutomated] = useState(true);
-  const [isRecurring, setIsRecurring] = useState(true);
+  const [isRecurring, setIsRecurring] = useState(false);
   const [hasVariableAmount, setHasVariableAmount] = useState(false);
   const [locationId, setLocationId] = useState<number | undefined>(undefined);
   const [managementUrl, setManagementUrl] = useState("");
@@ -96,34 +96,6 @@ export default function NewBillPage() {
           />
         </div>
 
-        {/* Current price — leads the schedule fields below since "how much" is what
-            most people have in hand when adding a bill; "how often" follows naturally. */}
-        <div>
-          <label htmlFor="bill-initial-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Current price
-          </label>
-          <div className="flex gap-2">
-            <input
-              id="bill-initial-amount"
-              type="number"
-              value={initialAmount}
-              onChange={(e) => setInitialAmount(e.target.value)}
-              placeholder="0.00"
-              min="0.01"
-              step="0.01"
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {initialAmount && isRecurring && (
-              <input
-                type="date"
-                value={initialDate}
-                onChange={(e) => setInitialDate(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            )}
-          </div>
-        </div>
-
         <BillRecurrenceFields
           idPrefix="bill"
           isRecurring={isRecurring}
@@ -134,8 +106,10 @@ export default function NewBillPage() {
           onFrequencyChange={setFrequency}
           hasVariableAmount={hasVariableAmount}
           onHasVariableAmountChange={setHasVariableAmount}
-          oneTimeDate={initialDate}
-          onOneTimeDateChange={setInitialDate}
+          amount={initialAmount}
+          onAmountChange={setInitialAmount}
+          date={initialDate}
+          onDateChange={setInitialDate}
         />
 
         {/* Vendor */}
