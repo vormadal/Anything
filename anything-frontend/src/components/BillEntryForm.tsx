@@ -21,11 +21,11 @@ interface BillEntryFormProps {
 }
 
 /**
- * Inline "quick add" form shared by the price-history and amount-entries
- * sections of the bill detail page: amount + date, optional extra fields,
- * notes, then Cancel/Save. Both sections have the same shape (an amount tied
- * to a date, plus a note) — this keeps them from drifting apart in copy or
- * behavior as one changes.
+ * Inline "quick add" form used by the bill detail page's price-history
+ * section: amount + date, optional extra fields (e.g. an end date), notes,
+ * then Cancel/Save. Split out on its own (rather than inlined into
+ * BillPriceHistorySection) so a second amount-tied-to-a-date entry point
+ * doesn't have to duplicate this shape if one is ever added.
  */
 export function BillEntryForm({
   onSubmit,

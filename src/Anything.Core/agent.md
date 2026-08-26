@@ -4,7 +4,7 @@ Domain layer — zero external dependencies. Everything else depends on this; th
 
 ## Structure
 
-- `Entities/` — 30 domain models (e.g., `Bill`, `Recipe`, `ShoppingList`, `User`, `Household`, `SearchDocument`)
+- `Entities/` — 34 domain models (e.g., `Bill`, `Recipe`, `ShoppingList`, `User`, `Household`, `SearchDocument`)
   - Enums live here too: `ListType`, `PaymentFrequency`, `ServingsType`
 - `Repositories/` — `IRepository<T>`, `IUnitOfWork` (abstractions only)
 - `Services/` — `IHouseholdContext`, `IImageStorageService`, `IPasswordService`, `ITokenService`, `ISearchIndexService`
