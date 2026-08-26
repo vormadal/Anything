@@ -7,6 +7,7 @@ Shared utilities and the generated API client.
 - `apiClient.ts` — configures and exports the Kiota `apiClient` instance; also re-exports `ApiError` (use for catching HTTP errors with `err.responseStatusCode`)
 - `api-client/` — **auto-generated** Kiota client from the backend OpenAPI spec; do not edit manually
   - Regenerate with `npm run generate:api` (API must be running); in practice the `update-api-client` workflow regenerates and commits it — see CLAUDE.md → CI Automation & Deployment
+  - `generate:api` passes `--clean-output`, so a removed/renamed backend route's old folder here disappears on the next regeneration rather than lingering as dead code — see CLAUDE.md's kiota gotcha for what that surfaced
   - Import types from `@/lib/api-client/models/index`
 - `../../public/tesseract/` + `public/tessdata/` — OCR assets for the scan-from-photo flow (tesseract.js): the worker/WASM cores in `public/tesseract/` are gitignored and copied from `node_modules` by `scripts/copy-tesseract-assets.mjs` via the `predev`/`prebuild` hooks; the gzipped `tessdata_fast` models in `public/tessdata/` are committed. If OCR fails with 404s on `/tesseract/*`, run `npm run copy:tesseract`.
 - `foodPlanUtils.ts` — date/slot helpers for the food plan calendar
