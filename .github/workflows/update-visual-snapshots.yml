@@ -66,5 +66,6 @@ jobs:
           echo "No snapshot changes to commit"
         else
           git commit -m "chore: update visual snapshots [skip ci]"
+          git pull --rebase --autostash origin ${{ github.ref_name }}
           git push origin HEAD:${{ github.ref_name }}
         fi
