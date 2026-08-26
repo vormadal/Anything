@@ -216,6 +216,23 @@ network mode, so offline an embed shows persisted items if the list was opened
 before and a fallback message if it wasn't. No backend change was needed for any
 of this: `NoteContent.ExtractPlainText` already flattens any node's `attrs.label`.
 
+Bills (`/api/bills`) — household-scoped subscriptions/expenses (`Bill`), each optionally
+tracking `BillPriceHistory` (price over time, `EffectiveDate`/optional `EndDate` ranges,
+overlap-validated with a 409 on conflict) and `BillAttachment`s (receipts/contracts, the
+same shared-table pattern as inventory attachments). `Bill.IsRecurring` drives a single
+invariant enforced identically in `CreateBillCommand`/`UpdateBillCommand` and the
+frontend's `BillRecurrenceFields`: non-recurring forces `Frequency: None`. A bill's
+`CurrentAmount`/`MonthlyEquivalent` (`BillHelpers.ToBillResponse`) and every spend total
+(`GetBillSummaryQuery`, the bills-list and home-card totals) are always derived from the
+*latest* `BillPriceHistory` entry — there is deliberately no second "amount actually
+paid" log alongside it (a `BillAmountEntry` attempt at that was removed: it never fed
+these numbers, so it read as a second, disconnected log rather than a genuinely
+different concept — see `src/Anything.Core/Entities/BillPriceHistory.cs` and
+`anything-frontend/src/components/agent.md`'s "Bills detail page" section before
+reintroducing anything like it). `bills/[id]/page.tsx`'s summary card shows a category as
+a plain chip (no "Category:" label — the value already reads as one, the way "Auto"/
+"Manual" do) rather than in the label/value metadata grid.
+
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
 - `GET /{id}` — Get by ID
