@@ -4,8 +4,6 @@
 // @ts-ignore
 import { createBillResponseFromDiscriminatorValue, createHttpValidationProblemDetailsFromDiscriminatorValue, serializeUpdateBillRequest, type BillResponse, type HttpValidationProblemDetails, type UpdateBillRequest } from '../../../models/index';
 // @ts-ignore
-import { AmountEntriesRequestBuilderRequestsMetadata, type AmountEntriesRequestBuilder } from './amountEntries/index';
-// @ts-ignore
 import { AttachmentsRequestBuilderNavigationMetadata, AttachmentsRequestBuilderRequestsMetadata, type AttachmentsRequestBuilder } from './attachments/index';
 // @ts-ignore
 import { PriceHistoryRequestBuilderNavigationMetadata, PriceHistoryRequestBuilderRequestsMetadata, type PriceHistoryRequestBuilder } from './priceHistory/index';
@@ -16,10 +14,6 @@ import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type 
  * Builds and executes requests for operations under /api/bills/{id}
  */
 export interface BillsItemRequestBuilder extends BaseRequestBuilder<BillsItemRequestBuilder> {
-    /**
-     * The amountEntries property
-     */
-    get amountEntries(): AmountEntriesRequestBuilder;
     /**
      * The attachments property
      */
@@ -68,9 +62,6 @@ export const BillsItemRequestBuilderUriTemplate = "{+baseurl}/api/bills/{id}";
  * Metadata for all the navigation properties in the request builder.
  */
 export const BillsItemRequestBuilderNavigationMetadata: Record<Exclude<keyof BillsItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-    amountEntries: {
-        requestsMetadata: AmountEntriesRequestBuilderRequestsMetadata,
-    },
     attachments: {
         requestsMetadata: AttachmentsRequestBuilderRequestsMetadata,
         navigationMetadata: AttachmentsRequestBuilderNavigationMetadata,
