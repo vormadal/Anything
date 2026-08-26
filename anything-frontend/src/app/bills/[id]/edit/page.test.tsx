@@ -63,7 +63,6 @@ const mockBill = {
   category: 'Streaming',
   notes: 'Family plan',
   isRecurring: true,
-  hasVariableAmount: false,
   currentAmount: 99,
   monthlyEquivalent: 99,
   priceIncreased: false,
@@ -133,13 +132,13 @@ describe('EditBillPage', () => {
     })
   })
 
-  it('should show the variable amount checkbox for a recurring bill', async () => {
+  it('should show the frequency and payment fields for a recurring bill', async () => {
     mockBillByIdGet.mockResolvedValue(mockBill)
 
     render(<EditBillPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Amount varies')).toBeInTheDocument()
+      expect(screen.getByText('Payment')).toBeInTheDocument()
     })
   })
 
@@ -151,7 +150,6 @@ describe('EditBillPage', () => {
     await waitFor(() => expect(screen.getByDisplayValue('Netflix')).toBeInTheDocument())
 
     expect(screen.queryByLabelText('Frequency')).not.toBeInTheDocument()
-    expect(screen.queryByText('Amount varies')).not.toBeInTheDocument()
     expect(screen.queryByText('Payment')).not.toBeInTheDocument()
     expect(screen.queryByText('Auto')).not.toBeInTheDocument()
     expect(screen.queryByText('Manual')).not.toBeInTheDocument()

@@ -41,7 +41,6 @@ public static class BillEndpoints
                 request.Category,
                 request.Notes,
                 request.IsRecurring,
-                request.HasVariableAmount,
                 request.InitialAmount,
                 request.InitialEffectiveDate)))
             .WithName("CreateBill")
@@ -61,8 +60,7 @@ public static class BillEndpoints
                 request.ManagementUrl,
                 request.Category,
                 request.Notes,
-                request.IsRecurring,
-                request.HasVariableAmount)))
+                request.IsRecurring)))
             .WithName("UpdateBill")
             .Produces(204)
             .Produces(400)
@@ -112,22 +110,6 @@ public static class BillEndpoints
             .WithName("DeleteBillPrice")
             .Produces(204)
             .Produces(404)
-            .RequireAuthorization();
-
-        group.MapGet("/{id}/amount-entries", async (int id, IMediator mediator) =>
-            await mediator.Send(new GetBillAmountEntriesQuery(id)))
-            .WithName("GetBillAmountEntries")
-            .Produces<BillAmountEntryResponse[]>()
-            .Produces(404)
-            .RequireAuthorization();
-
-        group.MapPost("/{id}/amount-entries", async (int id, AddBillAmountEntryRequest request, IMediator mediator) =>
-            await mediator.Send(new AddBillAmountEntryCommand(
-                id, request.Amount, request.PeriodDate, request.Notes)))
-            .WithName("AddBillAmountEntry")
-            .Produces<BillAmountEntryResponse>(StatusCodes.Status201Created)
-            .Produces(404)
-            .WithParameterValidation()
             .RequireAuthorization();
 
         group.MapGet("/{id}/attachments", async (int id, IMediator mediator) =>

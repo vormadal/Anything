@@ -142,15 +142,13 @@ const emptyBillSummary = {
   totalCurrentYearAmount: 0,
 };
 
-// A recurring, variable-amount bill — exercises the "Amount entries" section
-// and a price-history entry with an EndDate range.
-const mockVariableBill = {
+// A recurring bill with a price-history entry that has an EndDate range.
+const mockRecurringBillWithPriceRange = {
   id: 5,
   name: "Electricity",
   frequency: "Monthly",
   isAutomated: true,
   isRecurring: true,
-  hasVariableAmount: true,
   currentAmount: 92.3,
   monthlyEquivalent: 92.3,
   priceIncreased: false,
@@ -165,7 +163,7 @@ const mockVariableBill = {
   modifiedOn: null,
 };
 
-const mockVariableBillPriceHistory = [
+const mockBillPriceRangeHistory = [
   {
     id: 1,
     billId: 5,
@@ -175,27 +173,6 @@ const mockVariableBillPriceHistory = [
     notes: null,
     previousAmount: null,
     createdOn: "2025-01-01T00:00:00Z",
-    modifiedOn: null,
-  },
-];
-
-const mockBillAmountEntries = [
-  {
-    id: 1,
-    billId: 5,
-    amount: 85.5,
-    periodDate: "2025-11-01T00:00:00Z",
-    notes: "November usage",
-    createdOn: "2025-11-01T00:00:00Z",
-    modifiedOn: null,
-  },
-  {
-    id: 2,
-    billId: 5,
-    amount: 92.3,
-    periodDate: "2025-12-01T00:00:00Z",
-    notes: "December usage",
-    createdOn: "2025-12-01T00:00:00Z",
     modifiedOn: null,
   },
 ];
@@ -2088,7 +2065,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/bills/new");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("button", { name: "One-time" })).toHaveClass(/bg-gray-600/);
-    await expect(page.getByText("Amount varies")).not.toBeVisible();
+    await expect(page.getByLabel("Frequency")).not.toBeVisible();
     await expect(page).toHaveScreenshot("bill-new-onetime.png", screenshotOptions);
   });
 
@@ -2096,13 +2073,13 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/bills/new");
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "Recurring" }).click();
-    await expect(page.getByText("Amount varies")).toBeVisible();
+    await expect(page.getByLabel("Frequency")).toBeVisible();
     await expect(page).toHaveScreenshot("bill-new-recurring.png", screenshotOptions);
   });
 
   test("edit bill - recurring form pre-filled", async ({ page }) => {
     await page.route(/\/api\/bills\/5$/, (route) =>
-      route.fulfill({ json: mockVariableBill })
+      route.fulfill({ json: mockRecurringBillWithPriceRange })
     );
     await page.goto("/bills/5/edit");
     await page.waitForLoadState("networkidle");
@@ -2110,23 +2087,20 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("bill-edit.png", screenshotOptions);
   });
 
-  test("bill detail - variable amount with price range and amount entries", async ({ page }) => {
+  test("bill detail - price history with a date range", async ({ page }) => {
     await page.route(/\/api\/bills\/5$/, (route) =>
-      route.fulfill({ json: mockVariableBill })
+      route.fulfill({ json: mockRecurringBillWithPriceRange })
     );
     await page.route(/\/api\/bills\/5\/price-history/, (route) =>
-      route.fulfill({ json: mockVariableBillPriceHistory })
-    );
-    await page.route(/\/api\/bills\/5\/amount-entries/, (route) =>
-      route.fulfill({ json: mockBillAmountEntries })
+      route.fulfill({ json: mockBillPriceRangeHistory })
     );
     await page.route(/\/api\/bills\/5\/attachments/, (route) =>
       route.fulfill({ json: [] })
     );
     await page.goto("/bills/5");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText("Amount entries")).toBeVisible();
-    await expect(page).toHaveScreenshot("bill-detail-variable-amount.png", screenshotOptions);
+    await expect(page.getByText(/–/)).toBeVisible();
+    await expect(page).toHaveScreenshot("bill-detail-price-range.png", screenshotOptions);
   });
 
   // ---- Food Plans ----

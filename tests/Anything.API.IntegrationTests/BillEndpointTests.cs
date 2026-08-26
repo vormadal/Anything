@@ -269,59 +269,6 @@ public class BillEndpointTests : IntegrationTestBase
         Assert.Equal("None", bill.Frequency);
     }
 
-    // --- Amount Entries ---
-
-    [Fact]
-    public async Task AmountEntries_AddAndList_WorksCorrectly()
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
-        var bill = await CreateBillAsync("Electric", "Monthly", false);
-
-        var januaryPayload = new
-        {
-            amount = 45.50m,
-            periodDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            notes = "January"
-        };
-        var januaryResponse = await client.PostAsJsonAsync($"/api/bills/{bill.Id}/amount-entries", januaryPayload, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, januaryResponse.StatusCode);
-
-        var februaryPayload = new
-        {
-            amount = 52.25m,
-            periodDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc),
-            notes = "February"
-        };
-        var februaryResponse = await client.PostAsJsonAsync($"/api/bills/{bill.Id}/amount-entries", februaryPayload, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, februaryResponse.StatusCode);
-        var created = await februaryResponse.Content.ReadFromJsonAsync<AmountEntryDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(created);
-        Assert.Equal(52.25m, created.Amount);
-        Assert.Equal("February", created.Notes);
-
-        var listResponse = await client.GetAsync($"/api/bills/{bill.Id}/amount-entries", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
-        var entries = await listResponse.Content.ReadFromJsonAsync<AmountEntryDto[]>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(entries);
-        Assert.Equal(2, entries.Length);
-        // Ordered descending by PeriodDate
-        Assert.Equal(52.25m, entries[0].Amount);
-        Assert.Equal(45.50m, entries[1].Amount);
-    }
-
-    [Fact]
-    public async Task AmountEntries_NotFound_WhenBillDoesNotExist()
-    {
-        var client = await GetAuthenticatedHttpClientAsync();
-
-        var listResponse = await client.GetAsync("/api/bills/99999/amount-entries", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, listResponse.StatusCode);
-
-        var addPayload = new { amount = 10m, periodDate = DateTime.UtcNow };
-        var addResponse = await client.PostAsJsonAsync("/api/bills/99999/amount-entries", addPayload, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, addResponse.StatusCode);
-    }
-
     // --- Price History Date Ranges ---
 
     [Fact]
@@ -386,6 +333,5 @@ public class BillEndpointTests : IntegrationTestBase
     private record BillDto(int Id, string? Name, string? Frequency, bool IsAutomated, decimal? CurrentAmount, decimal? MonthlyEquivalent);
     private record SummaryDto(int TotalBills, decimal TotalMonthlyEquivalent, int AutomatedCount, int ManualCount, decimal TotalCurrentMonthAmount, decimal TotalCurrentYearAmount);
     private record AttachmentDto(int Id, int BillId, string Name, string ContentType, string Url, string? ThumbnailUrl, DateTime CreatedOn);
-    private record AmountEntryDto(int Id, int BillId, decimal Amount, DateTime PeriodDate, string? Notes, DateTime CreatedOn, DateTime? ModifiedOn);
     private record PriceHistoryDto(int Id, int BillId, decimal Amount, DateTime EffectiveDate, DateTime? EndDate, string? Notes, decimal? PreviousAmount, DateTime CreatedOn, DateTime? ModifiedOn);
 }

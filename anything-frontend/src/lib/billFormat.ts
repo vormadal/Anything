@@ -1,6 +1,6 @@
 /**
  * Currency/date formatting shared by the bill detail page and the
- * BillHistorySection it renders — kept in one place so the two never
+ * BillPriceHistorySection it renders — kept in one place so the two never
  * format the same amount differently.
  */
 export function formatCurrency(amount: number): string {

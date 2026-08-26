@@ -1,7 +1,6 @@
 "use client";
 
 import { PAYMENT_FREQUENCIES, FREQUENCY_LABELS } from "@/hooks/useBills";
-import { Switch } from "@/components/ui/switch";
 
 interface BillRecurrenceFieldsProps {
   /** Prefix for element ids (e.g. "bill" or "edit-bill") to keep ids unique per form. */
@@ -12,8 +11,6 @@ interface BillRecurrenceFieldsProps {
   onIsAutomatedChange: (value: boolean) => void;
   frequency: string;
   onFrequencyChange: (value: string) => void;
-  hasVariableAmount: boolean;
-  onHasVariableAmountChange: (value: boolean) => void;
   /**
    * The bill's initial Amount + Date, shown directly under the Recurring/
    * One-time toggle regardless of which is selected. Omit both to leave that
@@ -29,10 +26,9 @@ interface BillRecurrenceFieldsProps {
 
 /**
  * Recurring/One-time toggle, the optional Amount + Date row beneath it, and
- * — only while recurring — "Amount varies" followed by Frequency + Payment.
- * Shared by the new-bill and edit-bill forms so the two never drift out of
- * sync with each other or with the backend's recurrence invariant
- * (non-recurring => Frequency: None, HasVariableAmount: false).
+ * — only while recurring — Frequency + Payment. Shared by the new-bill and
+ * edit-bill forms so the two never drift out of sync with each other or with
+ * the backend's recurrence invariant (non-recurring => Frequency: None).
  */
 export function BillRecurrenceFields({
   idPrefix,
@@ -42,8 +38,6 @@ export function BillRecurrenceFields({
   onIsAutomatedChange,
   frequency,
   onFrequencyChange,
-  hasVariableAmount,
-  onHasVariableAmountChange,
   amount,
   onAmountChange,
   date,
@@ -111,69 +105,56 @@ export function BillRecurrenceFields({
         </div>
       )}
 
-      {/* Amount varies, then Frequency + Payment — only meaningful for recurring bills */}
+      {/* Frequency + Payment — only meaningful for recurring bills */}
       {isRecurring && (
-        <>
-          <div className="flex items-center gap-2">
-            <Switch
-              id={`${idPrefix}-variable-amount`}
-              checked={hasVariableAmount}
-              onCheckedChange={onHasVariableAmountChange}
-            />
-            <label htmlFor={`${idPrefix}-variable-amount`} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-              Amount varies
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor={`${idPrefix}-frequency`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Frequency
             </label>
+            <select
+              id={`${idPrefix}-frequency`}
+              value={frequency}
+              onChange={(e) => onFrequencyChange(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {PAYMENT_FREQUENCIES.filter((f) => f !== "None").map((f) => (
+                <option key={f} value={f}>
+                  {FREQUENCY_LABELS[f]}
+                </option>
+              ))}
+            </select>
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor={`${idPrefix}-frequency`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Frequency
-              </label>
-              <select
-                id={`${idPrefix}-frequency`}
-                value={frequency}
-                onChange={(e) => onFrequencyChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <div>
+            <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Payment
+            </p>
+            <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => onIsAutomatedChange(true)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  isAutomated
+                    ? "bg-green-600 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                }`}
               >
-                {PAYMENT_FREQUENCIES.filter((f) => f !== "None").map((f) => (
-                  <option key={f} value={f}>
-                    {FREQUENCY_LABELS[f]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Payment
-              </p>
-              <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => onIsAutomatedChange(true)}
-                  className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                    isAutomated
-                      ? "bg-green-600 text-white"
-                      : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-                  }`}
-                >
-                  Auto
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onIsAutomatedChange(false)}
-                  className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                    !isAutomated
-                      ? "bg-orange-500 text-white"
-                      : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-                  }`}
-                >
-                  Manual
-                </button>
-              </div>
+                Auto
+              </button>
+              <button
+                type="button"
+                onClick={() => onIsAutomatedChange(false)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  !isAutomated
+                    ? "bg-orange-500 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                }`}
+              >
+                Manual
+              </button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </>
   );

@@ -18,7 +18,6 @@ public record CreateBillRequest(
     [StringLength(1000, ErrorMessage = "Notes must be at most 1000 characters.")]
     string? Notes = null,
     bool IsRecurring = false,
-    bool HasVariableAmount = false,
     [Range(0.01, double.MaxValue, ErrorMessage = "Initial amount must be greater than 0.")]
     decimal? InitialAmount = null,
     DateTime? InitialEffectiveDate = null);

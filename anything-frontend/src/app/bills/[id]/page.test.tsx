@@ -1,5 +1,5 @@
 import React from 'react'
-import { screen, waitFor, fireEvent, within } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { render } from '@/__tests__/utils/test-utils'
 import BillDetailPage from './page'
 
@@ -13,8 +13,6 @@ const mockPriceHistoryById: jest.Mock = jest.fn(() => ({
   put: jest.fn(),
   delete: mockPriceHistoryByIdDelete,
 }))
-const mockAmountEntriesGet = jest.fn()
-const mockAmountEntriesPost = jest.fn()
 const mockBillById: jest.Mock = jest.fn(() => ({
   get: mockBillByIdGet,
   put: jest.fn(),
@@ -23,10 +21,6 @@ const mockBillById: jest.Mock = jest.fn(() => ({
     get: mockPriceHistoryGet,
     post: mockPriceHistoryPost,
     byId: mockPriceHistoryById,
-  },
-  amountEntries: {
-    get: mockAmountEntriesGet,
-    post: mockAmountEntriesPost,
   },
 }))
 
@@ -315,108 +309,6 @@ describe('BillDetailPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/–/)).toBeInTheDocument()
-    })
-  })
-
-  it('should not show the Amount entries tab for a fixed-amount bill', async () => {
-    mockBillByIdGet.mockResolvedValue(mockBill)
-    mockPriceHistoryGet.mockResolvedValue([])
-
-    render(<BillDetailPage />)
-
-    await waitFor(() => expect(screen.getByText('History')).toBeInTheDocument())
-
-    expect(screen.queryByText('Amount entries')).not.toBeInTheDocument()
-  })
-
-  it('should show the Amount entries section with entries for a variable-amount bill', async () => {
-    const variableBill = { ...mockBill, hasVariableAmount: true }
-    mockBillByIdGet.mockResolvedValue(variableBill)
-    mockPriceHistoryGet.mockResolvedValue([])
-    mockAmountEntriesGet.mockResolvedValue([
-      { id: 1, billId: 1, amount: 45.5, periodDate: '2025-01-01T00:00:00Z', notes: 'January', createdOn: '2025-01-01T00:00:00Z' },
-    ])
-
-    render(<BillDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Amount entries')).toBeInTheDocument()
-      expect(screen.getByText(/January/)).toBeInTheDocument()
-    })
-  })
-
-  it('should default to the Amount entries tab and show their average', async () => {
-    const variableBill = { ...mockBill, hasVariableAmount: true }
-    mockBillByIdGet.mockResolvedValue(variableBill)
-    mockPriceHistoryGet.mockResolvedValue(mockPriceHistory)
-    mockAmountEntriesGet.mockResolvedValue([
-      { id: 1, billId: 1, amount: 40, periodDate: '2025-01-01T00:00:00Z', createdOn: '2025-01-01T00:00:00Z' },
-      { id: 2, billId: 1, amount: 60, periodDate: '2025-02-01T00:00:00Z', createdOn: '2025-02-01T00:00:00Z' },
-    ])
-
-    render(<BillDetailPage />)
-
-    // Both price history and amount entries exist for this bill, but only one
-    // is visible at a time — the average confirms the amount-entries tab (not
-    // price history) is the one showing by default.
-    await waitFor(() => {
-      expect(screen.getByText(/Average.*over 2 entries/)).toBeInTheDocument()
-    })
-    expect(screen.queryByText('No price entries yet.')).not.toBeInTheDocument()
-  })
-
-  it('should switch to the Price history tab and hide amount entries', async () => {
-    const variableBill = { ...mockBill, hasVariableAmount: true }
-    mockBillByIdGet.mockResolvedValue(variableBill)
-    mockPriceHistoryGet.mockResolvedValue(mockPriceHistory)
-    mockAmountEntriesGet.mockResolvedValue([
-      { id: 1, billId: 1, amount: 45.5, periodDate: '2025-01-01T00:00:00Z', notes: 'January', createdOn: '2025-01-01T00:00:00Z' },
-    ])
-
-    render(<BillDetailPage />)
-
-    await waitFor(() => expect(screen.getByText(/January/)).toBeInTheDocument())
-
-    fireEvent.click(screen.getByText('Price history'))
-
-    await waitFor(() => expect(screen.queryByText(/January/)).not.toBeInTheDocument())
-  })
-
-  it('should show empty amount entries message when none exist', async () => {
-    const variableBill = { ...mockBill, hasVariableAmount: true }
-    mockBillByIdGet.mockResolvedValue(variableBill)
-    mockPriceHistoryGet.mockResolvedValue([])
-    mockAmountEntriesGet.mockResolvedValue([])
-
-    render(<BillDetailPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('No amount entries yet.')).toBeInTheDocument()
-    })
-  })
-
-  it('should add an amount entry via the inline form', async () => {
-    const variableBill = { ...mockBill, hasVariableAmount: true }
-    mockBillByIdGet.mockResolvedValue(variableBill)
-    mockPriceHistoryGet.mockResolvedValue([])
-    mockAmountEntriesGet.mockResolvedValue([])
-    mockAmountEntriesPost.mockResolvedValue({ id: 2, billId: 1, amount: 60, periodDate: '2025-02-01T00:00:00Z', createdOn: '2025-02-01T00:00:00Z' })
-
-    render(<BillDetailPage />)
-
-    await waitFor(() => expect(screen.getByText('Amount entries')).toBeInTheDocument())
-
-    const amountEntriesSection = screen.getByText('Amount entries').closest('div')!.parentElement!
-    fireEvent.click(within(amountEntriesSection).getByText('Add entry'))
-
-    fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '60' } })
-
-    const form = screen.getByPlaceholderText('Notes (optional)').closest('form')
-    expect(form).toBeTruthy()
-    if (form) fireEvent.submit(form)
-
-    await waitFor(() => {
-      expect(mockAmountEntriesPost).toHaveBeenCalledWith(expect.objectContaining({ amount: 60 }))
     })
   })
 

@@ -40,7 +40,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<Bill> Bills => Set<Bill>();
     public DbSet<BillPriceHistory> BillPriceHistories => Set<BillPriceHistory>();
-    public DbSet<BillAmountEntry> BillAmountEntries => Set<BillAmountEntry>();
     public DbSet<BillAttachment> BillAttachments => Set<BillAttachment>();
     public DbSet<HomeCardPreference> HomeCardPreferences => Set<HomeCardPreference>();
     public DbSet<SearchDocument> SearchDocuments => Set<SearchDocument>();

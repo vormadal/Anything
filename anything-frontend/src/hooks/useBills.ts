@@ -7,7 +7,6 @@ import type {
   CreateBillRequest,
   UpdateBillRequest,
   AddBillPriceRequest,
-  AddBillAmountEntryRequest,
   BillAttachmentResponse,
 } from "@/lib/api-client/models/index";
 
@@ -57,7 +56,6 @@ export interface BillResponse {
   category?: string;
   notes?: string;
   isRecurring: boolean;
-  hasVariableAmount: boolean;
   currentAmount?: number;
   monthlyEquivalent?: number;
   priceIncreased: boolean;
@@ -82,16 +80,6 @@ export interface BillPriceHistoryResponse {
   endDate?: string;
   notes?: string;
   previousAmount?: number;
-  createdOn: string;
-  modifiedOn?: string;
-}
-
-export interface BillAmountEntryResponse {
-  id: number;
-  billId: number;
-  amount: number;
-  periodDate: string;
-  notes?: string;
   createdOn: string;
   modifiedOn?: string;
 }
@@ -140,17 +128,6 @@ export function useBillPriceHistory(billId: number) {
   });
 }
 
-export function useBillAmountEntries(billId: number) {
-  return useQuery({
-    queryKey: ["billAmountEntries", billId],
-    queryFn: () =>
-      apiClient.api.bills
-        .byId(billId)
-        .amountEntries.get() as unknown as Promise<BillAmountEntryResponse[]>,
-    enabled: !!billId,
-  });
-}
-
 export function useBillAttachments(billId: number) {
   return useQuery({
     queryKey: ["billAttachments", billId],
@@ -173,7 +150,6 @@ export function useCreateBill() {
       category?: string;
       notes?: string;
       isRecurring: boolean;
-      hasVariableAmount?: boolean;
       initialAmount?: number;
       initialEffectiveDate?: string;
     }) => {
@@ -187,7 +163,6 @@ export function useCreateBill() {
         category: data.category ?? null,
         notes: data.notes ?? null,
         isRecurring: data.isRecurring,
-        hasVariableAmount: data.hasVariableAmount ?? false,
         initialAmount: data.initialAmount ?? null,
         initialEffectiveDate: data.initialEffectiveDate ? new Date(data.initialEffectiveDate) : null,
       };
@@ -214,7 +189,6 @@ export function useUpdateBill() {
       category?: string;
       notes?: string;
       isRecurring: boolean;
-      hasVariableAmount?: boolean;
     }) => {
       const body: UpdateBillRequest = {
         name: data.name,
@@ -226,7 +200,6 @@ export function useUpdateBill() {
         category: data.category ?? null,
         notes: data.notes ?? null,
         isRecurring: data.isRecurring,
-        hasVariableAmount: data.hasVariableAmount ?? false,
       };
       return apiClient.api.bills.byId(data.id).put(body);
     },
@@ -290,28 +263,6 @@ export function useDeleteBillPrice() {
       queryClient.invalidateQueries({ queryKey: ["bill", variables.billId] });
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["billSummary"] });
-    },
-  });
-}
-
-export function useAddBillAmountEntry() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      billId: number;
-      amount: number;
-      periodDate: string;
-      notes?: string;
-    }) => {
-      const body: AddBillAmountEntryRequest = {
-        amount: data.amount,
-        periodDate: new Date(data.periodDate),
-        notes: data.notes ?? null,
-      };
-      return apiClient.api.bills.byId(data.billId).amountEntries.post(body);
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["billAmountEntries", variables.billId] });
     },
   });
 }

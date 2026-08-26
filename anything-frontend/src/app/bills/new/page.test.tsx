@@ -90,20 +90,18 @@ describe('NewBillPage', () => {
     expect(screen.getByLabelText('Date')).toBeInTheDocument()
   })
 
-  it('should show Frequency, Amount varies, and Payment only when Recurring is selected', async () => {
+  it('should show Frequency and Payment only when Recurring is selected', async () => {
     render(<NewBillPage />)
 
     await waitFor(() => expect(screen.getByText('Recurring')).toBeInTheDocument())
     fireEvent.click(screen.getByText('Recurring'))
 
     expect(screen.getByLabelText('Frequency')).toBeInTheDocument()
-    expect(screen.getByText('Amount varies')).toBeInTheDocument()
     expect(screen.getByText('Payment')).toBeInTheDocument()
     expect(screen.getAllByText('Monthly').length).toBeGreaterThanOrEqual(1)
 
     fireEvent.click(screen.getByText('One-time'))
     expect(screen.queryByLabelText('Frequency')).not.toBeInTheDocument()
-    expect(screen.queryByText('Amount varies')).not.toBeInTheDocument()
     expect(screen.queryByText('Payment')).not.toBeInTheDocument()
   })
 
@@ -123,7 +121,6 @@ describe('NewBillPage', () => {
       expect(mockBillPost).toHaveBeenCalledWith(expect.objectContaining({
         isRecurring: false,
         frequency: 'None',
-        hasVariableAmount: false,
       }))
     })
   })

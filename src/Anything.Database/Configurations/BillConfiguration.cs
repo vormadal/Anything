@@ -12,7 +12,6 @@ public class BillConfiguration : IEntityTypeConfiguration<Bill>
         builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
         builder.Property(e => e.Frequency).IsRequired().HasConversion<string>().HasMaxLength(50);
         builder.Property(e => e.IsRecurring).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.HasVariableAmount).IsRequired().HasDefaultValue(false);
         builder.Property(e => e.ManagementUrl).HasMaxLength(500);
         builder.Property(e => e.Category).HasMaxLength(100);
         builder.Property(e => e.Notes).HasMaxLength(1000);

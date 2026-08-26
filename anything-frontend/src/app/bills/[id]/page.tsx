@@ -7,12 +7,10 @@ import { PageTitle } from "@/components/PageTitle";
 import {
   useBill,
   useBillPriceHistory,
-  useBillAmountEntries,
   useBillAttachments,
   useDeleteBill,
   useAddBillPrice,
   useDeleteBillPrice,
-  useAddBillAmountEntry,
   useUploadBillAttachment,
   useUpdateBillAttachment,
   useDeleteBillAttachment,
@@ -20,7 +18,7 @@ import {
   FREQUENCY_LABELS,
 } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
-import { BillHistorySection } from "@/components/BillHistorySection";
+import { BillPriceHistorySection } from "@/components/BillPriceHistorySection";
 import { toast } from "sonner";
 import { isSafeUrl } from "@/lib/utils";
 import { formatCurrency } from "@/lib/billFormat";
@@ -50,12 +48,10 @@ export default function BillDetailPage() {
   const router = useRouter();
   const { data: bill, isLoading } = useBill(billId);
   const { data: history, isLoading: historyLoading } = useBillPriceHistory(billId);
-  const { data: amountEntries, isLoading: amountEntriesLoading } = useBillAmountEntries(billId);
   const { data: attachments, isLoading: attachmentsLoading } = useBillAttachments(billId);
   const deleteBill = useDeleteBill();
   const addPrice = useAddBillPrice();
   const deletePrice = useDeleteBillPrice();
-  const addAmountEntry = useAddBillAmountEntry();
   const uploadAttachment = useUploadBillAttachment();
   const updateAttachment = useUpdateBillAttachment();
   const deleteAttachment = useDeleteBillAttachment();
@@ -69,10 +65,6 @@ export default function BillDetailPage() {
   const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
   const [newEndDate, setNewEndDate] = useState("");
   const [newNotes, setNewNotes] = useState("");
-  const [showAddAmountEntry, setShowAddAmountEntry] = useState(false);
-  const [newEntryAmount, setNewEntryAmount] = useState("");
-  const [newEntryPeriodDate, setNewEntryPeriodDate] = useState(new Date().toISOString().split("T")[0]);
-  const [newEntryNotes, setNewEntryNotes] = useState("");
   const [attachmentDialog, setAttachmentDialog] = useState<{ id: number; name: string } | null>(null);
   const [attachmentDialogName, setAttachmentDialogName] = useState("");
 
@@ -124,25 +116,6 @@ export default function BillDetailPage() {
       } else {
         toast.error("Failed to add price entry");
       }
-    }
-  };
-
-  const handleAddAmountEntry = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newEntryAmount) return;
-    try {
-      await addAmountEntry.mutateAsync({
-        billId,
-        amount: Number(newEntryAmount),
-        periodDate: new Date(newEntryPeriodDate).toISOString(),
-        notes: newEntryNotes.trim() || undefined,
-      });
-      setShowAddAmountEntry(false);
-      setNewEntryAmount("");
-      setNewEntryNotes("");
-      setNewEntryPeriodDate(new Date().toISOString().split("T")[0]);
-    } catch {
-      toast.error("Failed to add amount entry");
     }
   };
 
@@ -309,44 +282,25 @@ export default function BillDetailPage() {
         </div>
       </div>
 
-      {/* History — price changes and (for variable-amount bills) actual amounts paid,
-          behind a single tab switch so the page shows one number at a time instead of
-          three overlapping ones (the summary card's current amount, price history, and
-          amount entries all at once). */}
-      <BillHistorySection
-        hasVariableAmount={bill.hasVariableAmount}
+      {/* Price history — the summary card's current amount is always this
+          list's latest entry, so this section is the "how it got there" log. */}
+      <BillPriceHistorySection
         isOnline={isOnline}
-        priceHistory={{
-          entries: history,
-          isLoading: historyLoading,
-          isAdding: showAddPrice,
-          onToggleAdd: () => setShowAddPrice(!showAddPrice),
-          amount: newAmount,
-          onAmountChange: setNewAmount,
-          date: newDate,
-          onDateChange: setNewDate,
-          endDate: newEndDate,
-          onEndDateChange: setNewEndDate,
-          notes: newNotes,
-          onNotesChange: setNewNotes,
-          onSubmit: handleAddPrice,
-          isPending: addPrice.isPending,
-          onDelete: handleDeletePrice,
-        }}
-        amountEntries={{
-          entries: amountEntries,
-          isLoading: amountEntriesLoading,
-          isAdding: showAddAmountEntry,
-          onToggleAdd: () => setShowAddAmountEntry(!showAddAmountEntry),
-          amount: newEntryAmount,
-          onAmountChange: setNewEntryAmount,
-          date: newEntryPeriodDate,
-          onDateChange: setNewEntryPeriodDate,
-          notes: newEntryNotes,
-          onNotesChange: setNewEntryNotes,
-          onSubmit: handleAddAmountEntry,
-          isPending: addAmountEntry.isPending,
-        }}
+        entries={history}
+        isLoading={historyLoading}
+        isAdding={showAddPrice}
+        onToggleAdd={() => setShowAddPrice(!showAddPrice)}
+        amount={newAmount}
+        onAmountChange={setNewAmount}
+        date={newDate}
+        onDateChange={setNewDate}
+        endDate={newEndDate}
+        onEndDateChange={setNewEndDate}
+        notes={newNotes}
+        onNotesChange={setNewNotes}
+        onSubmit={handleAddPrice}
+        isPending={addPrice.isPending}
+        onDelete={handleDeletePrice}
       />
 
       {/* Attachments */}

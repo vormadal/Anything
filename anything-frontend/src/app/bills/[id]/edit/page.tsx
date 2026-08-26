@@ -52,7 +52,6 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
   );
   const [isAutomated, setIsAutomated] = useState(bill.isAutomated);
   const [isRecurring, setIsRecurring] = useState(bill.isRecurring);
-  const [hasVariableAmount, setHasVariableAmount] = useState(bill.hasVariableAmount);
   const [locationId, setLocationId] = useState<number | undefined>(bill.locationId);
   const [managementUrl, setManagementUrl] = useState(bill.managementUrl ?? "");
   const [category, setCategory] = useState(bill.category ?? "");
@@ -77,7 +76,6 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
         isRecurring,
-        hasVariableAmount: isRecurring && hasVariableAmount,
       });
       router.push(`/bills/${billId}`);
     } catch {
@@ -122,8 +120,6 @@ function EditBillForm({ bill, billId }: Readonly<{ bill: BillResponse; billId: n
           onIsAutomatedChange={setIsAutomated}
           frequency={frequency}
           onFrequencyChange={setFrequency}
-          hasVariableAmount={hasVariableAmount}
-          onHasVariableAmountChange={setHasVariableAmount}
         />
 
         {/* Vendor */}

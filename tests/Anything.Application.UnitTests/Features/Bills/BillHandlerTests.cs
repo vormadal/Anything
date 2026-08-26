@@ -92,7 +92,6 @@ public class BillHelpersTests
             Category = "Entertainment",
             Notes = "Family plan",
             IsRecurring = true,
-            HasVariableAmount = true,
             CreatedOn = now,
             ModifiedOn = now
         };
@@ -122,7 +121,6 @@ public class BillHelpersTests
         Assert.Equal("Entertainment", response.Category);
         Assert.Equal("Family plan", response.Notes);
         Assert.True(response.IsRecurring);
-        Assert.True(response.HasVariableAmount);
         Assert.Equal(25m, response.CurrentAmount);
         Assert.Equal(25m, response.MonthlyEquivalent);
         Assert.True(response.PriceIncreased);
@@ -272,7 +270,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_InvalidFrequency_ReturnsBadRequest()
     {
-        var command = new CreateBillCommand("Netflix", null, "InvalidFreq", true, null, null, null, null, true, false, null, null);
+        var command = new CreateBillCommand("Netflix", null, "InvalidFreq", true, null, null, null, null, true, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -282,7 +280,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_WithoutInitialPrice_CreatesBillAndSavesOnce()
     {
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, false, null, null);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -297,7 +295,7 @@ public class CreateBillHandlerTests
     public async Task Handle_WithInitialPrice_CreatesBillAndPriceInSingleSave()
     {
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, false, 15.99m, effectiveDate);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, 15.99m, effectiveDate);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -310,7 +308,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_WithInitialPriceNoDate_UsesNowAsEffectiveDate()
     {
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, false, 15.99m, null);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, 15.99m, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -321,7 +319,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_SetsCreatedOnTimestamp()
     {
-        var command = new CreateBillCommand("Netflix", null, "Annually", false, null, null, null, null, true, false, null, null);
+        var command = new CreateBillCommand("Netflix", null, "Annually", false, null, null, null, null, true, null, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -329,29 +327,28 @@ public class CreateBillHandlerTests
     }
 
     [Fact]
-    public async Task Handle_NotRecurring_ForcesFrequencyNoneAndVariableAmountFalse()
+    public async Task Handle_NotRecurring_ForcesFrequencyNone()
     {
-        var command = new CreateBillCommand("One-time expense", null, "Monthly", false, null, null, null, null, false, true, null, null);
+        var command = new CreateBillCommand("One-time expense", null, "Monthly", false, null, null, null, null, false, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _billRepo.Received(1).Add(Arg.Is<Bill>(b =>
-            b.Frequency == PaymentFrequency.None && !b.IsRecurring && !b.HasVariableAmount));
+            b.Frequency == PaymentFrequency.None && !b.IsRecurring));
         var created = Assert.IsType<Created<BillResponse>>(result);
         Assert.Equal("None", created.Value!.Frequency);
         Assert.False(created.Value.IsRecurring);
-        Assert.False(created.Value.HasVariableAmount);
     }
 
     [Fact]
-    public async Task Handle_Recurring_PreservesFrequencyAndVariableAmount()
+    public async Task Handle_Recurring_PreservesFrequency()
     {
-        var command = new CreateBillCommand("Electric", null, "Monthly", false, null, null, null, null, true, true, null, null);
+        var command = new CreateBillCommand("Electric", null, "Monthly", false, null, null, null, null, true, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _billRepo.Received(1).Add(Arg.Is<Bill>(b =>
-            b.Frequency == PaymentFrequency.Monthly && b.IsRecurring && b.HasVariableAmount));
+            b.Frequency == PaymentFrequency.Monthly && b.IsRecurring));
     }
 }
 
@@ -373,7 +370,7 @@ public class UpdateBillHandlerTests
     [Fact]
     public async Task Handle_InvalidFrequency_ReturnsBadRequest()
     {
-        var command = new UpdateBillCommand(1, "Netflix", null, "BadFreq", false, null, null, null, null, true, false);
+        var command = new UpdateBillCommand(1, "Netflix", null, "BadFreq", false, null, null, null, null, true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -384,7 +381,7 @@ public class UpdateBillHandlerTests
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<Bill>().AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null, true, false);
+        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null, true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -395,7 +392,7 @@ public class UpdateBillHandlerTests
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null, true, false);
+        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null, true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -407,7 +404,7 @@ public class UpdateBillHandlerTests
     {
         var bill = new Bill { Id = 1, Name = "Old", Frequency = PaymentFrequency.Monthly };
         _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "New Name", 5, "Weekly", true, 10, "https://manage.example.com", "Utilities", "Note", true, false);
+        var command = new UpdateBillCommand(1, "New Name", 5, "Weekly", true, 10, "https://manage.example.com", "Utilities", "Note", true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -425,36 +422,34 @@ public class UpdateBillHandlerTests
     }
 
     [Fact]
-    public async Task Handle_NotRecurring_ForcesFrequencyNoneAndVariableAmountFalse()
+    public async Task Handle_NotRecurring_ForcesFrequencyNone()
     {
         var bill = new Bill
         {
-            Id = 1, Name = "Old", Frequency = PaymentFrequency.Monthly, IsRecurring = true, HasVariableAmount = true
+            Id = 1, Name = "Old", Frequency = PaymentFrequency.Monthly, IsRecurring = true
         };
         _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "New Name", null, "Monthly", false, null, null, null, null, false, true);
+        var command = new UpdateBillCommand(1, "New Name", null, "Monthly", false, null, null, null, null, false);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(PaymentFrequency.None, bill.Frequency);
         Assert.False(bill.IsRecurring);
-        Assert.False(bill.HasVariableAmount);
     }
 
     [Fact]
-    public async Task Handle_Recurring_PreservesFrequencyAndVariableAmount()
+    public async Task Handle_Recurring_PreservesFrequency()
     {
         var bill = new Bill { Id = 1, Name = "Old", Frequency = PaymentFrequency.None };
         _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "Electric", null, "Monthly", false, null, null, null, null, true, true);
+        var command = new UpdateBillCommand(1, "Electric", null, "Monthly", false, null, null, null, null, true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result);
         Assert.Equal(PaymentFrequency.Monthly, bill.Frequency);
         Assert.True(bill.IsRecurring);
-        Assert.True(bill.HasVariableAmount);
     }
 }
 
@@ -1514,177 +1509,6 @@ public class GetBillAttachmentsHandlerTests
         Assert.Single(list);
         Assert.Null(list[0].ThumbnailUrl);
         Assert.Equal("/api/bills/1/attachments/1/download", list[0].Url);
-    }
-}
-
-public class AddBillAmountEntryHandlerTests
-{
-    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
-    private readonly IRepository<BillAmountEntry> _amountEntryRepo = Substitute.For<IRepository<BillAmountEntry>>();
-    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
-    private readonly DateTimeOffset _now = new(2026, 1, 15, 10, 0, 0, TimeSpan.Zero);
-    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
-
-    public AddBillAmountEntryHandlerTests()
-    {
-        _timeProvider.GetUtcNow().Returns(_now);
-    }
-
-    private AddBillAmountEntryHandler CreateHandler() =>
-        new(_billRepo, _amountEntryRepo, _householdContext, _unitOfWork, _timeProvider);
-
-    [Fact]
-    public async Task Handle_BillNotFound_ReturnsNotFound()
-    {
-        _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
-        var command = new AddBillAmountEntryCommand(1, 50m, DateTime.UtcNow, null);
-
-        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
-
-        Assert.IsType<NotFound<string>>(result);
-    }
-
-    [Fact]
-    public async Task Handle_BillDeleted_ReturnsNotFound()
-    {
-        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
-        var command = new AddBillAmountEntryCommand(1, 50m, DateTime.UtcNow, null);
-
-        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
-
-        Assert.IsType<NotFound<string>>(result);
-    }
-
-    [Fact]
-    public async Task Handle_ValidBill_AddsEntryAndSaves()
-    {
-        var bill = new Bill { Id = 1, Name = "Electric" };
-        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var periodDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var command = new AddBillAmountEntryCommand(1, 87.50m, periodDate, "January usage");
-
-        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
-
-        _amountEntryRepo.Received(1).Add(Arg.Is<BillAmountEntry>(e =>
-            e.BillId == 1 && e.Amount == 87.50m && e.PeriodDate == periodDate && e.Notes == "January usage"));
-        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
-        var created = Assert.IsType<Created<BillAmountEntryResponse>>(result);
-        Assert.Equal(87.50m, created.Value!.Amount);
-        Assert.Equal("January usage", created.Value.Notes);
-    }
-
-    [Fact]
-    public async Task Handle_ValidBill_SetsCreatedOnTimestamp()
-    {
-        var bill = new Bill { Id = 1, Name = "Electric" };
-        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new AddBillAmountEntryCommand(1, 20m, DateTime.UtcNow, null);
-
-        await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
-
-        _amountEntryRepo.Received(1).Add(Arg.Is<BillAmountEntry>(e => e.CreatedOn == _now.UtcDateTime));
-    }
-
-    [Fact]
-    public async Task Handle_ValidBill_ReturnsCreatedLocationHeader()
-    {
-        var bill = new Bill { Id = 7, Name = "Electric" };
-        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new AddBillAmountEntryCommand(7, 20m, DateTime.UtcNow, null);
-
-        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
-
-        var created = Assert.IsType<Created<BillAmountEntryResponse>>(result);
-        Assert.StartsWith("/api/bills/7/amount-entries/", created.Location);
-    }
-}
-
-public class GetBillAmountEntriesHandlerTests
-{
-    private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
-    private readonly IRepository<BillAmountEntry> _amountEntryRepo = Substitute.For<IRepository<BillAmountEntry>>();
-    private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
-
-    private GetBillAmountEntriesHandler CreateHandler() => new(_billRepo, _amountEntryRepo, _householdContext);
-
-    [Fact]
-    public async Task Handle_BillNotFound_ReturnsNotFound()
-    {
-        _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
-
-        var result = await CreateHandler().Handle(new GetBillAmountEntriesQuery(1), TestContext.Current.CancellationToken);
-
-        Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task Handle_BillDeleted_ReturnsNotFound()
-    {
-        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
-
-        var result = await CreateHandler().Handle(new GetBillAmountEntriesQuery(1), TestContext.Current.CancellationToken);
-
-        Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task Handle_ValidBill_ReturnsOrderedByPeriodDateDescending()
-    {
-        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Electric" } }.AsAsyncQueryable());
-        var now = DateTime.UtcNow;
-        var entries = new List<BillAmountEntry>
-        {
-            new() { Id = 1, BillId = 1, Amount = 50m, PeriodDate = now.AddMonths(-2) },
-            new() { Id = 2, BillId = 1, Amount = 60m, PeriodDate = now.AddMonths(-1) },
-            new() { Id = 3, BillId = 1, Amount = 70m, PeriodDate = now }
-        };
-        _amountEntryRepo.Query().Returns(entries.AsAsyncQueryable());
-
-        var result = await CreateHandler().Handle(new GetBillAmountEntriesQuery(1), TestContext.Current.CancellationToken);
-
-        var ok = Assert.IsType<Ok<List<BillAmountEntryResponse>>>(result);
-        var list = ok.Value!;
-        Assert.Equal(3, list.Count);
-        Assert.Equal(70m, list[0].Amount);
-        Assert.Equal(60m, list[1].Amount);
-        Assert.Equal(50m, list[2].Amount);
-    }
-
-    [Fact]
-    public async Task Handle_EmptyEntries_ReturnsEmptyList()
-    {
-        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Electric" } }.AsAsyncQueryable());
-        _amountEntryRepo.Query().Returns(new List<BillAmountEntry>().AsAsyncQueryable());
-
-        var result = await CreateHandler().Handle(new GetBillAmountEntriesQuery(1), TestContext.Current.CancellationToken);
-
-        var ok = Assert.IsType<Ok<List<BillAmountEntryResponse>>>(result);
-        Assert.Empty(ok.Value!);
-    }
-
-    [Fact]
-    public async Task Handle_ValidBill_MapsAllResponseFields()
-    {
-        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Electric" } }.AsAsyncQueryable());
-        var now = DateTime.UtcNow;
-        var periodDate = now.AddMonths(-1);
-        var entries = new List<BillAmountEntry>
-        {
-            new() { Id = 3, BillId = 1, Amount = 42.5m, PeriodDate = periodDate, Notes = "Winter spike", CreatedOn = now }
-        };
-        _amountEntryRepo.Query().Returns(entries.AsAsyncQueryable());
-
-        var result = await CreateHandler().Handle(new GetBillAmountEntriesQuery(1), TestContext.Current.CancellationToken);
-
-        var ok = Assert.IsType<Ok<List<BillAmountEntryResponse>>>(result);
-        var entry = ok.Value![0];
-        Assert.Equal(3, entry.Id);
-        Assert.Equal(1, entry.BillId);
-        Assert.Equal(42.5m, entry.Amount);
-        Assert.Equal(periodDate, entry.PeriodDate);
-        Assert.Equal("Winter spike", entry.Notes);
-        Assert.Equal(now, entry.CreatedOn);
     }
 }
 

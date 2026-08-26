@@ -17,5 +17,4 @@ public record UpdateBillRequest(
     string? Category = null,
     [StringLength(1000, ErrorMessage = "Notes must be at most 1000 characters.")]
     string? Notes = null,
-    bool IsRecurring = false,
-    bool HasVariableAmount = false);
+    bool IsRecurring = false);

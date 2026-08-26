@@ -28,7 +28,6 @@ export default function NewBillPage() {
   const [frequency, setFrequency] = useState<string>("Monthly");
   const [isAutomated, setIsAutomated] = useState(true);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [hasVariableAmount, setHasVariableAmount] = useState(false);
   const [locationId, setLocationId] = useState<number | undefined>(undefined);
   const [managementUrl, setManagementUrl] = useState("");
   const [category, setCategory] = useState("");
@@ -56,7 +55,6 @@ export default function NewBillPage() {
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
         isRecurring,
-        hasVariableAmount: isRecurring && hasVariableAmount,
         initialAmount: initialAmount ? Number(initialAmount) : undefined,
         initialEffectiveDate: initialAmount ? new Date(initialDate).toISOString() : undefined,
       });
@@ -104,8 +102,6 @@ export default function NewBillPage() {
           onIsAutomatedChange={setIsAutomated}
           frequency={frequency}
           onFrequencyChange={setFrequency}
-          hasVariableAmount={hasVariableAmount}
-          onHasVariableAmountChange={setHasVariableAmount}
           amount={initialAmount}
           onAmountChange={setInitialAmount}
           date={initialDate}
