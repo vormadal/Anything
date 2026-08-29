@@ -131,6 +131,17 @@ describe('BillDetailPage', () => {
     })
   })
 
+  it('should show the category as a chip without a redundant "Category" label', async () => {
+    mockBillByIdGet.mockResolvedValue(mockBill)
+    mockPriceHistoryGet.mockResolvedValue([])
+
+    render(<BillDetailPage />)
+
+    await waitFor(() => expect(screen.getByText('Streaming')).toBeInTheDocument())
+
+    expect(screen.queryByText('Category')).not.toBeInTheDocument()
+  })
+
   it('should display vendor website link when vendorWebsite is safe', async () => {
     mockBillByIdGet.mockResolvedValue(mockBill)
     mockPriceHistoryGet.mockResolvedValue([])
@@ -186,8 +197,10 @@ describe('BillDetailPage', () => {
 
     render(<BillDetailPage />)
 
+    // A fixed-amount bill has nothing to switch between, so the section
+    // header is the plain "History" label rather than a tab control.
     await waitFor(() => {
-      expect(screen.getByText('Price history')).toBeInTheDocument()
+      expect(screen.getByText('History')).toBeInTheDocument()
     })
   })
 
@@ -256,7 +269,7 @@ describe('BillDetailPage', () => {
 
     render(<BillDetailPage />)
 
-    await waitFor(() => expect(screen.getByText('Price history')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('History')).toBeInTheDocument())
 
     // No badge rendered
     expect(screen.queryByText(/\+.*%/)).not.toBeInTheDocument()
@@ -283,6 +296,19 @@ describe('BillDetailPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Auto')).toBeInTheDocument()
+    })
+  })
+
+  it('should display a price history date range when endDate is set', async () => {
+    mockBillByIdGet.mockResolvedValue(mockBill)
+    mockPriceHistoryGet.mockResolvedValue([
+      { id: 1, billId: 1, amount: 500, effectiveDate: '2025-01-01T00:00:00Z', endDate: '2025-12-31T00:00:00Z', createdOn: '2025-01-01T00:00:00Z' },
+    ])
+
+    render(<BillDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/–/)).toBeInTheDocument()
     })
   })
 

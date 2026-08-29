@@ -8,5 +8,6 @@ public record AddBillPriceRequest(
     decimal Amount,
     [Required(ErrorMessage = "Effective date is required.")]
     DateTime EffectiveDate,
+    DateTime? EndDate = null,
     [StringLength(500, ErrorMessage = "Notes must be at most 500 characters.")]
     string? Notes = null);

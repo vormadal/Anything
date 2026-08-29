@@ -44,7 +44,7 @@ public class BillEndpointTests : IntegrationTestBase
         Assert.Empty(emptyResult);
 
         // Create with None frequency
-        var created = await CreateBillAsync("One-time expense", "None", false);
+        var created = await CreateBillAsync("One-time expense", "None", false, isRecurring: false);
         Assert.True(created.Id > 0);
         Assert.Equal("One-time expense", created.Name);
         Assert.Equal("None", created.Frequency);
@@ -127,7 +127,7 @@ public class BillEndpointTests : IntegrationTestBase
         var client = await GetAuthenticatedHttpClientAsync();
 
         // Create a one-time bill
-        var bill = await CreateBillAsync("One-time expense", "None", false);
+        var bill = await CreateBillAsync("One-time expense", "None", false, isRecurring: false);
         var now = DateTime.UtcNow;
         var pricePayload = new
         {
@@ -253,12 +253,76 @@ public class BillEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, uploadResponse.StatusCode);
     }
 
-    // --- Helpers ---
+    // --- Recurrence Invariant ---
 
-    private async Task<BillDto> CreateBillAsync(string name, string frequency, bool isAutomated)
+    [Fact]
+    public async Task Create_NotRecurring_ForcesFrequencyToNone()
     {
         var client = await GetAuthenticatedHttpClientAsync();
-        var payload = new { name, frequency, isAutomated };
+        var payload = new { name = "Gift", frequency = "Monthly", isAutomated = false, isRecurring = false };
+
+        var response = await client.PostAsJsonAsync("/api/bills", payload, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var bill = await response.Content.ReadFromJsonAsync<BillDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(bill);
+        Assert.Equal("None", bill.Frequency);
+    }
+
+    // --- Price History Date Ranges ---
+
+    [Fact]
+    public async Task PriceHistory_EndDate_PersistsAndReturns()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var bill = await CreateBillAsync("Insurance", "Annually", false);
+
+        var pricePayload = new
+        {
+            amount = 500m,
+            effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            endDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
+        };
+        var addResponse = await client.PostAsJsonAsync($"/api/bills/{bill.Id}/price-history", pricePayload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, addResponse.StatusCode);
+
+        var listResponse = await client.GetAsync($"/api/bills/{bill.Id}/price-history", TestContext.Current.CancellationToken);
+        var history = await listResponse.Content.ReadFromJsonAsync<PriceHistoryDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(history);
+        Assert.Single(history);
+        Assert.NotNull(history[0].EndDate);
+    }
+
+    [Fact]
+    public async Task PriceHistory_OverlappingDateRange_ReturnsConflict()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var bill = await CreateBillAsync("Insurance", "Annually", false);
+
+        var firstPayload = new
+        {
+            amount = 500m,
+            effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            endDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
+        };
+        var firstResponse = await client.PostAsJsonAsync($"/api/bills/{bill.Id}/price-history", firstPayload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+
+        var overlappingPayload = new
+        {
+            amount = 550m,
+            effectiveDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc)
+        };
+        var overlappingResponse = await client.PostAsJsonAsync($"/api/bills/{bill.Id}/price-history", overlappingPayload, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Conflict, overlappingResponse.StatusCode);
+    }
+
+    // --- Helpers ---
+
+    private async Task<BillDto> CreateBillAsync(string name, string frequency, bool isAutomated, bool isRecurring = true)
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var payload = new { name, frequency, isAutomated, isRecurring };
         var response = await client.PostAsJsonAsync("/api/bills", payload, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<BillDto>(JsonOptions, TestContext.Current.CancellationToken);
@@ -269,4 +333,5 @@ public class BillEndpointTests : IntegrationTestBase
     private record BillDto(int Id, string? Name, string? Frequency, bool IsAutomated, decimal? CurrentAmount, decimal? MonthlyEquivalent);
     private record SummaryDto(int TotalBills, decimal TotalMonthlyEquivalent, int AutomatedCount, int ManualCount, decimal TotalCurrentMonthAmount, decimal TotalCurrentYearAmount);
     private record AttachmentDto(int Id, int BillId, string Name, string ContentType, string Url, string? ThumbnailUrl, DateTime CreatedOn);
+    private record PriceHistoryDto(int Id, int BillId, decimal Amount, DateTime EffectiveDate, DateTime? EndDate, string? Notes, decimal? PreviousAmount, DateTime CreatedOn, DateTime? ModifiedOn);
 }

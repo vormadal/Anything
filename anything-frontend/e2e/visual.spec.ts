@@ -142,6 +142,41 @@ const emptyBillSummary = {
   totalCurrentYearAmount: 0,
 };
 
+// A recurring bill with a price-history entry that has an EndDate range.
+const mockRecurringBillWithPriceRange = {
+  id: 5,
+  name: "Electricity",
+  frequency: "Monthly",
+  isAutomated: true,
+  isRecurring: true,
+  currentAmount: 92.3,
+  monthlyEquivalent: 92.3,
+  priceIncreased: false,
+  category: "Utilities",
+  vendorId: null,
+  vendorName: null,
+  locationId: null,
+  locationName: null,
+  managementUrl: null,
+  notes: null,
+  createdOn: "2024-01-01T00:00:00Z",
+  modifiedOn: null,
+};
+
+const mockBillPriceRangeHistory = [
+  {
+    id: 1,
+    billId: 5,
+    amount: 90,
+    effectiveDate: "2025-01-01T00:00:00Z",
+    endDate: "2025-12-31T00:00:00Z",
+    notes: null,
+    previousAmount: null,
+    createdOn: "2025-01-01T00:00:00Z",
+    modifiedOn: null,
+  },
+];
+
 const mockRecipes = [
   { id: 1, name: "Pasta Carbonara", createdOn: "2024-01-01T00:00:00Z", modifiedOn: null },
   { id: 2, name: "Chicken Stir Fry", createdOn: "2024-01-01T00:00:00Z", modifiedOn: null },
@@ -2024,6 +2059,48 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/bills");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("bills-empty.png", screenshotOptions);
+  });
+
+  test("new bill - default one-time state", async ({ page }) => {
+    await page.goto("/bills/new");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("button", { name: "One-time" })).toHaveClass(/bg-gray-600/);
+    await expect(page.getByLabel("Frequency")).not.toBeVisible();
+    await expect(page).toHaveScreenshot("bill-new-onetime.png", screenshotOptions);
+  });
+
+  test("new bill - recurring state shows frequency", async ({ page }) => {
+    await page.goto("/bills/new");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Recurring" }).click();
+    await expect(page.getByLabel("Frequency")).toBeVisible();
+    await expect(page).toHaveScreenshot("bill-new-recurring.png", screenshotOptions);
+  });
+
+  test("edit bill - recurring form pre-filled", async ({ page }) => {
+    await page.route(/\/api\/bills\/5$/, (route) =>
+      route.fulfill({ json: mockRecurringBillWithPriceRange })
+    );
+    await page.goto("/bills/5/edit");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("#edit-bill-name")).toHaveValue("Electricity");
+    await expect(page).toHaveScreenshot("bill-edit.png", screenshotOptions);
+  });
+
+  test("bill detail - price history with a date range", async ({ page }) => {
+    await page.route(/\/api\/bills\/5$/, (route) =>
+      route.fulfill({ json: mockRecurringBillWithPriceRange })
+    );
+    await page.route(/\/api\/bills\/5\/price-history/, (route) =>
+      route.fulfill({ json: mockBillPriceRangeHistory })
+    );
+    await page.route(/\/api\/bills\/5\/attachments/, (route) =>
+      route.fulfill({ json: [] })
+    );
+    await page.goto("/bills/5");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/–/)).toBeVisible();
+    await expect(page).toHaveScreenshot("bill-detail-price-range.png", screenshotOptions);
   });
 
   // ---- Food Plans ----

@@ -9,7 +9,7 @@ Reusable UI components shared across multiple pages.
   - `suggestions/` — tab bodies for the consolidated Suggestions admin page (`SuggestionsTab`, `CategoriesTab`, `ImportExportTab`)
   - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed; item metadata sits behind an "Add more details" toggle, collapsed by default), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, `WarrantyBadge` (renders `describeWarranty` from `@/lib/inventory`), `CustomFieldsEditor` (item-only; wholesale replace via `useUpdateInventoryItemFields`), the photo/document components below, and `inventoryFormStyles.ts` for the repeated Tailwind field classes
   - Layout/nav: `AppLayout`, `PageTitle`
-  - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`
+  - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`, `BillRecurrenceFields` (Recurring/One-time toggle, an optional Amount+Date row right under it — create form only, since edit has no initial-amount concept to bind — then, only while Recurring, Frequency+Payment; shared by `bills/new` and `bills/[id]/edit` so the two forms can't drift out of sync with the backend's recurrence invariant), `BillEntryForm` (the "quick add" amount+date+notes form used by the price-history section on `bills/[id]`), `BillPriceHistorySection` (that price-history list itself — see "Bills detail page" below)
   - Auth: `AuthGuard`
   - Error: `ErrorBoundary`
   - PWA: `ServiceWorkerRegistration`, `OfflineBanner` (shown app-wide via `useOnlineStatus()`; the underlying offline read/write support is scoped to shopping list / general checklist items only — see `src/lib/agent.md`)
@@ -62,6 +62,12 @@ The note editor is Tiptap (ProseMirror). `NoteWorkspace` is the whole note scree
 ### Full-height pages
 
 `AppLayout` is a flex column (`min-h-screen`) whose `<main>` is `flex flex-1 flex-col`, so a page that should fill the viewport uses `flex-1` rather than a `calc(100dvh - …)` guess. Don't reintroduce the guess: the header is **57px**, not the 56px its `h-14` suggests, because of its bottom border — subtracting `3.5rem` leaves the page 1px scrollable.
+
+## Bills detail page
+
+`bills/[id]/page.tsx`'s summary card shows one current amount, computed server-side from the *most recent price history entry* (`BillHelpers.ToBillResponse` in the backend). `BillPriceHistorySection` is that price history's "how it got there" log — every recorded price change, newest first.
+
+**There used to be a second, parallel history here — don't reintroduce it.** An earlier iteration of this feature also had `BillAmountEntry` ("amount entries": what was actually paid each period, for a `HasVariableAmount` bill) shown alongside price history behind a tab switch. It was removed at the user's request: `currentAmount` and every spend total (home card, bills list, monthly equivalent — see `GetBillSummaryQuery` in the backend) were *always* computed from price history alone, so amount entries never fed into anything else in the app — it was a second, disconnected log that looked like it should relate to the first but didn't, and the two together read as confusing/redundant rather than as intentionally different concepts. If a future request wants to track period-to-period amount variation again, make it feed the numbers that already exist (current amount, summary totals) rather than sitting beside them unconnected.
 
 ## Toast usage rules (sonner)
 

@@ -3,7 +3,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
 import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
-import type { CreateBillRequest, UpdateBillRequest, AddBillPriceRequest, BillAttachmentResponse } from "@/lib/api-client/models/index";
+import type {
+  CreateBillRequest,
+  UpdateBillRequest,
+  AddBillPriceRequest,
+  BillAttachmentResponse,
+} from "@/lib/api-client/models/index";
 
 // Re-export API model type so consumers can import it from this hook
 export type { BillAttachmentResponse };
@@ -50,6 +55,7 @@ export interface BillResponse {
   managementUrl?: string;
   category?: string;
   notes?: string;
+  isRecurring: boolean;
   currentAmount?: number;
   monthlyEquivalent?: number;
   priceIncreased: boolean;
@@ -66,11 +72,12 @@ interface BillSummaryResponse {
   totalCurrentYearAmount: number;
 }
 
-interface BillPriceHistoryResponse {
+export interface BillPriceHistoryResponse {
   id: number;
   billId: number;
   amount: number;
   effectiveDate: string;
+  endDate?: string;
   notes?: string;
   previousAmount?: number;
   createdOn: string;
@@ -142,6 +149,7 @@ export function useCreateBill() {
       managementUrl?: string;
       category?: string;
       notes?: string;
+      isRecurring: boolean;
       initialAmount?: number;
       initialEffectiveDate?: string;
     }) => {
@@ -154,6 +162,7 @@ export function useCreateBill() {
         managementUrl: data.managementUrl ?? null,
         category: data.category ?? null,
         notes: data.notes ?? null,
+        isRecurring: data.isRecurring,
         initialAmount: data.initialAmount ?? null,
         initialEffectiveDate: data.initialEffectiveDate ? new Date(data.initialEffectiveDate) : null,
       };
@@ -179,6 +188,7 @@ export function useUpdateBill() {
       managementUrl?: string;
       category?: string;
       notes?: string;
+      isRecurring: boolean;
     }) => {
       const body: UpdateBillRequest = {
         name: data.name,
@@ -189,6 +199,7 @@ export function useUpdateBill() {
         managementUrl: data.managementUrl ?? null,
         category: data.category ?? null,
         notes: data.notes ?? null,
+        isRecurring: data.isRecurring,
       };
       return apiClient.api.bills.byId(data.id).put(body);
     },
@@ -219,11 +230,13 @@ export function useAddBillPrice() {
       billId: number;
       amount: number;
       effectiveDate: string;
+      endDate?: string;
       notes?: string;
     }) => {
       const body: AddBillPriceRequest = {
         amount: data.amount,
         effectiveDate: new Date(data.effectiveDate),
+        endDate: data.endDate ? new Date(data.endDate) : null,
         notes: data.notes ?? null,
       };
       return apiClient.api.bills.byId(data.billId).priceHistory.post(body);

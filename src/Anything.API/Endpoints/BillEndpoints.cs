@@ -40,6 +40,7 @@ public static class BillEndpoints
                 request.ManagementUrl,
                 request.Category,
                 request.Notes,
+                request.IsRecurring,
                 request.InitialAmount,
                 request.InitialEffectiveDate)))
             .WithName("CreateBill")
@@ -58,7 +59,8 @@ public static class BillEndpoints
                 request.LocationId,
                 request.ManagementUrl,
                 request.Category,
-                request.Notes)))
+                request.Notes,
+                request.IsRecurring)))
             .WithName("UpdateBill")
             .Produces(204)
             .Produces(400)
@@ -82,20 +84,24 @@ public static class BillEndpoints
 
         group.MapPost("/{id}/price-history", async (int id, AddBillPriceRequest request, IMediator mediator) =>
             await mediator.Send(new AddBillPriceCommand(
-                id, request.Amount, request.EffectiveDate, request.Notes)))
+                id, request.Amount, request.EffectiveDate, request.EndDate, request.Notes)))
             .WithName("AddBillPrice")
             .Produces<BillPriceHistory>(StatusCodes.Status201Created)
+            .Produces(400)
             .Produces(404)
+            .Produces(409)
             .WithParameterValidation()
             .RequireAuthorization();
 
         group.MapPut("/{id}/price-history/{historyId}", async (
             int id, int historyId, UpdateBillPriceRequest request, IMediator mediator) =>
             await mediator.Send(new UpdateBillPriceCommand(
-                id, historyId, request.Amount, request.EffectiveDate, request.Notes)))
+                id, historyId, request.Amount, request.EffectiveDate, request.EndDate, request.Notes)))
             .WithName("UpdateBillPrice")
             .Produces(204)
+            .Produces(400)
             .Produces(404)
+            .Produces(409)
             .WithParameterValidation()
             .RequireAuthorization();
 

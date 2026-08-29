@@ -12,6 +12,7 @@ public record UpdateBillPriceCommand(
     int HistoryId,
     decimal Amount,
     DateTime EffectiveDate,
+    DateTime? EndDate,
     string? Notes) : IRequest<IResult>;
 
 public class UpdateBillPriceHandler(
@@ -37,8 +38,20 @@ public class UpdateBillPriceHandler(
         if (entry is null)
             return Results.NotFound();
 
+        var effectiveDate = command.EffectiveDate.ToUniversalTime();
+        var endDate = command.EndDate?.ToUniversalTime();
+
+        // Overlap check excludes this entry itself
+        var otherEntries = await priceHistoryRepository.Query()
+            .Where(ph => ph.BillId == command.BillId && ph.Id != command.HistoryId)
+            .ToListAsync(ct);
+
+        if (BillHelpers.IsOverlappingPriceRange(effectiveDate, endDate, otherEntries))
+            return Results.Conflict("The specified date range overlaps with an existing price history entry.");
+
         entry.Amount = command.Amount;
-        entry.EffectiveDate = command.EffectiveDate.ToUniversalTime();
+        entry.EffectiveDate = effectiveDate;
+        entry.EndDate = endDate;
         entry.Notes = command.Notes;
         entry.ModifiedOn = timeProvider.GetUtcNow().UtcDateTime;
 

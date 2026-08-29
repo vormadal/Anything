@@ -5,6 +5,7 @@ public record BillPriceHistoryResponse(
     int BillId,
     decimal Amount,
     DateTime EffectiveDate,
+    DateTime? EndDate,
     string? Notes,
     decimal? PreviousAmount,
     DateTime CreatedOn,

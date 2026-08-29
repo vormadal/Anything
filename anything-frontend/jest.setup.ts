@@ -2,6 +2,21 @@
 import '@testing-library/jest-dom'
 import { TextEncoder, TextDecoder } from 'node:util'
 
+// jsdom does not implement ResizeObserver, which @radix-ui/react-use-size
+// (used internally by Switch, Slider, and other sizeable Radix primitives)
+// calls unconditionally in a layout effect on every mount. A component that
+// renders such a primitive synchronously during the initial render (as
+// opposed to after an async state update, where React's effect-error
+// handling is more forgiving) fails with "ResizeObserver is not defined"
+// without this polyfill.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
+
 // Radix UI components produce document-level side effects when dialogs/menus are open.
 // In React 19 concurrent mode, the useEffect cleanups that reverse these side effects
 // may be deferred past the test boundary, contaminating subsequent tests.

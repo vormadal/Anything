@@ -91,6 +91,7 @@ public class BillHelpersTests
             ManagementUrl = "https://netflix.com/account",
             Category = "Entertainment",
             Notes = "Family plan",
+            IsRecurring = true,
             CreatedOn = now,
             ModifiedOn = now
         };
@@ -119,6 +120,7 @@ public class BillHelpersTests
         Assert.Equal("https://netflix.com/account", response.ManagementUrl);
         Assert.Equal("Entertainment", response.Category);
         Assert.Equal("Family plan", response.Notes);
+        Assert.True(response.IsRecurring);
         Assert.Equal(25m, response.CurrentAmount);
         Assert.Equal(25m, response.MonthlyEquivalent);
         Assert.True(response.PriceIncreased);
@@ -170,6 +172,84 @@ public class BillHelpersTests
     }
 }
 
+public class BillHelpers_IsOverlappingPriceRangeTests
+{
+    [Fact]
+    public void NoExistingEntries_ReturnsFalse()
+    {
+        var result = BillHelpers.IsOverlappingPriceRange(new DateTime(2026, 1, 1), null, []);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void OverlappingClosedRange_ReturnsTrue()
+    {
+        var existing = new List<BillPriceHistory>
+        {
+            new() { EffectiveDate = new DateTime(2026, 1, 1), EndDate = new DateTime(2026, 6, 1) }
+        };
+
+        var result = BillHelpers.IsOverlappingPriceRange(new DateTime(2026, 3, 1), null, existing);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void AdjacentRanges_TouchingNotOverlapping_ReturnsFalse()
+    {
+        var existing = new List<BillPriceHistory>
+        {
+            new() { EffectiveDate = new DateTime(2026, 1, 1), EndDate = new DateTime(2026, 2, 1) }
+        };
+
+        // New range starts exactly when existing ends — half-open, not an overlap.
+        var result = BillHelpers.IsOverlappingPriceRange(new DateTime(2026, 2, 1), null, existing);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void OpenEndedExistingEntry_ExtendsIndefinitely_ReturnsTrue()
+    {
+        var existing = new List<BillPriceHistory>
+        {
+            new() { EffectiveDate = new DateTime(2026, 1, 1), EndDate = null }
+        };
+
+        var result = BillHelpers.IsOverlappingPriceRange(new DateTime(2030, 1, 1), null, existing);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void NewRangeEntirelyBeforeExisting_ReturnsFalse()
+    {
+        var existing = new List<BillPriceHistory>
+        {
+            new() { EffectiveDate = new DateTime(2026, 6, 1), EndDate = null }
+        };
+
+        var result = BillHelpers.IsOverlappingPriceRange(new DateTime(2026, 1, 1), new DateTime(2026, 3, 1), existing);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void MultipleExistingEntries_OnlyOneOverlaps_ReturnsTrue()
+    {
+        var existing = new List<BillPriceHistory>
+        {
+            new() { EffectiveDate = new DateTime(2025, 1, 1), EndDate = new DateTime(2025, 6, 1) },
+            new() { EffectiveDate = new DateTime(2026, 1, 1), EndDate = new DateTime(2026, 6, 1) }
+        };
+
+        var result = BillHelpers.IsOverlappingPriceRange(new DateTime(2026, 3, 1), new DateTime(2026, 9, 1), existing);
+
+        Assert.True(result);
+    }
+}
+
 public class CreateBillHandlerTests
 {
     private readonly IRepository<Bill> _billRepo = Substitute.For<IRepository<Bill>>();
@@ -190,7 +270,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_InvalidFrequency_ReturnsBadRequest()
     {
-        var command = new CreateBillCommand("Netflix", null, "InvalidFreq", true, null, null, null, null, null, null);
+        var command = new CreateBillCommand("Netflix", null, "InvalidFreq", true, null, null, null, null, true, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -200,7 +280,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_WithoutInitialPrice_CreatesBillAndSavesOnce()
     {
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, null, null);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -215,7 +295,7 @@ public class CreateBillHandlerTests
     public async Task Handle_WithInitialPrice_CreatesBillAndPriceInSingleSave()
     {
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, 15.99m, effectiveDate);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, 15.99m, effectiveDate);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -228,7 +308,7 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_WithInitialPriceNoDate_UsesNowAsEffectiveDate()
     {
-        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, 15.99m, null);
+        var command = new CreateBillCommand("Netflix", null, "Monthly", true, null, null, null, null, true, 15.99m, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -239,11 +319,36 @@ public class CreateBillHandlerTests
     [Fact]
     public async Task Handle_SetsCreatedOnTimestamp()
     {
-        var command = new CreateBillCommand("Netflix", null, "Annually", false, null, null, null, null, null, null);
+        var command = new CreateBillCommand("Netflix", null, "Annually", false, null, null, null, null, true, null, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _billRepo.Received(1).Add(Arg.Is<Bill>(b => b.CreatedOn == _now.UtcDateTime));
+    }
+
+    [Fact]
+    public async Task Handle_NotRecurring_ForcesFrequencyNone()
+    {
+        var command = new CreateBillCommand("One-time expense", null, "Monthly", false, null, null, null, null, false, null, null);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        _billRepo.Received(1).Add(Arg.Is<Bill>(b =>
+            b.Frequency == PaymentFrequency.None && !b.IsRecurring));
+        var created = Assert.IsType<Created<BillResponse>>(result);
+        Assert.Equal("None", created.Value!.Frequency);
+        Assert.False(created.Value.IsRecurring);
+    }
+
+    [Fact]
+    public async Task Handle_Recurring_PreservesFrequency()
+    {
+        var command = new CreateBillCommand("Electric", null, "Monthly", false, null, null, null, null, true, null, null);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        _billRepo.Received(1).Add(Arg.Is<Bill>(b =>
+            b.Frequency == PaymentFrequency.Monthly && b.IsRecurring));
     }
 }
 
@@ -265,7 +370,7 @@ public class UpdateBillHandlerTests
     [Fact]
     public async Task Handle_InvalidFrequency_ReturnsBadRequest()
     {
-        var command = new UpdateBillCommand(1, "Netflix", null, "BadFreq", false, null, null, null, null);
+        var command = new UpdateBillCommand(1, "Netflix", null, "BadFreq", false, null, null, null, null, true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -276,7 +381,7 @@ public class UpdateBillHandlerTests
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<Bill>().AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null);
+        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null, true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -287,7 +392,7 @@ public class UpdateBillHandlerTests
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
         _repo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null);
+        var command = new UpdateBillCommand(1, "Netflix", null, "Monthly", false, null, null, null, null, true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -299,7 +404,7 @@ public class UpdateBillHandlerTests
     {
         var bill = new Bill { Id = 1, Name = "Old", Frequency = PaymentFrequency.Monthly };
         _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new UpdateBillCommand(1, "New Name", 5, "Weekly", true, 10, "https://manage.example.com", "Utilities", "Note");
+        var command = new UpdateBillCommand(1, "New Name", 5, "Weekly", true, 10, "https://manage.example.com", "Utilities", "Note", true);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -314,6 +419,37 @@ public class UpdateBillHandlerTests
         Assert.Equal("Note", bill.Notes);
         Assert.Equal(_now.UtcDateTime, bill.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_NotRecurring_ForcesFrequencyNone()
+    {
+        var bill = new Bill
+        {
+            Id = 1, Name = "Old", Frequency = PaymentFrequency.Monthly, IsRecurring = true
+        };
+        _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
+        var command = new UpdateBillCommand(1, "New Name", null, "Monthly", false, null, null, null, null, false);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal(PaymentFrequency.None, bill.Frequency);
+        Assert.False(bill.IsRecurring);
+    }
+
+    [Fact]
+    public async Task Handle_Recurring_PreservesFrequency()
+    {
+        var bill = new Bill { Id = 1, Name = "Old", Frequency = PaymentFrequency.None };
+        _repo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
+        var command = new UpdateBillCommand(1, "Electric", null, "Monthly", false, null, null, null, null, true);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal(PaymentFrequency.Monthly, bill.Frequency);
+        Assert.True(bill.IsRecurring);
     }
 }
 
@@ -386,7 +522,7 @@ public class AddBillPriceHandlerTests
     public async Task Handle_BillNotFound_ReturnsNotFound()
     {
         _billRepo.Query().Returns(new List<Bill>().AsAsyncQueryable());
-        var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null);
+        var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -397,7 +533,7 @@ public class AddBillPriceHandlerTests
     public async Task Handle_BillDeleted_ReturnsNotFound()
     {
         _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "X", DeletedOn = DateTime.UtcNow } }.AsAsyncQueryable());
-        var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null);
+        var command = new AddBillPriceCommand(1, 50m, DateTime.UtcNow, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -409,8 +545,9 @@ public class AddBillPriceHandlerTests
     {
         var bill = new Bill { Id = 1, Name = "Netflix" };
         _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
+        _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
         var effectiveDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var command = new AddBillPriceCommand(1, 19.99m, effectiveDate, "Price increase");
+        var command = new AddBillPriceCommand(1, 19.99m, effectiveDate, null, "Price increase");
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -425,11 +562,32 @@ public class AddBillPriceHandlerTests
     {
         var bill = new Bill { Id = 1, Name = "Netflix" };
         _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
-        var command = new AddBillPriceCommand(1, 10m, DateTime.UtcNow, null);
+        _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
+        var command = new AddBillPriceCommand(1, 10m, DateTime.UtcNow, null, null);
 
         await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
         _priceRepo.Received(1).Add(Arg.Is<BillPriceHistory>(ph => ph.CreatedOn == _now.UtcDateTime));
+    }
+
+    [Fact]
+    public async Task Handle_OverlappingDateRange_ReturnsConflictAndDoesNotSave()
+    {
+        var bill = new Bill { Id = 1, Name = "Insurance" };
+        _billRepo.Query().Returns(new List<Bill> { bill }.AsAsyncQueryable());
+        var existing = new BillPriceHistory
+        {
+            Id = 1, BillId = 1, Amount = 500m,
+            EffectiveDate = new DateTime(2026, 1, 1), EndDate = new DateTime(2026, 6, 1)
+        };
+        _priceRepo.Query().Returns(new List<BillPriceHistory> { existing }.AsAsyncQueryable());
+        var command = new AddBillPriceCommand(1, 550m, new DateTime(2026, 3, 1), null, null);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<Conflict<string>>(result);
+        _priceRepo.DidNotReceive().Add(Arg.Any<BillPriceHistory>());
+        await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
     }
 }
 
@@ -454,7 +612,7 @@ public class UpdateBillPriceHandlerTests
     public async Task Handle_EntryNotFound_ReturnsNotFound()
     {
         _priceRepo.Query().Returns(new List<BillPriceHistory>().AsAsyncQueryable());
-        var command = new UpdateBillPriceCommand(1, 99, 25m, DateTime.UtcNow, null);
+        var command = new UpdateBillPriceCommand(1, 99, 25m, DateTime.UtcNow, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -466,7 +624,7 @@ public class UpdateBillPriceHandlerTests
     {
         var entry = new BillPriceHistory { Id = 5, BillId = 2, Amount = 10m, EffectiveDate = DateTime.UtcNow };
         _priceRepo.Query().Returns(new List<BillPriceHistory> { entry }.AsAsyncQueryable());
-        var command = new UpdateBillPriceCommand(1, 5, 25m, DateTime.UtcNow, null);
+        var command = new UpdateBillPriceCommand(1, 5, 25m, DateTime.UtcNow, null, null);
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -479,7 +637,7 @@ public class UpdateBillPriceHandlerTests
         var entry = new BillPriceHistory { Id = 5, BillId = 1, Amount = 10m, EffectiveDate = DateTime.UtcNow };
         _priceRepo.Query().Returns(new List<BillPriceHistory> { entry }.AsAsyncQueryable());
         var newDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc);
-        var command = new UpdateBillPriceCommand(1, 5, 25m, newDate, "Updated note");
+        var command = new UpdateBillPriceCommand(1, 5, 25m, newDate, null, "Updated note");
 
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
 
@@ -489,6 +647,43 @@ public class UpdateBillPriceHandlerTests
         Assert.Equal("Updated note", entry.Notes);
         Assert.Equal(_now.UtcDateTime, entry.ModifiedOn);
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_OverlappingDateRange_ReturnsConflictAndDoesNotSave()
+    {
+        var entry = new BillPriceHistory { Id = 5, BillId = 1, Amount = 10m, EffectiveDate = new DateTime(2026, 1, 1) };
+        var other = new BillPriceHistory
+        {
+            Id = 6, BillId = 1, Amount = 20m,
+            EffectiveDate = new DateTime(2026, 3, 1), EndDate = new DateTime(2026, 6, 1)
+        };
+        _priceRepo.Query().Returns(new List<BillPriceHistory> { entry, other }.AsAsyncQueryable());
+        var command = new UpdateBillPriceCommand(1, 5, 25m, new DateTime(2026, 4, 1), null, null);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<Conflict<string>>(result);
+        Assert.Equal(10m, entry.Amount); // Unchanged
+        await _unitOfWork.DidNotReceive().SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_NoOverlapWithOtherEntries_ExcludesSelfFromCheck()
+    {
+        // The entry being updated shares its own current date range — must not be compared against itself.
+        var entry = new BillPriceHistory
+        {
+            Id = 5, BillId = 1, Amount = 10m,
+            EffectiveDate = new DateTime(2026, 1, 1), EndDate = new DateTime(2026, 6, 1)
+        };
+        _priceRepo.Query().Returns(new List<BillPriceHistory> { entry }.AsAsyncQueryable());
+        var command = new UpdateBillPriceCommand(1, 5, 15m, new DateTime(2026, 1, 1), new DateTime(2026, 6, 1), null);
+
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal(15m, entry.Amount);
     }
 }
 
@@ -924,6 +1119,41 @@ public class GetBillPriceHistoryHandlerTests
         var ok = Assert.IsType<Ok<List<BillPriceHistoryResponse>>>(result);
         Assert.Null(ok.Value![0].PreviousAmount);
     }
+
+    [Fact]
+    public async Task Handle_EntryWithEndDate_MapsEndDateToResponse()
+    {
+        var now = DateTime.UtcNow;
+        var endDate = now.AddMonths(1);
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix" } }.AsAsyncQueryable());
+        var entries = new List<BillPriceHistory>
+        {
+            new() { Id = 1, BillId = 1, Amount = 10m, EffectiveDate = now, EndDate = endDate, CreatedOn = now }
+        };
+        _priceRepo.Query().Returns(entries.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<List<BillPriceHistoryResponse>>>(result);
+        Assert.Equal(endDate, ok.Value![0].EndDate);
+    }
+
+    [Fact]
+    public async Task Handle_EntryWithoutEndDate_ReturnsNullEndDate()
+    {
+        var now = DateTime.UtcNow;
+        _billRepo.Query().Returns(new List<Bill> { new Bill { Id = 1, Name = "Netflix" } }.AsAsyncQueryable());
+        var entries = new List<BillPriceHistory>
+        {
+            new() { Id = 1, BillId = 1, Amount = 10m, EffectiveDate = now, CreatedOn = now }
+        };
+        _priceRepo.Query().Returns(entries.AsAsyncQueryable());
+
+        var result = await CreateHandler().Handle(new GetBillPriceHistoryQuery(1), TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<List<BillPriceHistoryResponse>>>(result);
+        Assert.Null(ok.Value![0].EndDate);
+    }
 }
 
 public class BillHelpers_NoneFrequencyTests
@@ -1279,5 +1509,174 @@ public class GetBillAttachmentsHandlerTests
         Assert.Single(list);
         Assert.Null(list[0].ThumbnailUrl);
         Assert.Equal("/api/bills/1/attachments/1/download", list[0].Url);
+    }
+}
+
+public class BillPeriodTests
+{
+    // --- GetPeriodStart ---
+
+    [Fact]
+    public void GetPeriodStart_None_ReturnsSameDate()
+    {
+        var date = new DateTime(2026, 3, 15, 10, 30, 0);
+
+        var result = BillPeriod.GetPeriodStart(PaymentFrequency.None, date);
+
+        Assert.Equal(date, result);
+    }
+
+    [Theory]
+    [InlineData(2024, 1, 1, 2024, 1, 1)] // Monday itself
+    [InlineData(2024, 1, 2, 2024, 1, 1)] // Tuesday
+    [InlineData(2024, 1, 7, 2024, 1, 1)] // Sunday (end of week)
+    [InlineData(2024, 1, 8, 2024, 1, 8)] // Following Monday
+    public void GetPeriodStart_Weekly_ReturnsMondayOfWeek(int y, int m, int d, int ey, int em, int ed)
+    {
+        var result = BillPeriod.GetPeriodStart(PaymentFrequency.Weekly, new DateTime(y, m, d));
+
+        Assert.Equal(new DateTime(ey, em, ed), result);
+    }
+
+    [Theory]
+    [InlineData(2000, 1, 3, 2000, 1, 3)] // Epoch itself
+    [InlineData(2000, 1, 16, 2000, 1, 3)] // 13 days after epoch — same period
+    [InlineData(2000, 1, 17, 2000, 1, 17)] // 14 days after epoch — next period
+    public void GetPeriodStart_BiWeekly_ReturnsPeriodStartFromEpoch(int y, int m, int d, int ey, int em, int ed)
+    {
+        var result = BillPeriod.GetPeriodStart(PaymentFrequency.BiWeekly, new DateTime(y, m, d));
+
+        Assert.Equal(new DateTime(ey, em, ed), result);
+    }
+
+    [Theory]
+    [InlineData(2026, 3, 15, 2026, 3, 1)]
+    [InlineData(2026, 3, 1, 2026, 3, 1)]
+    [InlineData(2026, 3, 31, 2026, 3, 1)]
+    public void GetPeriodStart_Monthly_ReturnsFirstOfMonth(int y, int m, int d, int ey, int em, int ed)
+    {
+        var result = BillPeriod.GetPeriodStart(PaymentFrequency.Monthly, new DateTime(y, m, d));
+
+        Assert.Equal(new DateTime(ey, em, ed), result);
+    }
+
+    [Theory]
+    [InlineData(2026, 1, 15, 2026, 1, 1)] // Q1
+    [InlineData(2026, 4, 15, 2026, 4, 1)] // Q2 start
+    [InlineData(2026, 5, 15, 2026, 4, 1)] // Q2 mid
+    [InlineData(2026, 7, 15, 2026, 7, 1)] // Q3
+    [InlineData(2026, 12, 31, 2026, 10, 1)] // Q4
+    public void GetPeriodStart_Quarterly_ReturnsQuarterStart(int y, int m, int d, int ey, int em, int ed)
+    {
+        var result = BillPeriod.GetPeriodStart(PaymentFrequency.Quarterly, new DateTime(y, m, d));
+
+        Assert.Equal(new DateTime(ey, em, ed), result);
+    }
+
+    [Theory]
+    [InlineData(2026, 1, 1, 2026, 1, 1)]
+    [InlineData(2026, 6, 30, 2026, 1, 1)]
+    [InlineData(2026, 7, 1, 2026, 7, 1)]
+    [InlineData(2026, 12, 31, 2026, 7, 1)]
+    public void GetPeriodStart_SemiAnnually_ReturnsHalfYearStart(int y, int m, int d, int ey, int em, int ed)
+    {
+        var result = BillPeriod.GetPeriodStart(PaymentFrequency.SemiAnnually, new DateTime(y, m, d));
+
+        Assert.Equal(new DateTime(ey, em, ed), result);
+    }
+
+    [Theory]
+    [InlineData(2026, 1, 1, 2026, 1, 1)]
+    [InlineData(2026, 6, 15, 2026, 1, 1)]
+    [InlineData(2026, 12, 31, 2026, 1, 1)]
+    public void GetPeriodStart_Annually_ReturnsYearStart(int y, int m, int d, int ey, int em, int ed)
+    {
+        var result = BillPeriod.GetPeriodStart(PaymentFrequency.Annually, new DateTime(y, m, d));
+
+        Assert.Equal(new DateTime(ey, em, ed), result);
+    }
+
+    // --- GetPeriodEnd ---
+
+    [Fact]
+    public void GetPeriodEnd_None_ReturnsSameDate()
+    {
+        var date = new DateTime(2026, 3, 15, 10, 30, 0);
+
+        var result = BillPeriod.GetPeriodEnd(PaymentFrequency.None, date);
+
+        Assert.Equal(date, result);
+    }
+
+    [Fact]
+    public void GetPeriodEnd_Weekly_ReturnsLastTickBeforeNextMonday()
+    {
+        var result = BillPeriod.GetPeriodEnd(PaymentFrequency.Weekly, new DateTime(2024, 1, 3));
+
+        Assert.Equal(new DateTime(2024, 1, 8).AddTicks(-1), result);
+    }
+
+    [Fact]
+    public void GetPeriodEnd_BiWeekly_ReturnsLastTickBeforeNextPeriod()
+    {
+        var result = BillPeriod.GetPeriodEnd(PaymentFrequency.BiWeekly, new DateTime(2000, 1, 10));
+
+        Assert.Equal(new DateTime(2000, 1, 17).AddTicks(-1), result);
+    }
+
+    [Theory]
+    [InlineData(2026, 1)] // 31-day month
+    [InlineData(2026, 2)] // 28-day month (2026 is not a leap year)
+    [InlineData(2024, 2)] // 29-day month (leap year)
+    [InlineData(2026, 4)] // 30-day month
+    public void GetPeriodEnd_Monthly_ReturnsLastTickOfSameMonth(int year, int month)
+    {
+        // Regression: naively adding 30 days before renormalizing broke on 31-day months
+        // (e.g. Jan 31 would resolve to the end of February instead of the end of January).
+        var lastDayOfMonth = new DateTime(year, month, DateTime.DaysInMonth(year, month));
+
+        var result = BillPeriod.GetPeriodEnd(PaymentFrequency.Monthly, lastDayOfMonth);
+
+        var expected = new DateTime(year, month, 1).AddMonths(1).AddTicks(-1);
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GetPeriodEnd_Quarterly_ReturnsLastTickOfQuarter()
+    {
+        var result = BillPeriod.GetPeriodEnd(PaymentFrequency.Quarterly, new DateTime(2026, 5, 15));
+
+        var expected = new DateTime(2026, 4, 1).AddMonths(3).AddTicks(-1);
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GetPeriodEnd_SemiAnnually_ReturnsLastTickOfHalfYear()
+    {
+        var result = BillPeriod.GetPeriodEnd(PaymentFrequency.SemiAnnually, new DateTime(2026, 2, 10));
+
+        var expected = new DateTime(2026, 1, 1).AddMonths(6).AddTicks(-1);
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GetPeriodEnd_Annually_ReturnsLastTickOfYear()
+    {
+        var result = BillPeriod.GetPeriodEnd(PaymentFrequency.Annually, new DateTime(2026, 6, 15));
+
+        var expected = new DateTime(2026, 1, 1).AddYears(1).AddTicks(-1);
+        Assert.Equal(expected, result);
+    }
+
+    // --- NormalizeDate ---
+
+    [Fact]
+    public void NormalizeDate_DelegatesToGetPeriodStart()
+    {
+        var date = new DateTime(2026, 3, 15);
+
+        var result = BillPeriod.NormalizeDate(PaymentFrequency.Monthly, date);
+
+        Assert.Equal(BillPeriod.GetPeriodStart(PaymentFrequency.Monthly, date), result);
     }
 }

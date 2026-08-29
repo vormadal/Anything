@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSmartBack } from "@/hooks/useSmartBack";
-import { useCreateBill, PAYMENT_FREQUENCIES, FREQUENCY_LABELS, type PaymentFrequency } from "@/hooks/useBills";
+import { useCreateBill, type PaymentFrequency } from "@/hooks/useBills";
 import { useLocations, type Location } from "@/hooks/useLocations";
 import { useVendors, type Vendor } from "@/hooks/useVendors";
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/PageTitle";
 import { ComboboxField } from "@/components/ui/combobox-field";
+import { BillRecurrenceFields } from "@/components/BillRecurrenceFields";
 import { CreateVendorDialog } from "@/components/CreateVendorDialog";
 import { CreateLocationDialog } from "@/components/CreateLocationDialog";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ export default function NewBillPage() {
   const [vendorId, setVendorId] = useState<number | undefined>(undefined);
   const [frequency, setFrequency] = useState<string>("Monthly");
   const [isAutomated, setIsAutomated] = useState(true);
+  const [isRecurring, setIsRecurring] = useState(false);
   const [locationId, setLocationId] = useState<number | undefined>(undefined);
   const [managementUrl, setManagementUrl] = useState("");
   const [category, setCategory] = useState("");
@@ -46,12 +48,13 @@ export default function NewBillPage() {
       await createBill.mutateAsync({
         name: name.trim(),
         vendorId,
-        frequency: frequency as PaymentFrequency,
+        frequency: isRecurring ? (frequency as PaymentFrequency) : "None",
         isAutomated,
         locationId,
         managementUrl: managementUrl.trim() || undefined,
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
+        isRecurring,
         initialAmount: initialAmount ? Number(initialAmount) : undefined,
         initialEffectiveDate: initialAmount ? new Date(initialDate).toISOString() : undefined,
       });
@@ -91,6 +94,20 @@ export default function NewBillPage() {
           />
         </div>
 
+        <BillRecurrenceFields
+          idPrefix="bill"
+          isRecurring={isRecurring}
+          onIsRecurringChange={setIsRecurring}
+          isAutomated={isAutomated}
+          onIsAutomatedChange={setIsAutomated}
+          frequency={frequency}
+          onFrequencyChange={setFrequency}
+          amount={initialAmount}
+          onAmountChange={setInitialAmount}
+          date={initialDate}
+          onDateChange={setInitialDate}
+        />
+
         {/* Vendor */}
         <div>
           <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -103,56 +120,6 @@ export default function NewBillPage() {
             placeholder="Search vendors..."
             onCreateNew={(n) => setVendorDialog(n)}
           />
-        </div>
-
-        {/* Frequency + Automated */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="bill-frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Frequency
-            </label>
-            <select
-              id="bill-frequency"
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {PAYMENT_FREQUENCIES.map((f) => (
-                <option key={f} value={f}>
-                  {FREQUENCY_LABELS[f]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Payment
-            </p>
-            <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setIsAutomated(true)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  isAutomated
-                    ? "bg-green-600 text-white"
-                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-                }`}
-              >
-                Auto
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAutomated(false)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  !isAutomated
-                    ? "bg-orange-500 text-white"
-                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-                }`}
-              >
-                Manual
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Location + Category */}
@@ -197,33 +164,6 @@ export default function NewBillPage() {
             placeholder="https://..."
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
-
-        {/* Initial price */}
-        <div>
-          <label htmlFor="bill-initial-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Current price
-          </label>
-          <div className="flex gap-2">
-            <input
-              id="bill-initial-amount"
-              type="number"
-              value={initialAmount}
-              onChange={(e) => setInitialAmount(e.target.value)}
-              placeholder="0.00"
-              min="0.01"
-              step="0.01"
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {initialAmount && (
-              <input
-                type="date"
-                value={initialDate}
-                onChange={(e) => setInitialDate(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            )}
-          </div>
         </div>
 
         {/* Notes */}

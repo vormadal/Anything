@@ -196,6 +196,7 @@ describe('useBills hooks', () => {
           name: 'Netflix',
           frequency: 'Monthly',
           isAutomated: true,
+          isRecurring: true,
           initialAmount: 99,
         })
       })
@@ -215,7 +216,7 @@ describe('useBills hooks', () => {
 
       const { result } = renderHook(() => useCreateBill(), { wrapper: createWrapper() })
 
-      result.current.mutate({ name: 'Netflix', frequency: 'Monthly', isAutomated: true })
+      result.current.mutate({ name: 'Netflix', frequency: 'Monthly', isAutomated: true, isRecurring: true })
 
       await waitFor(() => expect(result.current.isError).toBe(true))
       expect(result.current.error).toBeTruthy()
@@ -229,7 +230,7 @@ describe('useBills hooks', () => {
       const { result } = renderHook(() => useUpdateBill(), { wrapper: createWrapper() })
 
       await act(async () => {
-        result.current.mutate({ id: 1, name: 'Netflix HD', frequency: 'Monthly', isAutomated: true })
+        result.current.mutate({ id: 1, name: 'Netflix HD', frequency: 'Monthly', isAutomated: true, isRecurring: true })
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))

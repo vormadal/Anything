@@ -14,6 +14,10 @@ export interface AddBillPriceRequest extends Parsable {
      */
     effectiveDate?: Date | null;
     /**
+     * The endDate property
+     */
+    endDate?: Date | null;
+    /**
      * The notes property
      */
     notes?: string | null;
@@ -106,6 +110,10 @@ export interface Bill extends Parsable {
      */
     isAutomated?: boolean | null;
     /**
+     * The isRecurring property
+     */
+    isRecurring?: boolean | null;
+    /**
      * The locationId property
      */
     locationId?: number | null;
@@ -186,6 +194,10 @@ export interface BillPriceHistory extends Parsable {
      */
     effectiveDate?: Date | null;
     /**
+     * The endDate property
+     */
+    endDate?: Date | null;
+    /**
      * The id property
      */
     id?: number | null;
@@ -215,6 +227,10 @@ export interface BillPriceHistoryResponse extends Parsable {
      * The effectiveDate property
      */
     effectiveDate?: Date | null;
+    /**
+     * The endDate property
+     */
+    endDate?: Date | null;
     /**
      * The id property
      */
@@ -257,6 +273,10 @@ export interface BillResponse extends Parsable {
      * The isAutomated property
      */
     isAutomated?: boolean | null;
+    /**
+     * The isRecurring property
+     */
+    isRecurring?: boolean | null;
     /**
      * The locationId property
      */
@@ -473,6 +493,10 @@ export interface CreateBillRequest extends Parsable {
      * The isAutomated property
      */
     isAutomated?: boolean | null;
+    /**
+     * The isRecurring property
+     */
+    isRecurring?: boolean | null;
     /**
      * The locationId property
      */
@@ -2088,6 +2112,7 @@ export function deserializeIntoAddBillPriceRequest(addBillPriceRequest: Partial<
     return {
         "amount": n => { addBillPriceRequest.amount = n.getNumberValue(); },
         "effectiveDate": n => { addBillPriceRequest.effectiveDate = n.getDateValue(); },
+        "endDate": n => { addBillPriceRequest.endDate = n.getDateValue(); },
         "notes": n => { addBillPriceRequest.notes = n.getStringValue(); },
     }
 }
@@ -2168,6 +2193,7 @@ export function deserializeIntoBill(bill: Partial<Bill> | undefined = {}) : Reco
         "householdId": n => { bill.householdId = n.getNumberValue(); },
         "id": n => { bill.id = n.getNumberValue(); },
         "isAutomated": n => { bill.isAutomated = n.getBooleanValue(); },
+        "isRecurring": n => { bill.isRecurring = n.getBooleanValue(); },
         "locationId": n => { bill.locationId = n.getNumberValue(); },
         "managementUrl": n => { bill.managementUrl = n.getStringValue(); },
         "modifiedOn": n => { bill.modifiedOn = n.getDateValue(); },
@@ -2207,6 +2233,7 @@ export function deserializeIntoBillPriceHistory(billPriceHistory: Partial<BillPr
         "billId": n => { billPriceHistory.billId = n.getNumberValue(); },
         "createdOn": n => { billPriceHistory.createdOn = n.getDateValue(); },
         "effectiveDate": n => { billPriceHistory.effectiveDate = n.getDateValue(); },
+        "endDate": n => { billPriceHistory.endDate = n.getDateValue(); },
         "id": n => { billPriceHistory.id = n.getNumberValue(); },
         "modifiedOn": n => { billPriceHistory.modifiedOn = n.getDateValue(); },
         "notes": n => { billPriceHistory.notes = n.getStringValue(); },
@@ -2224,6 +2251,7 @@ export function deserializeIntoBillPriceHistoryResponse(billPriceHistoryResponse
         "billId": n => { billPriceHistoryResponse.billId = n.getNumberValue(); },
         "createdOn": n => { billPriceHistoryResponse.createdOn = n.getDateValue(); },
         "effectiveDate": n => { billPriceHistoryResponse.effectiveDate = n.getDateValue(); },
+        "endDate": n => { billPriceHistoryResponse.endDate = n.getDateValue(); },
         "id": n => { billPriceHistoryResponse.id = n.getNumberValue(); },
         "modifiedOn": n => { billPriceHistoryResponse.modifiedOn = n.getDateValue(); },
         "notes": n => { billPriceHistoryResponse.notes = n.getStringValue(); },
@@ -2244,6 +2272,7 @@ export function deserializeIntoBillResponse(billResponse: Partial<BillResponse> 
         "frequency": n => { billResponse.frequency = n.getStringValue(); },
         "id": n => { billResponse.id = n.getNumberValue(); },
         "isAutomated": n => { billResponse.isAutomated = n.getBooleanValue(); },
+        "isRecurring": n => { billResponse.isRecurring = n.getBooleanValue(); },
         "locationId": n => { billResponse.locationId = n.getNumberValue(); },
         "locationName": n => { billResponse.locationName = n.getStringValue(); },
         "managementUrl": n => { billResponse.managementUrl = n.getStringValue(); },
@@ -2342,6 +2371,7 @@ export function deserializeIntoCreateBillRequest(createBillRequest: Partial<Crea
         "initialAmount": n => { createBillRequest.initialAmount = n.getNumberValue(); },
         "initialEffectiveDate": n => { createBillRequest.initialEffectiveDate = n.getDateValue(); },
         "isAutomated": n => { createBillRequest.isAutomated = n.getBooleanValue(); },
+        "isRecurring": n => { createBillRequest.isRecurring = n.getBooleanValue(); },
         "locationId": n => { createBillRequest.locationId = n.getNumberValue(); },
         "managementUrl": n => { createBillRequest.managementUrl = n.getStringValue(); },
         "name": n => { createBillRequest.name = n.getStringValue(); },
@@ -3930,6 +3960,7 @@ export function deserializeIntoUpdateBillPriceRequest(updateBillPriceRequest: Pa
     return {
         "amount": n => { updateBillPriceRequest.amount = n.getNumberValue(); },
         "effectiveDate": n => { updateBillPriceRequest.effectiveDate = n.getDateValue(); },
+        "endDate": n => { updateBillPriceRequest.endDate = n.getDateValue(); },
         "notes": n => { updateBillPriceRequest.notes = n.getStringValue(); },
     }
 }
@@ -3944,6 +3975,7 @@ export function deserializeIntoUpdateBillRequest(updateBillRequest: Partial<Upda
         "category": n => { updateBillRequest.category = n.getStringValue(); },
         "frequency": n => { updateBillRequest.frequency = n.getStringValue(); },
         "isAutomated": n => { updateBillRequest.isAutomated = n.getBooleanValue(); },
+        "isRecurring": n => { updateBillRequest.isRecurring = n.getBooleanValue(); },
         "locationId": n => { updateBillRequest.locationId = n.getNumberValue(); },
         "managementUrl": n => { updateBillRequest.managementUrl = n.getStringValue(); },
         "name": n => { updateBillRequest.name = n.getStringValue(); },
@@ -5699,6 +5731,7 @@ export function serializeAddBillPriceRequest(writer: SerializationWriter, addBil
     if (!addBillPriceRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("amount", addBillPriceRequest.amount);
     writer.writeDateValue("effectiveDate", addBillPriceRequest.effectiveDate);
+    writer.writeDateValue("endDate", addBillPriceRequest.endDate);
     writer.writeStringValue("notes", addBillPriceRequest.notes);
 }
 /**
@@ -5779,6 +5812,7 @@ export function serializeBill(writer: SerializationWriter, bill: Partial<Bill> |
     writer.writeNumberValue("householdId", bill.householdId);
     writer.writeNumberValue("id", bill.id);
     writer.writeBooleanValue("isAutomated", bill.isAutomated);
+    writer.writeBooleanValue("isRecurring", bill.isRecurring);
     writer.writeNumberValue("locationId", bill.locationId);
     writer.writeStringValue("managementUrl", bill.managementUrl);
     writer.writeDateValue("modifiedOn", bill.modifiedOn);
@@ -5818,6 +5852,7 @@ export function serializeBillPriceHistory(writer: SerializationWriter, billPrice
     writer.writeNumberValue("billId", billPriceHistory.billId);
     writer.writeDateValue("createdOn", billPriceHistory.createdOn);
     writer.writeDateValue("effectiveDate", billPriceHistory.effectiveDate);
+    writer.writeDateValue("endDate", billPriceHistory.endDate);
     writer.writeNumberValue("id", billPriceHistory.id);
     writer.writeDateValue("modifiedOn", billPriceHistory.modifiedOn);
     writer.writeStringValue("notes", billPriceHistory.notes);
@@ -5835,6 +5870,7 @@ export function serializeBillPriceHistoryResponse(writer: SerializationWriter, b
     writer.writeNumberValue("billId", billPriceHistoryResponse.billId);
     writer.writeDateValue("createdOn", billPriceHistoryResponse.createdOn);
     writer.writeDateValue("effectiveDate", billPriceHistoryResponse.effectiveDate);
+    writer.writeDateValue("endDate", billPriceHistoryResponse.endDate);
     writer.writeNumberValue("id", billPriceHistoryResponse.id);
     writer.writeDateValue("modifiedOn", billPriceHistoryResponse.modifiedOn);
     writer.writeStringValue("notes", billPriceHistoryResponse.notes);
@@ -5855,6 +5891,7 @@ export function serializeBillResponse(writer: SerializationWriter, billResponse:
     writer.writeStringValue("frequency", billResponse.frequency);
     writer.writeNumberValue("id", billResponse.id);
     writer.writeBooleanValue("isAutomated", billResponse.isAutomated);
+    writer.writeBooleanValue("isRecurring", billResponse.isRecurring);
     writer.writeNumberValue("locationId", billResponse.locationId);
     writer.writeStringValue("locationName", billResponse.locationName);
     writer.writeStringValue("managementUrl", billResponse.managementUrl);
@@ -5953,6 +5990,7 @@ export function serializeCreateBillRequest(writer: SerializationWriter, createBi
     writer.writeNumberValue("initialAmount", createBillRequest.initialAmount);
     writer.writeDateValue("initialEffectiveDate", createBillRequest.initialEffectiveDate);
     writer.writeBooleanValue("isAutomated", createBillRequest.isAutomated);
+    writer.writeBooleanValue("isRecurring", createBillRequest.isRecurring);
     writer.writeNumberValue("locationId", createBillRequest.locationId);
     writer.writeStringValue("managementUrl", createBillRequest.managementUrl);
     writer.writeStringValue("name", createBillRequest.name);
@@ -7543,6 +7581,7 @@ export function serializeUpdateBillPriceRequest(writer: SerializationWriter, upd
     if (!updateBillPriceRequest || isSerializingDerivedType) { return; }
     writer.writeNumberValue("amount", updateBillPriceRequest.amount);
     writer.writeDateValue("effectiveDate", updateBillPriceRequest.effectiveDate);
+    writer.writeDateValue("endDate", updateBillPriceRequest.endDate);
     writer.writeStringValue("notes", updateBillPriceRequest.notes);
 }
 /**
@@ -7557,6 +7596,7 @@ export function serializeUpdateBillRequest(writer: SerializationWriter, updateBi
     writer.writeStringValue("category", updateBillRequest.category);
     writer.writeStringValue("frequency", updateBillRequest.frequency);
     writer.writeBooleanValue("isAutomated", updateBillRequest.isAutomated);
+    writer.writeBooleanValue("isRecurring", updateBillRequest.isRecurring);
     writer.writeNumberValue("locationId", updateBillRequest.locationId);
     writer.writeStringValue("managementUrl", updateBillRequest.managementUrl);
     writer.writeStringValue("name", updateBillRequest.name);
@@ -8284,6 +8324,10 @@ export interface UpdateBillPriceRequest extends Parsable {
      */
     effectiveDate?: Date | null;
     /**
+     * The endDate property
+     */
+    endDate?: Date | null;
+    /**
      * The notes property
      */
     notes?: string | null;
@@ -8301,6 +8345,10 @@ export interface UpdateBillRequest extends Parsable {
      * The isAutomated property
      */
     isAutomated?: boolean | null;
+    /**
+     * The isRecurring property
+     */
+    isRecurring?: boolean | null;
     /**
      * The locationId property
      */
