@@ -8,6 +8,7 @@ Shared utilities and the generated API client.
 - `api-client/` — **auto-generated** Kiota client from the backend OpenAPI spec; do not edit manually
   - Regenerate with `npm run generate:api` (API must be running); in practice the `update-api-client` workflow regenerates and commits it — see CLAUDE.md → CI Automation & Deployment
   - `generate:api` passes `--clean-output`, so a removed/renamed backend route's old folder here disappears on the next regeneration rather than lingering as dead code — see CLAUDE.md's kiota gotcha for what that surfaced
+  - `update-api-client` (like the other two bot workflows) has no `workflow_dispatch` trigger, so it can't be fired on demand from the API/UI — only a push touching its `paths:` re-runs it (see CLAUDE.md's CI Automation & Deployment gotchas)
   - Import types from `@/lib/api-client/models/index`
 - `../../public/tesseract/` + `public/tessdata/` — OCR assets for the scan-from-photo flow (tesseract.js): the worker/WASM cores in `public/tesseract/` are gitignored and copied from `node_modules` by `scripts/copy-tesseract-assets.mjs` via the `predev`/`prebuild` hooks; the gzipped `tessdata_fast` models in `public/tessdata/` are committed. If OCR fails with 404s on `/tesseract/*`, run `npm run copy:tesseract`.
 - `foodPlanUtils.ts` — date/slot helpers for the food plan calendar
