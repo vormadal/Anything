@@ -196,28 +196,16 @@ await app.RunAsync();
 
 // Fails startup (crash loop, caught by the deploy's /health verification) rather
 // than serving Production traffic with the dev secrets from appsettings.json.
+// The checks themselves live in ProductionSecretsGuard (unit-tested).
 static void ValidateProductionSecrets(WebApplication app)
 {
     if (!app.Environment.IsProduction())
         return;
 
-    var jwtOptions = app.Services.GetRequiredService<IOptions<JwtSettings>>().Value;
-    var adminOptions = app.Services.GetRequiredService<IOptions<AdminSettings>>().Value;
-    var imageOptions = app.Services.GetRequiredService<IOptions<ImageSettings>>().Value;
-
-    var errors = new List<string>();
-
-    if (jwtOptions.SecretKey == "your-secret-key-min-32-characters-long-change-in-production")
-        errors.Add("Jwt:SecretKey is the checked-in dev default — set a real secret via environment variables.");
-
-    if (adminOptions.Password == "Admin123!")
-        errors.Add("Admin:Password is the checked-in dev default — set a real password via environment variables.");
-
-    if (imageOptions.SecretKey == "minioadmin")
-        errors.Add("ImageSettings:SecretKey is the checked-in dev default — set real MinIO credentials via environment variables.");
-
-    if (string.IsNullOrEmpty(imageOptions.ImageProxyKey) || string.IsNullOrEmpty(imageOptions.ImageProxySalt))
-        errors.Add("ImageSettings:ImageProxyKey/ImageProxySalt are unset — without them image URLs are unsigned (/insecure), an open resizer. Set both (hex) and configure imgproxy with the same IMGPROXY_KEY/IMGPROXY_SALT.");
+    var errors = ProductionSecretsGuard.FindDevDefaults(
+        app.Services.GetRequiredService<IOptions<JwtSettings>>().Value,
+        app.Services.GetRequiredService<IOptions<AdminSettings>>().Value,
+        app.Services.GetRequiredService<IOptions<ImageSettings>>().Value);
 
     if (errors.Count > 0)
         throw new InvalidOperationException(
