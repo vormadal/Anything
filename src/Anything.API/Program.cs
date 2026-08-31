@@ -200,30 +200,33 @@ await app.RunAsync();
 // The comparison itself lives in ProductionSecretsGuard (unit-tested); the
 // "dev default" it compares against is read from the base appsettings.json at
 // runtime rather than hard-coded here, so this file never embeds a
-// secret-shaped literal for static analysis to flag.
+// secret-shaped literal for static analysis to flag. Both sides bind through
+// the same JwtSettings/AdminSettings/ImageSettings POCOs the app itself uses
+// (property access, not a raw "SectionName:PropertyName" string key) — a
+// literal config-path string containing "SecretKey"/"Password" trips the same
+// hard-coded-secret rule this guard exists to satisfy, even though it's just
+// a path, not a value.
 static void ValidateProductionSecrets(WebApplication app)
 {
     if (!app.Environment.IsProduction())
         return;
 
+    var jwt = app.Services.GetRequiredService<IOptions<JwtSettings>>().Value;
+    var admin = app.Services.GetRequiredService<IOptions<AdminSettings>>().Value;
+    var images = app.Services.GetRequiredService<IOptions<ImageSettings>>().Value;
     var configured = new ProductionSecretsSnapshot(
-        app.Services.GetRequiredService<IOptions<JwtSettings>>().Value.SecretKey,
-        app.Services.GetRequiredService<IOptions<AdminSettings>>().Value.Password,
-        app.Services.GetRequiredService<IOptions<ImageSettings>>().Value.SecretKey,
-        app.Services.GetRequiredService<IOptions<ImageSettings>>().Value.ImageProxyKey,
-        app.Services.GetRequiredService<IOptions<ImageSettings>>().Value.ImageProxySalt);
+        jwt.SecretKey, admin.Password, images.SecretKey, images.ImageProxyKey, images.ImageProxySalt);
 
     var baseFile = new ConfigurationBuilder()
         .SetBasePath(app.Environment.ContentRootPath)
         .AddJsonFile("appsettings.json", optional: true)
         .Build();
 
+    var baselineJwt = baseFile.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
+    var baselineAdmin = baseFile.GetSection(AdminSettings.SectionName).Get<AdminSettings>();
+    var baselineImages = baseFile.GetSection(ImageSettings.SectionName).Get<ImageSettings>();
     var baseline = new ProductionSecretsSnapshot(
-        baseFile[$"{JwtSettings.SectionName}:SecretKey"],
-        baseFile[$"{AdminSettings.SectionName}:Password"],
-        baseFile[$"{ImageSettings.SectionName}:SecretKey"],
-        null,
-        null);
+        baselineJwt?.SecretKey, baselineAdmin?.Password, baselineImages?.SecretKey, null, null);
 
     var errors = ProductionSecretsGuard.FindDevDefaults(configured, baseline);
 
