@@ -26,6 +26,11 @@ Shared utilities and the generated API client.
 - Never cast API response types to `any`; use the generated model types from `api-client/models/index`.
 - **Never use raw `fetch` or `apiFetch` for API calls** — use the configured `apiClient`. If the endpoint you need isn't in the generated client yet, do **not** reach for `apiFetch` as a stopgap: push the backend change (or open the PR) first so the `update-api-client` workflow regenerates and commits `api-client/**`, pull/rebase those changes, then implement the call against the regenerated `apiClient`. This holds even when the file you're editing already uses raw `fetch`/`apiFetch` — and when you touch such a file, migrate its legacy calls to `apiClient` as part of your change rather than copying the pattern.
 
+## Security Rules
+
+- **Access and refresh tokens live in `localStorage` (`apiClient.ts`), so any XSS is a full account takeover.** Never use `dangerouslySetInnerHTML` or render externally-sourced HTML/markup directly. The note importers are the model: all foreign HTML goes through `generateJSON(html, noteExtensions)` so only schema-known nodes survive. Text from the API or a parsed file renders as React text children (auto-escaped), never as markup.
+- **`NEXT_PUBLIC_API_URL` is baked at build time and empty in the Docker image** (same-origin via nginx) — never hardcode an absolute API origin elsewhere.
+
 ## Note import (`notes/import/`)
 
 Converting an exported document into a note happens **entirely in the browser** — the API only ever
