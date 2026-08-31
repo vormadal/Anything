@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { BillPriceHistorySection } from "@/components/BillPriceHistorySection";
 import { toast } from "sonner";
 import { isSafeUrl } from "@/lib/utils";
+import { ATTACHMENT_ACCEPT } from "@/lib/uploadAccept";
 import { formatCurrency } from "@/lib/billFormat";
 import {
   ExternalLink,
@@ -324,7 +325,7 @@ export default function BillDetailPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="*/*"
+            accept={ATTACHMENT_ACCEPT}
             className="hidden"
             onChange={handleFileUpload}
           />

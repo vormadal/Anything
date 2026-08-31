@@ -36,6 +36,9 @@ public class UploadRecipeImageHandler(
         if (UploadValidation.ValidateFileSize(command.ContentLength) is { } sizeError)
             return sizeError;
 
+        if (UploadValidation.ValidateImageContentType(command.ContentType) is { } typeError)
+            return typeError;
+
         var storageKey = await imageStorageService.Upload(
             command.ImageStream,
             command.FileName,

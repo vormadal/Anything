@@ -37,6 +37,9 @@ public class UploadBillAttachmentHandler(
         if (UploadValidation.ValidateFileSize(command.ContentLength) is { } sizeError)
             return sizeError;
 
+        if (UploadValidation.ValidateAttachmentContentType(command.ContentType) is { } typeError)
+            return typeError;
+
         var storageKey = await imageStorageService.Upload(
             command.FileStream,
             command.FileName,

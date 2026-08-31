@@ -1,3 +1,5 @@
+using System.Net;
+using Anything.Application.Common;
 using Anything.Application.Services;
 using Xunit;
 
@@ -8,7 +10,7 @@ public class RecipeParserServiceTests
     private static RecipeParserService CreateService(string html)
     {
         var handler = new FakeHttpMessageHandler(html);
-        return new RecipeParserService(new HttpClient(handler));
+        return new RecipeParserService(new HttpClient(handler), new FakePublicAddressResolver());
     }
 
     private static string WrapInHtml(string jsonLd) =>
@@ -202,7 +204,7 @@ public class RecipeParserServiceTests
     // --- ParseFromText ---
 
     private static RecipeParserService CreateTextService() =>
-        new(new HttpClient(new FakeHttpMessageHandler("")));
+        new(new HttpClient(new FakeHttpMessageHandler("")), new FakePublicAddressResolver());
 
     [Theory]
     [InlineData("2 spsk smør", 2.0, "spsk", "smør")]
@@ -276,4 +278,11 @@ file class FakeHttpMessageHandler(string content) : HttpMessageHandler
         {
             Content = new StringContent(content, System.Text.Encoding.UTF8, "text/html")
         });
+}
+
+/// <summary>Resolves every host to a public address so tests never do live DNS.</summary>
+file class FakePublicAddressResolver : IOutboundAddressResolver
+{
+    public Task<IPAddress[]> Resolve(string host, CancellationToken ct = default) =>
+        Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") });
 }

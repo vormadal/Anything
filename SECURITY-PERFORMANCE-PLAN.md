@@ -5,60 +5,33 @@ Each item is scoped to be one PR. The rules that prevent regressions live in the
 per-directory `agent.md` files; this file tracks the one-time fixes. Delete items
 as they land (and delete this file when it's empty).
 
-## P1 — Security, fix first
+## P1 — implemented in code; deployment prerequisites remain
 
-### 1. Fail fast on dev-default secrets in Production
-`appsettings.json` ships a dev JWT secret (`your-secret-key-...`), a dev admin
-password (`Admin123!`), and dev MinIO credentials; when `ImageProxyKey`/`ImageProxySalt`
-are unset, `MinioStorageService.GetImageUrl` silently emits unsigned `/insecure`
-imgproxy URLs (an open image resizer anyone can point at any internal source URL).
+All five P1 items are implemented (PR #719). **Before that PR's changes are deployed,
+CapRover env vars must be updated — two of the changes make the API refuse to start
+or break thumbnails if the deployment still runs on defaults:**
 
-- In `Program.cs` (or an options validator), when `IsProduction()`: refuse to start if
-  `Jwt:SecretKey` equals the checked-in default, `Admin:Password` equals the default,
-  or `ImageProxyKey`/`ImageProxySalt` are empty.
-- Files: `src/Anything.API/Program.cs`, `src/Anything.Application/Configuration/JwtSettings.cs`, `ImageSettings.cs`.
+1. **Set real secrets on the API app** (`ValidateProductionSecrets` in `Program.cs`
+   fails startup otherwise): `Jwt__SecretKey`, `Admin__Password`,
+   `ImageSettings__SecretKey` (MinIO), and `ImageSettings__ImageProxyKey`/
+   `ImageSettings__ImageProxySalt` (hex; imgproxy must get the same values as
+   `IMGPROXY_KEY`/`IMGPROXY_SALT`).
+2. **Give imgproxy S3 credentials and flip the bucket private**: on the imgproxy app
+   set `IMGPROXY_USE_S3=true`, `IMGPROXY_S3_ENDPOINT` (the MinIO URL), `AWS_ACCESS_KEY_ID`/
+   `AWS_SECRET_ACCESS_KEY`/`AWS_REGION`; on the API app set
+   `ImageSettings__UseS3Source=true`. Until both are set, leave `UseS3Source` unset —
+   the legacy public-read path keeps working. On its first start with the flag on, the
+   API revokes the bucket's anonymous-read policy itself.
 
-### 2. Content-type allowlists on the remaining upload endpoints
-Only `UploadNoteImageHandler` validates content type. The five other upload handlers
-(inventory item/box/storage-unit attachments, bill attachments, recipe images) store the
-client-declared `ContentType` unchecked into a **public-read** bucket — e.g. `text/html`
-served from the storage origin.
-
-- Extract the media-type allowlist check from `UploadNoteImageHandler` into
-  `Anything.Application.Common.UploadValidation` (next to `ValidateFileSize`).
-- Recipe/note images: `image/png|jpeg|webp|gif`. Attachments: images + `application/pdf`
-  (extend deliberately if users need more).
-- Files: `src/Anything.Application/Features/{Inventory,Bills,Recipes}/Commands/Upload*.cs`, `Common/UploadValidation.cs`.
-
-### 3. SSRF guard on `RecipeParserService.ParseFromUrl`
-`httpClient.GetStringAsync(url)` fetches any user-supplied URL from inside the
-container network (where `minio:9000`, Postgres, etc. live), with no scheme check,
-size cap, or redirect bound.
-
-- Allow only `http`/`https`; resolve the host and reject loopback/private/link-local
-  ranges (re-check after redirects, or disable auto-redirect and validate each hop);
-  cap the response body (e.g. 5 MB) via `MaxResponseContentBufferSize`; keep a short timeout.
-- Files: `src/Anything.Application/Services/RecipeParserService.cs`, its `HttpClient`
-  registration in `DependencyInjection.cs`.
-
-### 4. Make the storage bucket private
-`MinioStorageService.Initialize` sets anonymous `s3:GetObject` on the whole bucket, so
-every receipt, warranty document, and photo is world-readable to anyone with the URL
-(GUID keys are unguessable, but URLs leak — imgproxy URLs are shown in the UI, browser
-history, etc.).
-
-- Drop the public-read policy. Authenticated downloads already stream through the API.
-- imgproxy needs source access for thumbnails: configure it with S3 credentials
-  (`IMGPROXY_USE_S3`) instead of relying on anonymous bucket reads.
-- Files: `src/Anything.Application/Services/MinioStorageService.cs`, imgproxy deployment config.
-
-### 5. Rate-limit the auth endpoints
-`/api/auth/login`, `/refresh`, and `/register` are anonymous, unthrottled, and do BCrypt
-work per request — open to credential stuffing and cheap CPU DoS.
-
-- Add ASP.NET `AddRateLimiter` with a per-IP fixed window on the auth group
-  (behind nginx, key on `X-Real-IP`/`X-Forwarded-For`).
-- Files: `src/Anything.API/Program.cs`, `Endpoints/AuthEndpoints.cs`, `nginx.conf` (real IP).
+What landed in code: startup fail-fast on dev-default secrets; content-type allowlists
+on all six upload endpoints (`UploadValidation`, mirrored by the frontend's
+`uploadAccept.ts`); the SSRF guard on recipe URL fetches (`OutboundUrlGuard` +
+per-hop redirect validation + 5 MB response cap); the `UseS3Source` private-bucket
+mode (Aspire dev runs it already); and a per-client-IP rate limit on
+login/refresh/register (`RateLimiting:Auth` config, forwarded-headers trust for the
+nginx chain). Not covered by an automated test: the rate limiter itself (the
+integration suite raises its limit to stay unaffected) — verify with a burst of bad
+logins after deploying.
 
 ## P2 — Security hardening
 

@@ -1,3 +1,4 @@
+using Anything.Application.Common;
 using Anything.Application.Configuration;
 using Anything.Application.Services;
 using Anything.Core.Services;
@@ -37,11 +38,15 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IImageStorageService, MinioStorageService>();
         services.AddScoped<IRecipeImageService, RecipeImageService>();
+        services.AddSingleton<IOutboundAddressResolver, DnsOutboundAddressResolver>();
         services.AddHttpClient<IRecipeParserService, RecipeParserService>(client =>
         {
             client.DefaultRequestHeaders.UserAgent.ParseAdd("AnythingApp/1.0 (recipe-parser)");
             client.Timeout = TimeSpan.FromSeconds(30);
-        });
+        })
+        // Auto-redirect must stay off: RecipeParserService's SSRF guard
+        // validates every redirect hop itself (see FetchHtml).
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
 
         // Configuration
         services.AddOptions<ImageSettings>()

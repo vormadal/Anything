@@ -26,7 +26,6 @@ public record UploadNoteImageCommand(
 public class UploadNoteImageHandler(IImageStorageService imageStorageService)
     : IRequestHandler<UploadNoteImageCommand, IResult>
 {
-    private const string InvalidContentType = "Only PNG, JPEG, WebP and GIF images can be added to a note.";
     private const string StorageFolder = "notes";
 
     /// <summary>
@@ -35,16 +34,13 @@ public class UploadNoteImageHandler(IImageStorageService imageStorageService)
     /// </summary>
     private const int MaxRenderedDimension = 1600;
 
-    private static readonly string[] AllowedContentTypes =
-        ["image/png", "image/jpeg", "image/webp", "image/gif"];
-
     public async Task<IResult> Handle(UploadNoteImageCommand command, CancellationToken ct = default)
     {
         if (UploadValidation.ValidateFileSize(command.ContentLength) is { } sizeError)
             return sizeError;
 
-        if (!IsAllowedContentType(command.ContentType))
-            return Results.BadRequest(InvalidContentType);
+        if (UploadValidation.ValidateImageContentType(command.ContentType) is { } typeError)
+            return typeError;
 
         var storageKey = await imageStorageService.Upload(
             command.ImageStream,
@@ -61,13 +57,5 @@ public class UploadNoteImageHandler(IImageStorageService imageStorageService)
             resizingType: "fit");
 
         return Results.Created(url, new NoteImageResponse(storageKey, url));
-    }
-
-    private static bool IsAllowedContentType(string contentType)
-    {
-        // Browsers append parameters to some uploads ("image/jpeg; charset=..."),
-        // so compare only the media type.
-        var mediaType = contentType.Split(';')[0].Trim();
-        return AllowedContentTypes.Contains(mediaType, StringComparer.OrdinalIgnoreCase);
     }
 }

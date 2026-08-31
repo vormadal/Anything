@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { InventoryAttachmentKinds } from "@/lib/inventory";
+import { ATTACHMENT_ACCEPT } from "@/lib/uploadAccept";
 import type { InventoryAttachmentResponse } from "@/hooks/useInventory";
 import {
   FIELD_INPUT_CLASS,
@@ -89,6 +90,7 @@ export function InventoryDocuments({
         <input
           ref={documentInputRef}
           type="file"
+          accept={ATTACHMENT_ACCEPT}
           className="hidden"
           onChange={handleDocumentChange}
         />
