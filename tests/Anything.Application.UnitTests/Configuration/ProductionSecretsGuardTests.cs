@@ -5,79 +5,76 @@ namespace Anything.Application.UnitTests.Configuration;
 
 public class ProductionSecretsGuardTests
 {
-    // The dev defaults checked into appsettings.json, in the order
-    // Jwt:SecretKey, Admin:Password, ImageSettings:SecretKey. The guard stores
-    // only their SHA-256 hashes, so these tests prove the plaintexts are
-    // still recognized.
-    private static readonly string[] AppsettingsDevDefaults =
-    [
-        "your-secret-key-min-32-characters-long-change-in-production",
-        "Admin123!",
-        "minioadmin"
-    ];
+    // Stands in for whatever the checked-in appsettings.json currently holds —
+    // the guard only cares whether the configured value still matches it, not
+    // what the value actually is.
+    private static ProductionSecretsSnapshot Baseline() => new(
+        JwtSecretKey: "baseline-jwt-value",
+        AdminPassword: "baseline-admin-value",
+        MinioSecretKey: "baseline-minio-value",
+        ImageProxyKey: null,
+        ImageProxySalt: null);
 
-    private static JwtSettings Jwt(string configured = "a-real-value-with-enough-length") => new()
-    {
-        SecretKey = configured,
-        Issuer = "issuer",
-        Audience = "audience"
-    };
-
-    private static AdminSettings Admin(string? configured = "a-real-value") => new()
-    {
-        Email = "admin@example.com",
-        Password = configured
-    };
-
-    private static ImageSettings Images(
-        string configuredSecret = "a-real-minio-value",
-        string? proxyKey = "aabbcc",
-        string? proxySalt = "ddeeff") => new()
-    {
-        BucketName = "bucket",
-        Endpoint = "http://minio:9000",
-        AccessKey = "access",
-        SecretKey = configuredSecret,
-        MinioSourceEndpoint = "http://minio:9000",
-        ImageProxyBaseUrl = "http://imgproxy:8080",
-        ImageProxyKey = proxyKey,
-        ImageProxySalt = proxySalt
-    };
+    private static ProductionSecretsSnapshot OverriddenValues() => new(
+        JwtSecretKey: "overridden-jwt-value",
+        AdminPassword: "overridden-admin-value",
+        MinioSecretKey: "overridden-minio-value",
+        ImageProxyKey: "aabbcc",
+        ImageProxySalt: "ddeeff");
 
     [Fact]
-    public void FindDevDefaults_WithRealSecrets_ReturnsNoErrors() =>
-        Assert.Empty(ProductionSecretsGuard.FindDevDefaults(Jwt(), Admin(), Images()));
+    public void FindDevDefaults_WithOverriddenValues_ReturnsNoErrors() =>
+        Assert.Empty(ProductionSecretsGuard.FindDevDefaults(OverriddenValues(), Baseline()));
 
     [Fact]
-    public void FindDevDefaults_WithDefaultJwtSecret_FlagsIt()
+    public void FindDevDefaults_WithJwtSecretUnchangedFromBaseline_FlagsIt()
     {
-        var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(AppsettingsDevDefaults[0]), Admin(), Images());
+        var configured = OverriddenValues() with { JwtSecretKey = Baseline().JwtSecretKey };
+
+        var errors = ProductionSecretsGuard.FindDevDefaults(configured, Baseline());
 
         Assert.Contains(errors, e => e.Contains("Jwt:SecretKey"));
     }
 
     [Fact]
-    public void FindDevDefaults_WithDefaultAdminPassword_FlagsIt()
+    public void FindDevDefaults_WithAdminPasswordUnchangedFromBaseline_FlagsIt()
     {
-        var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(), Admin(AppsettingsDevDefaults[1]), Images());
+        var configured = OverriddenValues() with { AdminPassword = Baseline().AdminPassword };
+
+        var errors = ProductionSecretsGuard.FindDevDefaults(configured, Baseline());
 
         Assert.Contains(errors, e => e.Contains("Admin:Password"));
     }
 
     [Fact]
-    public void FindDevDefaults_WithDefaultMinioSecret_FlagsIt()
+    public void FindDevDefaults_WithMinioSecretUnchangedFromBaseline_FlagsIt()
     {
-        var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(), Admin(), Images(configuredSecret: AppsettingsDevDefaults[2]));
+        var configured = OverriddenValues() with { MinioSecretKey = Baseline().MinioSecretKey };
+
+        var errors = ProductionSecretsGuard.FindDevDefaults(configured, Baseline());
 
         Assert.Contains(errors, e => e.Contains("ImageSettings:SecretKey"));
     }
 
     [Fact]
-    public void FindDevDefaults_WithUnsetAdminPassword_DoesNotFlagIt() =>
-        Assert.Empty(ProductionSecretsGuard.FindDevDefaults(Jwt(), Admin(configured: null), Images()));
+    public void FindDevDefaults_WithUnsetAdminPassword_DoesNotFlagIt()
+    {
+        var configured = OverriddenValues() with { AdminPassword = null };
+
+        var errors = ProductionSecretsGuard.FindDevDefaults(configured, Baseline());
+
+        Assert.DoesNotContain(errors, e => e.Contains("Admin:Password"));
+    }
+
+    [Fact]
+    public void FindDevDefaults_WithNoBaselineToCompareAgainst_DoesNotFlagRealValues()
+    {
+        // appsettings.json missing at runtime (see Program.cs's `optional: true`) —
+        // nothing to compare against, so a real configured secret isn't flagged.
+        var missingBaseline = new ProductionSecretsSnapshot(null, null, null, "aabbcc", "ddeeff");
+
+        Assert.Empty(ProductionSecretsGuard.FindDevDefaults(OverriddenValues(), missingBaseline));
+    }
 
     [Theory]
     [InlineData(null, "ddeeff")]
@@ -85,19 +82,19 @@ public class ProductionSecretsGuardTests
     [InlineData("", "")]
     public void FindDevDefaults_WithMissingImgproxyKeys_FlagsIt(string? proxyKey, string? proxySalt)
     {
-        var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(), Admin(), Images(proxyKey: proxyKey, proxySalt: proxySalt));
+        var configured = OverriddenValues() with { ImageProxyKey = proxyKey, ImageProxySalt = proxySalt };
+
+        var errors = ProductionSecretsGuard.FindDevDefaults(configured, Baseline());
 
         Assert.Contains(errors, e => e.Contains("ImageProxyKey"));
     }
 
     [Fact]
-    public void FindDevDefaults_WithEveryDefault_ReturnsAllErrors()
+    public void FindDevDefaults_WithEveryValueUnchanged_ReturnsAllErrors()
     {
-        var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(AppsettingsDevDefaults[0]),
-            Admin(AppsettingsDevDefaults[1]),
-            Images(configuredSecret: AppsettingsDevDefaults[2], proxyKey: null, proxySalt: null));
+        var configured = Baseline() with { ImageProxyKey = null, ImageProxySalt = null };
+
+        var errors = ProductionSecretsGuard.FindDevDefaults(configured, Baseline());
 
         Assert.Equal(4, errors.Count);
     }
