@@ -5,28 +5,39 @@ namespace Anything.Application.UnitTests.Configuration;
 
 public class ProductionSecretsGuardTests
 {
-    private static JwtSettings Jwt(string secretKey = "a-real-secret-key-with-enough-length") => new()
+    // The dev defaults checked into appsettings.json, in the order
+    // Jwt:SecretKey, Admin:Password, ImageSettings:SecretKey. The guard stores
+    // only their SHA-256 hashes, so these tests prove the plaintexts are
+    // still recognized.
+    private static readonly string[] AppsettingsDevDefaults =
+    [
+        "your-secret-key-min-32-characters-long-change-in-production",
+        "Admin123!",
+        "minioadmin"
+    ];
+
+    private static JwtSettings Jwt(string configured = "a-real-value-with-enough-length") => new()
     {
-        SecretKey = secretKey,
+        SecretKey = configured,
         Issuer = "issuer",
         Audience = "audience"
     };
 
-    private static AdminSettings Admin(string? password = "a-real-password") => new()
+    private static AdminSettings Admin(string? configured = "a-real-value") => new()
     {
         Email = "admin@example.com",
-        Password = password
+        Password = configured
     };
 
     private static ImageSettings Images(
-        string secretKey = "a-real-minio-secret",
+        string configuredSecret = "a-real-minio-value",
         string? proxyKey = "aabbcc",
         string? proxySalt = "ddeeff") => new()
     {
         BucketName = "bucket",
         Endpoint = "http://minio:9000",
         AccessKey = "access",
-        SecretKey = secretKey,
+        SecretKey = configuredSecret,
         MinioSourceEndpoint = "http://minio:9000",
         ImageProxyBaseUrl = "http://imgproxy:8080",
         ImageProxyKey = proxyKey,
@@ -41,7 +52,7 @@ public class ProductionSecretsGuardTests
     public void FindDevDefaults_WithDefaultJwtSecret_FlagsIt()
     {
         var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(ProductionSecretsGuard.DevJwtSecretKey), Admin(), Images());
+            Jwt(AppsettingsDevDefaults[0]), Admin(), Images());
 
         Assert.Contains(errors, e => e.Contains("Jwt:SecretKey"));
     }
@@ -50,7 +61,7 @@ public class ProductionSecretsGuardTests
     public void FindDevDefaults_WithDefaultAdminPassword_FlagsIt()
     {
         var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(), Admin(ProductionSecretsGuard.DevAdminPassword), Images());
+            Jwt(), Admin(AppsettingsDevDefaults[1]), Images());
 
         Assert.Contains(errors, e => e.Contains("Admin:Password"));
     }
@@ -59,10 +70,14 @@ public class ProductionSecretsGuardTests
     public void FindDevDefaults_WithDefaultMinioSecret_FlagsIt()
     {
         var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(), Admin(), Images(secretKey: ProductionSecretsGuard.DevMinioSecretKey));
+            Jwt(), Admin(), Images(configuredSecret: AppsettingsDevDefaults[2]));
 
         Assert.Contains(errors, e => e.Contains("ImageSettings:SecretKey"));
     }
+
+    [Fact]
+    public void FindDevDefaults_WithUnsetAdminPassword_DoesNotFlagIt() =>
+        Assert.Empty(ProductionSecretsGuard.FindDevDefaults(Jwt(), Admin(configured: null), Images()));
 
     [Theory]
     [InlineData(null, "ddeeff")]
@@ -80,9 +95,9 @@ public class ProductionSecretsGuardTests
     public void FindDevDefaults_WithEveryDefault_ReturnsAllErrors()
     {
         var errors = ProductionSecretsGuard.FindDevDefaults(
-            Jwt(ProductionSecretsGuard.DevJwtSecretKey),
-            Admin(ProductionSecretsGuard.DevAdminPassword),
-            Images(secretKey: ProductionSecretsGuard.DevMinioSecretKey, proxyKey: null, proxySalt: null));
+            Jwt(AppsettingsDevDefaults[0]),
+            Admin(AppsettingsDevDefaults[1]),
+            Images(configuredSecret: AppsettingsDevDefaults[2], proxyKey: null, proxySalt: null));
 
         Assert.Equal(4, errors.Count);
     }
