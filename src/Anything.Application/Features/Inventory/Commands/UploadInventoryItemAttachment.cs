@@ -40,6 +40,9 @@ public class UploadInventoryItemAttachmentHandler(
         if (UploadValidation.ValidateFileSize(command.ContentLength) is { } sizeError)
             return sizeError;
 
+        if (UploadValidation.ValidateAttachmentContentType(command.ContentType) is { } typeError)
+            return typeError;
+
         var kind = string.IsNullOrWhiteSpace(command.Kind) ? InventoryAttachmentKinds.Other : command.Kind;
         if (!InventoryAttachmentKinds.All.Contains(kind))
             return Results.BadRequest(InvalidKind);

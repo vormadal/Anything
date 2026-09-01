@@ -40,6 +40,15 @@ public class MinioStorageService : IImageStorageService
             }
         }
 
+        if (_settings.UseS3Source)
+        {
+            // Private bucket: revoke any anonymous-read policy a previous
+            // deployment (or the legacy code path below) may have set. imgproxy
+            // reads via S3 credentials instead; attachments stream through the API.
+            await RemovePublicPolicy(ct);
+            return;
+        }
+
         var policy = JsonSerializer.Serialize(new
         {
             Version = "2012-10-17",
@@ -67,6 +76,19 @@ public class MinioStorageService : IImageStorageService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to set bucket policy for {BucketName}. The bucket may not exist yet or credentials may be incorrect.", _settings.BucketName);
+        }
+    }
+
+    private async Task RemovePublicPolicy(CancellationToken ct)
+    {
+        try
+        {
+            await _client.RemovePolicyAsync(new RemovePolicyArgs().WithBucket(_settings.BucketName), ct);
+            _logger.LogInformation("Removed anonymous-read bucket policy for {BucketName}", _settings.BucketName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to remove bucket policy for {BucketName}. The bucket may not exist yet or may have no policy.", _settings.BucketName);
         }
     }
 
@@ -99,7 +121,9 @@ public class MinioStorageService : IImageStorageService
 
     public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill")
     {
-        var sourceUrl = $"{_settings.MinioSourceEndpoint}/{_settings.BucketName}/{storageKey}";
+        var sourceUrl = _settings.UseS3Source
+            ? $"s3://{_settings.BucketName}/{storageKey}"
+            : $"{_settings.MinioSourceEndpoint}/{_settings.BucketName}/{storageKey}";
         var resize = resizingType == "fill" ? "fill" : "fit";
         var path = $"/rs:{resize}:{width}:{height}/f:webp/plain/{sourceUrl}";
 

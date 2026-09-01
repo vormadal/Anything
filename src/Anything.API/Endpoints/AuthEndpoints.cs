@@ -20,6 +20,7 @@ public static class AuthEndpoints
         .WithName("Login")
         .Produces<LoginResponse>()
         .WithParameterValidation()
+        .RequireRateLimiting(RateLimitPolicies.Auth)
         .AllowAnonymous();
 
         group.MapPost("/refresh", async (RefreshTokenRequest request, IMediator mediator) =>
@@ -29,6 +30,7 @@ public static class AuthEndpoints
         .WithName("RefreshToken")
         .Produces<RefreshTokenResponse>()
         .WithParameterValidation()
+        .RequireRateLimiting(RateLimitPolicies.Auth)
         .AllowAnonymous();
 
         group.MapPost("/register", async (RegisterRequest request, IMediator mediator) =>
@@ -39,6 +41,7 @@ public static class AuthEndpoints
         .Produces(201)
         .Produces(400)
         .WithParameterValidation()
+        .RequireRateLimiting(RateLimitPolicies.Auth)
         .AllowAnonymous();
 
         group.MapGet("/invites/me", async (ClaimsPrincipal user, IMediator mediator) =>

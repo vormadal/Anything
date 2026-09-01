@@ -28,6 +28,11 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Admin:Email", "admin@anything.local");
         builder.UseSetting("Admin:Password", "Admin123!");
 
+        // Raise the auth rate limit far above what the suite can hit: every test
+        // logs in at least once against this shared TestServer, and all requests
+        // share one partition (TestServer has no RemoteIpAddress).
+        builder.UseSetting("RateLimiting:Auth:PermitLimit", "100000");
+
         // Configure JWT settings for testing
         builder.UseSetting("Jwt:SecretKey", "test-secret-key-for-integration-tests-minimum-32-chars");
         builder.UseSetting("Jwt:Issuer", "Anything.API.Tests");

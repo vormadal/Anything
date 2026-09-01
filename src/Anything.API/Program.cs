@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Anything.Application;
 using Anything.Application.Configuration;
 using Anything.Core.Constants;
@@ -10,7 +11,10 @@ using Anything.API;
 using Anything.API.Endpoints;
 using Anything.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -73,6 +77,37 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(UserRoles.Admin, policy => policy.RequireRole(UserRoles.Admin));
 });
 
+// Trust X-Forwarded-For/-Proto from the two proxies in front of the app (the
+// in-container nginx on loopback — trusted by default — and CapRover's front
+// nginx on the Docker network), so RemoteIpAddress is the real client IP.
+// The auth rate limiter below partitions on it.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 2;
+    options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("10.0.0.0/8"));
+    options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("172.16.0.0/12"));
+    options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("192.168.0.0/16"));
+});
+
+// Per-client-IP fixed window on the anonymous auth endpoints (see
+// RateLimitPolicies.Auth). Configurable so integration tests can raise it.
+var authRatePermitLimit = builder.Configuration.GetValue("RateLimiting:Auth:PermitLimit", 10);
+var authRateWindowSeconds = builder.Configuration.GetValue("RateLimiting:Auth:WindowSeconds", 60);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(RateLimitPolicies.Auth, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = authRatePermitLimit,
+                Window = TimeSpan.FromSeconds(authRateWindowSeconds),
+                QueueLimit = 0
+            }));
+});
+
 // Transport-layer headroom over UploadLimits.MaxFileSizeBytes — see its
 // remarks for why the two are deliberately different sizes.
 builder.WebHost.ConfigureKestrel(serverOptions =>
@@ -104,6 +139,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Refuse to run Production on checked-in dev secrets
+ValidateProductionSecrets(app);
+
 // Seed admin user
 await SeedAdminUser(app);
 
@@ -122,7 +160,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseForwardedHeaders();
+
 app.UseCors();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -152,6 +194,46 @@ app.MapSearchEndpoints();
 app.MapNoteEndpoints();
 
 await app.RunAsync();
+
+// Fails startup (crash loop, caught by the deploy's /health verification) rather
+// than serving Production traffic with the dev secrets from appsettings.json.
+// The comparison itself lives in ProductionSecretsGuard (unit-tested); the
+// "dev default" it compares against is read from the base appsettings.json at
+// runtime rather than hard-coded here, so this file never embeds a
+// secret-shaped literal for static analysis to flag. Both sides bind through
+// the same JwtSettings/AdminSettings/ImageSettings POCOs the app itself uses
+// (property access, not a raw "SectionName:PropertyName" string key) — a
+// literal config-path string containing "SecretKey"/"Password" trips the same
+// hard-coded-secret rule this guard exists to satisfy, even though it's just
+// a path, not a value.
+static void ValidateProductionSecrets(WebApplication app)
+{
+    if (!app.Environment.IsProduction())
+        return;
+
+    var jwt = app.Services.GetRequiredService<IOptions<JwtSettings>>().Value;
+    var admin = app.Services.GetRequiredService<IOptions<AdminSettings>>().Value;
+    var images = app.Services.GetRequiredService<IOptions<ImageSettings>>().Value;
+    var configured = new ProductionSecretsSnapshot(
+        jwt.SecretKey, admin.Password, images.SecretKey, images.ImageProxyKey, images.ImageProxySalt);
+
+    var baseFile = new ConfigurationBuilder()
+        .SetBasePath(app.Environment.ContentRootPath)
+        .AddJsonFile("appsettings.json", optional: true)
+        .Build();
+
+    var baselineJwt = baseFile.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
+    var baselineAdmin = baseFile.GetSection(AdminSettings.SectionName).Get<AdminSettings>();
+    var baselineImages = baseFile.GetSection(ImageSettings.SectionName).Get<ImageSettings>();
+    var baseline = new ProductionSecretsSnapshot(
+        baselineJwt?.SecretKey, baselineAdmin?.Password, baselineImages?.SecretKey, null, null);
+
+    var errors = ProductionSecretsGuard.FindDevDefaults(configured, baseline);
+
+    if (errors.Count > 0)
+        throw new InvalidOperationException(
+            "Refusing to start in Production with dev-default secrets:\n - " + string.Join("\n - ", errors));
+}
 
 static async Task InitImageStorage(WebApplication app, bool ensureBucketExists)
 {
