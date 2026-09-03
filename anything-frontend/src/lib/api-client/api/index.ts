@@ -8,7 +8,7 @@ import { BillsRequestBuilderNavigationMetadata, BillsRequestBuilderRequestsMetad
 // @ts-ignore
 import { ChecklistsRequestBuilderNavigationMetadata, ChecklistsRequestBuilderRequestsMetadata, type ChecklistsRequestBuilder } from './checklists/index';
 // @ts-ignore
-import { EventsRequestBuilderRequestsMetadata, type EventsRequestBuilder } from './events/index';
+import { EventsRequestBuilderNavigationMetadata, EventsRequestBuilderRequestsMetadata, type EventsRequestBuilder } from './events/index';
 // @ts-ignore
 import { FoodPlanRequestBuilderNavigationMetadata, type FoodPlanRequestBuilder } from './foodPlan/index';
 // @ts-ignore
@@ -150,6 +150,7 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     },
     events: {
         requestsMetadata: EventsRequestBuilderRequestsMetadata,
+        navigationMetadata: EventsRequestBuilderNavigationMetadata,
     },
     foodPlan: {
         navigationMetadata: FoodPlanRequestBuilderNavigationMetadata,
