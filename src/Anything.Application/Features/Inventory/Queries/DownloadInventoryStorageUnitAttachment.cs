@@ -19,12 +19,12 @@ public class DownloadInventoryStorageUnitAttachmentHandler(
 
     public async Task<IResult> Handle(DownloadInventoryStorageUnitAttachmentQuery query, CancellationToken ct = default)
     {
-        var storageUnitExists = await storageUnitRepository.Query()
+        var storageUnitExists = await storageUnitRepository.Query().AsNoTracking()
             .AnyAsync(s => s.Id == query.StorageUnitId && s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId, ct);
         if (!storageUnitExists)
             return Results.NotFound(AttachmentNotFound);
 
-        var attachment = await attachmentRepository.Query()
+        var attachment = await attachmentRepository.Query().AsNoTracking()
             .Where(a => a.Id == query.AttachmentId && a.StorageUnitId == query.StorageUnitId && a.DeletedOn == null)
             .FirstOrDefaultAsync(ct);
         if (attachment is null)

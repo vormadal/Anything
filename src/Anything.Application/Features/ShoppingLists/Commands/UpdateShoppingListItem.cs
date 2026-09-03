@@ -36,7 +36,7 @@ public class UpdateShoppingListItemHandler(IRepository<ShoppingList> listReposit
         await unitCatalog.EnsureUnit(command.Unit, ct);
 
         await unitOfWork.SaveChanges(ct);
-        await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.ShoppingListId), ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.ShoppingListId), householdContext.HouseholdId, ct);
         return Results.NoContent();
     }
 }

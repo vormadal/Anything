@@ -14,7 +14,7 @@ public class ExportRecommendationsHandler(IRepository<ShoppingListRecommendation
 {
     public async Task<ExportRecommendationsResponse> Handle(ExportRecommendationsQuery query, CancellationToken ct = default)
     {
-        var recommendationsQuery = repository.Query()
+        var recommendationsQuery = repository.Query().AsNoTracking()
             .Where(r => r.HouseholdId == householdContext.HouseholdId)
             .Where(r => !query.UncategorizedOnly || r.CategoryId == null)
             .OrderBy(r => r.Name);

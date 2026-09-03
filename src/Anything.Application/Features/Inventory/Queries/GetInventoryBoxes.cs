@@ -19,7 +19,7 @@ public class GetInventoryBoxesHandler(
 {
     public async Task<List<InventoryBoxResponse>> Handle(GetInventoryBoxesQuery query, CancellationToken ct = default)
     {
-        var boxes = await repository.Query()
+        var boxes = await repository.Query().AsNoTracking()
             .Where(b => b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .ToListAsync(ct);
 

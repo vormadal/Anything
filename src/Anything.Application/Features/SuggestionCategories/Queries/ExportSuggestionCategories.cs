@@ -14,7 +14,7 @@ public class ExportSuggestionCategoriesHandler(IRepository<SuggestionCategory> r
 {
     public async Task<ExportSuggestionCategoriesResponse> Handle(ExportSuggestionCategoriesQuery query, CancellationToken ct = default)
     {
-        var items = await repository.Query()
+        var items = await repository.Query().AsNoTracking()
             .Where(c => c.DeletedOn == null && c.HouseholdId == householdContext.HouseholdId)
             .OrderBy(c => c.SortOrder)
             .ThenBy(c => c.Name)

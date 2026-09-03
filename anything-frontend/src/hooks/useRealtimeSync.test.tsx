@@ -1,10 +1,21 @@
 import React from "react";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 jest.mock("@/hooks/useAuth", () => ({
   getAccessToken: jest.fn(() => "test-token"),
+}));
+
+const mockIssueTicket = jest.fn();
+jest.mock("@/lib/apiClient", () => ({
+  apiClient: {
+    api: {
+      events: {
+        ticket: { post: (...args: unknown[]) => mockIssueTicket(...args) },
+      },
+    },
+  },
 }));
 
 import { getAccessToken } from "@/hooks/useAuth";
@@ -20,6 +31,7 @@ class FakeEventSource {
 
   onopen: (() => void) | null = null;
   onmessage: ((event: MessageEvent<string>) => void) | null = null;
+  onerror: (() => void) | null = null;
   readyState = 0;
   closed = false;
   url: string;
@@ -56,7 +68,7 @@ function setHidden(value: boolean) {
   });
 }
 
-function renderRealtimeSync() {
+function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
@@ -64,7 +76,15 @@ function renderRealtimeSync() {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  return { wrapper, invalidateSpy };
+}
+
+async function renderRealtimeSync() {
+  const { wrapper, invalidateSpy } = createWrapper();
   const view = renderHook(() => useRealtimeSync(), { wrapper });
+  // Minting the connect ticket is async (an apiClient call) — flush it so the
+  // EventSource exists before assertions run.
+  await waitFor(() => expect(FakeEventSource.instances.length).toBeGreaterThan(0));
   return { ...view, invalidateSpy };
 }
 
@@ -74,6 +94,7 @@ describe("useRealtimeSync", () => {
   beforeEach(() => {
     FakeEventSource.instances = [];
     mockedGetAccessToken.mockReturnValue("test-token");
+    mockIssueTicket.mockResolvedValue({ ticket: "test-ticket" });
     setOnline(true);
     setHidden(false);
     (global as unknown as { EventSource: unknown }).EventSource =
@@ -86,14 +107,35 @@ describe("useRealtimeSync", () => {
     jest.clearAllMocks();
   });
 
-  it("does not connect when there is no access token", () => {
+  it("does not connect when there is no access token", async () => {
     mockedGetAccessToken.mockReturnValue(null);
-    renderRealtimeSync();
+    const { wrapper } = createWrapper();
+    renderHook(() => useRealtimeSync(), { wrapper });
+    // Nothing to await here — connect() bails synchronously before the
+    // ticket call, so there's no pending async work to flush.
+    await act(async () => {});
+    expect(mockIssueTicket).not.toHaveBeenCalled();
     expect(FakeEventSource.instances).toHaveLength(0);
   });
 
-  it("invalidates the matching items key on a shoppingListItems message", () => {
-    const { invalidateSpy } = renderRealtimeSync();
+  it("does not connect when minting a ticket fails", async () => {
+    mockIssueTicket.mockRejectedValue(new Error("not a household member"));
+    const { wrapper } = createWrapper();
+    renderHook(() => useRealtimeSync(), { wrapper });
+
+    await waitFor(() => expect(mockIssueTicket).toHaveBeenCalled());
+    expect(FakeEventSource.instances).toHaveLength(0);
+  });
+
+  it("connects with the ticket in the query string", async () => {
+    await renderRealtimeSync();
+    const es = FakeEventSource.instances[0];
+
+    expect(es.url).toContain("ticket=test-ticket");
+  });
+
+  it("invalidates the matching items key on a shoppingListItems message", async () => {
+    const { invalidateSpy } = await renderRealtimeSync();
     const es = FakeEventSource.instances[0];
 
     act(() => {
@@ -105,8 +147,8 @@ describe("useRealtimeSync", () => {
     });
   });
 
-  it("does not invalidate on the first connection but does on reconnect", () => {
-    const { invalidateSpy } = renderRealtimeSync();
+  it("does not invalidate on the first connection but does on reconnect", async () => {
+    const { invalidateSpy } = await renderRealtimeSync();
     const es = FakeEventSource.instances[0];
 
     act(() => {
@@ -123,8 +165,8 @@ describe("useRealtimeSync", () => {
     });
   });
 
-  it("revalidates when the app becomes visible again while online", () => {
-    const { invalidateSpy } = renderRealtimeSync();
+  it("revalidates when the app becomes visible again while online", async () => {
+    const { invalidateSpy } = await renderRealtimeSync();
 
     act(() => {
       setHidden(false);
@@ -141,8 +183,8 @@ describe("useRealtimeSync", () => {
     });
   });
 
-  it("does not revalidate on resume while offline", () => {
-    const { invalidateSpy } = renderRealtimeSync();
+  it("does not revalidate on resume while offline", async () => {
+    const { invalidateSpy } = await renderRealtimeSync();
 
     act(() => {
       setOnline(false);
@@ -153,8 +195,8 @@ describe("useRealtimeSync", () => {
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
-  it("does not revalidate when the visibilitychange leaves the document hidden", () => {
-    const { invalidateSpy } = renderRealtimeSync();
+  it("does not revalidate when the visibilitychange leaves the document hidden", async () => {
+    const { invalidateSpy } = await renderRealtimeSync();
 
     act(() => {
       setHidden(true);
@@ -164,8 +206,8 @@ describe("useRealtimeSync", () => {
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
-  it("reconnects on resume when the connection was closed", () => {
-    renderRealtimeSync();
+  it("reconnects on resume when the connection was closed", async () => {
+    await renderRealtimeSync();
     const first = FakeEventSource.instances[0];
     first.close();
 
@@ -174,12 +216,37 @@ describe("useRealtimeSync", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
 
-    expect(FakeEventSource.instances).toHaveLength(2);
+    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(2));
   });
 
-  it("closes the connection and removes listeners on unmount", () => {
+  it("closes the connection and mints a fresh ticket when the stream errors", async () => {
+    jest.useFakeTimers();
+    try {
+      await renderRealtimeSync();
+      const first = FakeEventSource.instances[0];
+
+      act(() => {
+        first.onerror?.();
+      });
+      expect(first.closed).toBe(true);
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+        // Let the reconnect's ticket promise resolve.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(mockIssueTicket).toHaveBeenCalledTimes(2);
+      expect(FakeEventSource.instances).toHaveLength(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("closes the connection and removes listeners on unmount", async () => {
     const removeSpy = jest.spyOn(document, "removeEventListener");
-    const { unmount } = renderRealtimeSync();
+    const { unmount } = await renderRealtimeSync();
     const es = FakeEventSource.instances[0];
 
     unmount();

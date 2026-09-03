@@ -52,7 +52,7 @@ public class SaveShoppingListAsTemplateHandler(
         }
         await unitOfWork.SaveChanges(ct);
 
-        await realtimeNotifier.Notify(SyncEvent.ShoppingListTemplates(), ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingListTemplates(), householdContext.HouseholdId, ct);
         return Results.Created($"/api/checklists/templates/{template.Id}", template);
     }
 }

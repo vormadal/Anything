@@ -14,10 +14,10 @@ public class GetHouseholdsHandler(
 {
     public async Task<List<HouseholdResponse>> Handle(GetHouseholdsQuery query, CancellationToken ct = default)
     {
-        return await memberRepository.Query()
+        return await memberRepository.Query().AsNoTracking()
             .Where(m => m.UserId == query.UserId)
             .Join(
-                householdRepository.Query().Where(h => h.DeletedOn == null),
+                householdRepository.Query().AsNoTracking().Where(h => h.DeletedOn == null),
                 m => m.HouseholdId,
                 h => h.Id,
                 (m, h) => new HouseholdResponse(h.Id, h.Name, h.CreatedOn, m.Role))

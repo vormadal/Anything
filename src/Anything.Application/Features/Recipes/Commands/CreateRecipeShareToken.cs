@@ -1,3 +1,4 @@
+using Anything.Application.Common;
 using Anything.Contracts.Recipes;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
@@ -44,7 +45,7 @@ public class CreateRecipeShareTokenHandler(
         var share = new RecipeShareToken
         {
             RecipeId = command.RecipeId,
-            Token = Guid.NewGuid().ToString("N"),
+            Token = SecureTokenGenerator.GenerateHexToken(),
             TargetEmail = command.TargetEmail?.ToLowerInvariant(),
             ExpiresAt = expiresAt,
             CreatedOn = now,

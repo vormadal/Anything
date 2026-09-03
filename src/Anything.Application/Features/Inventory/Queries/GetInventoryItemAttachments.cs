@@ -21,12 +21,12 @@ public class GetInventoryItemAttachmentsHandler(
 
     public async Task<IResult> Handle(GetInventoryItemAttachmentsQuery query, CancellationToken ct = default)
     {
-        var itemExists = await itemRepository.Query()
+        var itemExists = await itemRepository.Query().AsNoTracking()
             .AnyAsync(i => i.Id == query.ItemId && i.DeletedOn == null && i.HouseholdId == householdContext.HouseholdId, ct);
         if (!itemExists)
             return Results.NotFound(ItemNotFound);
 
-        var attachments = await attachmentRepository.Query()
+        var attachments = await attachmentRepository.Query().AsNoTracking()
             .Where(a => a.ItemId == query.ItemId && a.DeletedOn == null)
             .OrderBy(a => a.SortOrder)
             .ToListAsync(ct);

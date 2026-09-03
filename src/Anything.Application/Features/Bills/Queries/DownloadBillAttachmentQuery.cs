@@ -19,12 +19,12 @@ public class DownloadBillAttachmentHandler(
 
     public async Task<IResult> Handle(DownloadBillAttachmentQuery query, CancellationToken ct = default)
     {
-        var billExists = await billRepository.Query()
+        var billExists = await billRepository.Query().AsNoTracking()
             .AnyAsync(b => b.Id == query.BillId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId, ct);
         if (!billExists)
             return Results.NotFound(AttachmentNotFound);
 
-        var attachment = await attachmentRepository.Query()
+        var attachment = await attachmentRepository.Query().AsNoTracking()
             .Where(a => a.Id == query.AttachmentId && a.BillId == query.BillId && a.DeletedOn == null)
             .FirstOrDefaultAsync(ct);
         if (attachment is null)

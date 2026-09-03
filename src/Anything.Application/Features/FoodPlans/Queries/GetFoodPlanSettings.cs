@@ -13,7 +13,7 @@ public class GetFoodPlanSettingsHandler(IRepository<FoodPlanSettings> repository
 {
     public async Task<FoodPlanSettings> Handle(GetFoodPlanSettingsQuery query, CancellationToken ct = default)
     {
-        var settings = await repository.Query()
+        var settings = await repository.Query().AsNoTracking()
             .Where(s => s.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         return settings ?? new FoodPlanSettings { HouseholdId = householdContext.HouseholdId, ActiveDays = 31 };

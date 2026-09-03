@@ -13,7 +13,7 @@ public class GetVendorsHandler(IRepository<Vendor> repository, IHouseholdContext
 {
     public async Task<List<Vendor>> Handle(GetVendorsQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        return await repository.Query().AsNoTracking()
             .Where(v => v.DeletedOn == null && v.HouseholdId == householdContext.HouseholdId)
             .OrderBy(v => v.Name)
             .ToListAsync(ct);

@@ -20,13 +20,13 @@ public class GetRecipeImagesHandler(
 
     public async Task<IResult> Handle(GetRecipeImagesQuery query, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.Query()
+        var recipe = await recipeRepository.Query().AsNoTracking()
             .Where(r => r.Id == query.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
-        var images = await imageRepository.Query()
+        var images = await imageRepository.Query().AsNoTracking()
             .Where(i => i.RecipeId == query.RecipeId && i.DeletedOn == null)
             .ToListAsync(ct);
 

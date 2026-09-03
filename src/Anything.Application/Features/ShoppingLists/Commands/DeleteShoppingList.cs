@@ -23,7 +23,7 @@ public class DeleteShoppingListHandler(IRepository<ShoppingList> repository, IHo
 
         list.DeletedOn = timeProvider.GetUtcNow().UtcDateTime;
         await unitOfWork.SaveChanges(ct);
-        await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), householdContext.HouseholdId, ct);
         return Results.NoContent();
     }
 }

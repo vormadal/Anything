@@ -20,7 +20,7 @@ public class GetBillsHandler(
 {
     public async Task<List<BillResponse>> Handle(GetBillsQuery query, CancellationToken ct = default)
     {
-        var bills = await billRepository.Query()
+        var bills = await billRepository.Query().AsNoTracking()
             .Where(b => b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .OrderBy(b => b.Name)
             .ToListAsync(ct);
@@ -30,7 +30,7 @@ public class GetBillsHandler(
 
         var billIds = bills.Select(b => b.Id).ToList();
 
-        var priceHistories = await priceHistoryRepository.Query()
+        var priceHistories = await priceHistoryRepository.Query().AsNoTracking()
             .Where(ph => billIds.Contains(ph.BillId))
             .ToListAsync(ct);
 
@@ -38,13 +38,13 @@ public class GetBillsHandler(
         var vendorIds = bills.Where(b => b.VendorId.HasValue).Select(b => b.VendorId!.Value).Distinct().ToList();
 
         var locations = locationIds.Count > 0
-            ? await locationRepository.Query()
+            ? await locationRepository.Query().AsNoTracking()
                 .Where(l => l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId && locationIds.Contains(l.Id))
                 .ToListAsync(ct)
             : [];
 
         var vendors = vendorIds.Count > 0
-            ? await vendorRepository.Query()
+            ? await vendorRepository.Query().AsNoTracking()
                 .Where(v => v.DeletedOn == null && v.HouseholdId == householdContext.HouseholdId && vendorIds.Contains(v.Id))
                 .ToListAsync(ct)
             : [];

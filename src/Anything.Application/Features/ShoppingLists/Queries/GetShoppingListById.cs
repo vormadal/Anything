@@ -14,7 +14,7 @@ public class GetShoppingListByIdHandler(IRepository<ShoppingList> repository, IH
 {
     public async Task<IResult> Handle(GetShoppingListByIdQuery query, CancellationToken ct = default)
     {
-        var list = await repository.Query()
+        var list = await repository.Query().AsNoTracking()
             .Where(l => l.Id == query.Id && l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         return list is not null ? Results.Ok(list) : Results.NotFound();

@@ -71,7 +71,7 @@ public class AddShoppingListItemHandler(
         }
 
         await unitOfWork.SaveChanges(ct);
-        await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.ShoppingListId), ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.ShoppingListId), householdContext.HouseholdId, ct);
         return Results.Created($"/api/checklists/{command.ShoppingListId}/items/{item.Id}", item);
     }
 }

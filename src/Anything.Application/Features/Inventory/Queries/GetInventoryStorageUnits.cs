@@ -19,7 +19,7 @@ public class GetInventoryStorageUnitsHandler(
 {
     public async Task<List<InventoryStorageUnitResponse>> Handle(GetInventoryStorageUnitsQuery query, CancellationToken ct = default)
     {
-        var storageUnits = await repository.Query()
+        var storageUnits = await repository.Query().AsNoTracking()
             .Where(s => s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
             .ToListAsync(ct);
 

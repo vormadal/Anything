@@ -18,7 +18,7 @@ public class GetSearchIndexOverviewHandler(IRepository<SearchDocument> repositor
 {
     public async Task<SearchIndexOverviewResponse> Handle(GetSearchIndexOverviewQuery query, CancellationToken ct = default)
     {
-        var baseQuery = repository.Query().Where(d => d.HouseholdId == householdContext.HouseholdId);
+        var baseQuery = repository.Query().AsNoTracking().Where(d => d.HouseholdId == householdContext.HouseholdId);
 
         var byType = await baseQuery
             .GroupBy(d => d.EntityType)

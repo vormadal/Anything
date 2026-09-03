@@ -14,12 +14,12 @@ public class GetShoppingListTemplatesHandler(IRepository<ShoppingList> listRepos
 {
     public async Task<List<ShoppingListTemplateResponse>> Handle(GetShoppingListTemplatesQuery query, CancellationToken ct = default)
     {
-        return await listRepository.Query()
+        return await listRepository.Query().AsNoTracking()
             .Where(l => l.DeletedOn == null && l.IsTemplate && l.HouseholdId == householdContext.HouseholdId)
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.CreatedOn)
             .GroupJoin(
-                itemRepository.Query(),
+                itemRepository.Query().AsNoTracking(),
                 l => l.Id,
                 i => i.ShoppingListId,
                 (l, items) => new ShoppingListTemplateResponse(

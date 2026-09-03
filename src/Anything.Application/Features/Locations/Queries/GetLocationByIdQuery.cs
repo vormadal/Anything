@@ -14,7 +14,7 @@ public class GetLocationByIdHandler(IRepository<Location> repository, IHousehold
 {
     public async Task<IResult> Handle(GetLocationByIdQuery query, CancellationToken ct = default)
     {
-        var location = await repository.Query()
+        var location = await repository.Query().AsNoTracking()
             .Where(l => l.Id == query.Id && l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         return location is not null ? Results.Ok(location) : Results.NotFound();

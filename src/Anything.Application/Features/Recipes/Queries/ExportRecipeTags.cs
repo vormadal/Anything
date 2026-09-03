@@ -18,7 +18,7 @@ public class ExportRecipeTagsHandler(
 {
     public async Task<ExportRecipeTagsResponse> Handle(ExportRecipeTagsQuery query, CancellationToken ct = default)
     {
-        var recipes = await recipeRepository.Query()
+        var recipes = await recipeRepository.Query().AsNoTracking()
             .Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
             .OrderBy(r => r.Name)
             .Select(r => new { r.Id, r.Name })
@@ -26,7 +26,7 @@ public class ExportRecipeTagsHandler(
 
         var recipeIds = recipes.Select(r => r.Id).ToList();
 
-        var ingredients = await ingredientRepository.Query()
+        var ingredients = await ingredientRepository.Query().AsNoTracking()
             .Where(i => recipeIds.Contains(i.RecipeId) && i.DeletedOn == null)
             .OrderBy(i => i.RecipeId)
             .ThenBy(i => i.SortOrder)
@@ -34,7 +34,7 @@ public class ExportRecipeTagsHandler(
             .Select(i => new { i.RecipeId, i.Name })
             .ToListAsync(ct);
 
-        var tags = await tagRepository.Query()
+        var tags = await tagRepository.Query().AsNoTracking()
             .Where(t => recipeIds.Contains(t.RecipeId) && t.DeletedOn == null)
             .Select(t => new { t.RecipeId, t.Name })
             .ToListAsync(ct);

@@ -14,7 +14,7 @@ public class GetVendorByIdHandler(IRepository<Vendor> repository, IHouseholdCont
 {
     public async Task<IResult> Handle(GetVendorByIdQuery query, CancellationToken ct = default)
     {
-        var vendor = await repository.Query()
+        var vendor = await repository.Query().AsNoTracking()
             .Where(v => v.Id == query.Id && v.DeletedOn == null && v.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         return vendor is not null ? Results.Ok(vendor) : Results.NotFound();

@@ -34,7 +34,7 @@ public class FindDuplicateRecommendationsHandler(
     public async Task<List<DuplicateRecommendationGroup>> Handle(FindDuplicateRecommendationsQuery query, CancellationToken ct = default)
     {
         var householdId = householdContext.HouseholdId;
-        var baseQuery = repository.Query().Where(r => r.HouseholdId == householdId);
+        var baseQuery = repository.Query().AsNoTracking().Where(r => r.HouseholdId == householdId);
 
         // Self-join scored by symmetric trigram similarity. b.Id > a.Id emits each
         // unordered pair once.

@@ -13,7 +13,7 @@ public class GetUnitsHandler(IRepository<MeasurementUnit> repository, IHousehold
 {
     public async Task<List<MeasurementUnit>> Handle(GetUnitsQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        return await repository.Query().AsNoTracking()
             .Where(u => u.HouseholdId == householdContext.HouseholdId)
             .OrderBy(u => u.Name)
             .ToListAsync(ct);

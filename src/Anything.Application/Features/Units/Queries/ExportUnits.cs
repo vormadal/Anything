@@ -14,7 +14,7 @@ public class ExportUnitsHandler(IRepository<MeasurementUnit> repository, IHouseh
 {
     public async Task<ExportUnitsResponse> Handle(ExportUnitsQuery query, CancellationToken ct = default)
     {
-        var items = await repository.Query()
+        var items = await repository.Query().AsNoTracking()
             .Where(u => u.HouseholdId == householdContext.HouseholdId)
             .OrderBy(u => u.Name)
             .Select(u => new UnitImportExportItem(u.Name))

@@ -34,6 +34,7 @@ public class LoginHandlerTests
         _passwordService.VerifyPassword("password123", "hash").Returns(true);
         _tokenService.GenerateAccessToken(user).Returns("access-token");
         _tokenService.GenerateRefreshToken().Returns("refresh-token");
+        _tokenService.HashRefreshToken("refresh-token").Returns("hashed-refresh-token");
 
         var handler = CreateHandler();
         var result = await handler.Handle(new LoginCommand("test@test.com", "password123"), TestContext.Current.CancellationToken);
@@ -45,8 +46,9 @@ public class LoginHandlerTests
         Assert.Equal("test@test.com", okResult.Value.Email);
         Assert.Equal("Test", okResult.Value.Name);
 
+        // The response carries the raw token; only its hash is persisted.
         _refreshTokenRepo.Received(1).Add(Arg.Is<RefreshToken>(rt =>
-            rt.UserId == 1 && rt.Token == "refresh-token"));
+            rt.UserId == 1 && rt.Token == "hashed-refresh-token"));
         await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
 

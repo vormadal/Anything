@@ -12,10 +12,10 @@ public sealed class SseRealtimeNotifier(SseConnectionManager connectionManager) 
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public Task Notify(SyncEvent syncEvent, CancellationToken ct = default)
+    public Task Notify(SyncEvent syncEvent, int householdId, CancellationToken ct = default)
     {
         var json = JsonSerializer.Serialize(syncEvent, JsonOptions);
-        connectionManager.Broadcast(json);
+        connectionManager.Broadcast(householdId, json);
         return Task.CompletedTask;
     }
 }

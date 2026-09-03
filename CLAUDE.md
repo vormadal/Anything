@@ -25,7 +25,7 @@ Each major directory has an `agent.md` with structure notes and key patterns:
 - [`anything-frontend/src/hooks/agent.md`](anything-frontend/src/hooks/agent.md)
 - [`anything-frontend/src/lib/agent.md`](anything-frontend/src/lib/agent.md)
 
-Security/performance rules live in the layer `agent.md`s above (API, Application, Contracts, frontend lib); open one-time fixes are tracked in [`SECURITY-PERFORMANCE-PLAN.md`](SECURITY-PERFORMANCE-PLAN.md).
+Security/performance rules live in the layer `agent.md`s above (API, Application, Contracts, Database, frontend lib/hooks). The 2026-08 remediation plan that produced them (`SECURITY-PERFORMANCE-PLAN.md`) has been deleted now that every item has landed — its durable "why" is in those files, not a separate tracker.
 
 ## Repository Structure
 

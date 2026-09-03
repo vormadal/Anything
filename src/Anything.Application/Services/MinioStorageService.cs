@@ -1,3 +1,4 @@
+using System.IO.Pipelines;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Anything.Application.Configuration;
@@ -108,15 +109,45 @@ public class MinioStorageService : IImageStorageService
         return objectKey;
     }
 
-    public async Task<Stream> GetFileStream(string storageKey, CancellationToken ct = default)
+    // Bounds how far the MinIO download can run ahead of the client actually
+    // reading — the writer side awaits pipe.Writer.FlushAsync() and blocks once
+    // this many unread bytes are buffered, giving real backpressure instead of
+    // materializing the whole object before the first byte reaches the client.
+    private const int StreamBufferBytes = 64 * 1024;
+
+    public Task<Stream> GetFileStream(string storageKey, CancellationToken ct = default)
     {
-        var ms = new MemoryStream();
-        await _client.GetObjectAsync(new GetObjectArgs()
-            .WithBucket(_settings.BucketName)
-            .WithObject(storageKey)
-            .WithCallbackStream(async (stream, token) => await stream.CopyToAsync(ms, token)), ct);
-        ms.Position = 0;
-        return ms;
+        // Minio's GetObjectAsync is callback-based (it pushes bytes into a
+        // stream you supply) rather than returning a readable Stream, so a
+        // Pipe bridges that push model to the pull-based Stream Results.Stream
+        // needs — the download runs in the background and the reader can start
+        // consuming bytes as soon as the first chunk arrives, instead of
+        // waiting for (and buffering) the entire object first.
+        var pipe = new Pipe(new PipeOptions(
+            pauseWriterThreshold: StreamBufferBytes,
+            resumeWriterThreshold: StreamBufferBytes / 2));
+
+        _ = DownloadInto(storageKey, pipe.Writer, ct);
+
+        return Task.FromResult(pipe.Reader.AsStream());
+    }
+
+    private async Task DownloadInto(string storageKey, PipeWriter writer, CancellationToken ct)
+    {
+        try
+        {
+            await _client.GetObjectAsync(new GetObjectArgs()
+                .WithBucket(_settings.BucketName)
+                .WithObject(storageKey)
+                .WithCallbackStream(async (stream, token) => await stream.CopyToAsync(writer.AsStream(), token)), ct);
+            await writer.CompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            // Surfaces on the reader side (Results.Stream copying to the HTTP
+            // response) instead of being lost by this background download task.
+            await writer.CompleteAsync(ex);
+        }
     }
 
     public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill")

@@ -20,7 +20,7 @@ public class GetRecipeSharesHandler(
 
     public async Task<IResult> Handle(GetRecipeSharesQuery query, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.Query()
+        var recipe = await recipeRepository.Query().AsNoTracking()
             .Where(r => r.Id == query.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
 
@@ -29,7 +29,7 @@ public class GetRecipeSharesHandler(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
-        var shares = await shareRepository.Query()
+        var shares = await shareRepository.Query().AsNoTracking()
             .Where(s => s.RecipeId == query.RecipeId)
             .OrderByDescending(s => s.CreatedOn)
             .Select(s => new RecipeShareResponse(

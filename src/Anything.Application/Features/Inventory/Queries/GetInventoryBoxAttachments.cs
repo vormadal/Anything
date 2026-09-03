@@ -20,12 +20,12 @@ public class GetInventoryBoxAttachmentsHandler(
 
     public async Task<IResult> Handle(GetInventoryBoxAttachmentsQuery query, CancellationToken ct = default)
     {
-        var boxExists = await boxRepository.Query()
+        var boxExists = await boxRepository.Query().AsNoTracking()
             .AnyAsync(b => b.Id == query.BoxId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId, ct);
         if (!boxExists)
             return Results.NotFound(BoxNotFound);
 
-        var attachments = await attachmentRepository.Query()
+        var attachments = await attachmentRepository.Query().AsNoTracking()
             .Where(a => a.BoxId == query.BoxId && a.DeletedOn == null)
             .OrderBy(a => a.SortOrder)
             .ToListAsync(ct);

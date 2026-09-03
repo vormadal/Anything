@@ -16,24 +16,24 @@ public class GetHouseholdHandler(
 {
     public async Task<IResult> Handle(GetHouseholdQuery query, CancellationToken ct = default)
     {
-        var household = await householdRepository.Query()
+        var household = await householdRepository.Query().AsNoTracking()
             .Where(h => h.Id == query.Id && h.DeletedOn == null)
             .FirstOrDefaultAsync(ct);
 
         if (household is null)
             return Results.NotFound();
 
-        var isMember = await memberRepository.Query()
+        var isMember = await memberRepository.Query().AsNoTracking()
             .Where(m => m.HouseholdId == query.Id && m.UserId == query.UserId)
             .AnyAsync(ct);
 
         if (!isMember)
             return Results.Forbid();
 
-        var members = await memberRepository.Query()
+        var members = await memberRepository.Query().AsNoTracking()
             .Where(m => m.HouseholdId == query.Id)
             .Join(
-                userRepository.Query().Where(u => u.DeletedOn == null),
+                userRepository.Query().AsNoTracking().Where(u => u.DeletedOn == null),
                 m => m.UserId,
                 u => u.Id,
                 (m, u) => new HouseholdMemberResponse(u.Id, u.Name, u.Email, m.Role, m.JoinedOn))

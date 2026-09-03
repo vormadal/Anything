@@ -14,7 +14,7 @@ public class GetNoteByIdHandler(IRepository<Note> repository, IHouseholdContext 
 {
     public async Task<NoteResponse?> Handle(GetNoteByIdQuery query, CancellationToken ct = default)
     {
-        var note = await repository.Query()
+        var note = await repository.Query().AsNoTracking()
             .Where(n => n.Id == query.Id && n.DeletedOn == null && n.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
 

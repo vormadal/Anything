@@ -18,6 +18,7 @@ Infrastructure layer. EF Core implementation of the repository/UoW pattern; owns
 - Apply with: `dotnet ef database update --project src/Anything.Database --startup-project src/Anything.API`
 - Global query filters for soft deletes (`DeletedOn == null`) should be set in entity configurations, not per-query.
 - The `Repository<T>` exposes `Query()` as raw `IQueryable<T>` — callers are responsible for filtering and projection.
+- **Don't hand-add an index for a bare FK column (e.g. `HouseholdId`) — EF already creates one by convention** for every `HasForeignKey(...)` configuration (confirmed against the generated migrations: every entity's `HouseholdId` FK already has its own `IX_<Table>_HouseholdId`). Only add an explicit `HasIndex` for a *compound* key a query actually filters/sorts by (e.g. `(HouseholdId, Name)` uniqueness), and only with real `EXPLAIN ANALYZE` evidence of a seq scan — indexes aren't free, they cost every insert/update/soft-delete on that table.
 
 ## Migrations are auto-generated — do not hand-write them
 

@@ -15,7 +15,7 @@ public class GetHomeCardPreferencesHandler(IRepository<HomeCardPreference> repos
 {
     public async Task<List<HomeCardPreferenceResponse>> Handle(GetHomeCardPreferencesQuery query, CancellationToken ct = default)
     {
-        var existing = await repository.Query()
+        var existing = await repository.Query().AsNoTracking()
             .Where(p => p.HouseholdId == householdContext.HouseholdId && p.UserId == query.UserId)
             .OrderBy(p => p.SortOrder)
             .ToListAsync(ct);

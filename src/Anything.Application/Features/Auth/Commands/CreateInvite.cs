@@ -1,3 +1,4 @@
+using Anything.Application.Common;
 using Anything.Contracts.Auth;
 using Anything.Core.Constants;
 using Anything.Core.Entities;
@@ -49,7 +50,7 @@ public class CreateInviteHandler(
             return Results.BadRequest("User with this email already exists.");
 
         var now = timeProvider.GetUtcNow();
-        var token = Guid.NewGuid().ToString();
+        var token = SecureTokenGenerator.GenerateHexToken();
         var invite = new UserInvite
         {
             Email = command.Email,
