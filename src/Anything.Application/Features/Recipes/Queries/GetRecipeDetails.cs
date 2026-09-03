@@ -45,30 +45,30 @@ public class GetRecipeDetailsHandler(
 
     public async Task<IResult> Handle(GetRecipeDetailsQuery query, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.Query()
+        var recipe = await recipeRepository.Query().AsNoTracking()
             .Where(r => r.Id == query.Id && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
-        var ingredients = await ingredientRepository.Query()
+        var ingredients = await ingredientRepository.Query().AsNoTracking()
             .Where(i => i.RecipeId == query.Id && i.DeletedOn == null)
             .OrderBy(i => i.SortOrder)
             .ThenBy(i => i.CreatedOn)
             .ToListAsync(ct);
 
-        var steps = await stepRepository.Query()
+        var steps = await stepRepository.Query().AsNoTracking()
             .Where(s => s.RecipeId == query.Id && s.DeletedOn == null)
             .OrderBy(s => s.Order)
             .ToListAsync(ct);
 
-        var images = await imageRepository.Query()
+        var images = await imageRepository.Query().AsNoTracking()
             .Where(i => i.RecipeId == query.Id && i.DeletedOn == null)
             .OrderBy(i => i.CreatedOn)
             .ThenBy(i => i.Id)
             .ToListAsync(ct);
 
-        var tags = await tagRepository.Query()
+        var tags = await tagRepository.Query().AsNoTracking()
             .Where(t => t.RecipeId == query.Id && t.DeletedOn == null)
             .ToListAsync(ct);
 

@@ -23,13 +23,13 @@ public class GetBillAttachmentsHandler(
 
     public async Task<IResult> Handle(GetBillAttachmentsQuery query, CancellationToken ct = default)
     {
-        var bill = await billRepository.Query()
+        var bill = await billRepository.Query().AsNoTracking()
             .Where(b => b.Id == query.BillId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (bill is null)
             return Results.NotFound(BillNotFound);
 
-        var attachments = await attachmentRepository.Query()
+        var attachments = await attachmentRepository.Query().AsNoTracking()
             .Where(a => a.BillId == query.BillId && a.DeletedOn == null)
             .ToListAsync(ct);
 

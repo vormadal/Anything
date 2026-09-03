@@ -18,7 +18,7 @@ public class GetShoppingListItemsHandler(
 {
     public async Task<IResult> Handle(GetShoppingListItemsQuery query, CancellationToken ct = default)
     {
-        var list = await listRepository.Query()
+        var list = await listRepository.Query().AsNoTracking()
             .Where(l => l.Id == query.ShoppingListId && l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (list is null)
@@ -27,7 +27,7 @@ public class GetShoppingListItemsHandler(
         List<ShoppingListItem> items;
         if (list.Type == ListType.General)
         {
-            items = await itemRepository.Query()
+            items = await itemRepository.Query().AsNoTracking()
                 .Where(item => item.ShoppingListId == query.ShoppingListId && item.CompletedOn == null)
                 .OrderBy(item => item.IsChecked)
                 .ThenBy(item => item.SortOrder)
@@ -37,21 +37,21 @@ public class GetShoppingListItemsHandler(
         else
         {
             var householdId = householdContext.HouseholdId;
-            var listItems = await itemRepository.Query()
+            var listItems = await itemRepository.Query().AsNoTracking()
                 .Where(item => item.ShoppingListId == query.ShoppingListId && item.CompletedOn == null)
                 .ToListAsync(ct);
 
             // Names can now match both a shared (null-list) and this list's own recommendation,
             // so resolve a single category per name in memory (preferring the list-specific one)
             // instead of joining — a SQL join would duplicate the item row.
-            var relevantRecs = await recommendationRepository.Query()
+            var relevantRecs = await recommendationRepository.Query().AsNoTracking()
                 .Where(r => r.HouseholdId == householdId
                             && r.CategoryId != null
                             && (r.ShoppingListId == query.ShoppingListId || r.ShoppingListId == null))
                 .Select(r => new { r.Name, r.ShoppingListId, r.CategoryId })
                 .ToListAsync(ct);
 
-            var categorySortOrders = await categoryRepository.Query()
+            var categorySortOrders = await categoryRepository.Query().AsNoTracking()
                 .Where(c => c.DeletedOn == null && c.HouseholdId == householdId)
                 .ToDictionaryAsync(c => c.Id, c => c.SortOrder, ct);
 

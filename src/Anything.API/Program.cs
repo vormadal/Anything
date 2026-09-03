@@ -47,6 +47,10 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    // /api/events (SSE) does not use JWT bearer auth at all — EventSource can't
+    // set an Authorization header, and putting the real access token in the
+    // query string would leak it into proxy access logs. It authenticates via
+    // a short-lived ticket instead; see SseTicketService.
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -56,19 +60,6 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings.Issuer,
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
-    };
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = ctx =>
-        {
-            if (ctx.Request.Path.StartsWithSegments("/api/events"))
-            {
-                var token = ctx.Request.Query["token"].ToString();
-                if (!string.IsNullOrEmpty(token))
-                    ctx.Token = token;
-            }
-            return Task.CompletedTask;
-        }
     };
 });
 

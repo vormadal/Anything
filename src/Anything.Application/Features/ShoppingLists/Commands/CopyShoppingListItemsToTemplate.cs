@@ -53,7 +53,7 @@ public class CopyShoppingListItemsToTemplateHandler(
         }
         await unitOfWork.SaveChanges(ct);
 
-        await realtimeNotifier.Notify(SyncEvent.ShoppingListTemplates(), ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingListTemplates(), householdContext.HouseholdId, ct);
         return Results.NoContent();
     }
 }

@@ -13,7 +13,7 @@ public class GetSuggestionCategoriesHandler(IRepository<SuggestionCategory> repo
 {
     public async Task<List<SuggestionCategory>> Handle(GetSuggestionCategoriesQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        return await repository.Query().AsNoTracking()
             .Where(c => c.DeletedOn == null && c.HouseholdId == householdContext.HouseholdId)
             .OrderBy(c => c.SortOrder)
             .ThenBy(c => c.Name)

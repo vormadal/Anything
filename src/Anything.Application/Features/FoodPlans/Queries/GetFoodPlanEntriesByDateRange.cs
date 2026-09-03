@@ -13,7 +13,7 @@ public class GetFoodPlanEntriesByDateRangeHandler(IRepository<FoodPlanEntry> rep
 {
     public async Task<List<FoodPlanEntry>> Handle(GetFoodPlanEntriesByDateRangeQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        return await repository.Query().AsNoTracking()
             .Where(e => e.DeletedOn == null && e.HouseholdId == householdContext.HouseholdId && e.Date >= query.StartDate && e.Date <= query.EndDate)
             .OrderBy(e => e.Date)
             .ToListAsync(ct);

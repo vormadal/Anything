@@ -38,7 +38,7 @@ public class SearchRecommendationsHandler(
     public async Task<List<ShoppingListRecommendation>> Handle(SearchRecommendationsQuery query, CancellationToken ct = default)
     {
         var limit = Math.Clamp(query.Limit, 1, MaxLimit);
-        var baseQuery = repository.Query()
+        var baseQuery = repository.Query().AsNoTracking()
             .Where(r => r.HouseholdId == householdContext.HouseholdId && r.IncludeInSuggestions);
 
         // A list's typeahead shows its own suggestions plus the shared (null-list) ones.

@@ -29,7 +29,7 @@ public class ReorderShoppingListsHandler(IRepository<ShoppingList> repository, I
         }
 
         await unitOfWork.SaveChanges(ct);
-        await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), householdContext.HouseholdId, ct);
         return Results.NoContent();
     }
 }

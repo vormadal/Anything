@@ -17,13 +17,13 @@ public class GetInventoryItemByIdHandler(
 {
     public async Task<IResult> Handle(GetInventoryItemByIdQuery query, CancellationToken ct = default)
     {
-        var item = await repository.Query()
+        var item = await repository.Query().AsNoTracking()
             .Where(i => i.Id == query.Id && i.DeletedOn == null && i.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (item is null)
             return Results.NotFound();
 
-        var fields = await fieldRepository.Query()
+        var fields = await fieldRepository.Query().AsNoTracking()
             .Where(f => f.ItemId == item.Id)
             .ToListAsync(ct);
 

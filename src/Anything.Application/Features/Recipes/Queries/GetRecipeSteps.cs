@@ -18,13 +18,13 @@ public class GetRecipeStepsHandler(
 
     public async Task<IResult> Handle(GetRecipeStepsQuery query, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.Query()
+        var recipe = await recipeRepository.Query().AsNoTracking()
             .Where(r => r.Id == query.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
-        var steps = await stepRepository.Query()
+        var steps = await stepRepository.Query().AsNoTracking()
             .Where(s => s.RecipeId == query.RecipeId && s.DeletedOn == null)
             .OrderBy(s => s.Order)
             .ToListAsync(ct);

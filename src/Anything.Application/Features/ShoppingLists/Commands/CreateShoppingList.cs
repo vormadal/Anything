@@ -24,7 +24,7 @@ public class CreateShoppingListHandler(IRepository<ShoppingList> repository, IHo
         };
         repository.Add(list);
         await unitOfWork.SaveChanges(ct);
-        await realtimeNotifier.Notify(command.IsTemplate ? SyncEvent.ShoppingListTemplates() : SyncEvent.ShoppingLists(), ct);
+        await realtimeNotifier.Notify(command.IsTemplate ? SyncEvent.ShoppingListTemplates() : SyncEvent.ShoppingLists(), householdContext.HouseholdId, ct);
         return list;
     }
 }

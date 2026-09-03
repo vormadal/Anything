@@ -9,9 +9,13 @@ using Xunit;
 namespace Anything.Application.UnitTests.Services;
 
 /// <summary>
-/// Covers <see cref="MinioStorageService.GetImageUrl"/> — the only pure part of
-/// the service (constructing it performs no I/O). Both source modes (legacy
-/// plain HTTP vs private-bucket s3://) and both signing modes.
+/// Covers <see cref="MinioStorageService.GetImageUrl"/> (the only pure part of
+/// the service — constructing it performs no I/O; both source modes, legacy
+/// plain HTTP vs private-bucket s3://, and both signing modes), plus the parts
+/// of <see cref="MinioStorageService.Initialize"/> and
+/// <see cref="MinioStorageService.GetFileStream"/> whose failure paths are
+/// exercisable without a real MinIO server (nothing listens on the configured
+/// endpoint, so every I/O call fails fast with a connection error).
 /// </summary>
 public class MinioStorageServiceTests
 {
@@ -88,6 +92,22 @@ public class MinioStorageServiceTests
         var service = CreateService(useS3Source: useS3Source);
 
         await service.Initialize(ensureBucketExists: false, TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task GetFileStream_WhenDownloadFails_PropagatesExceptionToReader()
+    {
+        // Nothing listens on the configured endpoint, so the background
+        // download in GetFileStream fails immediately — this proves that
+        // failure reaches a reader of the returned stream (via the Pipe's
+        // writer.CompleteAsync(ex)) instead of hanging or being swallowed.
+        var service = CreateService();
+
+        var stream = await service.GetFileStream("some/key", TestContext.Current.CancellationToken);
+
+        var buffer = new byte[1024];
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            stream.ReadAsync(buffer, TestContext.Current.CancellationToken).AsTask());
     }
 
     [Fact]

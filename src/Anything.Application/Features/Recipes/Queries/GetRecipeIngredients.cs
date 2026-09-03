@@ -18,13 +18,13 @@ public class GetRecipeIngredientsHandler(
 
     public async Task<IResult> Handle(GetRecipeIngredientsQuery query, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.Query()
+        var recipe = await recipeRepository.Query().AsNoTracking()
             .Where(r => r.Id == query.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
-        var ingredients = await ingredientRepository.Query()
+        var ingredients = await ingredientRepository.Query().AsNoTracking()
             .Where(i => i.RecipeId == query.RecipeId && i.DeletedOn == null)
             .OrderBy(i => i.SortOrder)
             .ThenBy(i => i.CreatedOn)

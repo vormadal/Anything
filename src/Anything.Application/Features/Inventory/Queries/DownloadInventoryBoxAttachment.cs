@@ -19,12 +19,12 @@ public class DownloadInventoryBoxAttachmentHandler(
 
     public async Task<IResult> Handle(DownloadInventoryBoxAttachmentQuery query, CancellationToken ct = default)
     {
-        var boxExists = await boxRepository.Query()
+        var boxExists = await boxRepository.Query().AsNoTracking()
             .AnyAsync(b => b.Id == query.BoxId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId, ct);
         if (!boxExists)
             return Results.NotFound(AttachmentNotFound);
 
-        var attachment = await attachmentRepository.Query()
+        var attachment = await attachmentRepository.Query().AsNoTracking()
             .Where(a => a.Id == query.AttachmentId && a.BoxId == query.BoxId && a.DeletedOn == null)
             .FirstOrDefaultAsync(ct);
         if (attachment is null)

@@ -1,8 +1,8 @@
 using System.Security.Claims;
+using Anything.API.Authorization;
 using Anything.Application.Services;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Anything.API.Middleware;
 
@@ -51,14 +51,8 @@ public class HouseholdMiddleware(RequestDelegate next)
         var memberRepository = context.RequestServices.GetRequiredService<IRepository<HouseholdMember>>();
         var householdRepository = context.RequestServices.GetRequiredService<IRepository<Household>>();
 
-        var member = await memberRepository.Query()
-            .Join(
-                householdRepository.Query().Where(h => h.DeletedOn == null),
-                m => m.HouseholdId,
-                h => h.Id,
-                (m, h) => m)
-            .Where(m => m.HouseholdId == householdId && m.UserId == userId)
-            .FirstOrDefaultAsync(context.RequestAborted);
+        var member = await HouseholdMembershipLookup.FindMembership(
+            memberRepository, householdRepository, householdId, userId, context.RequestAborted);
 
         if (member is null)
         {

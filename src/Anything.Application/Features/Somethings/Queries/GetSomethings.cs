@@ -13,7 +13,7 @@ public class GetSomethingsHandler(IRepository<Something> repository, IHouseholdC
 {
     public async Task<List<Something>> Handle(GetSomethingsQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        return await repository.Query().AsNoTracking()
             .Where(s => s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
             .ToListAsync(ct);
     }

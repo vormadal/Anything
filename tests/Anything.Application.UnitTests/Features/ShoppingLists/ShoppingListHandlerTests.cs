@@ -83,7 +83,7 @@ public class CreateShoppingListHandlerTests
         var result = await handler.Handle(new CreateShoppingListCommand("Weekly shop", IsTemplate: true), TestContext.Current.CancellationToken);
 
         Assert.True(result.IsTemplate);
-        await _realtimeNotifier.Received(1).Notify(SyncEvent.ShoppingListTemplates(), Arg.Any<CancellationToken>());
+        await _realtimeNotifier.Received(1).Notify(SyncEvent.ShoppingListTemplates(), Arg.Any<int>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

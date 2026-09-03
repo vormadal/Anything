@@ -19,7 +19,7 @@ public class GetInventoryBoxByIdHandler(
 {
     public async Task<IResult> Handle(GetInventoryBoxByIdQuery query, CancellationToken ct = default)
     {
-        var box = await repository.Query()
+        var box = await repository.Query().AsNoTracking()
             .Where(b => b.Id == query.Id && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (box is null)

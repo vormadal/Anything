@@ -18,7 +18,7 @@ public class GetBillSummaryHandler(
 {
     public async Task<BillSummaryResponse> Handle(GetBillSummaryQuery query, CancellationToken ct = default)
     {
-        var bills = await billRepository.Query()
+        var bills = await billRepository.Query().AsNoTracking()
             .Where(b => b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .ToListAsync(ct);
 
@@ -27,7 +27,7 @@ public class GetBillSummaryHandler(
 
         var billIds = bills.Select(b => b.Id).ToList();
 
-        var allPriceEntries = await priceHistoryRepository.Query()
+        var allPriceEntries = await priceHistoryRepository.Query().AsNoTracking()
             .Where(ph => billIds.Contains(ph.BillId))
             .ToListAsync(ct);
 

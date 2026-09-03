@@ -28,6 +28,7 @@ public class SearchIndexService(ApplicationDbContext context) : ISearchIndexServ
         // `var tsQuery = EF.Functions.PlainToTsQuery(...)`) executes it as a
         // plain, untranslated C# call and throws.
         var documents = await context.SearchDocuments
+            .AsNoTracking()
             .Where(d => d.HouseholdId == householdId)
             .Select(d => new
             {

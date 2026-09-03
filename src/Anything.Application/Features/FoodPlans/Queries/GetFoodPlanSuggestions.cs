@@ -34,24 +34,24 @@ public class GetFoodPlanSuggestionsHandler(
         var rules = await SeasonalTagDefaults.GetOrSeedRules(
             ruleRepository, settingsRepository, householdContext, unitOfWork, timeProvider, ct);
 
-        var settings = await settingsRepository.Query()
+        var settings = await settingsRepository.Query().AsNoTracking()
             .FirstOrDefaultAsync(s => s.HouseholdId == householdContext.HouseholdId, ct);
         var options = SuggestionScoringOptions.FromSettings(settings);
 
-        var householdRecipes = recipeRepository.Query()
+        var householdRecipes = recipeRepository.Query().AsNoTracking()
             .Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId);
 
         var recipes = await householdRecipes
             .Select(r => new { r.Id, r.Name })
             .ToListAsync(ct);
 
-        var entries = await entryRepository.Query()
+        var entries = await entryRepository.Query().AsNoTracking()
             .Where(e => e.DeletedOn == null && e.HouseholdId == householdContext.HouseholdId && e.RecipeId != null)
             .Select(e => new { e.RecipeId, e.Date })
             .ToListAsync(ct);
         var plannedDatesByRecipe = entries.ToLookup(e => e.RecipeId!.Value, e => DateOnly.FromDateTime(e.Date));
 
-        var tags = await tagRepository.Query()
+        var tags = await tagRepository.Query().AsNoTracking()
             .Where(t => t.DeletedOn == null)
             .Join(householdRecipes, t => t.RecipeId, r => r.Id, (t, r) => new { t.RecipeId, t.Name })
             .ToListAsync(ct);

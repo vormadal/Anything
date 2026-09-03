@@ -18,13 +18,13 @@ public class GetRecipeTagsHandler(
 
     public async Task<IResult> Handle(GetRecipeTagsQuery query, CancellationToken ct = default)
     {
-        var recipe = await recipeRepository.Query()
+        var recipe = await recipeRepository.Query().AsNoTracking()
             .Where(r => r.Id == query.RecipeId && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (recipe is null)
             return Results.NotFound(RecipeNotFound);
 
-        var tags = await tagRepository.Query()
+        var tags = await tagRepository.Query().AsNoTracking()
             .Where(t => t.RecipeId == query.RecipeId && t.DeletedOn == null)
             .ToListAsync(ct);
         return Results.Ok(tags);

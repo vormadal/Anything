@@ -51,8 +51,8 @@ public class CompleteShoppingListHandler(
         }
 
         await unitOfWork.SaveChanges(ct);
-        await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), ct);
-        await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.Id), ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingLists(), householdContext.HouseholdId, ct);
+        await realtimeNotifier.Notify(SyncEvent.ShoppingListItems(command.Id), householdContext.HouseholdId, ct);
         return Results.NoContent();
     }
 }

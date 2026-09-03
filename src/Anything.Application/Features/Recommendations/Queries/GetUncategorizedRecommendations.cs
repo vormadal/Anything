@@ -13,7 +13,7 @@ public class GetUncategorizedRecommendationsHandler(IRepository<ShoppingListReco
 {
     public async Task<List<ShoppingListRecommendation>> Handle(GetUncategorizedRecommendationsQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        return await repository.Query().AsNoTracking()
             .Where(r => r.CategoryId == null && r.HouseholdId == householdContext.HouseholdId)
             .OrderBy(r => r.Name)
             .ToListAsync(ct);

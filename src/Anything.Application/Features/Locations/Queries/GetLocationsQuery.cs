@@ -13,7 +13,7 @@ public class GetLocationsHandler(IRepository<Location> repository, IHouseholdCon
 {
     public async Task<List<Location>> Handle(GetLocationsQuery query, CancellationToken ct = default)
     {
-        return await repository.Query()
+        return await repository.Query().AsNoTracking()
             .Where(l => l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId)
             .OrderBy(l => l.Name)
             .ToListAsync(ct);

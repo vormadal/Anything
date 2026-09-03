@@ -73,4 +73,47 @@ public class TokenServiceTests
 
         Assert.NotEqual(token1, token2);
     }
+
+    [Fact]
+    public void HashRefreshToken_IsDeterministic()
+    {
+        var service = CreateService();
+
+        var hash1 = service.HashRefreshToken("some-refresh-token");
+        var hash2 = service.HashRefreshToken("some-refresh-token");
+
+        Assert.Equal(hash1, hash2);
+    }
+
+    [Fact]
+    public void HashRefreshToken_DifferentInputsProduceDifferentHashes()
+    {
+        var service = CreateService();
+
+        var hash1 = service.HashRefreshToken("token-a");
+        var hash2 = service.HashRefreshToken("token-b");
+
+        Assert.NotEqual(hash1, hash2);
+    }
+
+    [Fact]
+    public void HashRefreshToken_DoesNotReturnTheRawToken()
+    {
+        var service = CreateService();
+
+        var hash = service.HashRefreshToken("some-refresh-token");
+
+        Assert.NotEqual("some-refresh-token", hash);
+    }
+
+    [Fact]
+    public void HashRefreshToken_ReturnsFixedLengthHexString()
+    {
+        var service = CreateService();
+
+        var hash = service.HashRefreshToken("x");
+
+        Assert.Equal(64, hash.Length); // SHA-256 = 32 bytes = 64 hex chars
+        Assert.Matches("^[0-9A-F]+$", hash);
+    }
 }

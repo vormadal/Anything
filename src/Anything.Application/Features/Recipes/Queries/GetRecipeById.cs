@@ -16,7 +16,7 @@ public class GetRecipeByIdHandler(IRepository<Recipe> repository, IHouseholdCont
 
     public async Task<IResult> Handle(GetRecipeByIdQuery query, CancellationToken ct = default)
     {
-        var recipe = await repository.Query()
+        var recipe = await repository.Query().AsNoTracking()
             .Where(r => r.Id == query.Id && r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         return recipe is not null ? Results.Ok(recipe) : Results.NotFound(RecipeNotFound);

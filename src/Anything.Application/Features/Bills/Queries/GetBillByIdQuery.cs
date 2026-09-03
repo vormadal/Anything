@@ -20,26 +20,26 @@ public class GetBillByIdHandler(
 {
     public async Task<IResult> Handle(GetBillByIdQuery query, CancellationToken ct = default)
     {
-        var bill = await billRepository.Query()
+        var bill = await billRepository.Query().AsNoTracking()
             .Where(b => b.Id == query.Id && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (bill is null)
             return Results.NotFound();
 
-        var priceHistories = await priceHistoryRepository.Query()
+        var priceHistories = await priceHistoryRepository.Query().AsNoTracking()
             .Where(ph => ph.BillId == bill.Id)
             .ToListAsync(ct);
 
         var priceHistoriesByBillId = priceHistories.ToLookup(ph => ph.BillId);
 
         var locationsById = bill.LocationId.HasValue
-            ? await locationRepository.Query()
+            ? await locationRepository.Query().AsNoTracking()
                 .Where(l => l.DeletedOn == null && l.HouseholdId == householdContext.HouseholdId && l.Id == bill.LocationId.Value)
                 .ToDictionaryAsync(l => l.Id, ct)
             : [];
 
         var vendorsById = bill.VendorId.HasValue
-            ? await vendorRepository.Query()
+            ? await vendorRepository.Query().AsNoTracking()
                 .Where(v => v.DeletedOn == null && v.HouseholdId == householdContext.HouseholdId && v.Id == bill.VendorId.Value)
                 .ToDictionaryAsync(v => v.Id, ct)
             : [];

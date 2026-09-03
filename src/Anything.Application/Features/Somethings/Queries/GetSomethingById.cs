@@ -14,7 +14,7 @@ public class GetSomethingByIdHandler(IRepository<Something> repository, IHouseho
 {
     public async Task<IResult> Handle(GetSomethingByIdQuery query, CancellationToken ct = default)
     {
-        var something = await repository.Query()
+        var something = await repository.Query().AsNoTracking()
             .Where(s => s.Id == query.Id && s.DeletedOn == null && s.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         return something is not null ? Results.Ok(something) : Results.NotFound();

@@ -29,10 +29,12 @@ public class LoginHandler(
         var accessToken = tokenService.GenerateAccessToken(user);
         var refreshToken = tokenService.GenerateRefreshToken();
 
+        // Only the hash is persisted — see ITokenService.HashRefreshToken. The
+        // raw refreshToken below (returned to the client) is never stored.
         var refreshTokenEntity = new RefreshToken
         {
             UserId = user.Id,
-            Token = refreshToken,
+            Token = tokenService.HashRefreshToken(refreshToken),
             ExpiresAt = timeProvider.GetUtcNow().AddDays(7).UtcDateTime,
             CreatedOn = timeProvider.GetUtcNow().UtcDateTime
         };

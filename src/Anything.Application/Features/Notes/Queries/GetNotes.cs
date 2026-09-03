@@ -19,7 +19,7 @@ public class GetNotesHandler(IRepository<Note> repository, IHouseholdContext hou
 {
     public async Task<List<NoteSummaryResponse>> Handle(GetNotesQuery query, CancellationToken ct = default)
     {
-        var notes = repository.Query()
+        var notes = repository.Query().AsNoTracking()
             .Where(n => n.DeletedOn == null && n.HouseholdId == householdContext.HouseholdId)
             .OrderByDescending(n => n.ModifiedOn ?? n.CreatedOn);
 

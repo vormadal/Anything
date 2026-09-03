@@ -27,13 +27,13 @@ public class GetRecipesHandler(
 
     public async Task<List<RecipeListItemResponse>> Handle(GetRecipesQuery query, CancellationToken ct = default)
     {
-        var baseQuery = repository.Query().Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId);
+        var baseQuery = repository.Query().AsNoTracking().Where(r => r.DeletedOn == null && r.HouseholdId == householdContext.HouseholdId);
 
         if (!string.IsNullOrWhiteSpace(query.Tag))
         {
             var tag = query.Tag.ToLower();
             baseQuery = baseQuery.Where(r =>
-                tagRepository.Query()
+                tagRepository.Query().AsNoTracking()
                     .Any(t => t.RecipeId == r.Id && t.DeletedOn == null && t.Name.ToLower() == tag));
         }
 
@@ -55,9 +55,9 @@ public class GetRecipesHandler(
                     // "chickn" still matches "Chicken Curry" — plain similarity()
                     // would be penalised by the length difference.
                     NameSimilarity = PgTrigramFunctions.WordSimilarity(search, r.Name),
-                    TagMatch = tagRepository.Query()
+                    TagMatch = tagRepository.Query().AsNoTracking()
                         .Any(t => t.RecipeId == r.Id && t.DeletedOn == null && t.Name.ToLower().Contains(search)),
-                    IngredientMatch = ingredientRepository.Query()
+                    IngredientMatch = ingredientRepository.Query().AsNoTracking()
                         .Any(i => i.RecipeId == r.Id && i.DeletedOn == null && i.Name.ToLower().Contains(search)),
                 })
                 .Where(x => x.NameContains
@@ -81,13 +81,13 @@ public class GetRecipesHandler(
 
         // Batch-load tags and images for every result recipe in one query each
         // (avoids the client's former per-card image + tag requests).
-        var tagsByRecipe = (await tagRepository.Query()
+        var tagsByRecipe = (await tagRepository.Query().AsNoTracking()
                 .Where(t => recipeIds.Contains(t.RecipeId) && t.DeletedOn == null)
                 .ToListAsync(ct))
             .GroupBy(t => t.RecipeId)
             .ToDictionary(g => g.Key, g => g.Select(t => t.Name).ToList());
 
-        var thumbnailKeyByRecipe = (await imageRepository.Query()
+        var thumbnailKeyByRecipe = (await imageRepository.Query().AsNoTracking()
                 .Where(i => recipeIds.Contains(i.RecipeId) && i.DeletedOn == null)
                 .ToListAsync(ct))
             .GroupBy(i => i.RecipeId)

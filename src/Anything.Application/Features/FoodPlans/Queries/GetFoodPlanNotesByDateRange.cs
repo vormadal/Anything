@@ -14,7 +14,7 @@ public class GetFoodPlanNotesByDateRangeHandler(
 {
     public async Task<List<FoodPlanNote>> Handle(GetFoodPlanNotesByDateRangeQuery query, CancellationToken ct = default)
     {
-        return await noteRepository.Query()
+        return await noteRepository.Query().AsNoTracking()
             .Where(n => n.HouseholdId == householdContext.HouseholdId && n.Date >= query.StartDate && n.Date <= query.EndDate)
             .OrderBy(n => n.Date)
             .ToListAsync(ct);

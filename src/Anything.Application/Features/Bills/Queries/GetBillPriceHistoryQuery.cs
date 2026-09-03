@@ -18,13 +18,13 @@ public class GetBillPriceHistoryHandler(
 {
     public async Task<IResult> Handle(GetBillPriceHistoryQuery query, CancellationToken ct = default)
     {
-        var bill = await billRepository.Query()
+        var bill = await billRepository.Query().AsNoTracking()
             .Where(b => b.Id == query.BillId && b.DeletedOn == null && b.HouseholdId == householdContext.HouseholdId)
             .FirstOrDefaultAsync(ct);
         if (bill is null)
             return Results.NotFound();
 
-        var entries = await priceHistoryRepository.Query()
+        var entries = await priceHistoryRepository.Query().AsNoTracking()
             .Where(ph => ph.BillId == query.BillId)
             .OrderByDescending(ph => ph.EffectiveDate)
             .ToListAsync(ct);

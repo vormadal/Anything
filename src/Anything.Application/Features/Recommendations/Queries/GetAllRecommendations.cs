@@ -34,7 +34,7 @@ public class GetAllRecommendationsHandler(IRepository<ShoppingListRecommendation
 {
     public async Task<List<ShoppingListRecommendation>> Handle(GetAllRecommendationsQuery query, CancellationToken ct = default)
     {
-        var q = repository.Query().Where(r => r.HouseholdId == householdContext.HouseholdId);
+        var q = repository.Query().AsNoTracking().Where(r => r.HouseholdId == householdContext.HouseholdId);
 
         // List scope: shared-only, or a specific list's own + the shared ones, or (default) everything.
         if (query.SharedOnly)

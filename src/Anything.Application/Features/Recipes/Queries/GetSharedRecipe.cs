@@ -24,7 +24,7 @@ public class GetSharedRecipeHandler(
 
     public async Task<IResult> Handle(GetSharedRecipeQuery query, CancellationToken ct = default)
     {
-        var share = await shareRepository.Query()
+        var share = await shareRepository.Query().AsNoTracking()
             .Where(s => s.Token == query.Token)
             .FirstOrDefaultAsync(ct);
 
@@ -34,7 +34,7 @@ public class GetSharedRecipeHandler(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var isExpired = share.ExpiresAt.HasValue && share.ExpiresAt.Value < now;
 
-        var recipe = await recipeRepository.Query()
+        var recipe = await recipeRepository.Query().AsNoTracking()
             .Where(r => r.Id == share.RecipeId && r.DeletedOn == null)
             .FirstOrDefaultAsync(ct);
 
@@ -55,24 +55,24 @@ public class GetSharedRecipeHandler(
             ));
         }
 
-        var ingredients = await ingredientRepository.Query()
+        var ingredients = await ingredientRepository.Query().AsNoTracking()
             .Where(i => i.RecipeId == share.RecipeId && i.DeletedOn == null)
             .OrderBy(i => i.SortOrder)
             .Select(i => new SharedIngredientResponse(i.Name, i.Amount, i.Unit, i.Group, i.SortOrder))
             .ToListAsync(ct);
 
-        var steps = await stepRepository.Query()
+        var steps = await stepRepository.Query().AsNoTracking()
             .Where(s => s.RecipeId == share.RecipeId && s.DeletedOn == null)
             .OrderBy(s => s.Order)
             .Select(s => new SharedStepResponse(s.Text, s.Order))
             .ToListAsync(ct);
 
-        var tags = await tagRepository.Query()
+        var tags = await tagRepository.Query().AsNoTracking()
             .Where(t => t.RecipeId == share.RecipeId && t.DeletedOn == null)
             .Select(t => t.Name)
             .ToListAsync(ct);
 
-        var images = await imageRepository.Query()
+        var images = await imageRepository.Query().AsNoTracking()
             .Where(i => i.RecipeId == share.RecipeId && i.DeletedOn == null)
             .ToListAsync(ct);
 
