@@ -8,8 +8,8 @@
     <IsTestProject>true</IsTestProject>
     <!-- xunit.v3 4.0 pulls in Microsoft.Testing.Platform.MSBuild, which blocks the legacy
          VSTest-based `dotnet test` target on .NET 10 SDK+ unless this is set (see
-         https://aka.ms/dotnet-test-mtp-error). Needed for the CI `dotnet test --logger trx
-         --collect:"XPlat Code Coverage"` invocation to keep working. -->
+         https://aka.ms/dotnet-test-mtp-error). Needed for CI's `dotnet test` invocation
+         (its trx logger and code coverage collector flags) to keep working. -->
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
 
