@@ -108,5 +108,9 @@ test("shopping list can be renamed and deleted", async ({ page }) => {
 
   // Should navigate back to lists
   await expect(page).toHaveURL("/lists");
-  await expect(page.getByText(newName)).not.toBeVisible();
+  // Scoped to the heading role rather than a page-wide text search: Next's
+  // accessibility route announcer (#__next-route-announcer__, role="alert")
+  // retains the last-announced heading text after navigation, so a plain
+  // getByText(newName) false-matches it even once the list itself is gone.
+  await expect(page.getByRole("heading", { name: newName, level: 1 })).not.toBeVisible();
 });
