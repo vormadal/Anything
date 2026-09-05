@@ -57,7 +57,8 @@
     "tesseract.js": "^7.0.0"
   },
   "overrides": {
-    "@radix-ui/react-focus-scope": "1.1.10"
+    "@radix-ui/react-focus-scope": "1.1.10",
+    "nwsapi": "2.2.25"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0",
