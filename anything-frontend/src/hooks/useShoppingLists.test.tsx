@@ -372,8 +372,14 @@ describe('useShoppingLists hooks', () => {
 
       const { result } = renderHook(() => useUpdateShoppingListItem(1), { wrapper: Wrapper })
 
+      // onMutate is itself async (it awaits cancelQueries before patching the
+      // cache), so mutateAsync — whose returned promise only resolves once
+      // the whole mutation lifecycle, onMutate included, has settled — is
+      // the only way to be sure the patch has landed before asserting on it.
+      // Firing mutate() and reading the cache right after (even inside
+      // act()) races that await and reads the cache before it's patched.
       await act(async () => {
-        result.current.mutate({ itemId: 2, name: 'Milk', isChecked: true })
+        await result.current.mutateAsync({ itemId: 2, name: 'Milk', isChecked: true })
       })
 
       const patched = queryClient.getQueryData<{ modifiedOn: Date }[]>(['shoppingListItems', 1])
