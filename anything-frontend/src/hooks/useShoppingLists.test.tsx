@@ -351,6 +351,53 @@ describe('useShoppingLists hooks', () => {
       expect(mockItemsItemPut).not.toHaveBeenCalled()
       expect(getAllQueuedMutations()).toMatchObject([{ type: 'update', listId: 1, itemId: -1 }])
     })
+
+    // Regression coverage: the optimistic patch used to leave `modifiedOn`
+    // untouched, so a checked item rendered in its *stale* sort position
+    // (sortMostRecentlyCheckedFirst orders by modifiedOn) until the
+    // server-confirmed refetch landed a moment later and moved it again — a
+    // double reorder that reads as a jitter on every single toggle.
+    it('bumps modifiedOn on the optimistic patch, matching the backend', async () => {
+      mockItemsItemPut.mockResolvedValueOnce(undefined)
+      // No gcTime: 0 here (unlike createWrapper()) — this query key has no
+      // active useQuery observer (only the setQueryData seed below), so
+      // React Query schedules it for garbage collection the instant it's
+      // created (Query/Removable.scheduleGc runs from the constructor, not
+      // just on the last observer unmounting). With gcTime: 0 that GC timer
+      // is real and does fire (confirmed by instrumenting optionalRemove
+      // directly) — it just raced the mutation's cache patch inconsistently
+      // depending on event-loop/CI timing, evicting the entry out from under
+      // the assertion below on CI (undefined array) while usually losing the
+      // race locally. The default (5 min) gcTime used here isn't a timing
+      // race at all.
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      })
+      const staleModifiedOn = new Date('2024-01-01T00:00:00Z')
+      queryClient.setQueryData(['shoppingListItems', 1], [
+        { id: 2, name: 'Milk', isChecked: false, modifiedOn: staleModifiedOn },
+      ])
+      const Wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      )
+
+      const { result } = renderHook(() => useUpdateShoppingListItem(1), { wrapper: Wrapper })
+
+      // onMutate is itself async (it awaits cancelQueries before patching the
+      // cache), so mutateAsync — whose returned promise only resolves once
+      // the whole mutation lifecycle, onMutate included, has settled — is
+      // the only way to be sure the patch has landed before asserting on it.
+      // Firing mutate() and reading the cache right after (even inside
+      // act()) races that await and reads the cache before it's patched.
+      await act(async () => {
+        await result.current.mutateAsync({ itemId: 2, name: 'Milk', isChecked: true })
+      })
+
+      const patched = queryClient.getQueryData<{ modifiedOn: Date }[]>(['shoppingListItems', 1])
+      expect(patched?.[0].modifiedOn.getTime()).toBeGreaterThan(staleModifiedOn.getTime())
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    })
   })
 
   describe('useRemoveShoppingListItem', () => {
