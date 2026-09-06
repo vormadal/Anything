@@ -359,8 +359,19 @@ describe('useShoppingLists hooks', () => {
     // double reorder that reads as a jitter on every single toggle.
     it('bumps modifiedOn on the optimistic patch, matching the backend', async () => {
       mockItemsItemPut.mockResolvedValueOnce(undefined)
+      // No gcTime: 0 here (unlike createWrapper()) — this query key has no
+      // active useQuery observer (only the setQueryData seed below), so
+      // React Query schedules it for garbage collection the instant it's
+      // created (Query/Removable.scheduleGc runs from the constructor, not
+      // just on the last observer unmounting). With gcTime: 0 that GC timer
+      // is real and does fire (confirmed by instrumenting optionalRemove
+      // directly) — it just raced the mutation's cache patch inconsistently
+      // depending on event-loop/CI timing, evicting the entry out from under
+      // the assertion below on CI (undefined array) while usually losing the
+      // race locally. The default (5 min) gcTime used here isn't a timing
+      // race at all.
       const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
       })
       const staleModifiedOn = new Date('2024-01-01T00:00:00Z')
       queryClient.setQueryData(['shoppingListItems', 1], [
