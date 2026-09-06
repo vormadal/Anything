@@ -312,6 +312,14 @@ export function useUpdateShoppingListItem(listId: number) {
                 isChecked: vars.isChecked,
                 amount: vars.amount ?? null,
                 unit: vars.unit ?? null,
+                // The backend touches modifiedOn on every item update, including
+                // a check/uncheck toggle, and sortMostRecentlyCheckedFirst orders
+                // checked items by it. Without bumping it here too, this optimistic
+                // patch renders the item in its *stale* sort position, then jumps
+                // again a moment later once the server-confirmed modifiedOn comes
+                // back from the onSettled refetch — a double FLIP move that reads
+                // as a jitter on every single toggle.
+                modifiedOn: new Date(),
               }
             : item
         )

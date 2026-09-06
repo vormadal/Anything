@@ -351,6 +351,36 @@ describe('useShoppingLists hooks', () => {
       expect(mockItemsItemPut).not.toHaveBeenCalled()
       expect(getAllQueuedMutations()).toMatchObject([{ type: 'update', listId: 1, itemId: -1 }])
     })
+
+    // Regression coverage: the optimistic patch used to leave `modifiedOn`
+    // untouched, so a checked item rendered in its *stale* sort position
+    // (sortMostRecentlyCheckedFirst orders by modifiedOn) until the
+    // server-confirmed refetch landed a moment later and moved it again — a
+    // double reorder that reads as a jitter on every single toggle.
+    it('bumps modifiedOn on the optimistic patch, matching the backend', async () => {
+      mockItemsItemPut.mockResolvedValueOnce(undefined)
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
+      })
+      const staleModifiedOn = new Date('2024-01-01T00:00:00Z')
+      queryClient.setQueryData(['shoppingListItems', 1], [
+        { id: 2, name: 'Milk', isChecked: false, modifiedOn: staleModifiedOn },
+      ])
+      const Wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      )
+
+      const { result } = renderHook(() => useUpdateShoppingListItem(1), { wrapper: Wrapper })
+
+      await act(async () => {
+        result.current.mutate({ itemId: 2, name: 'Milk', isChecked: true })
+      })
+
+      const patched = queryClient.getQueryData<{ modifiedOn: Date }[]>(['shoppingListItems', 1])
+      expect(patched?.[0].modifiedOn.getTime()).toBeGreaterThan(staleModifiedOn.getTime())
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    })
   })
 
   describe('useRemoveShoppingListItem', () => {
