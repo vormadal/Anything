@@ -85,6 +85,14 @@ const mockGeneralChecklistItemsAllChecked = [
   { id: 12, name: "Measure twice", amount: null, unit: null, isChecked: true, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
 ];
 
+// Checked items carry distinct modifiedOn timestamps to lock in "most recently
+// checked first" ordering — undoing a misclick is a tap on the top row.
+const mockGeneralChecklistItemsMultiChecked = [
+  { id: 10, name: "Buy nails", amount: null, unit: null, isChecked: true, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: "2025-01-14T09:00:00Z" },
+  { id: 11, name: "Get a hammer", amount: null, unit: null, isChecked: false, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
+  { id: 12, name: "Measure twice", amount: null, unit: null, isChecked: true, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: "2025-01-14T11:00:00Z" },
+];
+
 const mockBills = [
   {
     id: 1,
@@ -1923,6 +1931,26 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "list-detail-general-edit-ordering.png",
+      screenshotOptions
+    );
+  });
+
+  test("general checklist detail - most recently checked item on top", async ({ page }) => {
+    await page.route(/\/api\/checklists\/3\/items/, (route) =>
+      route.fulfill({ json: mockGeneralChecklistItemsMultiChecked })
+    );
+    await page.goto("/lists/3");
+    await page.waitForLoadState("networkidle");
+
+    // "Measure twice" was checked latest (11:00) so it sits above "Buy nails"
+    // (09:00), even though "Buy nails" comes first in the API response.
+    await expect(page.getByRole("listitem")).toHaveText([
+      "Get a hammer",
+      "Measure twice",
+      "Buy nails",
+    ]);
+    await expect(page).toHaveScreenshot(
+      "list-detail-general-recently-checked-first.png",
       screenshotOptions
     );
   });

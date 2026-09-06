@@ -13,6 +13,8 @@ import { ListItemsStatus } from "@/components/ListItemsStatus";
 import { CompleteListDialog } from "@/components/CompleteListDialog";
 import { usePendingItemIds } from "@/lib/offline/outboxStore";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useFlipAnimation } from "@/hooks/useFlipAnimation";
+import { sortMostRecentlyCheckedFirst, latestDate } from "@/lib/checklistOrder";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 
 type SortMode = "default" | "grouped";
@@ -29,6 +31,8 @@ interface AggregatedItem {
   amount: number | null | undefined;
   isChecked: boolean;
   underlyingIds: number[];
+  /** Latest `modifiedOn` across the group — used to sort checked groups most-recent-first. */
+  modifiedOn: Date | null;
 }
 
 function buildAggregated(items: ShoppingListItem[]): AggregatedItem[] {
@@ -58,6 +62,7 @@ function buildAggregated(items: ShoppingListItem[]): AggregatedItem[] {
       amount: totalAmount > 0 ? totalAmount : null,
       isChecked: group.every((i) => !!i.isChecked),
       underlyingIds: group.map((i) => i.id!),
+      modifiedOn: latestDate(group.map((i) => i.modifiedOn)),
     };
   });
 }
@@ -88,7 +93,8 @@ function groupItemsByRecipe(items: ShoppingListItem[]): ItemGroup[] {
     groups.push({ label: "Added directly", items: directItems });
   }
   if (checked.length > 0) {
-    groups.push({ label: null, items: checked });
+    // Most-recently-checked first, so undoing a misclick is a tap on the top row.
+    groups.push({ label: null, items: sortMostRecentlyCheckedFirst(checked) });
   }
   return groups;
 }
@@ -109,6 +115,8 @@ export function ShoppingListView({ listId }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>("default");
   const pendingItemIds = usePendingItemIds(listId);
   const isOnline = useOnlineStatus();
+  const defaultListRef = useFlipAnimation<HTMLUListElement>();
+  const groupedListRef = useFlipAnimation<HTMLUListElement>();
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
   const aggregatedUnchecked = useMemo(
@@ -116,7 +124,8 @@ export function ShoppingListView({ listId }: Props) {
     [items]
   );
   const aggregatedChecked = useMemo(
-    () => (items ? buildAggregated(items.filter((i) => !!i.isChecked)) : []),
+    // Most-recently-checked first, so undoing a misclick is a tap on the top row.
+    () => (items ? sortMostRecentlyCheckedFirst(buildAggregated(items.filter((i) => !!i.isChecked))) : []),
     [items]
   );
   const recipeGroups = useMemo(
@@ -231,11 +240,12 @@ export function ShoppingListView({ listId }: Props) {
           </div>
 
           {sortMode === "default" && (
-            <ul>
+            <ul ref={defaultListRef}>
               {aggregatedUnchecked
                 .map((agg) => (
                   <li
                     key={agg.id}
+                    data-flip-id={agg.id}
                     className="flex items-center gap-2 py-2 px-3 transition-colors"
                   >
                     <button
@@ -270,6 +280,7 @@ export function ShoppingListView({ listId }: Props) {
                 .map((agg) => (
                   <li
                     key={agg.id}
+                    data-flip-id={agg.id}
                     className="flex items-center gap-2 py-2 px-3 transition-colors bg-gray-50 dark:bg-gray-900/30"
                   >
                     <button
@@ -301,7 +312,7 @@ export function ShoppingListView({ listId }: Props) {
           )}
 
           {sortMode === "grouped" && (
-            <ul>
+            <ul ref={groupedListRef}>
               {recipeGroups.map((group) => (
                 <Fragment key={group.label ?? "__checked__"}>
                   {group.label !== null && (
@@ -315,6 +326,7 @@ export function ShoppingListView({ listId }: Props) {
                   {group.items.map((item) => (
                     <li
                       key={item.id}
+                      data-flip-id={item.id}
                       className={`flex items-center gap-2 py-2 px-3 transition-colors ${
                         item.isChecked ? "bg-gray-50 dark:bg-gray-900/30" : ""
                       }`}

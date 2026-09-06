@@ -12,6 +12,8 @@ import { ChecklistItemRow } from "@/components/ChecklistItemRow";
 import { usePendingItemIds } from "@/lib/offline/outboxStore";
 import { isNetworkError } from "@/lib/offline/networkError";
 import { isShoppingList } from "@/lib/listTypes";
+import { sortMostRecentlyCheckedFirst } from "@/lib/checklistOrder";
+import { useFlipAnimation } from "@/hooks/useFlipAnimation";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 
 const CARD_CLASSES = "rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden";
@@ -34,6 +36,8 @@ function EmbeddedListItems({
   pendingItemIds: Set<number>;
   onToggle?: (item: ShoppingListItem) => void;
 }) {
+  const listRef = useFlipAnimation<HTMLUListElement>();
+
   const renderRow = (item: ShoppingListItem) => (
     <ChecklistItemRow
       key={item.id}
@@ -46,9 +50,9 @@ function EmbeddedListItems({
   );
 
   return (
-    <ul>
+    <ul ref={listRef}>
       {items.filter((i) => !i.isChecked).map(renderRow)}
-      {items.filter((i) => i.isChecked).map(renderRow)}
+      {sortMostRecentlyCheckedFirst(items.filter((i) => i.isChecked)).map(renderRow)}
     </ul>
   );
 }

@@ -71,6 +71,18 @@ describe("EmbeddedListCard", () => {
     expect(names).toEqual(["Bread", "Milk"]);
   });
 
+  it("shows the most recently checked item first among checked items", () => {
+    mockItems = [
+      item({ id: 1, name: "Checked earlier", isChecked: true, modifiedOn: new Date("2024-01-01T00:00:00Z") }),
+      item({ id: 2, name: "Unchecked" }),
+      item({ id: 3, name: "Checked latest", isChecked: true, modifiedOn: new Date("2024-01-03T00:00:00Z") }),
+    ];
+    renderCard();
+
+    const names = screen.getAllByRole("listitem").map((row) => row.textContent);
+    expect(names).toEqual(["Unchecked", "Checked latest", "Checked earlier"]);
+  });
+
   it("keeps the amount and unit when an item is ticked off", async () => {
     mockItems = [item({ id: 3, name: "Flour", amount: 2, unit: "kg" })];
     renderCard();

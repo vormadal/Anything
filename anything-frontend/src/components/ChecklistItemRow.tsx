@@ -59,7 +59,9 @@ export function ChecklistItemRow({
   const checked = !!item.isChecked;
 
   return (
-    <li className={checked ? ROW_CHECKED : ROW_BASE}>
+    // data-flip-id lets useFlipAnimation animate this row sliding to its new
+    // position (e.g. to the top of the checked group) instead of it jumping.
+    <li className={checked ? ROW_CHECKED : ROW_BASE} data-flip-id={item.id}>
       <button
         type="button"
         onClick={onToggle ? () => onToggle(item) : undefined}

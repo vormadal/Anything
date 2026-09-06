@@ -73,6 +73,25 @@ describe('GeneralChecklistView', () => {
     expect(screen.getByRole('button', { name: 'Uncheck item' })).toBeInTheDocument()
   })
 
+  it('shows the most recently checked item first among checked items', async () => {
+    const mockItems = [
+      { id: 1, name: 'Checked earlier', isChecked: true, modifiedOn: new Date('2024-01-01T00:00:00Z') },
+      { id: 2, name: 'Unchecked', isChecked: false },
+      { id: 3, name: 'Checked latest', isChecked: true, modifiedOn: new Date('2024-01-03T00:00:00Z') },
+      { id: 4, name: 'Checked in between', isChecked: true, modifiedOn: new Date('2024-01-02T00:00:00Z') },
+    ]
+    mockItemsGet.mockResolvedValue(mockItems)
+    render(<GeneralChecklistView listId={1} />)
+    await waitFor(() => { expect(screen.getByText('Checked latest')).toBeInTheDocument() })
+    const names = screen.getAllByRole('listitem').map((row) => row.textContent)
+    expect(names).toEqual([
+      'Unchecked',
+      'Checked latest',
+      'Checked in between',
+      'Checked earlier',
+    ])
+  })
+
   it('toggles item check', async () => {
     const user = userEvent.setup()
     mockItemsGet.mockResolvedValue([{ id: 1, name: 'Task A', isChecked: false }])
