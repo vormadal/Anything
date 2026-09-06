@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
 import { ChecklistItemRow } from "@/components/ChecklistItemRow";
 import { usePendingItemIds } from "@/lib/offline/outboxStore";
+import { useFlipAnimation } from "@/hooks/useFlipAnimation";
+import { sortMostRecentlyCheckedFirst } from "@/lib/checklistOrder";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
 import { useRouter } from "next/navigation";
 
@@ -23,9 +25,11 @@ export function GeneralChecklistView({ listId }: Props) {
   const updateItem = useUpdateShoppingListItem(listId);
   const deleteList = useDeleteShoppingList();
   const pendingItemIds = usePendingItemIds(listId);
+  const listRef = useFlipAnimation<HTMLUListElement>();
 
   const uncheckedItems = items?.filter((i) => !i.isChecked) ?? [];
-  const checkedItems = items?.filter((i) => i.isChecked) ?? [];
+  // Most-recently-checked first, so undoing a misclick is a tap on the top row.
+  const checkedItems = sortMostRecentlyCheckedFirst(items?.filter((i) => i.isChecked) ?? []);
 
   const handleToggleCheck = async (item: ShoppingListItem) => {
     try {
@@ -73,7 +77,7 @@ export function GeneralChecklistView({ listId }: Props) {
       />
 
       {items && items.length > 0 && (
-        <ul>
+        <ul ref={listRef}>
           {uncheckedItems.map(renderRow)}
           {checkedItems.map(renderRow)}
         </ul>
