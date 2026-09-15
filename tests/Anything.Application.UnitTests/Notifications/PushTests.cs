@@ -17,6 +17,28 @@ public class PushDispatchQueueTests
     private static PushDispatch Dispatch(string title) =>
         new() { UserIds = [1], Title = title };
 
+    /// <summary>
+    /// Stop reading with <c>break</c>, never by cancelling the token mid-loop.
+    /// <c>ReadAllAsync</c>'s inner drain loop yields every buffered item without
+    /// re-checking the token, so cancelling inside the body doesn't end the
+    /// enumeration — it keeps yielding and then throws once the buffer empties.
+    /// The token here is only a hang guard: if the queue ever stops producing,
+    /// the test fails on the timeout instead of blocking the suite.
+    /// </summary>
+    private static async Task<List<string>> ReadTitles(PushDispatchQueue queue, int count)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var read = new List<string>();
+
+        await foreach (var item in queue.ReadAllAsync(timeout.Token))
+        {
+            read.Add(item.Title);
+            if (read.Count == count) break;
+        }
+
+        return read;
+    }
+
     [Fact]
     public async Task Enqueued_ItemsComeBackInOrder()
     {
@@ -25,15 +47,7 @@ public class PushDispatchQueueTests
         Assert.True(queue.TryEnqueue(Dispatch("first")));
         Assert.True(queue.TryEnqueue(Dispatch("second")));
 
-        var read = new List<string>();
-        using var cts = new CancellationTokenSource();
-        await foreach (var item in queue.ReadAllAsync(cts.Token))
-        {
-            read.Add(item.Title);
-            if (read.Count == 2) cts.Cancel();
-        }
-
-        Assert.Equal(["first", "second"], read);
+        Assert.Equal(["first", "second"], await ReadTitles(queue, 2));
     }
 
     [Fact]
@@ -49,25 +63,24 @@ public class PushDispatchQueueTests
     }
 
     [Fact]
-    public async Task WhenOverflowed_TheNewestItemsSurvive()
+    public async Task WhenOverflowed_TheOldestItemsAreTheOnesDropped()
     {
         var queue = new PushDispatchQueue();
+        const int written = 5000;
 
-        for (var i = 0; i < 5000; i++)
+        for (var i = 0; i < written; i++)
             queue.TryEnqueue(Dispatch($"item-{i}"));
 
-        using var cts = new CancellationTokenSource();
-        var first = string.Empty;
-        await foreach (var item in queue.ReadAllAsync(cts.Token))
-        {
-            first = item.Title;
-            cts.Cancel();
-        }
+        var first = (await ReadTitles(queue, 1)).Single();
 
-        // Not "item-0": the early ones were dropped. Which nudge is stale and
-        // which is current is the whole reason the queue drops oldest-first.
-        Assert.NotEqual("item-0", first);
-        Assert.StartsWith("item-", first);
+        // Not "item-0" — the early ones were dropped to make room. Which nudge
+        // is stale and which is current is the whole point of dropping oldest
+        // rather than refusing the write.
+        var survivingIndex = int.Parse(first["item-".Length..]);
+        Assert.True(
+            survivingIndex > 0,
+            $"Expected the oldest items to have been dropped, but the queue still starts at {first}.");
+        Assert.True(survivingIndex < written, $"Unexpected item {first}.");
     }
 }
 
