@@ -35,6 +35,7 @@ public static class TestVapid
 
     public static VapidCredentials Unconfigured() => new(Options.Create(new PushSettings()));
 
-    private static string Base64Url(byte[] bytes) =>
+    /// <summary>Base64url without padding — the encoding VAPID and Web Push keys use.</summary>
+    public static string Base64Url(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }

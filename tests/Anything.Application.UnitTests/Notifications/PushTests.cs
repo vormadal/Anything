@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using Anything.Application.Configuration;
 using Anything.Application.Notifications;
 using Anything.Application.UnitTests.Helpers;
@@ -121,16 +122,141 @@ public class VapidCredentialsTests
     }
 }
 
+/// <summary>
+/// Answers every request with one status, and counts what it was asked for.
+/// This is what makes the real send path testable without a push service:
+/// PushServiceClient takes an HttpClient, so the library still builds the VAPID
+/// token and encrypts the payload for real — only the transport is fake.
+/// </summary>
+file sealed class StubPushService(HttpStatusCode status) : HttpMessageHandler
+{
+    public int Requests { get; private set; }
+
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        Requests++;
+        return Task.FromResult(new HttpResponseMessage(status));
+    }
+}
+
 public class WebPushSenderTests
 {
+    private static readonly DateTime Now = new(2026, 9, 15, 10, 0, 0, DateTimeKind.Utc);
+
     private readonly IRepository<PushDevice> _deviceRepo = Substitute.For<IRepository<PushDevice>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _time = Substitute.For<TimeProvider>();
 
     public WebPushSenderTests()
     {
-        _time.GetUtcNow().Returns(new DateTimeOffset(2026, 9, 15, 10, 0, 0, TimeSpan.Zero));
+        _time.GetUtcNow().Returns(new DateTimeOffset(Now, TimeSpan.Zero));
         _deviceRepo.Query().Returns(new List<PushDevice>().AsAsyncQueryable());
+    }
+
+    /// <summary>
+    /// A device whose keys are a real P-256 public point and a 16-byte auth
+    /// secret — what a browser actually hands over. Placeholders would fail
+    /// inside the library's payload encryption rather than in the sender.
+    /// </summary>
+    private static PushDevice RealDevice(int id, int userId = 1)
+    {
+        using var ecdh = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var parameters = ecdh.ExportParameters(includePrivateParameters: false);
+
+        var publicKey = new byte[65];
+        publicKey[0] = 0x04;
+        parameters.Q.X!.CopyTo(publicKey, 1);
+        parameters.Q.Y!.CopyTo(publicKey, 33);
+
+        return new PushDevice
+        {
+            Id = id,
+            UserId = userId,
+            Endpoint = $"https://push.example.com/device-{id}",
+            P256dhKey = TestVapid.Base64Url(publicKey),
+            AuthKey = TestVapid.Base64Url(RandomNumberGenerator.GetBytes(16))
+        };
+    }
+
+    private WebPushSender CreateSender(VapidCredentials credentials, HttpMessageHandler handler) =>
+        new(new PushServiceClient(new HttpClient(handler)), credentials, _deviceRepo, _unitOfWork,
+            _time, NullLogger<WebPushSender>.Instance);
+
+    [Fact]
+    public async Task Send_DeliversToEveryLiveDeviceOfTheRecipients()
+    {
+        using var credentials = TestVapid.Configured();
+        _deviceRepo.Query().Returns(new List<PushDevice>
+        {
+            RealDevice(1),
+            RealDevice(2),
+            // Already pruned or unsubscribed — must not be contacted again.
+            new PushDevice
+            {
+                Id = 3, UserId = 1, Endpoint = "https://push.example.com/dead",
+                P256dhKey = "k", AuthKey = "a", DeletedOn = Now.AddDays(-1)
+            },
+            // Belongs to someone who isn't a recipient.
+            RealDevice(4, userId: 99)
+        }.AsAsyncQueryable());
+        using var handler = new StubPushService(HttpStatusCode.Created);
+
+        await CreateSender(credentials, handler).Send(Dispatch(1), TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, handler.Requests);
+        await _unitOfWork.DidNotReceiveWithAnyArgs().SaveChanges(default);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.Gone)]
+    public async Task Send_WhenThePushServiceReportsTheEndpointGone_PrunesThatDevice(HttpStatusCode status)
+    {
+        using var credentials = TestVapid.Configured();
+        var device = RealDevice(1);
+        _deviceRepo.Query().Returns(new List<PushDevice> { device }.AsAsyncQueryable());
+        using var handler = new StubPushService(status);
+
+        await CreateSender(credentials, handler).Send(Dispatch(1), TestContext.Current.CancellationToken);
+
+        Assert.Equal(Now, device.DeletedOn);
+        _deviceRepo.Received(1).Update(device);
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Send_WhenThePushServiceFailsTransiently_KeepsTheDevice()
+    {
+        // A 500 is not the browser dropping the subscription. Pruning here would
+        // silently unsubscribe a real device over someone else's outage.
+        using var credentials = TestVapid.Configured();
+        var device = RealDevice(1);
+        _deviceRepo.Query().Returns(new List<PushDevice> { device }.AsAsyncQueryable());
+        using var handler = new StubPushService(HttpStatusCode.InternalServerError);
+
+        await CreateSender(credentials, handler).Send(Dispatch(1), TestContext.Current.CancellationToken);
+
+        Assert.Null(device.DeletedOn);
+        await _unitOfWork.DidNotReceiveWithAnyArgs().SaveChanges(default);
+    }
+
+    [Fact]
+    public async Task Send_OneDeadDevice_DoesNotStopTheRest()
+    {
+        // All four share the stubbed status, so this really asserts the loop
+        // keeps going after a throw rather than bailing on the first failure.
+        using var credentials = TestVapid.Configured();
+        var devices = new List<PushDevice> { RealDevice(1), RealDevice(2), RealDevice(3) };
+        _deviceRepo.Query().Returns(devices.AsAsyncQueryable());
+        using var handler = new StubPushService(HttpStatusCode.Gone);
+
+        await CreateSender(credentials, handler).Send(Dispatch(1), TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, handler.Requests);
+        Assert.All(devices, d => Assert.Equal(Now, d.DeletedOn));
+        // One save for the whole batch, not one per device.
+        await _unitOfWork.Received(1).SaveChanges(Arg.Any<CancellationToken>());
     }
 
     private WebPushSender CreateSender(VapidCredentials credentials) =>

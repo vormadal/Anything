@@ -84,10 +84,10 @@ public class WebPushSender(
     /// 404 and 410 are the two the spec defines as permanent: the endpoint no
     /// longer exists. Everything else may succeed later.
     /// <para>
-    /// Internal rather than private so the unit tests can assert on this
-    /// directly — the surrounding send path needs real VAPID crypto and a live
-    /// push service to exercise, but which status codes are fatal is the part
-    /// that actually decides whether a device is deleted.
+    /// Internal rather than private so the unit tests can assert the full
+    /// status-code range directly, alongside the send-path tests that drive
+    /// this for real through a stubbed transport. Which codes are fatal is what
+    /// decides whether a device is deleted, so it is worth pinning down twice.
     /// </para>
     /// </summary>
     internal static bool IsGone(HttpStatusCode statusCode) =>
