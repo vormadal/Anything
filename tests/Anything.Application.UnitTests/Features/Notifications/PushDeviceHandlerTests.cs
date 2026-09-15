@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using Anything.Application.Configuration;
 using Anything.Application.Features.Notifications.Commands;
 using Anything.Application.Features.Notifications.Queries;
 using Anything.Application.Notifications;
@@ -7,7 +5,6 @@ using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
 
@@ -32,35 +29,9 @@ public abstract class PushDeviceTestBase
     protected void SeedDevices(params PushDevice[] devices) =>
         Repo.Query().Returns(devices.ToList().AsAsyncQueryable());
 
-    /// <summary>
-    /// A genuinely valid P-256 pair, generated per test run. Hard-coded
-    /// placeholder strings are not safe here: VapidAuthentication parses the
-    /// keys when it is constructed, so anything that isn't a real key would
-    /// fail inside the helper rather than in the code under test.
-    /// </summary>
-    protected static VapidCredentials Configured()
-    {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var parameters = ecdsa.ExportParameters(includePrivateParameters: true);
+    protected static VapidCredentials Configured() => TestVapid.Configured();
 
-        // Uncompressed point (0x04 || X || Y) is the encoding VAPID expects.
-        var publicKey = new byte[65];
-        publicKey[0] = 0x04;
-        parameters.Q.X!.CopyTo(publicKey, 1);
-        parameters.Q.Y!.CopyTo(publicKey, 33);
-
-        return new VapidCredentials(Options.Create(new PushSettings
-        {
-            PublicKey = Base64Url(publicKey),
-            PrivateKey = Base64Url(parameters.D!),
-            Subject = "mailto:ops@example.com"
-        }));
-    }
-
-    private static string Base64Url(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-
-    protected static VapidCredentials Unconfigured() => new(Options.Create(new PushSettings()));
+    protected static VapidCredentials Unconfigured() => TestVapid.Unconfigured();
 }
 
 public class RegisterPushDeviceHandlerTests : PushDeviceTestBase

@@ -68,6 +68,10 @@ per item so no repository is held for the process lifetime.
 - **Push narrows in-app, it never bypasses it.** `EnqueuePush` runs on the
   recipients that already survived the `InAppEnabled` filter, so a user with
   in-app off gets no push even with push on — there is no notification to push.
+- **The dispatcher asks `VapidCredentials.IsConfigured` before doing any push
+  work.** Without keys — the default, and the state of every deployment that
+  hasn't opted in — the push opt-out lookup would otherwise run on every single
+  dispatch just to feed a queue whose sender returns immediately.
 - **`VapidCredentials` is the single "is push on?" answer.** It is a singleton
   (`VapidAuthentication` caches its signed token and is disposable) and reports
   itself unconfigured when any of the three settings is missing. The DI graph is

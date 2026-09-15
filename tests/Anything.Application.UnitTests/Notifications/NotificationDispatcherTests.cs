@@ -18,6 +18,9 @@ public class NotificationDispatcherTests
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
     private readonly IPushDispatchQueue _pushQueue = Substitute.For<IPushDispatchQueue>();
+    // Configured by default so the push assertions below exercise the real path;
+    // the unconfigured case gets its own test.
+    private readonly VapidCredentials _pushCredentials = TestVapid.Configured();
     private readonly List<Notification> _written = [];
 
     private static readonly DateTime Now = new(2026, 9, 15, 10, 0, 0, DateTimeKind.Utc);
@@ -32,7 +35,8 @@ public class NotificationDispatcherTests
     }
 
     private NotificationDispatcher CreateDispatcher() =>
-        new(_notificationRepo, _preferenceRepo, _memberRepo, _unitOfWork, _timeProvider, _realtimeNotifier, _pushQueue);
+        new(_notificationRepo, _preferenceRepo, _memberRepo, _unitOfWork, _timeProvider, _realtimeNotifier,
+            _pushQueue, _pushCredentials);
 
     private void SeedMembers(params int[] userIds) =>
         _memberRepo.Query().Returns(userIds
@@ -226,6 +230,23 @@ public class NotificationDispatcherTests
             p.Title == "Bin day moved"
             && p.Body == "Thursday this week."
             && p.UserIds.OrderBy(id => id).SequenceEqual(new[] { 1, 2, 3 })));
+    }
+
+    [Fact]
+    public async Task Dispatch_WhenPushIsNotConfigured_DoesNoPushWorkAtAll()
+    {
+        // Every deployment without VAPID keys takes this path on every single
+        // dispatch, so it must not cost a preference lookup or a queue write.
+        var credentials = TestVapid.Unconfigured();
+        var dispatcher = new NotificationDispatcher(
+            _notificationRepo, _preferenceRepo, _memberRepo, _unitOfWork, _timeProvider,
+            _realtimeNotifier, _pushQueue, credentials);
+
+        var created = await dispatcher.Dispatch(Dispatch(), TestContext.Current.CancellationToken);
+
+        // The in-app notification is untouched — push being off is not a veto.
+        Assert.Equal(3, created);
+        _pushQueue.DidNotReceiveWithAnyArgs().TryEnqueue(default!);
     }
 
     [Fact]

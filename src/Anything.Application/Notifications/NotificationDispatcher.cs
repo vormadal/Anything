@@ -12,7 +12,8 @@ public class NotificationDispatcher(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     IRealtimeNotifier realtimeNotifier,
-    IPushDispatchQueue pushQueue) : INotificationDispatcher
+    IPushDispatchQueue pushQueue,
+    VapidCredentials pushCredentials) : INotificationDispatcher
 {
     public async Task<int> Dispatch(NotificationDispatch dispatch, CancellationToken ct = default)
     {
@@ -88,6 +89,12 @@ public class NotificationDispatcher(
     /// </summary>
     private async Task EnqueuePush(NotificationDispatch dispatch, List<int> recipients, CancellationToken ct)
     {
+        // Deployments without VAPID keys are the default, and on those the
+        // opt-out lookup below would run on every single dispatch only to feed
+        // a queue whose sender returns immediately. Ask the cheap question first.
+        if (!pushCredentials.IsConfigured)
+            return;
+
         var pushOptedOut = await preferenceRepository.Query().AsNoTracking()
             .Where(p => p.HouseholdId == dispatch.HouseholdId
                         && p.Category == dispatch.Category

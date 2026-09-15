@@ -124,8 +124,7 @@ public class WebPushSenderTests
         new(new PushServiceClient(), credentials, _deviceRepo, _unitOfWork, _time,
             NullLogger<WebPushSender>.Instance);
 
-    private static VapidCredentials Unconfigured() =>
-        new(Options.Create(new PushSettings()));
+    private static VapidCredentials Unconfigured() => TestVapid.Unconfigured();
 
     private static PushDispatch Dispatch(params int[] userIds) =>
         new() { UserIds = userIds, Title = "Bin day moved" };
