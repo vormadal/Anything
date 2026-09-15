@@ -13,6 +13,11 @@ public class NotificationEndpointTests : IntegrationTestBase
         PropertyNameCaseInsensitive = true
     };
 
+    private const string AnnouncementCategory = "announcement";
+    private const string MemberCategory = "householdmember";
+    private const string PreferencesPath = "/api/notifications/preferences";
+    private const string MemberPassword = "User123!";
+
     private HttpClient? _adminClient;
 
     public NotificationEndpointTests(PostgresContainerFixture postgres) : base(postgres)
@@ -43,7 +48,7 @@ public class NotificationEndpointTests : IntegrationTestBase
         var registerResponse = await HttpClient.PostAsJsonAsync("/api/auth/register", new
         {
             email,
-            password = "User123!",
+            password = MemberPassword,
             name = email.Split('@')[0],
             inviteToken = invite!.Token
         }, TestContext.Current.CancellationToken);
@@ -59,7 +64,7 @@ public class NotificationEndpointTests : IntegrationTestBase
         var loginResponse = await HttpClient.PostAsJsonAsync("/api/auth/login", new
         {
             email,
-            password = "User123!"
+            password = MemberPassword
         }, TestContext.Current.CancellationToken);
         var login = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, TestContext.Current.CancellationToken);
 
@@ -122,12 +127,12 @@ public class NotificationEndpointTests : IntegrationTestBase
         Assert.Equal(1, sent!.Recipients);
 
         var received = await GetNotifications(memberClient);
-        var announcement = Assert.Single(received, n => n.Category == "announcement");
+        var announcement = Assert.Single(received, n => n.Category == AnnouncementCategory);
         Assert.Equal("Bin day moved", announcement.Title);
         Assert.Equal("Thursday this week.", announcement.Body);
         Assert.Null(announcement.ReadOn);
 
-        Assert.DoesNotContain(await GetNotifications(admin), n => n.Category == "announcement");
+        Assert.DoesNotContain(await GetNotifications(admin), n => n.Category == AnnouncementCategory);
     }
 
     [Fact]
@@ -163,10 +168,10 @@ public class NotificationEndpointTests : IntegrationTestBase
         // The admin and the first member were already in the household when the
         // second joined; the second member gets nothing about their own arrival.
         var adminInbox = await GetNotifications(admin);
-        Assert.Contains(adminInbox, n => n.Category == "householdmember" && n.Title.Contains("second"));
+        Assert.Contains(adminInbox, n => n.Category == MemberCategory && n.Title.Contains("second"));
 
         var firstInbox = await GetNotifications(firstClient);
-        Assert.Contains(firstInbox, n => n.Category == "householdmember" && n.Title.Contains("second"));
+        Assert.Contains(firstInbox, n => n.Category == MemberCategory && n.Title.Contains("second"));
         Assert.DoesNotContain(firstInbox, n => n.Title.Contains("first"));
 
         Assert.Empty(await GetNotifications(secondClient));
@@ -178,7 +183,7 @@ public class NotificationEndpointTests : IntegrationTestBase
         await AddMember("linked@test.com");
         var admin = await AdminClient();
 
-        var notification = Assert.Single(await GetNotifications(admin), n => n.Category == "householdmember");
+        var notification = Assert.Single(await GetNotifications(admin), n => n.Category == MemberCategory);
         Assert.Equal($"/households/{DefaultHouseholdId}", notification.LinkUrl);
     }
 
@@ -286,13 +291,13 @@ public class NotificationEndpointTests : IntegrationTestBase
     {
         var admin = await AdminClient();
 
-        var response = await admin.GetAsync("/api/notifications/preferences", TestContext.Current.CancellationToken);
+        var response = await admin.GetAsync(PreferencesPath, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<List<PreferenceDto>>(JsonOptions, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         // Mirrors NotificationCategories.All — adding a category means updating this.
-        Assert.Equal(["announcement", "householdmember"], result.Select(p => p.Category).ToList());
+        Assert.Equal([AnnouncementCategory, MemberCategory], result.Select(p => p.Category).ToList());
         Assert.All(result, p => Assert.True(p.InAppEnabled));
     }
 
@@ -301,7 +306,7 @@ public class NotificationEndpointTests : IntegrationTestBase
     {
         var admin = await AdminClient();
 
-        var response = await admin.PutAsJsonAsync("/api/notifications/preferences", new
+        var response = await admin.PutAsJsonAsync(PreferencesPath, new
         {
             preferences = new[] { new { category = "not-a-category", inAppEnabled = false } }
         }, TestContext.Current.CancellationToken);
@@ -315,9 +320,9 @@ public class NotificationEndpointTests : IntegrationTestBase
         var (_, memberClient) = await AddMember("opted-out@test.com");
         var admin = await AdminClient();
 
-        var update = await memberClient.PutAsJsonAsync("/api/notifications/preferences", new
+        var update = await memberClient.PutAsJsonAsync(PreferencesPath, new
         {
-            preferences = new[] { new { category = "announcement", inAppEnabled = false } }
+            preferences = new[] { new { category = AnnouncementCategory, inAppEnabled = false } }
         }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, update.StatusCode);
 
@@ -332,14 +337,14 @@ public class NotificationEndpointTests : IntegrationTestBase
     {
         var (_, memberClient) = await AddMember("partial-opt-out@test.com");
 
-        await memberClient.PutAsJsonAsync("/api/notifications/preferences", new
+        await memberClient.PutAsJsonAsync(PreferencesPath, new
         {
-            preferences = new[] { new { category = "announcement", inAppEnabled = false } }
+            preferences = new[] { new { category = AnnouncementCategory, inAppEnabled = false } }
         }, TestContext.Current.CancellationToken);
 
         await AddMember("arrives-anyway@test.com");
 
-        Assert.Contains(await GetNotifications(memberClient), n => n.Category == "householdmember");
+        Assert.Contains(await GetNotifications(memberClient), n => n.Category == MemberCategory);
     }
 
     [Fact]
@@ -347,20 +352,20 @@ public class NotificationEndpointTests : IntegrationTestBase
     {
         var admin = await AdminClient();
 
-        await admin.PutAsJsonAsync("/api/notifications/preferences", new
+        await admin.PutAsJsonAsync(PreferencesPath, new
         {
             preferences = new[]
             {
-                new { category = "announcement", inAppEnabled = false },
-                new { category = "householdmember", inAppEnabled = true }
+                new { category = AnnouncementCategory, inAppEnabled = false },
+                new { category = MemberCategory, inAppEnabled = true }
             }
         }, TestContext.Current.CancellationToken);
 
-        var response = await admin.GetAsync("/api/notifications/preferences", TestContext.Current.CancellationToken);
+        var response = await admin.GetAsync(PreferencesPath, TestContext.Current.CancellationToken);
         var result = await response.Content.ReadFromJsonAsync<List<PreferenceDto>>(JsonOptions, TestContext.Current.CancellationToken);
 
-        Assert.False(result!.Single(p => p.Category == "announcement").InAppEnabled);
-        Assert.True(result.Single(p => p.Category == "householdmember").InAppEnabled);
+        Assert.False(result!.Single(p => p.Category == AnnouncementCategory).InAppEnabled);
+        Assert.True(result.Single(p => p.Category == MemberCategory).InAppEnabled);
     }
 
     // --- local DTOs ---
