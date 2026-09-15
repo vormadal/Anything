@@ -37,14 +37,37 @@ public class PushDispatchQueueTests
     }
 
     [Fact]
-    public void TryEnqueue_NeverBlocksOrThrows()
+    public void TryEnqueue_PastCapacity_KeepsAcceptingRatherThanReportingFull()
     {
         var queue = new PushDispatchQueue();
 
-        // Well past the bounded capacity: the oldest items are dropped rather
-        // than the producer being made to wait on a stalled push service.
+        // Well past the bounded capacity. Every call still succeeds: the
+        // channel drops its oldest item to make room rather than refusing, so
+        // a stalled push service can never block or fail a producer.
         for (var i = 0; i < 5000; i++)
             Assert.True(queue.TryEnqueue(Dispatch($"item-{i}")));
+    }
+
+    [Fact]
+    public async Task WhenOverflowed_TheNewestItemsSurvive()
+    {
+        var queue = new PushDispatchQueue();
+
+        for (var i = 0; i < 5000; i++)
+            queue.TryEnqueue(Dispatch($"item-{i}"));
+
+        using var cts = new CancellationTokenSource();
+        var first = string.Empty;
+        await foreach (var item in queue.ReadAllAsync(cts.Token))
+        {
+            first = item.Title;
+            cts.Cancel();
+        }
+
+        // Not "item-0": the early ones were dropped. Which nudge is stale and
+        // which is current is the whole reason the queue drops oldest-first.
+        Assert.NotEqual("item-0", first);
+        Assert.StartsWith("item-", first);
     }
 }
 

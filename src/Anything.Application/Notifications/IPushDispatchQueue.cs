@@ -14,8 +14,15 @@ namespace Anything.Application.Notifications;
 public interface IPushDispatchQueue
 {
     /// <summary>
-    /// Queues <paramref name="dispatch"/>, returning false if the queue is full
-    /// rather than blocking the caller. Never throws.
+    /// Queues <paramref name="dispatch"/> without ever blocking the caller, and
+    /// never throws.
+    /// <para>
+    /// A full queue does <em>not</em> make this return false — the oldest item
+    /// is dropped to make room, because a backlog of stale nudges is worth less
+    /// than the newest one. False means the queue is closed (the host is
+    /// shutting down), which is why callers treat the result as informational
+    /// rather than something to retry.
+    /// </para>
     /// </summary>
     bool TryEnqueue(PushDispatch dispatch);
 
