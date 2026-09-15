@@ -8,7 +8,8 @@ import { apiClient } from "@/lib/apiClient";
 type SyncEvent =
   | { type: "shoppingLists" }
   | { type: "shoppingListTemplates" }
-  | { type: "shoppingListItems"; listId: number };
+  | { type: "shoppingListItems"; listId: number }
+  | { type: "notifications" };
 
 const SSE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5238";
 
@@ -30,8 +31,22 @@ const SHOPPING_QUERY_KEYS = [
   ["shoppingListItems"],
 ] as const;
 
+// The inbox and the badge are separate queries (see useNotifications), and the
+// backend's notification event is contentless — it only says "something
+// changed for this household", so each client refetches its own.
+const NOTIFICATION_QUERY_KEYS = [
+  ["notifications"],
+  ["notificationUnreadCount"],
+] as const;
+
 function invalidateShoppingQueries(queryClient: QueryClient) {
   for (const queryKey of SHOPPING_QUERY_KEYS) {
+    void queryClient.invalidateQueries({ queryKey });
+  }
+}
+
+function invalidateNotificationQueries(queryClient: QueryClient) {
+  for (const queryKey of NOTIFICATION_QUERY_KEYS) {
     void queryClient.invalidateQueries({ queryKey });
   }
 }
@@ -84,6 +99,7 @@ export function useRealtimeSync() {
           return;
         }
         invalidateShoppingQueries(queryClient);
+        invalidateNotificationQueries(queryClient);
       };
 
       es.onmessage = (event: MessageEvent<string>) => {
@@ -102,6 +118,8 @@ export function useRealtimeSync() {
             void queryClient.invalidateQueries({
               queryKey: ["shoppingListItems", data.listId],
             });
+          } else if (data.type === "notifications") {
+            invalidateNotificationQueries(queryClient);
           }
         } catch {
           // Malformed event — ignore
@@ -128,6 +146,7 @@ export function useRealtimeSync() {
       if (navigator.onLine === false) return;
 
       invalidateShoppingQueries(queryClient);
+      invalidateNotificationQueries(queryClient);
 
       if (!source || source.readyState === EventSource.CLOSED) {
         source?.close();

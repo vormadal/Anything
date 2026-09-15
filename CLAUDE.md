@@ -245,6 +245,13 @@ channel via `SyncEvent.Notifications()`, which is **contentless on purpose** —
 client receives it and refetches its own inbox rather than anyone's content
 crossing the connection.
 
+Frontend: `useNotifications.ts` (inbox, badge, preferences — the badge is its
+own query key because `NotificationBell` renders in the global header on every
+page), `/notifications` and `/notifications/settings`. Because the bell is
+global, **any new visual snapshot needs `**/api/notifications/unread-count**`
+mocked** or `networkidle` never resolves — `setupApiMocks` already does it, and
+returns `0` so the badge doesn't churn every unrelated baseline.
+
 Bills (`/api/bills`) — household-scoped subscriptions/expenses (`Bill`), each optionally
 tracking `BillPriceHistory` (price over time, `EffectiveDate`/optional `EndDate` ranges,
 overlap-validated with a 409 on conflict) and `BillAttachment`s (receipts/contracts, the
