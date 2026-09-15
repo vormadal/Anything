@@ -4,6 +4,7 @@ using Anything.Application.Notifications;
 using Anything.Application.Services;
 using Anything.Core.Services;
 using Anything.Mediator;
+using Lib.Net.Http.WebPush;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -40,6 +41,15 @@ public static class DependencyInjection
         services.AddScoped<IImageStorageService, MinioStorageService>();
         services.AddScoped<IRecipeImageService, RecipeImageService>();
         services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+
+        // Web Push. Registered unconditionally so the graph is identical
+        // whether or not keys are present — VapidCredentials reports itself
+        // unconfigured and every caller short-circuits on that, rather than
+        // the container shape depending on configuration.
+        services.AddSingleton<VapidCredentials>();
+        services.AddSingleton<IPushDispatchQueue, PushDispatchQueue>();
+        services.AddScoped<IPushSender, WebPushSender>();
+        services.AddHttpClient<PushServiceClient>();
         services.AddSingleton<IOutboundAddressResolver, DnsOutboundAddressResolver>();
         services.AddHttpClient<IRecipeParserService, RecipeParserService>(client =>
         {
@@ -63,6 +73,11 @@ public static class DependencyInjection
 
         services.AddOptions<AdminSettings>()
             .Bind(configuration.GetSection(AdminSettings.SectionName));
+
+        // No ValidateDataAnnotations/ValidateOnStart: push is opt-in, and an
+        // absent section must leave the app starting exactly as before.
+        services.AddOptions<PushSettings>()
+            .Bind(configuration.GetSection(PushSettings.SectionName));
 
         return services;
     }

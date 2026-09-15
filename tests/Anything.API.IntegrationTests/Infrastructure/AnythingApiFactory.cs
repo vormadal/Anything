@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using Anything.Application.Notifications;
 using Anything.Core.Entities;
 using Anything.Core.Services;
 using Anything.Database;
@@ -32,6 +34,15 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         // logs in at least once against this shared TestServer, and all requests
         // share one partition (TestServer has no RemoteIpAddress).
         builder.UseSetting("RateLimiting:Auth:PermitLimit", "100000");
+
+        // Enable Web Push with a pair generated for this process. Generated,
+        // not checked in: a literal private key in the repo is exactly what
+        // secret scanning is meant to catch, and the tests only need the
+        // feature to read as configured. Nothing ever leaves the process —
+        // IPushSender is stubbed below.
+        builder.UseSetting("Push:PublicKey", TestVapidKeys.PublicKey);
+        builder.UseSetting("Push:PrivateKey", TestVapidKeys.PrivateKey);
+        builder.UseSetting("Push:Subject", "mailto:tests@anything.local");
 
         // Configure JWT settings for testing
         builder.UseSetting("Jwt:SecretKey", "test-secret-key-for-integration-tests-minimum-32-chars");
@@ -68,6 +79,16 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
             if (imageStorageDescriptor != null)
                 services.Remove(imageStorageDescriptor);
             services.AddScoped<IImageStorageService, NoOpImageStorageService>();
+
+            // Replace the real Web Push sender so a registered test device can
+            // never cause an outbound request to a push service. The background
+            // PushSenderHostedService still runs and still drains the queue —
+            // only the delivery is a no-op.
+            var pushSenderDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IPushSender));
+            if (pushSenderDescriptor != null)
+                services.Remove(pushSenderDescriptor);
+            services.AddScoped<IPushSender, NoOpPushSender>();
         });
     }
 
@@ -100,6 +121,39 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         db.Users.RemoveRange(db.Users.Where(u => u.Email != AdminEmail));
         await db.SaveChangesAsync();
     }
+}
+
+/// <summary>
+/// A real P-256 pair, generated once per test run. See the note in
+/// <see cref="AnythingApiFactory.ConfigureWebHost"/> for why it isn't a literal.
+/// </summary>
+internal static class TestVapidKeys
+{
+    static TestVapidKeys()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var parameters = ecdsa.ExportParameters(includePrivateParameters: true);
+
+        // Uncompressed point (0x04 || X || Y), the encoding VAPID expects.
+        var publicKey = new byte[65];
+        publicKey[0] = 0x04;
+        parameters.Q.X!.CopyTo(publicKey, 1);
+        parameters.Q.Y!.CopyTo(publicKey, 33);
+
+        PublicKey = Base64Url(publicKey);
+        PrivateKey = Base64Url(parameters.D!);
+    }
+
+    public static string PublicKey { get; }
+    public static string PrivateKey { get; }
+
+    private static string Base64Url(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+}
+
+file class NoOpPushSender : IPushSender
+{
+    public Task Send(PushDispatch dispatch, CancellationToken ct = default) => Task.CompletedTask;
 }
 
 file class NoOpImageStorageService : IImageStorageService

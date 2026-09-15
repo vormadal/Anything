@@ -56,6 +56,27 @@ Recipients are always intersected with the household's members, including when
 `RecipientUserIds` is given — a caller can't address someone outside the
 household.
 
+## Web Push
+
+`NotificationDispatcher` enqueues a `PushDispatch` after it has saved and
+notified — queued, never awaited against a push service, so adding a household
+member doesn't pay third-party HTTP latency. The chain is
+`IPushDispatchQueue` (in-memory bounded channel) → `PushSenderHostedService`
+(in the API, since that's the host) → `IPushSender`, resolved in a fresh scope
+per item so no repository is held for the process lifetime.
+
+- **Push narrows in-app, it never bypasses it.** `EnqueuePush` runs on the
+  recipients that already survived the `InAppEnabled` filter, so a user with
+  in-app off gets no push even with push on — there is no notification to push.
+- **`VapidCredentials` is the single "is push on?" answer.** It is a singleton
+  (`VapidAuthentication` caches its signed token and is disposable) and reports
+  itself unconfigured when any of the three settings is missing. The DI graph is
+  identical either way: services are registered unconditionally and short-circuit
+  on that flag, rather than the container shape depending on configuration.
+- **Never widen `WebPushSender.IsGone`.** See CLAUDE.md — only 404/410 are
+  permanent, and anything else deleting a device silently unsubscribes real
+  browsers.
+
 ## Security & Performance Rules
 
 - **Scope inside the query, never fetch-then-check.** Every handler touching household data filters `HouseholdId == householdContext.HouseholdId && DeletedOn == null` in the EF query itself (any Inventory handler is the model). An id from the route is untrusted until that filter has run — this is the app's *only* tenant-isolation mechanism.

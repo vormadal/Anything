@@ -11,7 +11,8 @@ public class NotificationDispatcher(
     IRepository<HouseholdMember> memberRepository,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
-    IRealtimeNotifier realtimeNotifier) : INotificationDispatcher
+    IRealtimeNotifier realtimeNotifier,
+    IPushDispatchQueue pushQueue) : INotificationDispatcher
 {
     public async Task<int> Dispatch(NotificationDispatch dispatch, CancellationToken ct = default)
     {
@@ -51,6 +52,8 @@ public class NotificationDispatcher(
         // travels to another.
         await realtimeNotifier.Notify(SyncEvent.Notifications(), dispatch.HouseholdId, ct);
 
+        await EnqueuePush(dispatch, recipients, ct);
+
         return recipients.Count;
     }
 
@@ -74,6 +77,39 @@ public class NotificationDispatcher(
             .Where(id => id != dispatch.ExcludeUserId)
             .Distinct()
             .ToList();
+    }
+
+    /// <summary>
+    /// Queues the same notification as a device nudge for the recipients who
+    /// want one. Push is a strict narrowing of in-app: these recipients already
+    /// survived the InAppEnabled filter, so a row exists for each — PushEnabled
+    /// only decides whether their devices also light up. Queued, never awaited
+    /// against the push service, so this adds nothing to the caller's latency.
+    /// </summary>
+    private async Task EnqueuePush(NotificationDispatch dispatch, List<int> recipients, CancellationToken ct)
+    {
+        var pushOptedOut = await preferenceRepository.Query().AsNoTracking()
+            .Where(p => p.HouseholdId == dispatch.HouseholdId
+                        && p.Category == dispatch.Category
+                        && !p.PushEnabled
+                        && recipients.Contains(p.UserId))
+            .Select(p => p.UserId)
+            .ToListAsync(ct);
+
+        var pushRecipients = pushOptedOut.Count == 0
+            ? recipients
+            : recipients.Except(pushOptedOut).ToList();
+
+        if (pushRecipients.Count == 0)
+            return;
+
+        pushQueue.TryEnqueue(new PushDispatch
+        {
+            UserIds = pushRecipients,
+            Title = dispatch.Title,
+            Body = dispatch.Body,
+            LinkUrl = dispatch.LinkUrl
+        });
     }
 
     private async Task<List<int>> RemoveOptedOut(NotificationDispatch dispatch, List<int> recipients, CancellationToken ct)

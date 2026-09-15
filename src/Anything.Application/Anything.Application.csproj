@@ -17,6 +17,10 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <!-- Web Push (VAPID + payload encryption). Its net6.0 target pulls only
+         Lib.Net.Http.EncryptedContentEncoding and uses BCL crypto — unlike the
+         older WebPush package, which drags in BouncyCastle and Newtonsoft. -->
+    <PackageReference Include="Lib.Net.Http.WebPush" Version="3.3.1" />
     <PackageReference Include="Scrutor" Version="7.0.0" />
   </ItemGroup>
 

@@ -26,9 +26,14 @@ public class GetNotificationPreferencesHandler(
         // Stored rows for categories no longer in NotificationCategories.All are
         // ignored rather than returned — a retired category isn't a setting.
         return NotificationCategories.All
-            .Select(category => new NotificationPreferenceResponse(
-                category,
-                stored.FirstOrDefault(p => p.Category == category)?.InAppEnabled ?? true))
+            .Select(category =>
+            {
+                var preference = stored.FirstOrDefault(p => p.Category == category);
+                return new NotificationPreferenceResponse(
+                    category,
+                    preference?.InAppEnabled ?? true,
+                    preference?.PushEnabled ?? true);
+            })
             .ToList();
     }
 }

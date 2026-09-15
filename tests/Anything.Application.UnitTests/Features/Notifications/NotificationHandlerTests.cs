@@ -309,6 +309,27 @@ public class GetNotificationPreferencesHandlerTests : NotificationHandlerTestBas
 
         Assert.Equal(NotificationCategories.All, result.Select(p => p.Category).ToList());
         Assert.All(result, p => Assert.True(p.InAppEnabled));
+        Assert.All(result, p => Assert.True(p.PushEnabled));
+    }
+
+    [Fact]
+    public async Task Handle_ReportsTheTwoSwitchesIndependently()
+    {
+        SeedPreferences(new NotificationPreference
+        {
+            HouseholdId = HouseholdId,
+            UserId = UserId,
+            Category = NotificationCategories.Announcement,
+            InAppEnabled = true,
+            PushEnabled = false
+        });
+
+        var result = await CreateHandler().Handle(
+            new GetNotificationPreferencesQuery(UserId), TestContext.Current.CancellationToken);
+
+        var announcement = result.Single(p => p.Category == NotificationCategories.Announcement);
+        Assert.True(announcement.InAppEnabled);
+        Assert.False(announcement.PushEnabled);
     }
 
     [Fact]
@@ -402,6 +423,89 @@ public class UpdateNotificationPreferencesHandlerTests : NotificationHandlerTest
             TestContext.Current.CancellationToken);
 
         Assert.Null(existing.ModifiedOn);
+    }
+
+    [Fact]
+    public async Task Handle_TurningPushOffLeavesAStoredInAppChoiceAlone()
+    {
+        // The reason both switches are nullable: a client flipping one must not
+        // silently reset the other to its default.
+        var existing = new NotificationPreference
+        {
+            Id = 1,
+            HouseholdId = HouseholdId,
+            UserId = UserId,
+            Category = NotificationCategories.Announcement,
+            InAppEnabled = false,
+            PushEnabled = true
+        };
+        SeedPreferences(existing);
+
+        await CreateHandler().Handle(
+            new UpdateNotificationPreferencesCommand(UserId,
+                [new NotificationPreferenceItem(NotificationCategories.Announcement, PushEnabled: false)]),
+            TestContext.Current.CancellationToken);
+
+        Assert.False(existing.InAppEnabled);
+        Assert.False(existing.PushEnabled);
+    }
+
+    [Fact]
+    public async Task Handle_TurningInAppOffLeavesAStoredPushChoiceAlone()
+    {
+        var existing = new NotificationPreference
+        {
+            Id = 1,
+            HouseholdId = HouseholdId,
+            UserId = UserId,
+            Category = NotificationCategories.Announcement,
+            InAppEnabled = true,
+            PushEnabled = false
+        };
+        SeedPreferences(existing);
+
+        await CreateHandler().Handle(
+            new UpdateNotificationPreferencesCommand(UserId,
+                [new NotificationPreferenceItem(NotificationCategories.Announcement, InAppEnabled: false)]),
+            TestContext.Current.CancellationToken);
+
+        Assert.False(existing.InAppEnabled);
+        Assert.False(existing.PushEnabled);
+    }
+
+    [Fact]
+    public async Task Handle_InsertingWithOnlyOneSwitchLeavesTheOtherAtItsDefault()
+    {
+        await CreateHandler().Handle(
+            new UpdateNotificationPreferencesCommand(UserId,
+                [new NotificationPreferenceItem(NotificationCategories.Announcement, PushEnabled: false)]),
+            TestContext.Current.CancellationToken);
+
+        PreferenceRepo.Received(1).Add(Arg.Is<NotificationPreference>(p =>
+            p.InAppEnabled && !p.PushEnabled));
+    }
+
+    [Fact]
+    public async Task Handle_WithNeitherSwitchSupplied_ChangesNothing()
+    {
+        var existing = new NotificationPreference
+        {
+            Id = 1,
+            HouseholdId = HouseholdId,
+            UserId = UserId,
+            Category = NotificationCategories.Announcement,
+            InAppEnabled = false,
+            PushEnabled = false
+        };
+        SeedPreferences(existing);
+
+        await CreateHandler().Handle(
+            new UpdateNotificationPreferencesCommand(UserId,
+                [new NotificationPreferenceItem(NotificationCategories.Announcement)]),
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(existing.ModifiedOn);
+        PreferenceRepo.DidNotReceiveWithAnyArgs().Add(default!);
     }
 
     [Fact]

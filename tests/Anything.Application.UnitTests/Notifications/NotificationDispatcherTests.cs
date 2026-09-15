@@ -17,6 +17,7 @@ public class NotificationDispatcherTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IPushDispatchQueue _pushQueue = Substitute.For<IPushDispatchQueue>();
     private readonly List<Notification> _written = [];
 
     private static readonly DateTime Now = new(2026, 9, 15, 10, 0, 0, DateTimeKind.Utc);
@@ -31,7 +32,7 @@ public class NotificationDispatcherTests
     }
 
     private NotificationDispatcher CreateDispatcher() =>
-        new(_notificationRepo, _preferenceRepo, _memberRepo, _unitOfWork, _timeProvider, _realtimeNotifier);
+        new(_notificationRepo, _preferenceRepo, _memberRepo, _unitOfWork, _timeProvider, _realtimeNotifier, _pushQueue);
 
     private void SeedMembers(params int[] userIds) =>
         _memberRepo.Query().Returns(userIds
@@ -214,6 +215,88 @@ public class NotificationDispatcherTests
             Arg.Any<CancellationToken>());
     }
 
+    // --- push fan-out ---
+
+    [Fact]
+    public async Task Dispatch_QueuesAPushForEveryRecipientThatGotANotification()
+    {
+        await CreateDispatcher().Dispatch(Dispatch(), TestContext.Current.CancellationToken);
+
+        _pushQueue.Received(1).TryEnqueue(Arg.Is<PushDispatch>(p =>
+            p.Title == "Bin day moved"
+            && p.Body == "Thursday this week."
+            && p.UserIds.OrderBy(id => id).SequenceEqual(new[] { 1, 2, 3 })));
+    }
+
+    [Fact]
+    public async Task Dispatch_SkipsPushForRecipientsWhoTurnedPushOff()
+    {
+        SeedPreferences(new NotificationPreference
+        {
+            HouseholdId = 7,
+            UserId = 2,
+            Category = NotificationCategories.Announcement,
+            InAppEnabled = true,
+            PushEnabled = false
+        });
+
+        var created = await CreateDispatcher().Dispatch(Dispatch(), TestContext.Current.CancellationToken);
+
+        // The notification itself is unaffected — push is a narrowing, not a veto.
+        Assert.Equal(3, created);
+        _pushQueue.Received(1).TryEnqueue(Arg.Is<PushDispatch>(p =>
+            p.UserIds.OrderBy(id => id).SequenceEqual(new[] { 1, 3 })));
+    }
+
+    [Fact]
+    public async Task Dispatch_QueuesNoPushWhenEveryRecipientTurnedPushOff()
+    {
+        SeedPreferences(
+            new NotificationPreference { HouseholdId = 7, UserId = 1, Category = NotificationCategories.Announcement, PushEnabled = false },
+            new NotificationPreference { HouseholdId = 7, UserId = 2, Category = NotificationCategories.Announcement, PushEnabled = false },
+            new NotificationPreference { HouseholdId = 7, UserId = 3, Category = NotificationCategories.Announcement, PushEnabled = false });
+
+        await CreateDispatcher().Dispatch(Dispatch(), TestContext.Current.CancellationToken);
+
+        _pushQueue.DidNotReceiveWithAnyArgs().TryEnqueue(default!);
+    }
+
+    [Fact]
+    public async Task Dispatch_PushesOnlyToTheRecipientsWhoSurvivedTheInAppFilter()
+    {
+        // In-app off for user 2 means no row exists for them, so there is
+        // nothing to push even though their push switch is untouched.
+        SeedPreferences(new NotificationPreference
+        {
+            HouseholdId = 7,
+            UserId = 2,
+            Category = NotificationCategories.Announcement,
+            InAppEnabled = false,
+            PushEnabled = true
+        });
+
+        await CreateDispatcher().Dispatch(Dispatch(), TestContext.Current.CancellationToken);
+
+        _pushQueue.Received(1).TryEnqueue(Arg.Is<PushDispatch>(p =>
+            p.UserIds.OrderBy(id => id).SequenceEqual(new[] { 1, 3 })));
+    }
+
+    [Fact]
+    public async Task Dispatch_CarriesTheLinkThroughToThePush()
+    {
+        var dispatch = new NotificationDispatch
+        {
+            HouseholdId = 7,
+            Category = NotificationCategories.HouseholdMember,
+            Title = "Sam joined the household",
+            LinkUrl = "/households/7"
+        };
+
+        await CreateDispatcher().Dispatch(dispatch, TestContext.Current.CancellationToken);
+
+        _pushQueue.Received(1).TryEnqueue(Arg.Is<PushDispatch>(p => p.LinkUrl == "/households/7"));
+    }
+
     [Fact]
     public async Task Dispatch_WhenEveryRecipientIsFilteredOut_WritesNothingAndStaysSilent()
     {
@@ -228,5 +311,6 @@ public class NotificationDispatcherTests
         Assert.Empty(CapturedNotifications());
         await _unitOfWork.DidNotReceiveWithAnyArgs().SaveChanges(default);
         await _realtimeNotifier.DidNotReceiveWithAnyArgs().Notify(default!, default, default);
+        _pushQueue.DidNotReceiveWithAnyArgs().TryEnqueue(default!);
     }
 }
