@@ -1352,6 +1352,15 @@ export function createPendingInviteResponseFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {PushConfigResponse}
+ */
+// @ts-ignore
+export function createPushConfigResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoPushConfigResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {RebuildSearchIndexResponse}
  */
 // @ts-ignore
@@ -1571,6 +1580,15 @@ export function createRefreshTokenResponseFromDiscriminatorValue(parseNode: Pars
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RegisterPushDeviceRequest}
+ */
+// @ts-ignore
+export function createRegisterPushDeviceRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRegisterPushDeviceRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {RegisterRequest}
  */
 // @ts-ignore
@@ -1585,6 +1603,15 @@ export function createRegisterRequestFromDiscriminatorValue(parseNode: ParseNode
 // @ts-ignore
 export function createReimportRecipeRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoReimportRecipeRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RemovePushDeviceRequest}
+ */
+// @ts-ignore
+export function createRemovePushDeviceRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRemovePushDeviceRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -3321,6 +3348,7 @@ export function deserializeIntoNotificationPreferenceItem(notificationPreference
     return {
         "category": n => { notificationPreferenceItem.category = n.getStringValue(); },
         "inAppEnabled": n => { notificationPreferenceItem.inAppEnabled = n.getBooleanValue(); },
+        "pushEnabled": n => { notificationPreferenceItem.pushEnabled = n.getBooleanValue(); },
     }
 }
 /**
@@ -3333,6 +3361,7 @@ export function deserializeIntoNotificationPreferenceResponse(notificationPrefer
     return {
         "category": n => { notificationPreferenceResponse.category = n.getStringValue(); },
         "inAppEnabled": n => { notificationPreferenceResponse.inAppEnabled = n.getBooleanValue(); },
+        "pushEnabled": n => { notificationPreferenceResponse.pushEnabled = n.getBooleanValue(); },
     }
 }
 /**
@@ -3431,6 +3460,18 @@ export function deserializeIntoPendingInviteResponse(pendingInviteResponse: Part
         "id": n => { pendingInviteResponse.id = n.getNumberValue(); },
         "inviteUrl": n => { pendingInviteResponse.inviteUrl = n.getStringValue(); },
         "token": n => { pendingInviteResponse.token = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param PushConfigResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoPushConfigResponse(pushConfigResponse: Partial<PushConfigResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "enabled": n => { pushConfigResponse.enabled = n.getBooleanValue(); },
+        "publicKey": n => { pushConfigResponse.publicKey = n.getStringValue(); },
     }
 }
 /**
@@ -3669,6 +3710,20 @@ export function deserializeIntoRefreshTokenResponse(refreshTokenResponse: Partia
 }
 /**
  * The deserialization information for the current model
+ * @param RegisterPushDeviceRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRegisterPushDeviceRequest(registerPushDeviceRequest: Partial<RegisterPushDeviceRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "authKey": n => { registerPushDeviceRequest.authKey = n.getStringValue(); },
+        "endpoint": n => { registerPushDeviceRequest.endpoint = n.getStringValue(); },
+        "p256dhKey": n => { registerPushDeviceRequest.p256dhKey = n.getStringValue(); },
+        "userAgent": n => { registerPushDeviceRequest.userAgent = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param RegisterRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -3693,6 +3748,17 @@ export function deserializeIntoReimportRecipeRequest(reimportRecipeRequest: Part
         "importIngredients": n => { reimportRecipeRequest.importIngredients = n.getBooleanValue(); },
         "importName": n => { reimportRecipeRequest.importName = n.getBooleanValue(); },
         "importSteps": n => { reimportRecipeRequest.importSteps = n.getBooleanValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RemovePushDeviceRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRemovePushDeviceRequest(removePushDeviceRequest: Partial<RemovePushDeviceRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "endpoint": n => { removePushDeviceRequest.endpoint = n.getStringValue(); },
     }
 }
 /**
@@ -5301,6 +5367,10 @@ export interface NotificationPreferenceItem extends Parsable {
      * The inAppEnabled property
      */
     inAppEnabled?: boolean | null;
+    /**
+     * The pushEnabled property
+     */
+    pushEnabled?: boolean | null;
 }
 export interface NotificationPreferenceResponse extends Parsable {
     /**
@@ -5311,6 +5381,10 @@ export interface NotificationPreferenceResponse extends Parsable {
      * The inAppEnabled property
      */
     inAppEnabled?: boolean | null;
+    /**
+     * The pushEnabled property
+     */
+    pushEnabled?: boolean | null;
 }
 export interface NotificationResponse extends Parsable {
     /**
@@ -5437,6 +5511,16 @@ export interface PendingInviteResponse extends Parsable {
      * The token property
      */
     token?: string | null;
+}
+export interface PushConfigResponse extends Parsable {
+    /**
+     * The enabled property
+     */
+    enabled?: boolean | null;
+    /**
+     * The publicKey property
+     */
+    publicKey?: string | null;
 }
 export interface RebuildSearchIndexResponse extends Parsable {
     /**
@@ -5804,6 +5888,24 @@ export interface RefreshTokenResponse extends Parsable {
      */
     refreshToken?: string | null;
 }
+export interface RegisterPushDeviceRequest extends Parsable {
+    /**
+     * The authKey property
+     */
+    authKey?: string | null;
+    /**
+     * The endpoint property
+     */
+    endpoint?: string | null;
+    /**
+     * The p256dhKey property
+     */
+    p256dhKey?: string | null;
+    /**
+     * The userAgent property
+     */
+    userAgent?: string | null;
+}
 export interface RegisterRequest extends Parsable {
     /**
      * The email property
@@ -5839,6 +5941,12 @@ export interface ReimportRecipeRequest extends Parsable {
      * The importSteps property
      */
     importSteps?: boolean | null;
+}
+export interface RemovePushDeviceRequest extends Parsable {
+    /**
+     * The endpoint property
+     */
+    endpoint?: string | null;
 }
 export interface RenameRecipeTagRequest extends Parsable {
     /**
@@ -7116,6 +7224,7 @@ export function serializeNotificationPreferenceItem(writer: SerializationWriter,
     if (!notificationPreferenceItem || isSerializingDerivedType) { return; }
     writer.writeStringValue("category", notificationPreferenceItem.category);
     writer.writeBooleanValue("inAppEnabled", notificationPreferenceItem.inAppEnabled);
+    writer.writeBooleanValue("pushEnabled", notificationPreferenceItem.pushEnabled);
 }
 /**
  * Serializes information the current object
@@ -7128,6 +7237,7 @@ export function serializeNotificationPreferenceResponse(writer: SerializationWri
     if (!notificationPreferenceResponse || isSerializingDerivedType) { return; }
     writer.writeStringValue("category", notificationPreferenceResponse.category);
     writer.writeBooleanValue("inAppEnabled", notificationPreferenceResponse.inAppEnabled);
+    writer.writeBooleanValue("pushEnabled", notificationPreferenceResponse.pushEnabled);
 }
 /**
  * Serializes information the current object
@@ -7226,6 +7336,18 @@ export function serializePendingInviteResponse(writer: SerializationWriter, pend
     writer.writeNumberValue("id", pendingInviteResponse.id);
     writer.writeStringValue("inviteUrl", pendingInviteResponse.inviteUrl);
     writer.writeStringValue("token", pendingInviteResponse.token);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param PushConfigResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializePushConfigResponse(writer: SerializationWriter, pushConfigResponse: Partial<PushConfigResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!pushConfigResponse || isSerializingDerivedType) { return; }
+    writer.writeBooleanValue("enabled", pushConfigResponse.enabled);
+    writer.writeStringValue("publicKey", pushConfigResponse.publicKey);
 }
 /**
  * Serializes information the current object
@@ -7464,6 +7586,20 @@ export function serializeRefreshTokenResponse(writer: SerializationWriter, refre
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RegisterPushDeviceRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRegisterPushDeviceRequest(writer: SerializationWriter, registerPushDeviceRequest: Partial<RegisterPushDeviceRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!registerPushDeviceRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("authKey", registerPushDeviceRequest.authKey);
+    writer.writeStringValue("endpoint", registerPushDeviceRequest.endpoint);
+    writer.writeStringValue("p256dhKey", registerPushDeviceRequest.p256dhKey);
+    writer.writeStringValue("userAgent", registerPushDeviceRequest.userAgent);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param RegisterRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -7488,6 +7624,17 @@ export function serializeReimportRecipeRequest(writer: SerializationWriter, reim
     writer.writeBooleanValue("importIngredients", reimportRecipeRequest.importIngredients);
     writer.writeBooleanValue("importName", reimportRecipeRequest.importName);
     writer.writeBooleanValue("importSteps", reimportRecipeRequest.importSteps);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RemovePushDeviceRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRemovePushDeviceRequest(writer: SerializationWriter, removePushDeviceRequest: Partial<RemovePushDeviceRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!removePushDeviceRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("endpoint", removePushDeviceRequest.endpoint);
 }
 /**
  * Serializes information the current object
