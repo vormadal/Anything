@@ -24,3 +24,19 @@ End-to-end integration tests that spin up the real API against a containerised P
 - Shopping-list recommendations are list-scoped via a nullable `ShoppingListId` (`null` = shared; scoping/seeding semantics in `src/Anything.Application/agent.md`). `ShoppingListRecommendationEndpointTests` covers the list/shared/uncategorized/visibility filters on `GET /all`, per-list vs shared seeding, and `DELETE /by-list/{id}` (manager gating + foreign-list rejection).
 - **Creating a non-admin/non-manager test user**: invite (`POST /api/auth/invites`, optionally with `householdId` to auto-add them as a `Member`) → register with the invite token → log in to get their own access token. See `ShoppingListRecommendationEndpointTests.GetUserHttpClientAsync` (no household — for global-role checks) and `SearchEndpointTests.CreateHouseholdMemberClientAsync` (with `householdId` — for `RequireHouseholdManager()` checks, so the 403 is confirmed to come from the manager gate and not from `HouseholdMiddleware` rejecting a non-member). Registration does not return a token — a separate login call is required.
 - **Real-database verification for Postgres-specific query features** (full-text search, trigram similarity, any `EF.Property`/computed-column/raw-SQL translation): a translation mistake only surfaces when the query actually executes, so it can't be caught by a unit test mocking `IRepository<T>`, nor by `dotnet build`. `SearchEndpointTests.cs` is the precedent — it verifies substring matching, typo-tolerant (pg_trgm) matching, soft-delete exclusion, and household scoping against the real Testcontainers Postgres, specifically because the tsvector generated-column + `EF.Property<NpgsqlTsVector>` query in `Anything.Database/Services/SearchIndexService.cs` couldn't be exercised any other way in a web session with no local `dotnet`.
+
+## Web Push in the test host
+
+`AnythingApiFactory` configures a **real, freshly generated** P-256 VAPID pair
+(`TestVapidKeys`) rather than a literal — a hard-coded private key in the repo is
+exactly what secret scanning exists to catch, and `VapidAuthentication` parses
+its keys on construction, so a placeholder string would throw before any test
+ran. It also replaces `IPushSender` with a no-op, the same way
+`IImageStorageService` is stubbed: a registered test device must never cause an
+outbound request to a push service. `PushSenderHostedService` still runs and
+still drains the queue — only the delivery is inert.
+
+Consequence for new tests: push reads as **configured** here, so
+`GET /api/notifications/push/config` returns `enabled: true`. The unconfigured
+path (503 on register, `enabled: false`) is covered by the Application unit
+tests instead.

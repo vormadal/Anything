@@ -46,6 +46,16 @@ Infrastructure layer. EF Core implementation of the repository/UoW pattern; owns
 - **Real-Postgres integration tests are the only real verification for this feature.** `EF.Property<NpgsqlTsVector>(...).Matches(...)` and the pg_trgm fallback can't be checked by a unit test (which mocks `IRepository<T>`, never touching a real query translation) or by `dotnet build` — a translation mistake only throws when the query executes against Postgres. `tests/Anything.API.IntegrationTests/SearchEndpointTests.cs` exercises substring matching, typo tolerance, soft-delete exclusion, and household scoping against the real Testcontainers Postgres instance.
 - **`InventoryItem`'s custom fields (`InventoryItemField`) and attachments (`InventoryAttachment`) are deliberately not `ISearchable`.** They live in their own tables, separate from the `InventoryItem` row the interceptor watches, so a custom field's label/value (e.g. "Serial number: ABC123") is invisible to `/api/search` even though `InventoryItem.SearchContent` itself does include the item's own `Brand`/`Model`/`SerialNumber`/`Notes` columns (truncated via `SearchDocumentLimits.Truncate` — same overflow risk as `Note.SearchContent`, since brand+model+serial+notes combined has no single bound). If custom fields ever need to be searchable, they can't just implement `ISearchable` themselves (a `SearchDocument` per field would be the wrong granularity) — the fix would be projecting the item's own fields into `InventoryItem.SearchContent`, which requires a query at write time the interceptor doesn't currently do (today `SearchContent` only reads properties already loaded on the entity in memory).
 
+## PushDevice endpoint uniqueness
+
+`PushDevice.Endpoint` carries a **globally** unique index — not unique per user.
+That is what makes registration an upsert: browsers hand back the same endpoint
+on most page loads, so an insert-only path would trip the index constantly. It
+also forces the right behaviour when a browser changes hands — the row moves to
+the new user rather than leaving the previous account subscribed to someone
+else's device. `RegisterPushDeviceHandler` therefore matches on endpoint alone,
+ignoring both `UserId` and `DeletedOn` (re-subscribing revives a pruned row).
+
 ## Notification dedupe index
 
 `Notification` carries a unique index on `(UserId, Category, SourceKey)` that

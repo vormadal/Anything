@@ -368,13 +368,184 @@ public class NotificationEndpointTests : IntegrationTestBase
         Assert.True(result.Single(p => p.Category == MemberCategory).InAppEnabled);
     }
 
+    // --- push ---
+
+    private const string PushDevicesPath = "/api/notifications/push/devices";
+    private const string TestEndpoint = "https://push.example.com/device-abc";
+
+    private static object PushDevice(string endpoint = TestEndpoint) => new
+    {
+        endpoint,
+        p256dhKey = "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+        authKey = "tBHItJI5svbpez7KI4CCXg",
+        userAgent = "Integration tests",
+    };
+
+    [Fact]
+    public async Task GetPushConfig_ReturnsTheServersPublicKey()
+    {
+        var admin = await AdminClient();
+
+        var response = await admin.GetAsync("/api/notifications/push/config", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var config = await response.Content.ReadFromJsonAsync<PushConfigDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.True(config!.Enabled);
+        Assert.False(string.IsNullOrWhiteSpace(config.PublicKey));
+    }
+
+    [Fact]
+    public async Task GetPushConfig_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync("/api/notifications/push/config", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RegisterPushDevice_ReturnsNoContent()
+    {
+        var admin = await AdminClient();
+
+        var response = await admin.PostAsJsonAsync(PushDevicesPath, PushDevice(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RegisterPushDevice_IsAnUpsert_SoReSubscribingTheSameBrowserDoesNotConflict()
+    {
+        // Browsers hand back the same endpoint on most page loads. If this were
+        // an insert it would trip the unique index and answer 500.
+        var admin = await AdminClient();
+
+        await admin.PostAsJsonAsync(PushDevicesPath, PushDevice(), TestContext.Current.CancellationToken);
+        var response = await admin.PostAsJsonAsync(PushDevicesPath, PushDevice(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RegisterPushDevice_WithoutAnEndpoint_Returns400()
+    {
+        var admin = await AdminClient();
+
+        var response = await admin.PostAsJsonAsync(PushDevicesPath,
+            new { endpoint = "", p256dhKey = "k", authKey = "a" }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemovePushDevice_IsIdempotent()
+    {
+        var admin = await AdminClient();
+        await admin.PostAsJsonAsync(PushDevicesPath, PushDevice(), TestContext.Current.CancellationToken);
+
+        var first = await admin.PostAsJsonAsync($"{PushDevicesPath}/remove",
+            new { endpoint = TestEndpoint }, TestContext.Current.CancellationToken);
+        // Removing again is the state the caller wanted, not an error.
+        var second = await admin.PostAsJsonAsync($"{PushDevicesPath}/remove",
+            new { endpoint = TestEndpoint }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, second.StatusCode);
+    }
+
+    [Fact]
+    public async Task RegisterPushDevice_RequiresAuthentication()
+    {
+        var response = await HttpClient.PostAsJsonAsync(PushDevicesPath, PushDevice(), TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // --- push preferences ---
+
+    [Fact]
+    public async Task GetPreferences_DefaultsPushOnAlongsideInApp()
+    {
+        var admin = await AdminClient();
+
+        var response = await admin.GetAsync(PreferencesPath, TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<List<PreferenceDto>>(JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.All(result!, p => Assert.True(p.PushEnabled));
+    }
+
+    [Fact]
+    public async Task UpdatePreferences_TurningPushOffLeavesInAppAlone()
+    {
+        // The partial-update guarantee: a client sending one switch must not
+        // reset the other to its default.
+        var admin = await AdminClient();
+
+        await admin.PutAsJsonAsync(PreferencesPath, new
+        {
+            preferences = new[] { new { category = AnnouncementCategory, inAppEnabled = false } }
+        }, TestContext.Current.CancellationToken);
+
+        await admin.PutAsJsonAsync(PreferencesPath, new
+        {
+            preferences = new[] { new { category = AnnouncementCategory, pushEnabled = false } }
+        }, TestContext.Current.CancellationToken);
+
+        var response = await admin.GetAsync(PreferencesPath, TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<List<PreferenceDto>>(JsonOptions, TestContext.Current.CancellationToken);
+        var announcement = result!.Single(p => p.Category == AnnouncementCategory);
+
+        Assert.False(announcement.InAppEnabled);
+        Assert.False(announcement.PushEnabled);
+    }
+
+    [Fact]
+    public async Task UpdatePreferences_TurningInAppOffLeavesPushAlone()
+    {
+        var admin = await AdminClient();
+
+        await admin.PutAsJsonAsync(PreferencesPath, new
+        {
+            preferences = new[] { new { category = AnnouncementCategory, pushEnabled = false } }
+        }, TestContext.Current.CancellationToken);
+
+        await admin.PutAsJsonAsync(PreferencesPath, new
+        {
+            preferences = new[] { new { category = AnnouncementCategory, inAppEnabled = true } }
+        }, TestContext.Current.CancellationToken);
+
+        var response = await admin.GetAsync(PreferencesPath, TestContext.Current.CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<List<PreferenceDto>>(JsonOptions, TestContext.Current.CancellationToken);
+        var announcement = result!.Single(p => p.Category == AnnouncementCategory);
+
+        Assert.True(announcement.InAppEnabled);
+        Assert.False(announcement.PushEnabled);
+    }
+
+    [Fact]
+    public async Task PushOptOut_DoesNotStopTheInAppNotification()
+    {
+        // Push is a narrowing of in-app, never a veto on it.
+        var (_, memberClient) = await AddMember("push-off@test.com");
+        var admin = await AdminClient();
+
+        await memberClient.PutAsJsonAsync(PreferencesPath, new
+        {
+            preferences = new[] { new { category = AnnouncementCategory, pushEnabled = false } }
+        }, TestContext.Current.CancellationToken);
+
+        var sendResponse = await Send(admin, "Still arrives in the app");
+        var sent = await sendResponse.Content.ReadFromJsonAsync<SendResultDto>(JsonOptions, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, sent!.Recipients);
+        Assert.Contains(await GetNotifications(memberClient), n => n.Title == "Still arrives in the app");
+    }
+
     // --- local DTOs ---
 
     private record NotificationDto(
         int Id, string Category, string Title, string? Body, string? LinkUrl, DateTime CreatedOn, DateTime? ReadOn);
     private record UnreadCountDto(int Count);
     private record SendResultDto(int Recipients);
-    private record PreferenceDto(string Category, bool InAppEnabled);
+    private record PreferenceDto(string Category, bool InAppEnabled, bool PushEnabled);
+    private record PushConfigDto(bool Enabled, string? PublicKey);
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
     private record InviteResponse(string Token);
     private record RegisterResponse(int Id, string Email, string Name);

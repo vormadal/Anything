@@ -42,18 +42,37 @@ public class UpdateNotificationPreferencesHandler(
             var preference = existing.FirstOrDefault(p => p.Category == item.Category);
             if (preference is null)
             {
+                // A switch the caller omitted keeps the entity's default (on),
+                // so a first-ever write of one switch doesn't silently turn the
+                // other off.
                 repository.Add(new NotificationPreference
                 {
                     HouseholdId = householdContext.HouseholdId,
                     UserId = command.UserId,
                     Category = item.Category,
-                    InAppEnabled = item.InAppEnabled,
+                    InAppEnabled = item.InAppEnabled ?? true,
+                    PushEnabled = item.PushEnabled ?? true,
                     CreatedOn = now
                 });
+                continue;
             }
-            else if (preference.InAppEnabled != item.InAppEnabled)
+
+            var changed = false;
+
+            if (item.InAppEnabled is { } inApp && preference.InAppEnabled != inApp)
             {
-                preference.InAppEnabled = item.InAppEnabled;
+                preference.InAppEnabled = inApp;
+                changed = true;
+            }
+
+            if (item.PushEnabled is { } push && preference.PushEnabled != push)
+            {
+                preference.PushEnabled = push;
+                changed = true;
+            }
+
+            if (changed)
+            {
                 preference.ModifiedOn = now;
                 repository.Update(preference);
             }

@@ -8,6 +8,8 @@ import { NotificationsItemRequestBuilderNavigationMetadata, NotificationsItemReq
 // @ts-ignore
 import { PreferencesRequestBuilderRequestsMetadata, type PreferencesRequestBuilder } from './preferences/index';
 // @ts-ignore
+import { PushRequestBuilderNavigationMetadata, type PushRequestBuilder } from './push/index';
+// @ts-ignore
 import { ReadAllRequestBuilderRequestsMetadata, type ReadAllRequestBuilder } from './readAll/index';
 // @ts-ignore
 import { type UnreadCountRequestBuilder, UnreadCountRequestBuilderRequestsMetadata } from './unreadCount/index';
@@ -22,6 +24,10 @@ export interface NotificationsRequestBuilder extends BaseRequestBuilder<Notifica
      * The preferences property
      */
     get preferences(): PreferencesRequestBuilder;
+    /**
+     * The push property
+     */
+    get push(): PushRequestBuilder;
     /**
      * The readAll property
      */
@@ -86,6 +92,9 @@ export const NotificationsRequestBuilderNavigationMetadata: Record<Exclude<keyof
     },
     preferences: {
         requestsMetadata: PreferencesRequestBuilderRequestsMetadata,
+    },
+    push: {
+        navigationMetadata: PushRequestBuilderNavigationMetadata,
     },
     readAll: {
         requestsMetadata: ReadAllRequestBuilderRequestsMetadata,

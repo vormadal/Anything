@@ -102,6 +102,54 @@ public static class NotificationEndpoints
         .RequireAuthorization();
 
         MapPreferenceEndpoints(group);
+        MapPushEndpoints(group);
+    }
+
+    private static void MapPushEndpoints(RouteGroupBuilder group)
+    {
+        // Anonymous-shaped data (just the server's public key), but still
+        // authorized: there's no reason to advertise a deployment's push
+        // configuration to the world.
+        group.MapGet("/push/config", async (IMediator mediator) =>
+            Results.Ok(await mediator.Send(new GetPushConfigQuery())))
+        .WithName("GetPushConfig")
+        .Produces<PushConfigResponse>()
+        .RequireAuthorization();
+
+        group.MapPost("/push/devices", async (
+            RegisterPushDeviceRequest request,
+            ClaimsPrincipal user,
+            IMediator mediator) =>
+        {
+            if (!TryGetUserId(user, out var userId))
+                return Results.Unauthorized();
+
+            return await mediator.Send(new RegisterPushDeviceCommand(
+                userId, request.Endpoint, request.P256dhKey, request.AuthKey, request.UserAgent));
+        })
+        .WithName("RegisterPushDevice")
+        .Produces(204)
+        .Produces(503)
+        .WithParameterValidation()
+        .RequireAuthorization();
+
+        // POST rather than DELETE: the browser identifies its subscription by
+        // endpoint URL, not by an id, and a DELETE with a body is awkward for
+        // both the spec and the generated client.
+        group.MapPost("/push/devices/remove", async (
+            RemovePushDeviceRequest request,
+            ClaimsPrincipal user,
+            IMediator mediator) =>
+        {
+            if (!TryGetUserId(user, out var userId))
+                return Results.Unauthorized();
+
+            return await mediator.Send(new RemovePushDeviceCommand(userId, request.Endpoint));
+        })
+        .WithName("RemovePushDevice")
+        .Produces(204)
+        .WithParameterValidation()
+        .RequireAuthorization();
     }
 
     private static void MapPreferenceEndpoints(RouteGroupBuilder group)

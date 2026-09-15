@@ -9,6 +9,7 @@ using Anything.Core.Upload;
 using Anything.Database;
 using Anything.API;
 using Anything.API.Endpoints;
+using Anything.API.Notifications;
 using Anything.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -29,6 +30,7 @@ builder.Services.AddRepositories();
 
 // Add application services (mediator, handlers, services, configuration)
 builder.Services.AddApplication(builder.Configuration);
+builder.Services.AddHostedService<PushSenderHostedService>();
 
 // Add real-time SSE services
 builder.Services.AddRealtimeServices();

@@ -245,6 +245,49 @@ channel via `SyncEvent.Notifications()`, which is **contentless on purpose** —
 client receives it and refetches its own inbox rather than anyone's content
 crossing the connection.
 
+**Web Push** (phase 2) rides on the same dispatcher. `PushDevice` is one
+browser's subscription, keyed by its push `Endpoint` (unique) and owned by a
+**user, not a household** — the browser issues it, and switching households
+doesn't change the device. Registration is an upsert on that endpoint, including
+across users, because a browser that changes hands must move rather than collide
+with the unique index. `NotificationPreference` gained `PushEnabled` alongside
+`InAppEnabled`, and push is a strict **narrowing** of in-app: in-app off means no
+row exists, so there is nothing to push regardless of the push switch.
+
+Endpoints: `GET /api/notifications/push/config` (the VAPID public key, or
+`enabled:false`), `POST .../push/devices` (register/refresh),
+`POST .../push/devices/remove` (POST, not DELETE — the browser identifies its
+subscription by endpoint URL, not by a row id, and a DELETE with a body is
+awkward for Kiota).
+
+Three things worth knowing before touching it:
+
+- **Push is opt-in per deployment and must stay that way.** `PushSettings` has no
+  `[Required]`, no `ValidateOnStart` and no checked-in default; an instance with
+  no `Push:` section starts and behaves exactly as before, with
+  `VapidCredentials.IsConfigured` false and every caller short-circuiting on it.
+  Registering a device against such a server answers **503** rather than storing
+  something nothing can ever send to. Generate keys with
+  `npx web-push generate-vapid-keys`; the private key belongs in the
+  environment. Rotating the pair invalidates every subscription — clients
+  re-subscribe on next load and stale rows are pruned on their next 404.
+- **Delivery is deliberately best-effort and never awaited by a request.**
+  `IPushDispatchQueue` is an in-memory bounded channel (drop-oldest) drained by
+  `PushSenderHostedService`; anything still queued at shutdown is dropped. That
+  is acceptable *because* the notification itself is already committed and
+  visible in the app — push is only the nudge. Don't "fix" this with a retry
+  table without deciding what a day-old duplicate nudge is worth.
+- **Only 404 and 410 delete a device.** They are the spec's permanent failures.
+  Pruning on a transient 500 or a rate limit would silently unsubscribe real
+  browsers, which is why `WebPushSender.IsGone` is `internal` and directly
+  unit-tested — the surrounding send path needs real VAPID crypto and a live
+  push service, so that decision is the part worth pinning down in isolation.
+
+The library is `Lib.Net.Http.WebPush` (its net6.0 target pulls only
+`Lib.Net.Http.EncryptedContentEncoding` and uses BCL crypto, unlike the older
+`WebPush` package which drags in BouncyCastle and Newtonsoft). It exports its own
+`PushSubscription` type, which is why the entity is called `PushDevice`.
+
 Frontend: `useNotifications.ts` (inbox, badge, preferences — the badge is its
 own query key because `NotificationBell` renders in the global header on every
 page), `/notifications` and `/notifications/settings`. Because the bell is
