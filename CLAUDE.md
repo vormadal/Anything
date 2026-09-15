@@ -218,6 +218,33 @@ network mode, so offline an embed shows persisted items if the list was opened
 before and a fallback message if it wasn't. No backend change was needed for any
 of this: `NoteContent.ExtractPlainText` already flattens any node's `attrs.label`.
 
+Notifications (`/api/notifications`) — a per-recipient inbox. Fan-out happens at
+write time (one `Notification` row per recipient), so reading an inbox is one
+indexed query and marking read never touches anyone else's copy. Everything that
+creates a notification goes through `INotificationDispatcher`
+(`src/Anything.Application/Notifications/`) — see that layer's `agent.md` for why
+it commits on its own and must be called *after* the calling handler saves.
+Endpoints: `GET /` (`?unreadOnly=`/`?limit=`, hard-capped at
+`GetNotificationsHandler.MaxResults`), `GET /unread-count` (separate so the
+header badge doesn't pull bodies), `POST /` (household-manager announcement),
+`PUT /{id}/read`, `PUT /read-all`, `DELETE /{id}` (soft delete), plus
+`GET`/`PUT /preferences`.
+
+Two deliberate constraints: `LinkUrl` is only ever set server-side (a
+caller-supplied link is an open-redirect surface, so `SendNotificationRequest`
+has no link field), and `POST /` is fixed to the `announcement` category so a
+send can't route around a recipient's opt-out for a different one. Preferences
+are **opt-out** — an absent row means enabled, so adding a key to
+`NotificationCategories.All` reaches existing users with no backfill, exactly
+like `HomeCardKeys.All` (and, exactly like it, `NotificationEndpointTests`
+asserts the full default list and must be updated in the same change).
+
+Delivery is in-app only today; the realtime nudge reuses the existing SSE
+channel via `SyncEvent.Notifications()`, which is **contentless on purpose** —
+`SseConnectionManager` is household-scoped, not per-user, so every member's
+client receives it and refetches its own inbox rather than anyone's content
+crossing the connection.
+
 Bills (`/api/bills`) — household-scoped subscriptions/expenses (`Bill`), each optionally
 tracking `BillPriceHistory` (price over time, `EffectiveDate`/optional `EndDate` ranges,
 overlap-validated with a 409 on conflict) and `BillAttachment`s (receipts/contracts, the

@@ -1,3 +1,4 @@
+using Anything.Application.Notifications;
 using Anything.Core.Constants;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
@@ -14,7 +15,8 @@ public class AddHouseholdMemberHandler(
     IRepository<HouseholdMember> memberRepository,
     IRepository<User> userRepository,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider) : IRequestHandler<AddHouseholdMemberCommand, IResult>
+    TimeProvider timeProvider,
+    INotificationDispatcher notificationDispatcher) : IRequestHandler<AddHouseholdMemberCommand, IResult>
 {
     private static readonly HashSet<string> AllowedRoles =
     [
@@ -46,11 +48,11 @@ public class AddHouseholdMemberHandler(
         if (command.Role != HouseholdRoles.Member && requestingMember!.Role != HouseholdRoles.Owner)
             return Results.Forbid();
 
-        var targetUser = await userRepository.Query()
+        var targetUser = await userRepository.Query().AsNoTracking()
             .Where(u => u.Id == command.TargetUserId && u.DeletedOn == null)
-            .AnyAsync(ct);
+            .FirstOrDefaultAsync(ct);
 
-        if (!targetUser)
+        if (targetUser is null)
             return Results.BadRequest("User not found.");
 
         var existingMembership = await memberRepository.Query()
@@ -69,6 +71,23 @@ public class AddHouseholdMemberHandler(
         };
         memberRepository.Add(member);
         await unitOfWork.SaveChanges(ct);
+
+        // After the save, never before: failing to announce the new member must
+        // not undo adding them. The new member themselves is excluded — they
+        // know they joined; it's the existing members who don't.
+        //
+        // No SourceKey: this fires from one deliberate user action, never from a
+        // sweep that could repeat, and keying it would silently swallow the
+        // notification if someone is removed and later added back.
+        await notificationDispatcher.Dispatch(new NotificationDispatch
+        {
+            HouseholdId = command.HouseholdId,
+            Category = NotificationCategories.HouseholdMember,
+            Title = $"{targetUser.Name} joined the household",
+            LinkUrl = $"/households/{command.HouseholdId}",
+            CreatedByUserId = command.RequestingUserId,
+            ExcludeUserId = command.TargetUserId
+        }, ct);
 
         return Results.Created($"/api/households/{command.HouseholdId}/members/{command.TargetUserId}", member);
     }

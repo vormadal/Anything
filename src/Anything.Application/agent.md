@@ -16,6 +16,7 @@ Business logic layer. Contains all CQRS handlers, domain services, and configura
   - `ShoppingListHelpers`, `BillHelpers` — shared domain logic helpers
 - `Configuration/` — `AdminSettings`, `JwtSettings`, `ImageSettings` (bound from appsettings)
 - `Realtime/` — interfaces for SSE notification contracts
+- `Notifications/` — `INotificationDispatcher` + `NotificationDispatcher`, the single writer of `Notification` rows
 - `DependencyInjection.cs` — `AddApplication()` extension; uses Scrutor for handler scanning
 
 ## Key Patterns
@@ -27,6 +28,33 @@ Business logic layer. Contains all CQRS handlers, domain services, and configura
 - Timestamps: set `CreatedOn`/`ModifiedOn`/`DeletedOn` to `DateTime.UtcNow` in the handler, not in the DB.
 - Fuzzy search uses a shared threshold in `Anything.Application.Common.FuzzySearch`; the pg_trgm plumbing (`word_similarity`, GIN indexes) lives in `src/Anything.Database/agent.md`.
 - Cross-entity search (`Features/Search/`) is the one place Application queries through a Core service interface (`ISearchIndexService`) instead of `IRepository<T>` directly — its implementation needs Postgres full-text search types that Application must not reference. See `src/Anything.Database/agent.md` → "Cross-entity search index" for why, and `src/Anything.Core/agent.md` for `ISearchable`. Its two rebuild commands (`RebuildSearchIndexCommand` — global admin, all households; `RebuildHouseholdSearchIndexCommand` — household manager, caller's household only) share one `internal static` helper (`SearchIndexRebuilder.Rebuild`, same file) taking an optional `householdId` filter, rather than duplicating the upsert/orphan-removal logic per command — the two-distinct-commands-plus-shared-helper shape is the pattern to follow for any future "global admin variant + household-self-serve variant" pair, rather than one command with a nullable parameter and mixed authorization.
+
+## Notification dispatch
+
+`INotificationDispatcher.Dispatch` is the only thing that creates notifications.
+A caller describes *what happened* (`NotificationDispatch`); the dispatcher
+resolves recipients, drops opt-outs, skips duplicates, saves and pushes the SSE
+event. Three rules that are easy to get wrong:
+
+- **It commits.** It calls `IUnitOfWork.SaveChanges` itself, so call it *after*
+  the calling handler has saved its own work (see `AddHouseholdMemberHandler`) —
+  otherwise a notification failure can roll back the thing being notified about.
+- **`LinkUrl` is a server-side literal**, built by the calling handler
+  (`$"/households/{id}"`). Never forward one from a request body: it's rendered
+  as a link, so a caller-supplied value is an open-redirect/`javascript:` surface.
+  No contract in `Anything.Contracts.Notifications` accepts one.
+- **`SourceKey` buys idempotency, and costs redelivery.** Set it for anything a
+  sweep or retry could produce twice (`bill:12:2026-09`); leave it null for
+  one-off user actions. The dedupe check deliberately ignores `DeletedOn`,
+  because the unique index spans soft-deleted rows — treating a dismissed
+  notification as absent would turn a redelivery into a constraint violation.
+  That also means a keyed notification is never re-sent after dismissal, which
+  is why `AddHouseholdMember` uses no key: a member removed and added back
+  should be announced again.
+
+Recipients are always intersected with the household's members, including when
+`RecipientUserIds` is given — a caller can't address someone outside the
+household.
 
 ## Security & Performance Rules
 

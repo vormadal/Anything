@@ -44,6 +44,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<HomeCardPreference> HomeCardPreferences => Set<HomeCardPreference>();
     public DbSet<SearchDocument> SearchDocuments => Set<SearchDocument>();
     public DbSet<Note> Notes => Set<Note>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

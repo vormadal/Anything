@@ -1,4 +1,5 @@
 using Anything.Application.Features.Households.Commands;
+using Anything.Application.Notifications;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Core.Constants;
 using Anything.Core.Entities;
@@ -16,9 +17,10 @@ public class AddHouseholdMemberHandlerTests
     private readonly IRepository<User> _userRepo = Substitute.For<IRepository<User>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
+    private readonly INotificationDispatcher _notificationDispatcher = Substitute.For<INotificationDispatcher>();
 
     private AddHouseholdMemberHandler CreateHandler() =>
-        new(_householdRepo, _memberRepo, _userRepo, _unitOfWork, _timeProvider);
+        new(_householdRepo, _memberRepo, _userRepo, _unitOfWork, _timeProvider, _notificationDispatcher);
 
     public AddHouseholdMemberHandlerTests()
     {
@@ -56,6 +58,39 @@ public class AddHouseholdMemberHandlerTests
 
         Assert.IsType<Created<HouseholdMember>>(result);
         _memberRepo.Received(1).Add(Arg.Is<HouseholdMember>(m => m.UserId == 6 && m.Role == HouseholdRoles.Member));
+    }
+
+    [Fact]
+    public async Task Handle_WhenMemberAdded_NotifiesTheHouseholdExceptTheNewMember()
+    {
+        SeedMembers(new HouseholdMember { HouseholdId = 1, UserId = 5, Role = HouseholdRoles.Admin });
+
+        await CreateHandler().Handle(
+            new AddHouseholdMemberCommand(1, 6, HouseholdRoles.Member, 5),
+            TestContext.Current.CancellationToken);
+
+        await _notificationDispatcher.Received(1).Dispatch(
+            Arg.Is<NotificationDispatch>(d =>
+                d.HouseholdId == 1
+                && d.Category == NotificationCategories.HouseholdMember
+                && d.Title == "Target joined the household"
+                && d.LinkUrl == "/households/1"
+                && d.CreatedByUserId == 5
+                && d.ExcludeUserId == 6),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenAddRejected_DoesNotNotify()
+    {
+        SeedMembers(new HouseholdMember { HouseholdId = 1, UserId = 5, Role = HouseholdRoles.Member });
+
+        await CreateHandler().Handle(
+            new AddHouseholdMemberCommand(1, 6, HouseholdRoles.Member, 5),
+            TestContext.Current.CancellationToken);
+
+        await _notificationDispatcher.DidNotReceiveWithAnyArgs()
+            .Dispatch(default!, default);
     }
 
     [Fact]

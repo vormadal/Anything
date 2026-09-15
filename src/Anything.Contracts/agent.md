@@ -8,7 +8,7 @@ One subfolder per feature domain, each containing:
 - `Create*Request.cs`, `Update*Request.cs` — write-side inputs with data annotation validation
 - `*Response.cs` — read-side outputs returned by query handlers
 
-Feature folders: `Auth`, `Bills`, `FoodPlans`, `HomePreferences`, `Households`, `Inventory`, `Locations`, `Notes`, `Recipes`, `Recommendations`, `Search`, `ShoppingLists`, `Somethings`, `SuggestionCategories`, `Units`, `Vendors`
+Feature folders: `Auth`, `Bills`, `FoodPlans`, `HomePreferences`, `Households`, `Inventory`, `Locations`, `Notes`, `Notifications`, `Recipes`, `Recommendations`, `Search`, `ShoppingLists`, `Somethings`, `SuggestionCategories`, `Units`, `Vendors`
 
 ## Key Patterns
 

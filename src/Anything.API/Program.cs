@@ -183,6 +183,7 @@ app.MapEventsEndpoints();
 app.MapHomePreferenceEndpoints();
 app.MapSearchEndpoints();
 app.MapNoteEndpoints();
+app.MapNotificationEndpoints();
 
 await app.RunAsync();
 
