@@ -1,5 +1,6 @@
 using Anything.Application.Common;
 using Anything.Application.Configuration;
+using Anything.Application.Notifications;
 using Anything.Application.Services;
 using Anything.Core.Services;
 using Anything.Mediator;
@@ -38,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IImageStorageService, MinioStorageService>();
         services.AddScoped<IRecipeImageService, RecipeImageService>();
+        services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
         services.AddSingleton<IOutboundAddressResolver, DnsOutboundAddressResolver>();
         services.AddHttpClient<IRecipeParserService, RecipeParserService>(client =>
         {

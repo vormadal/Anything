@@ -26,6 +26,8 @@ import { LocationsRequestBuilderNavigationMetadata, LocationsRequestBuilderReque
 // @ts-ignore
 import { NotesRequestBuilderNavigationMetadata, NotesRequestBuilderRequestsMetadata, type NotesRequestBuilder } from './notes/index';
 // @ts-ignore
+import { NotificationsRequestBuilderNavigationMetadata, NotificationsRequestBuilderRequestsMetadata, type NotificationsRequestBuilder } from './notifications/index';
+// @ts-ignore
 import { RecipesRequestBuilderNavigationMetadata, RecipesRequestBuilderRequestsMetadata, type RecipesRequestBuilder } from './recipes/index';
 // @ts-ignore
 import { SearchRequestBuilderNavigationMetadata, SearchRequestBuilderRequestsMetadata, type SearchRequestBuilder } from './search/index';
@@ -96,6 +98,10 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The notes property
      */
     get notes(): NotesRequestBuilder;
+    /**
+     * The notifications property
+     */
+    get notifications(): NotificationsRequestBuilder;
     /**
      * The recipes property
      */
@@ -181,6 +187,10 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     notes: {
         requestsMetadata: NotesRequestBuilderRequestsMetadata,
         navigationMetadata: NotesRequestBuilderNavigationMetadata,
+    },
+    notifications: {
+        requestsMetadata: NotificationsRequestBuilderRequestsMetadata,
+        navigationMetadata: NotificationsRequestBuilderNavigationMetadata,
     },
     recipes: {
         requestsMetadata: RecipesRequestBuilderRequestsMetadata,

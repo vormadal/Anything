@@ -207,13 +207,18 @@ jobs:
       run: npx playwright install --with-deps chromium
 
     - name: Start Minio
+      # chainguard/minio, not minio/minio: the minio/minio repository was
+      # withdrawn from Docker Hub, so the old reference now fails the pull
+      # outright ("pull access denied ... repository does not exist"). Same
+      # binary, same MINIO_ROOT_* env vars, same `server /data` args — see
+      # CLAUDE.md's Docker Hub gotcha before changing this back.
       run: |
         docker run -d \
           --name minio \
           -p 9000:9000 \
           -e MINIO_ROOT_USER=minioadmin \
           -e MINIO_ROOT_PASSWORD=minioadmin \
-          minio/minio:latest server /data
+          chainguard/minio:latest server /data
       working-directory: ${{ github.workspace }}
 
     - name: Wait for Minio to be ready

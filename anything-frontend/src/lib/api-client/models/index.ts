@@ -1271,6 +1271,33 @@ export function createNoteSummaryResponseFromDiscriminatorValue(parseNode: Parse
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {NotificationPreferenceItem}
+ */
+// @ts-ignore
+export function createNotificationPreferenceItemFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoNotificationPreferenceItem;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {NotificationPreferenceResponse}
+ */
+// @ts-ignore
+export function createNotificationPreferenceResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoNotificationPreferenceResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {NotificationResponse}
+ */
+// @ts-ignore
+export function createNotificationResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoNotificationResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {ParsedIngredient}
  */
 // @ts-ignore
@@ -1661,6 +1688,24 @@ export function createSeasonalTagRuleResponseFromDiscriminatorValue(parseNode: P
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SendNotificationRequest}
+ */
+// @ts-ignore
+export function createSendNotificationRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSendNotificationRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SendNotificationResponse}
+ */
+// @ts-ignore
+export function createSendNotificationResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSendNotificationResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {SharedIngredientResponse}
  */
 // @ts-ignore
@@ -1852,6 +1897,15 @@ export interface CreateUnitRequest extends Parsable {
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UnreadNotificationCountResponse}
+ */
+// @ts-ignore
+export function createUnreadNotificationCountResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUnreadNotificationCountResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UpdateBillAttachmentRequest}
  */
 // @ts-ignore
@@ -1974,6 +2028,15 @@ export function createUpdateLocationRequestFromDiscriminatorValue(parseNode: Par
 // @ts-ignore
 export function createUpdateNoteRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoUpdateNoteRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateNotificationPreferencesRequest}
+ */
+// @ts-ignore
+export function createUpdateNotificationPreferencesRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateNotificationPreferencesRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -3250,6 +3313,47 @@ export function deserializeIntoNoteSummaryResponse(noteSummaryResponse: Partial<
 }
 /**
  * The deserialization information for the current model
+ * @param NotificationPreferenceItem The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoNotificationPreferenceItem(notificationPreferenceItem: Partial<NotificationPreferenceItem> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "category": n => { notificationPreferenceItem.category = n.getStringValue(); },
+        "inAppEnabled": n => { notificationPreferenceItem.inAppEnabled = n.getBooleanValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param NotificationPreferenceResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoNotificationPreferenceResponse(notificationPreferenceResponse: Partial<NotificationPreferenceResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "category": n => { notificationPreferenceResponse.category = n.getStringValue(); },
+        "inAppEnabled": n => { notificationPreferenceResponse.inAppEnabled = n.getBooleanValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param NotificationResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoNotificationResponse(notificationResponse: Partial<NotificationResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "body": n => { notificationResponse.body = n.getStringValue(); },
+        "category": n => { notificationResponse.category = n.getStringValue(); },
+        "createdOn": n => { notificationResponse.createdOn = n.getDateValue(); },
+        "id": n => { notificationResponse.id = n.getNumberValue(); },
+        "linkUrl": n => { notificationResponse.linkUrl = n.getStringValue(); },
+        "readOn": n => { notificationResponse.readOn = n.getDateValue(); },
+        "title": n => { notificationResponse.title = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param ParsedIngredient The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -3724,6 +3828,30 @@ export function deserializeIntoSeasonalTagRuleResponse(seasonalTagRuleResponse: 
 }
 /**
  * The deserialization information for the current model
+ * @param SendNotificationRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSendNotificationRequest(sendNotificationRequest: Partial<SendNotificationRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "body": n => { sendNotificationRequest.body = n.getStringValue(); },
+        "includeSelf": n => { sendNotificationRequest.includeSelf = n.getBooleanValue(); },
+        "title": n => { sendNotificationRequest.title = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param SendNotificationResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSendNotificationResponse(sendNotificationResponse: Partial<SendNotificationResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "recipients": n => { sendNotificationResponse.recipients = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param SharedIngredientResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -3961,6 +4089,17 @@ export function deserializeIntoUnitImportExportItem(unitImportExportItem: Partia
 }
 /**
  * The deserialization information for the current model
+ * @param UnreadNotificationCountResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUnreadNotificationCountResponse(unreadNotificationCountResponse: Partial<UnreadNotificationCountResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "count": n => { unreadNotificationCountResponse.count = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param UpdateBillAttachmentRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -4146,6 +4285,17 @@ export function deserializeIntoUpdateNoteRequest(updateNoteRequest: Partial<Upda
     return {
         "contentJson": n => { updateNoteRequest.contentJson = n.getStringValue(); },
         "title": n => { updateNoteRequest.title = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param UpdateNotificationPreferencesRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateNotificationPreferencesRequest(updateNotificationPreferencesRequest: Partial<UpdateNotificationPreferencesRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "preferences": n => { updateNotificationPreferencesRequest.preferences = n.getCollectionOfObjectValues<NotificationPreferenceItem>(createNotificationPreferenceItemFromDiscriminatorValue); },
     }
 }
 /**
@@ -5142,6 +5292,56 @@ export interface NoteSummaryResponse extends Parsable {
      */
     title?: string | null;
 }
+export interface NotificationPreferenceItem extends Parsable {
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The inAppEnabled property
+     */
+    inAppEnabled?: boolean | null;
+}
+export interface NotificationPreferenceResponse extends Parsable {
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The inAppEnabled property
+     */
+    inAppEnabled?: boolean | null;
+}
+export interface NotificationResponse extends Parsable {
+    /**
+     * The body property
+     */
+    body?: string | null;
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The linkUrl property
+     */
+    linkUrl?: string | null;
+    /**
+     * The readOn property
+     */
+    readOn?: Date | null;
+    /**
+     * The title property
+     */
+    title?: string | null;
+}
 export interface ParsedIngredient extends Parsable {
     /**
      * The amount property
@@ -5745,6 +5945,26 @@ export interface SeasonalTagRuleResponse extends Parsable {
      * The months property
      */
     months?: number | null;
+}
+export interface SendNotificationRequest extends Parsable {
+    /**
+     * The body property
+     */
+    body?: string | null;
+    /**
+     * The includeSelf property
+     */
+    includeSelf?: boolean | null;
+    /**
+     * The title property
+     */
+    title?: string | null;
+}
+export interface SendNotificationResponse extends Parsable {
+    /**
+     * The recipients property
+     */
+    recipients?: number | null;
 }
 /**
  * Serializes information the current object
@@ -6888,6 +7108,47 @@ export function serializeNoteSummaryResponse(writer: SerializationWriter, noteSu
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param NotificationPreferenceItem The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeNotificationPreferenceItem(writer: SerializationWriter, notificationPreferenceItem: Partial<NotificationPreferenceItem> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!notificationPreferenceItem || isSerializingDerivedType) { return; }
+    writer.writeStringValue("category", notificationPreferenceItem.category);
+    writer.writeBooleanValue("inAppEnabled", notificationPreferenceItem.inAppEnabled);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param NotificationPreferenceResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeNotificationPreferenceResponse(writer: SerializationWriter, notificationPreferenceResponse: Partial<NotificationPreferenceResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!notificationPreferenceResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("category", notificationPreferenceResponse.category);
+    writer.writeBooleanValue("inAppEnabled", notificationPreferenceResponse.inAppEnabled);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param NotificationResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeNotificationResponse(writer: SerializationWriter, notificationResponse: Partial<NotificationResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!notificationResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("body", notificationResponse.body);
+    writer.writeStringValue("category", notificationResponse.category);
+    writer.writeDateValue("createdOn", notificationResponse.createdOn);
+    writer.writeNumberValue("id", notificationResponse.id);
+    writer.writeStringValue("linkUrl", notificationResponse.linkUrl);
+    writer.writeDateValue("readOn", notificationResponse.readOn);
+    writer.writeStringValue("title", notificationResponse.title);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param ParsedIngredient The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -7362,6 +7623,30 @@ export function serializeSeasonalTagRuleResponse(writer: SerializationWriter, se
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SendNotificationRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSendNotificationRequest(writer: SerializationWriter, sendNotificationRequest: Partial<SendNotificationRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!sendNotificationRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("body", sendNotificationRequest.body);
+    writer.writeBooleanValue("includeSelf", sendNotificationRequest.includeSelf);
+    writer.writeStringValue("title", sendNotificationRequest.title);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SendNotificationResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSendNotificationResponse(writer: SerializationWriter, sendNotificationResponse: Partial<SendNotificationResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!sendNotificationResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("recipients", sendNotificationResponse.recipients);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param SharedIngredientResponse The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -7599,6 +7884,17 @@ export function serializeUnitImportExportItem(writer: SerializationWriter, unitI
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UnreadNotificationCountResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUnreadNotificationCountResponse(writer: SerializationWriter, unreadNotificationCountResponse: Partial<UnreadNotificationCountResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!unreadNotificationCountResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("count", unreadNotificationCountResponse.count);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param UpdateBillAttachmentRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -7784,6 +8080,17 @@ export function serializeUpdateNoteRequest(writer: SerializationWriter, updateNo
     if (!updateNoteRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("contentJson", updateNoteRequest.contentJson);
     writer.writeStringValue("title", updateNoteRequest.title);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateNotificationPreferencesRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateNotificationPreferencesRequest(writer: SerializationWriter, updateNotificationPreferencesRequest: Partial<UpdateNotificationPreferencesRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateNotificationPreferencesRequest || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfObjectValues<NotificationPreferenceItem>("preferences", updateNotificationPreferencesRequest.preferences, serializeNotificationPreferenceItem);
 }
 /**
  * Serializes information the current object
@@ -8345,6 +8652,12 @@ export interface UnitImportExportItem extends Parsable {
      */
     name?: string | null;
 }
+export interface UnreadNotificationCountResponse extends Parsable {
+    /**
+     * The count property
+     */
+    count?: number | null;
+}
 export interface UpdateBillAttachmentRequest extends Parsable {
     /**
      * The name property
@@ -8568,6 +8881,12 @@ export interface UpdateNoteRequest extends Parsable {
      * The title property
      */
     title?: string | null;
+}
+export interface UpdateNotificationPreferencesRequest extends Parsable {
+    /**
+     * The preferences property
+     */
+    preferences?: NotificationPreferenceItem[] | null;
 }
 export interface UpdateProfileRequest extends Parsable {
     /**

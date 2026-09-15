@@ -85,3 +85,23 @@ A toast's only job is to communicate an outcome the user **cannot otherwise see 
 - **Visible inline result** — an add/edit/remove whose row or value updates in the current view.
 - **Screen already changes** — a dialog closes on success, or navigation lands on a page showing the result.
 - **Form validation** — use an inline field error message (`<p role="alert" className="text-sm text-red-600 dark:text-red-400">`) and keep native `required`, never a toast. Auth pages (login, register) surface *all* errors inline, including the async auth failure; in-app forms keep validation inline but may toast the async outcome.
+
+## NotificationBell / SendNotificationDialog
+
+`NotificationBell` is mounted once in `AppLayout`'s header, so it shows on every
+authenticated page — which means **every visual snapshot includes it**, and the
+visual spec's default mocks return an unread count of `0` on purpose so the
+badge doesn't alter ~130 unrelated baselines (one dedicated test covers the
+badge). It also means `**/api/notifications/unread-count**` must stay mocked in
+`setupApiMocks`: unmocked, the request never settles and `networkidle` never
+resolves on any page.
+
+The bell carries its count in its `aria-label` ("Notifications, 3 unread"), not
+only in the badge, so tests and screen readers read the same thing and the badge
+stays free to abbreviate (`99+`).
+
+`SendNotificationDialog` is one of the legitimate `toast.success` cases under
+the toast rules: the sender is excluded from their own announcement, so nothing
+on their screen changes. The toast reports the recipient *count*, which is the
+part they can't see — and it's lower than the member count when someone has
+switched announcements off.

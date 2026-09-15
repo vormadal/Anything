@@ -604,6 +604,44 @@ const mockPendingInvites = [
   },
 ];
 
+// Notifications. The default unread count is 0 so the header bell renders
+// without a badge on every other page's snapshot — the badge gets its own test
+// below rather than altering ~130 unrelated baselines.
+const mockNotifications = [
+  {
+    id: 1,
+    category: "announcement",
+    title: "Bin day moved to Thursday",
+    body: "The council changed the collection day for this week only.",
+    linkUrl: null,
+    createdOn: "2025-01-15T08:30:00Z",
+    readOn: null,
+  },
+  {
+    id: 2,
+    category: "householdmember",
+    title: "Sam joined the household",
+    body: null,
+    linkUrl: "/households/1",
+    createdOn: "2025-01-14T16:00:00Z",
+    readOn: null,
+  },
+  {
+    id: 3,
+    category: "announcement",
+    title: "Summerhouse keys are in the drawer",
+    body: null,
+    linkUrl: null,
+    createdOn: "2025-01-12T11:00:00Z",
+    readOn: "2025-01-12T12:00:00Z",
+  },
+];
+
+const mockNotificationPreferences = [
+  { category: "announcement", inAppEnabled: true },
+  { category: "householdmember", inAppEnabled: false },
+];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -904,6 +942,29 @@ async function setupApiMocks(page: Page) {
   await page.route(/\/api\/households\/\d+\/members/, (route) =>
     route.fulfill({ status: 204, body: "" })
   );
+
+  // ---- Notifications ----
+  // The header bell is on every authenticated page, so the unread-count route
+  // has to exist for every snapshot — without it the request goes unmocked and
+  // networkidle never settles.
+  await page.route("**/api/notifications**", (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockNotifications });
+    } else {
+      route.fulfill({ status: 204, body: "" });
+    }
+  });
+  // More-specific (LIFO: registered after → higher priority)
+  await page.route("**/api/notifications/unread-count**", (route) =>
+    route.fulfill({ json: { count: 0 } })
+  );
+  await page.route("**/api/notifications/preferences**", (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: mockNotificationPreferences });
+    } else {
+      route.fulfill({ status: 204, body: "" });
+    }
+  });
 
   // Block SSE / EventSource connections — no backend is running in visual tests,
   // and an open or retrying EventSource would prevent networkidle from resolving.
@@ -2496,6 +2557,119 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("button", { name: /Rebuild/ })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "household-search-index-empty.png",
+      screenshotOptions
+    );
+  });
+
+  // ---- Notifications ----
+  //
+  // Each of these asserts on the element it exists to capture BEFORE taking the
+  // screenshot: a baseline that silently went stale (see CLAUDE.md's
+  // stale-baseline gotcha) would otherwise keep passing while showing the
+  // pre-feature page.
+
+  test("notifications - inbox", async ({ page }) => {
+    await page.goto("/notifications");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Bin day moved to Thursday")).toBeVisible();
+    await expect(page.getByRole("button", { name: /mark all read/i })).toBeVisible();
+    await expect(page).toHaveScreenshot("notifications-inbox.png", screenshotOptions);
+  });
+
+  test("notifications - all read", async ({ page }) => {
+    // Every notification read: the mark-all-read control is gone and the unread
+    // highlight/dot are off, which is a distinct visual state from the inbox.
+    await page.route("**/api/notifications**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: mockNotifications.map((n) => ({
+            ...n,
+            readOn: n.readOn ?? "2025-01-15T09:00:00Z",
+          })),
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    await page.goto("/notifications");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Bin day moved to Thursday")).toBeVisible();
+    await expect(page.getByRole("button", { name: /mark all read/i })).toBeHidden();
+    await expect(page).toHaveScreenshot("notifications-all-read.png", screenshotOptions);
+  });
+
+  test("notifications - empty state", async ({ page }) => {
+    await page.route("**/api/notifications**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: [] });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    await page.goto("/notifications");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/Nothing here yet/)).toBeVisible();
+    await expect(page).toHaveScreenshot("notifications-empty.png", screenshotOptions);
+  });
+
+  test("notifications - unread badge on the header bell", async ({ page }) => {
+    // The default mocks return a zero count so every other snapshot shows a
+    // bare bell; this is the one place the badge is exercised.
+    await page.route("**/api/notifications/unread-count**", (route) =>
+      route.fulfill({ json: { count: 4 } })
+    );
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(
+      page.getByRole("link", { name: "Notifications, 4 unread" })
+    ).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "notifications-header-badge.png",
+      screenshotOptions
+    );
+  });
+
+  test("notifications - send announcement dialog", async ({ page }) => {
+    // mockHouseholds[0] is an Owner, so the manager-only send action is present.
+    await page.goto("/notifications");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Send an announcement" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByLabel("Title")).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "notifications-send-dialog.png",
+      screenshotOptions
+    );
+  });
+
+  test("notifications - inbox as a plain member", async ({ page }) => {
+    // A Member sees no send action — the announcement endpoint is manager-only.
+    await page.route("**/api/households**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: [{ ...mockHouseholds[0], role: "Member" }] });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/notifications");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Bin day moved to Thursday")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Send an announcement" })
+    ).toBeHidden();
+    await expect(page).toHaveScreenshot(
+      "notifications-inbox-member.png",
+      screenshotOptions
+    );
+  });
+
+  test("notifications - settings", async ({ page }) => {
+    await page.goto("/notifications/settings");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("switch", { name: "Announcements" })).toBeVisible();
+    await expect(page.getByRole("switch", { name: "Household members" })).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "notifications-settings.png",
       screenshotOptions
     );
   });

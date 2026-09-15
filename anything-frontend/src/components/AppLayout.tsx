@@ -28,6 +28,7 @@ import {
   Search,
   NotebookPen,
   Package,
+  Bell,
 } from "lucide-react";
 import {
   PageActionsProvider,
@@ -41,6 +42,7 @@ import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { OnboardingTourDialog } from "@/components/OnboardingTourDialog";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 
@@ -54,6 +56,7 @@ const NAV_ITEMS = [
   { label: "Bills", path: "/bills", icon: Receipt },
   { label: "Storage", path: "/inventory", icon: Package },
   { label: "Households", path: "/households", icon: Users },
+  { label: "Notifications", path: "/notifications", icon: Bell },
 ];
 
 const ADMIN_NAV_ITEMS = [
@@ -151,6 +154,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               {title || "Anything"}
             </h1>
           )}
+          {/* ml-auto on the bell itself, so it still sits right when a page
+              hides the title and there's no flex-1 spacer to push it there. */}
+          <NotificationBell />
           {headerActions}
         </div>
       </header>

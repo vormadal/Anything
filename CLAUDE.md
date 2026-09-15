@@ -218,6 +218,40 @@ network mode, so offline an embed shows persisted items if the list was opened
 before and a fallback message if it wasn't. No backend change was needed for any
 of this: `NoteContent.ExtractPlainText` already flattens any node's `attrs.label`.
 
+Notifications (`/api/notifications`) — a per-recipient inbox. Fan-out happens at
+write time (one `Notification` row per recipient), so reading an inbox is one
+indexed query and marking read never touches anyone else's copy. Everything that
+creates a notification goes through `INotificationDispatcher`
+(`src/Anything.Application/Notifications/`) — see that layer's `agent.md` for why
+it commits on its own and must be called *after* the calling handler saves.
+Endpoints: `GET /` (`?unreadOnly=`/`?limit=`, hard-capped at
+`GetNotificationsHandler.MaxResults`), `GET /unread-count` (separate so the
+header badge doesn't pull bodies), `POST /` (household-manager announcement),
+`PUT /{id}/read`, `PUT /read-all`, `DELETE /{id}` (soft delete), plus
+`GET`/`PUT /preferences`.
+
+Two deliberate constraints: `LinkUrl` is only ever set server-side (a
+caller-supplied link is an open-redirect surface, so `SendNotificationRequest`
+has no link field), and `POST /` is fixed to the `announcement` category so a
+send can't route around a recipient's opt-out for a different one. Preferences
+are **opt-out** — an absent row means enabled, so adding a key to
+`NotificationCategories.All` reaches existing users with no backfill, exactly
+like `HomeCardKeys.All` (and, exactly like it, `NotificationEndpointTests`
+asserts the full default list and must be updated in the same change).
+
+Delivery is in-app only today; the realtime nudge reuses the existing SSE
+channel via `SyncEvent.Notifications()`, which is **contentless on purpose** —
+`SseConnectionManager` is household-scoped, not per-user, so every member's
+client receives it and refetches its own inbox rather than anyone's content
+crossing the connection.
+
+Frontend: `useNotifications.ts` (inbox, badge, preferences — the badge is its
+own query key because `NotificationBell` renders in the global header on every
+page), `/notifications` and `/notifications/settings`. Because the bell is
+global, **any new visual snapshot needs `**/api/notifications/unread-count**`
+mocked** or `networkidle` never resolves — `setupApiMocks` already does it, and
+returns `0` so the badge doesn't churn every unrelated baseline.
+
 Bills (`/api/bills`) — household-scoped subscriptions/expenses (`Bill`), each optionally
 tracking `BillPriceHistory` (price over time, `EffectiveDate`/optional `EndDate` ranges,
 overlap-validated with a 409 on conflict) and `BillAttachment`s (receipts/contracts, the
@@ -291,5 +325,6 @@ Non-obvious gotchas:
 - **Never bump one `@radix-ui/*` package on its own — bump them all together.** Radix pins its internal dependencies to *exact* versions, so raising a single component (e.g. `react-dialog` alone) makes npm nest a private second copy of the primitives it shares with the others, most importantly `react-dismissable-layer` (also `react-focus-guards`, `react-focus-scope`). Those hold **module-level singleton state** — `react-dismissable-layer` keeps `var originalBodyPointerEvents` plus a module-scoped context whose `Set`s track the open layers. With two copies, a menu → confirm-dialog → close sequence (the app's standard destructive-action flow) ends with the dialog's copy restoring `document.body.style.pointerEvents` to the `"none"` the menu's copy had set, and **the whole page stays unclickable until reload**. The `radix` group in `.github/dependabot.yml` keeps future updates arriving as one PR; after any Radix change, confirm the dedupe with `npm ls @radix-ui/react-dismissable-layer` (every occurrence past the first must say `deduped`) — `find node_modules -path '*@radix-ui/react-dismissable-layer' -type d` must print exactly one path. The `overrides` pin of `@radix-ui/react-focus-scope` in `anything-frontend/package.json` is applied globally by npm, so it still yields a single copy and does not cause this; its original rationale is unrecorded, so leave it alone unless you can retest what it fixed.
 - **`nwsapi` (jsdom's CSS selector engine, a transitive dep pulled in via `jest-environment-jsdom`) is pinned to `2.2.25` via the same `overrides` mechanism, for an unrelated reason: `2.2.26`/`2.2.27` have a severe performance regression that isn't jsdom-version-specific (jsdom itself stayed `26.1.0` across the break).** Any Jest test that opens a Radix dropdown/dialog goes from ~0.3s to ~45s, blowing past the default 5000ms test timeout — this is what broke the `jest` dependency group bump (jest/jest-environment-jsdom/@testing-library/jest-dom themselves were verified innocent by downgrading each individually; only reverting `nwsapi` fixed it). Confirmed by bisection: `2.2.24`/`2.2.25` fast, `2.2.26` onward slow. **This is not a permanent pin and won't silently rot** — `overrides` entries are ordinary manifest requirements to Dependabot, so it will keep proposing bump PRs for `nwsapi` same as any direct dependency; when one lands, the existing test suite fails loudly (timeout) if the regression is still present and passes cleanly if upstream fixed it, so there's no separate reminder to set. Before removing the override by hand, re-run the previously-affected suites (e.g. `npx jest src/app/lists page.test.tsx -t "opens rename dialog"` in `anything-frontend`) with the override removed to confirm upstream actually fixed it, rather than trusting the version number alone.
   - **A `pointer-events: none` failure in Jest is that bug, not a flake.** It surfaces as `Unable to perform pointer interaction as the element has 'pointer-events: none'` in tests that open a menu, confirm in a dialog, and then interact again. Do **not** silence it with `pointerEventsCheck: PointerEventsCheckLevel.Never` or by resetting `document.body.style.pointerEvents` in a `beforeEach` — the `afterEach` in `anything-frontend/jest.setup.ts` is deliberately the *only* reset, and these tests are the sole automated warning that the real page gets stuck. E2E and visual checks do not cover it: they never close a dialog that was opened from a menu.
+- **`minio/minio` no longer exists on Docker Hub — `update-api-client` and `frontend-ci` both died on the pull.** The failure reads `docker: Error response from daemon: pull access denied for minio/minio, repository does not exist or may require 'docker login': denied`, exit code 125, which looks like a credentials problem and is not one: Docker Hub's API returns a plain 404 for `minio/minio` (a control image like `library/postgres` returns 200), and MinIO's GitHub releases stop at `RELEASE.2025-10-15T17-29-55Z`. The image is simply gone from that registry, so no amount of re-running helps and no `docker login` fixes it. Both workflows now use `chainguard/minio:latest` — same binary, same `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD`, same `server /data` args, actively rebuilt on Docker Hub. Two things this cost a session to work out: the last good run was 2026-09-05, so anything that "worked last week" tells you nothing; and the *symptom* is a failed `update-api-client`, which the migration-race gotcha above trains you to dismiss as expected — read the job log for the actual failing step before assuming it's the race, because the race shows up as a Kiota timeout (exit 124) after the API fails to boot, not as a `docker run` exit 125 before the API is ever started.
 - **CapRover's "deploy success" only means the image built — it never checks the app actually started, and its log API is undocumented.** `deployedVersion === latestVersion` on `/user/apps/appDefinitions` just means Docker finished handing off the image; the entrypoint can crash-loop forever (e.g. `MigrateAsync()` throwing on a `PendingModelChangesWarning`) and CapRover still reports success — the bug `.github/actions/verify-caprover-deploy` catches by additionally polling the app's `/health` endpoint. Two undocumented REST calls (found by reading `caprover-api`'s — not `caprover-cli`'s — TypeScript source on npm): build logs are `GET /user/apps/appData/<appName>` → `{ logs: { lines: [...] } }`; runtime container logs are `GET /user/apps/appData/<appName>/logs?encoding=hex` → `{ logs: "<hex>" }`, a raw hex-encoded Docker multiplexed stdout/stderr stream (8-byte frame header per chunk: 1 byte stream type, 3 reserved, 4-byte big-endian length) that must be decoded — see `decodeDockerHexLogs` in the action's script.
 - **`caprover api` GET calls fail immediately (and misleadingly) if `--data` is omitted — always pass it.** The CLI's `data` option has no `when: false` guard, so a `--data`-less call falls back to an interactive `? API data JSON string:` prompt; in non-interactive CI that gets EOF and exits non-zero within ~1s before any polling happens. The catch then dumps runtime logs and exits 1, so the job looks like it failed on whatever the runtime logs show — which can be a stale, already-fixed error from the *previous* crashed container, not the current deploy. Fix: `callCaproverApi` must always append `--data <json>`, defaulting to `{}` when the caller passes none.

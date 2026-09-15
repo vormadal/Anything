@@ -46,6 +46,24 @@ Infrastructure layer. EF Core implementation of the repository/UoW pattern; owns
 - **Real-Postgres integration tests are the only real verification for this feature.** `EF.Property<NpgsqlTsVector>(...).Matches(...)` and the pg_trgm fallback can't be checked by a unit test (which mocks `IRepository<T>`, never touching a real query translation) or by `dotnet build` — a translation mistake only throws when the query executes against Postgres. `tests/Anything.API.IntegrationTests/SearchEndpointTests.cs` exercises substring matching, typo tolerance, soft-delete exclusion, and household scoping against the real Testcontainers Postgres instance.
 - **`InventoryItem`'s custom fields (`InventoryItemField`) and attachments (`InventoryAttachment`) are deliberately not `ISearchable`.** They live in their own tables, separate from the `InventoryItem` row the interceptor watches, so a custom field's label/value (e.g. "Serial number: ABC123") is invisible to `/api/search` even though `InventoryItem.SearchContent` itself does include the item's own `Brand`/`Model`/`SerialNumber`/`Notes` columns (truncated via `SearchDocumentLimits.Truncate` — same overflow risk as `Note.SearchContent`, since brand+model+serial+notes combined has no single bound). If custom fields ever need to be searchable, they can't just implement `ISearchable` themselves (a `SearchDocument` per field would be the wrong granularity) — the fix would be projecting the item's own fields into `InventoryItem.SearchContent`, which requires a query at write time the interceptor doesn't currently do (today `SearchContent` only reads properties already loaded on the entity in memory).
 
+## Notification dedupe index
+
+`Notification` carries a unique index on `(UserId, Category, SourceKey)` that
+does the deduplication work for `INotificationDispatcher`. Two properties of it
+are load-bearing:
+
+- **Null `SourceKey` never collides.** Postgres treats NULLs as distinct in a
+  unique index, so one-off sends (announcements) can repeat freely while keyed
+  ones (a scheduled sweep's `bill:12:2026-09`) cannot.
+- **It spans soft-deleted rows.** There is no `DeletedOn IS NULL` filter, so the
+  dispatcher's pre-check must not filter on `DeletedOn` either — doing so would
+  turn a redelivery to someone who dismissed the notification into a constraint
+  violation on an otherwise-fine save.
+
+The inbox itself reads through `(HouseholdId, UserId, CreatedOn)`, which covers
+both the newest-first list and the unread count (they differ only by a `ReadOn`
+predicate).
+
 ## ShoppingListRecommendation uniqueness (index mechanics)
 
 Suggestions are list-scoped via a nullable `ShoppingListId` (`null` = shared; see `src/Anything.Application/agent.md` for query/seeding semantics). Enforce uniqueness on `(HouseholdId, ShoppingListId, Name)` with **two partial unique indexes** — one `WHERE "ShoppingListId" IS NOT NULL`, one on `(HouseholdId, Name) WHERE "ShoppingListId" IS NULL` — **not** a single index with `.AreNullsDistinct(false)`. Postgres `NULLS NOT DISTINCT` requires PG15+ and broke the deploy: the API crashes on `MigrateAsync()` before `app.RunAsync()`, which passes CapRover's build-only check but makes every request (including login) fail. The two-partial-index form gives identical semantics on any Postgres version.

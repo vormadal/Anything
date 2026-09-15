@@ -4,13 +4,13 @@ Domain layer — zero external dependencies. Everything else depends on this; th
 
 ## Structure
 
-- `Entities/` — 34 domain models (e.g., `Bill`, `Recipe`, `ShoppingList`, `User`, `Household`, `SearchDocument`)
+- `Entities/` — 36 domain models (e.g., `Bill`, `Recipe`, `ShoppingList`, `User`, `Household`, `SearchDocument`)
   - Enums live here too: `ListType`, `PaymentFrequency`, `ServingsType`
 - `Repositories/` — `IRepository<T>`, `IUnitOfWork` (abstractions only)
 - `Services/` — `IHouseholdContext`, `IImageStorageService`, `IPasswordService`, `ITokenService`, `ISearchIndexService`
 - `Search/PgTrigramFunctions.cs` — static stubs for the pg_trgm SQL functions (`word_similarity`), mapped via `HasDbFunction` in `ApplicationDbContext`; must return `float`. See `src/Anything.Database/agent.md`.
 - `Search/ISearchable.cs`, `SearchEntityTypes.cs`, `SearchHit.cs` — cross-entity search index abstractions. An entity implements `ISearchable` to opt into the `SearchDocument` index; `Anything.Database`'s `SearchIndexInterceptor` keeps it in sync automatically (see `src/Anything.Database/agent.md`). `ISearchIndexService` (the query side) is implemented in `Anything.Database`, not `Anything.Application.Services` like the other Core service interfaces — it needs direct access to Postgres full-text search, which Application must not depend on. `Anything.ArchitectureTests.PlacementTests` only closed-lists the original four service interfaces for the Application-only rule, so this doesn't need a test exemption, but keep it in mind if that test is ever generalized.
-- `Constants/` — `HouseholdRoles`, `UserRoles`
+- `Constants/` — `HouseholdRoles`, `UserRoles`, `NotificationCategories` (default-on: an absent `NotificationPreference` row means enabled, so adding a category reaches existing users without a backfill)
 
 ## Key Patterns
 
