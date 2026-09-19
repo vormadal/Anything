@@ -2848,12 +2848,12 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Recipe detail page at desktop width
+// Recipe pages at desktop width
 //
 // The rest of the visual suite runs on the phone viewport (Pixel 5), where the
-// recipe layout is a single column and unchanged.  The ingredients/steps split
-// only kicks in from lg (1024 px) up, so it needs its own wider viewport to be
-// covered at all.
+// recipe layouts are a single column and unchanged.  The detail page's
+// ingredients/steps split and the list's fourth card column only kick in from
+// lg (1024 px) up, so they need their own wider viewport to be covered at all.
 // ---------------------------------------------------------------------------
 
 const mockRecipeIngredients = [
@@ -2879,7 +2879,22 @@ const mockRecipeDetailFull = {
   tags: [{ id: 1, recipeId: 1, name: "italian" }],
 };
 
-test.describe("Visual Snapshots - Recipe Detail (desktop)", () => {
+/** Enough recipes to fill more than one row of the lg 4-column grid. */
+const mockManyRecipes = [
+  "Pasta Carbonara",
+  "Chicken Stir Fry",
+  "Beef Tacos",
+  "Tomato Soup",
+  "Mushroom Risotto",
+  "Lentil Curry",
+].map((name, i) => ({
+  id: i + 1,
+  name,
+  createdOn: "2024-01-01T00:00:00Z",
+  modifiedOn: null,
+}));
+
+test.describe("Visual Snapshots - Recipes (desktop)", () => {
   test.use({
     viewport: { width: 1280, height: 1000 },
     isMobile: false,
@@ -2927,6 +2942,18 @@ test.describe("Visual Snapshots - Recipe Detail (desktop)", () => {
       "recipe-detail-edit-mode-desktop.png",
       screenshotOptions
     );
+  });
+
+  test("recipes list - desktop", async ({ page }) => {
+    // Scoped to the collection route so setupApiMocks' /api/recipes/tags and
+    // per-recipe mocks keep winning for everything else.
+    await page.route(/\/api\/recipes(\?|$)/, (route) =>
+      route.fulfill({ json: mockManyRecipes })
+    );
+    await page.goto("/recipes");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Mushroom Risotto")).toBeVisible();
+    await expect(page).toHaveScreenshot("recipes-desktop.png", screenshotOptions);
   });
 });
 

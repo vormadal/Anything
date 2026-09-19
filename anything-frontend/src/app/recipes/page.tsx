@@ -38,7 +38,7 @@ function RecipeCard({ recipe, onClick }: { recipe: RecipeListItemResponse; onCli
               alt={recipe.name ?? "Recipe"}
               fill
               className="object-cover"
-              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 288px"
               onError={() => setImgError(true)}
             />
           ) : (
@@ -158,7 +158,7 @@ export default function RecipesPage() {
   }, [setHeaderActions]);
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-4xl">
+    <div className="container mx-auto px-4 py-4 max-w-6xl">
       <PageTitle>Recipes</PageTitle>
 
       {/* Always-visible search bar */}
@@ -229,7 +229,7 @@ export default function RecipesPage() {
       )}
 
       {recipes && recipes.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {recipes.map((recipe) => (
             <RecipeCard
               key={recipe.id}
