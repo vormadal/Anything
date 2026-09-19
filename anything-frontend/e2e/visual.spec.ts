@@ -2848,6 +2848,89 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Recipe detail page at desktop width
+//
+// The rest of the visual suite runs on the phone viewport (Pixel 5), where the
+// recipe layout is a single column and unchanged.  The ingredients/steps split
+// only kicks in from lg (1024 px) up, so it needs its own wider viewport to be
+// covered at all.
+// ---------------------------------------------------------------------------
+
+const mockRecipeIngredients = [
+  { id: 1, recipeId: 1, name: "Spaghetti", amount: 200, unit: "g", sortOrder: 0 },
+  { id: 2, recipeId: 1, name: "Eggs", amount: 3, unit: null, sortOrder: 1 },
+  { id: 3, recipeId: 1, name: "Pecorino Romano", amount: 50, unit: "g", sortOrder: 2 },
+  { id: 4, recipeId: 1, name: "Guanciale", amount: 100, unit: "g", sortOrder: 3 },
+];
+
+const mockRecipeSteps = [
+  { id: 1, recipeId: 1, text: "Boil the pasta until al dente.", order: 1 },
+  { id: 2, recipeId: 1, text: "Fry the guanciale until crisp.", order: 2 },
+  { id: 3, recipeId: 1, text: "Mix the eggs with the grated cheese.", order: 3 },
+  { id: 4, recipeId: 1, text: "Toss everything off the heat so the egg does not scramble.", order: 4 },
+];
+
+const mockRecipeDetailFull = {
+  ...mockRecipeDetail,
+  link: "https://example.com/carbonara",
+  ingredients: mockRecipeIngredients,
+  steps: mockRecipeSteps,
+  images: [],
+  tags: [{ id: 1, recipeId: 1, name: "italian" }],
+};
+
+test.describe("Visual Snapshots - Recipe Detail (desktop)", () => {
+  test.use({
+    viewport: { width: 1280, height: 1000 },
+    isMobile: false,
+    hasTouch: false,
+    deviceScaleFactor: 1,
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(FIXED_DATE);
+    await setupApiMocks(page);
+    // Aggregate detail endpoint used by the read-only view.  setupApiMocks'
+    // generic /api/recipes/\d+/ mock answers [], so this must be registered
+    // afterwards to win on LIFO priority.
+    await page.route(/\/api\/recipes\/\d+\/details$/, (route) =>
+      route.fulfill({ json: mockRecipeDetailFull })
+    );
+  });
+
+  test("recipe detail page - desktop", async ({ page }) => {
+    await page.goto("/recipes/1");
+    await page.waitForLoadState("networkidle");
+    // Assert the two sections rendered before screenshotting: a stale baseline
+    // would otherwise pass quietly if the data mock broke.
+    await expect(page.getByRole("heading", { name: "Ingredients" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Steps" })).toBeVisible();
+    await expect(page).toHaveScreenshot("recipe-detail-desktop.png", screenshotOptions);
+  });
+
+  test("recipe detail page - edit mode, desktop", async ({ page }) => {
+    await page.route(/\/api\/recipes\/\d+\/ingredients$/, (route) =>
+      route.fulfill({ json: mockRecipeIngredients })
+    );
+    await page.route(/\/api\/recipes\/\d+\/steps$/, (route) =>
+      route.fulfill({ json: mockRecipeSteps })
+    );
+    await page.goto("/recipes/1?edit=true");
+    await page.waitForLoadState("networkidle");
+    // Both lists rendered (the ingredient rows and the add form share the
+    // "Ingredient name" placeholder, hence .first()).
+    await expect(
+      page.getByRole("textbox", { name: "Ingredient name" }).first()
+    ).toHaveValue("Spaghetti");
+    await expect(page.getByPlaceholder("Step description...")).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "recipe-detail-edit-mode-desktop.png",
+      screenshotOptions
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Shared Recipe Page (unauthenticated)
 // ---------------------------------------------------------------------------
 

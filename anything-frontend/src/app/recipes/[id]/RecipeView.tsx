@@ -132,86 +132,91 @@ export function RecipeView({ recipeId }: Props) {
           </div>
         )}
 
-        {/* ── Ingredients ── */}
-        <div className="mb-10">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
-            Ingredients
-          </h2>
-          {ingredients?.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No ingredients yet.</p>
-          )}
-          {ingredients && ingredients.length > 0 && (
-            <ul className="space-y-0.5">
-              {ingredients.map((ingredient) => (
-                <li key={ingredient.id} className="flex items-center gap-1 py-1">
-                  <span className="text-gray-800 dark:text-gray-200 text-sm">
-                    {(ingredient.amount != null || !!ingredient.unit) && (
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {ingredient.amount != null ? ingredient.amount : ""}{ingredient.unit ? ` ${ingredient.unit}` : ""}
-                      </span>
-                    )}{" "}
-                    {ingredient.name}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* ── Steps ── */}
-        <div className="mb-8">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
-            Steps
-          </h2>
-          {sortedSteps.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No steps yet.</p>
-          )}
-          {sortedSteps.length > 0 && (
-            <ol className="space-y-3">
-              {sortedSteps.map((step, index) => {
-                const stepId = step.id;
-                const done = isCooking && stepId != null && completedStepIds.has(stepId);
-                const handleToggle =
-                  isCooking && stepId != null ? () => toggleStep(stepId) : undefined;
-                return (
-                  <li
-                    key={step.id ?? index}
-                    className={`flex items-start gap-3 ${isCooking && stepId != null ? "cursor-pointer select-none" : ""}`}
-                    onClick={handleToggle}
-                    onKeyDown={
-                      handleToggle
-                        ? (e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleToggle();
-                            }
-                          }
-                        : undefined
-                    }
-                    role={handleToggle ? "button" : undefined}
-                    tabIndex={handleToggle ? 0 : undefined}
-                    aria-pressed={handleToggle ? done : undefined}
-                  >
-                    <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-0.5">
-                      {index + 1}.
-                    </span>
-                    <span className={`flex-1 min-w-0 text-sm leading-relaxed transition-colors ${done ? "line-through text-gray-400 dark:text-gray-600" : "text-gray-800 dark:text-gray-200"}`}>
-                      {step.text}
+        {/* ── Ingredients + steps ──
+            Stacked on phones; side by side from lg up so a desktop window is
+            actually used instead of leaving half the screen blank. */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-10 lg:items-start">
+          {/* ── Ingredients ── */}
+          <div className="mb-10 lg:mb-0">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+              Ingredients
+            </h2>
+            {ingredients?.length === 0 && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No ingredients yet.</p>
+            )}
+            {ingredients && ingredients.length > 0 && (
+              <ul className="space-y-0.5">
+                {ingredients.map((ingredient) => (
+                  <li key={ingredient.id} className="flex items-center gap-1 py-1">
+                    <span className="text-gray-800 dark:text-gray-200 text-sm">
+                      {(ingredient.amount != null || !!ingredient.unit) && (
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {ingredient.amount != null ? ingredient.amount : ""}{ingredient.unit ? ` ${ingredient.unit}` : ""}
+                        </span>
+                      )}{" "}
+                      {ingredient.name}
                     </span>
                   </li>
-                );
-              })}
-            </ol>
-          )}
-          {isCooking && (
-            <button
-              type="button"
-              onClick={stopCooking}
-              className="mt-6 w-full py-2.5 px-4 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-            >
-              Stop cooking mode
-            </button>
-          )}
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* ── Steps ── */}
+          <div className="mb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+              Steps
+            </h2>
+            {sortedSteps.length === 0 && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No steps yet.</p>
+            )}
+            {sortedSteps.length > 0 && (
+              <ol className="space-y-3">
+                {sortedSteps.map((step, index) => {
+                  const stepId = step.id;
+                  const done = isCooking && stepId != null && completedStepIds.has(stepId);
+                  const handleToggle =
+                    isCooking && stepId != null ? () => toggleStep(stepId) : undefined;
+                  return (
+                    <li
+                      key={step.id ?? index}
+                      className={`flex items-start gap-3 ${isCooking && stepId != null ? "cursor-pointer select-none" : ""}`}
+                      onClick={handleToggle}
+                      onKeyDown={
+                        handleToggle
+                          ? (e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleToggle();
+                              }
+                            }
+                          : undefined
+                      }
+                      role={handleToggle ? "button" : undefined}
+                      tabIndex={handleToggle ? 0 : undefined}
+                      aria-pressed={handleToggle ? done : undefined}
+                    >
+                      <span className="shrink-0 text-sm font-semibold text-gray-300 dark:text-gray-600 w-5 text-right mt-0.5">
+                        {index + 1}.
+                      </span>
+                      <span className={`flex-1 min-w-0 text-sm leading-relaxed transition-colors ${done ? "line-through text-gray-400 dark:text-gray-600" : "text-gray-800 dark:text-gray-200"}`}>
+                        {step.text}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            {isCooking && (
+              <button
+                type="button"
+                onClick={stopCooking}
+                className="mt-6 w-full py-2.5 px-4 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+              >
+                Stop cooking mode
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </>
