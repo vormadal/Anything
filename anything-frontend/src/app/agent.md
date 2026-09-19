@@ -20,6 +20,20 @@ Next.js 15 App Router pages. Each subfolder maps 1:1 to a URL segment.
 - Use `AuthGuard` (from `components/`) to wrap protected pages.
 - **`inventory/` is the Storage section** (nav label "Storage", API prefix `inventory-*`): `/inventory` (places + a client-side search over every item), `/inventory/places/[id]`, `/inventory/boxes/[id]`, `/inventory/items/[id]`. Detail pages set the title through `PageTitle` and deliberately have **no in-page `<h1>`** — the app header already renders one, and a second trips Playwright's strict mode. Shared pieces live in `components/inventory/`, pure helpers in `lib/inventory.ts`.
 - **Don't add redirect shims for moved/removed routes.** When a page/route is relocated or removed, delete the old route and update the in-app links (`ConfigCard` hrefs, `router.push`/`<Link>` targets) to the new location — do not leave a redirect stub. Deep-link sub-views with query params on the surviving route (e.g. the consolidated Suggestions admin uses `?tab=categories`/`?tab=import-export`), not separate routes.
+- **A page wrapper needs `w-full` alongside `mx-auto`.** `AppLayout` renders
+  `<main className="flex grow flex-col">`, so a page's outermost element is a
+  flex item: an auto margin on the cross axis cancels the default `stretch`,
+  and the page sizes itself to its *content* instead — `max-w-*` then only caps
+  a width it never reaches. `/recipes/[id]` sat at ~490 px in a 1280 px window
+  for exactly this reason. Pages that open with `container mx-auto ...` are
+  unaffected (`container` sets `width: 100%`); a bare `max-w-Nxl mx-auto` is
+  not. Nothing catches it — build, lint and the phone-viewport visual suite all
+  stay green, since at phone width the content usually fills the viewport
+  anyway.
+- **The visual suite is phone-only (Pixel 5), so a `lg:` layout is uncovered by
+  default.** A desktop-only change needs its own describe with
+  `test.use({ viewport: { width: 1280, height: 1000 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 })`
+  — see "Recipe Detail (desktop)" in `e2e/visual.spec.ts`.
 - New pages or distinct page states must be covered by a Playwright visual snapshot, and use `page.goto()` for test-setup navigation — see `.claude/rules/e2e.md` for the authoritative visual-snapshot and navigation rules (and do **not** run `test:e2e:visual:update` in a web session; the `update-visual-snapshots` workflow generates the baselines).
 
 ## Notifications routes

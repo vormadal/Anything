@@ -564,317 +564,327 @@ export function RecipeEditMode({ recipeId }: Props) {
 
       {/* ── Page content ── */}
       <div className="px-4 sm:px-6 py-6">
-        {/* Recipe metadata */}
-        <div
-          className="space-y-2 mb-8"
-          onBlur={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node)) saveMetadataIfChanged();
-          }}
-        >
-          <input
-            type="url"
-            value={effectiveEditLink}
-            onChange={(e) => setEditLink(e.target.value)}
-            placeholder="Recipe link (optional)"
-            disabled={!isOnline}
-            title={isOnline ? undefined : OFFLINE_TITLE}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-          />
-          <textarea
-            value={effectiveEditNotes}
-            onChange={(e) => setEditNotes(e.target.value)}
-            placeholder="Notes (optional)"
-            rows={3}
-            disabled={!isOnline}
-            title={isOnline ? undefined : OFFLINE_TITLE}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm resize-none"
-          />
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2 flex-1">
-              <Clock className="h-4 w-4 text-gray-400 shrink-0" />
-              <input
-                type="number"
-                min={1}
-                max={10000}
-                value={effectiveEditCookTimeMinutes}
-                onChange={(e) => setEditCookTimeMinutes(e.target.value)}
-                placeholder="Cook time (min)"
-                disabled={!isOnline}
-                title={isOnline ? undefined : OFFLINE_TITLE}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-              />
-            </div>
-            <div className="flex items-center gap-2 flex-1">
-              <input
-                type="number"
-                min={1}
-                max={10000}
-                value={effectiveEditServings}
-                onChange={(e) => setEditServings(e.target.value)}
-                placeholder="Servings"
-                disabled={!isOnline}
-                title={isOnline ? undefined : OFFLINE_TITLE}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-              />
-              <select
-                value={effectiveEditServingsType}
-                onChange={(e) => setEditServingsType(e.target.value)}
-                disabled={!isOnline}
-                title={isOnline ? undefined : OFFLINE_TITLE}
-                className="px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                aria-label="Servings type"
-              >
-                <option value="People">People</option>
-                <option value="Quantity">Quantity</option>
-                <option value="Pieces">Pieces</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Tags ── */}
-        <div className="mb-8">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
-            Tags
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {tags?.map((tag) => (
-              <span
-                key={tag.id!}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-              >
-                {tag.name}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteTag(tag.id!)}
-                  disabled={deleteTag.isPending || !isOnline}
-                  title={isOnline ? undefined : OFFLINE_TITLE}
-                  aria-label={`Remove tag ${tag.name}`}
-                  className="ml-0.5 text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-          <form onSubmit={handleAddTag} className="flex gap-2 mt-3">
+        {/* ── Details + tags ──
+            Stacked on phones; two columns from lg up so the form does not
+            leave most of a desktop window empty. */}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
+          {/* Recipe metadata */}
+          <div
+            className="space-y-2 mb-8"
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) saveMetadataIfChanged();
+            }}
+          >
             <input
-              type="text"
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              placeholder="Add a tag (e.g. vegetarian)"
-              maxLength={50}
-              className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-            />
-            <Button
-              type="submit"
-              variant="outline"
-              size="sm"
-              disabled={!newTagName.trim() || addTag.isPending || !isOnline}
+              type="url"
+              value={effectiveEditLink}
+              onChange={(e) => setEditLink(e.target.value)}
+              placeholder="Recipe link (optional)"
+              disabled={!isOnline}
               title={isOnline ? undefined : OFFLINE_TITLE}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </Button>
-          </form>
-        </div>
-
-        {/* ── Ingredients ── */}
-        <div className="mb-10">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
-            Ingredients
-          </h2>
-          {ingredients?.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No ingredients yet. Add some below.</p>
-          )}
-          {ingredients && ingredients.length > 0 && (
-            <ul className="space-y-0.5">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleIngredientDragEnd}
-              >
-                <SortableContext
-                  items={ingredientIds}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {orderedIngredients?.map((ingredient) => {
-                    const id = ingredient.id ?? 0;
-                    return (
-                      <SortableIngredientItem
-                        key={id}
-                        id={id}
-                        ingredient={ingredient}
-                        edits={editingIngredients[id]}
-                        onFieldChange={handleIngredientFieldChange}
-                        onBlur={handleIngredientBlur}
-                        onDelete={handleDeleteIngredient}
-                        isDeletePending={deleteIngredient.isPending}
-                        isOnline={isOnline}
-                      />
-                    );
-                  })}
-                </SortableContext>
-              </DndContext>
-            </ul>
-          )}
-          <form onSubmit={handleAddIngredient} className="mt-3">
-            <div className="flex gap-1 items-center">
-              <div className="relative flex-1 min-w-0">
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+            />
+            <textarea
+              value={effectiveEditNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              placeholder="Notes (optional)"
+              rows={3}
+              disabled={!isOnline}
+              title={isOnline ? undefined : OFFLINE_TITLE}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm resize-none"
+            />
+            <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-1">
+                <Clock className="h-4 w-4 text-gray-400 shrink-0" />
                 <input
-                  ref={ingredientNameRef}
-                  type="text"
-                  value={newIngredientName}
-                  onChange={(e) => {
-                    setNewIngredientName(e.target.value);
-                    setShowIngredientSuggestions(true);
-                  }}
-                  onFocus={() => setShowIngredientSuggestions(true)}
-                  onBlur={() =>
-                    setTimeout(() => setShowIngredientSuggestions(false), SUGGESTION_CLOSE_DELAY_MS)
-                  }
-                  placeholder="Ingredient name"
-                  className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                  autoComplete="off"
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={effectiveEditCookTimeMinutes}
+                  onChange={(e) => setEditCookTimeMinutes(e.target.value)}
+                  placeholder="Cook time (min)"
+                  disabled={!isOnline}
+                  title={isOnline ? undefined : OFFLINE_TITLE}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                 />
-                {showIngredientSuggestions && filteredIngredientSuggestions.length > 0 && (
-                  <ul className="absolute z-10 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                    {filteredIngredientSuggestions.map((suggestion) => (
-                      <li key={suggestion.id}>
-                        <button
-                          type="button"
-                          onMouseDown={() => handleSelectIngredientSuggestion(suggestion.name ?? "", suggestion.preferredUnit)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
-                        >
-                          {suggestion.name}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
-              <input
-                type="number"
-                value={newIngredientAmount}
-                onChange={(e) => setNewIngredientAmount(e.target.value)}
-                placeholder="Qty"
-                className="w-14 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                step="any"
-              />
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={effectiveEditServings}
+                  onChange={(e) => setEditServings(e.target.value)}
+                  placeholder="Servings"
+                  disabled={!isOnline}
+                  title={isOnline ? undefined : OFFLINE_TITLE}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                />
+                <select
+                  value={effectiveEditServingsType}
+                  onChange={(e) => setEditServingsType(e.target.value)}
+                  disabled={!isOnline}
+                  title={isOnline ? undefined : OFFLINE_TITLE}
+                  className="px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                  aria-label="Servings type"
+                >
+                  <option value="People">People</option>
+                  <option value="Quantity">Quantity</option>
+                  <option value="Pieces">Pieces</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Tags ── */}
+          <div className="mb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+              Tags
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {tags?.map((tag) => (
+                <span
+                  key={tag.id!}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
+                >
+                  {tag.name}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTag(tag.id!)}
+                    disabled={deleteTag.isPending || !isOnline}
+                    title={isOnline ? undefined : OFFLINE_TITLE}
+                    aria-label={`Remove tag ${tag.name}`}
+                    className="ml-0.5 text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <form onSubmit={handleAddTag} className="flex gap-2 mt-3">
               <input
                 type="text"
-                value={newIngredientUnit}
-                onChange={(e) => setNewIngredientUnit(e.target.value)}
-                placeholder="Unit"
-                list="unit-options"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                placeholder="Add a tag (e.g. vegetarian)"
+                maxLength={50}
+                className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
               />
               <Button
                 type="submit"
-                size="icon"
-                disabled={addIngredient.isPending || !isOnline}
+                variant="outline"
+                size="sm"
+                disabled={!newTagName.trim() || addTag.isPending || !isOnline}
                 title={isOnline ? undefined : OFFLINE_TITLE}
-                aria-label="Add ingredient"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 mr-1" />
+                Add
               </Button>
-            </div>
-          </form>
-          <datalist id="unit-options">
-            {units?.map((u) => (
-              <option key={u.id} value={u.name ?? ""} />
-            ))}
-          </datalist>
+            </form>
+          </div>
         </div>
 
-        {/* ── Steps ── */}
-        <div className="mb-8">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
-            Steps
-          </h2>
-          {sortedSteps.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No steps yet. Add one below.</p>
-          )}
-          {sortedSteps.length > 0 && (
-            <ol className="space-y-3">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleStepDragEnd}
-              >
-                <SortableContext
-                  items={stepIds}
-                  strategy={verticalListSortingStrategy}
+        {/* ── Ingredients + steps ──
+            Same two-column treatment as the read-only view, so editing keeps
+            both lists on screen at once. */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-10 lg:items-start">
+          {/* ── Ingredients ── */}
+          <div className="mb-10 lg:mb-0">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+              Ingredients
+            </h2>
+            {ingredients?.length === 0 && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No ingredients yet. Add some below.</p>
+            )}
+            {ingredients && ingredients.length > 0 && (
+              <ul className="space-y-0.5">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleIngredientDragEnd}
                 >
-                  {orderedSteps?.map((step, index) => (
-                    <SortableStepItem
-                      key={step.id}
-                      step={step}
-                      index={index}
-                      editText={editingSteps[step.id ?? 0]}
-                      showSaved={!!savedStepIds[step.id ?? 0]}
-                      onTextChange={(text) =>
-                        setEditingSteps((prev) => ({ ...prev, [step.id ?? 0]: text }))
-                      }
-                      onBlur={() => {
-                        const current = editingSteps[step.id ?? 0];
-                        if (current === undefined) return;
-                        if (current === step.text) {
-                          setEditingSteps((prev) => {
-                            const next = { ...prev };
-                            delete next[step.id ?? 0];
-                            return next;
-                          });
-                        } else {
-                          handleSaveStep(step.id ?? 0, step.order ?? 0);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleSaveStep(step.id ?? 0, step.order ?? 0);
-                        }
-                      }}
-                      onDelete={() => handleDeleteStep(step.id ?? 0)}
-                      isDeletePending={deleteStep.isPending}
-                      isOnline={isOnline}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            </ol>
-          )}
-          <form onSubmit={handleAddStep} className="mt-4">
-            <div className="flex gap-1 items-center">
-              <div className="relative flex-1 min-w-0">
+                  <SortableContext
+                    items={ingredientIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {orderedIngredients?.map((ingredient) => {
+                      const id = ingredient.id ?? 0;
+                      return (
+                        <SortableIngredientItem
+                          key={id}
+                          id={id}
+                          ingredient={ingredient}
+                          edits={editingIngredients[id]}
+                          onFieldChange={handleIngredientFieldChange}
+                          onBlur={handleIngredientBlur}
+                          onDelete={handleDeleteIngredient}
+                          isDeletePending={deleteIngredient.isPending}
+                          isOnline={isOnline}
+                        />
+                      );
+                    })}
+                  </SortableContext>
+                </DndContext>
+              </ul>
+            )}
+            <form onSubmit={handleAddIngredient} className="mt-3">
+              <div className="flex gap-1 items-center">
+                <div className="relative flex-1 min-w-0">
+                  <input
+                    ref={ingredientNameRef}
+                    type="text"
+                    value={newIngredientName}
+                    onChange={(e) => {
+                      setNewIngredientName(e.target.value);
+                      setShowIngredientSuggestions(true);
+                    }}
+                    onFocus={() => setShowIngredientSuggestions(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowIngredientSuggestions(false), SUGGESTION_CLOSE_DELAY_MS)
+                    }
+                    placeholder="Ingredient name"
+                    className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                    autoComplete="off"
+                  />
+                  {showIngredientSuggestions && filteredIngredientSuggestions.length > 0 && (
+                    <ul className="absolute z-10 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {filteredIngredientSuggestions.map((suggestion) => (
+                        <li key={suggestion.id}>
+                          <button
+                            type="button"
+                            onMouseDown={() => handleSelectIngredientSuggestion(suggestion.name ?? "", suggestion.preferredUnit)}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
+                          >
+                            {suggestion.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  value={newIngredientAmount}
+                  onChange={(e) => setNewIngredientAmount(e.target.value)}
+                  placeholder="Qty"
+                  className="w-14 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                  step="any"
+                />
                 <input
                   type="text"
-                  value={newStepText}
-                  onChange={(e) => setNewStepText(e.target.value)}
-                  placeholder="Step description..."
-                  className="w-full px-2 py-1.5 pr-7 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                  value={newIngredientUnit}
+                  onChange={(e) => setNewIngredientUnit(e.target.value)}
+                  placeholder="Unit"
+                  list="unit-options"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                 />
-                <span
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 ${stepAddedSuccess ? "opacity-100" : "opacity-0"}`}
-                  aria-hidden="true"
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={addIngredient.isPending || !isOnline}
+                  title={isOnline ? undefined : OFFLINE_TITLE}
+                  aria-label="Add ingredient"
                 >
-                  <Check className="h-3.5 w-3.5 text-green-500" />
-                </span>
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                type="submit"
-                size="icon"
-                disabled={addStep.isPending || !isOnline}
-                title={isOnline ? undefined : OFFLINE_TITLE}
-                aria-label="Add step"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
+            </form>
+            <datalist id="unit-options">
+              {units?.map((u) => (
+                <option key={u.id} value={u.name ?? ""} />
+              ))}
+            </datalist>
+          </div>
+
+          {/* ── Steps ── */}
+          <div className="mb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+              Steps
+            </h2>
+            {sortedSteps.length === 0 && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No steps yet. Add one below.</p>
+            )}
+            {sortedSteps.length > 0 && (
+              <ol className="space-y-3">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleStepDragEnd}
+                >
+                  <SortableContext
+                    items={stepIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {orderedSteps?.map((step, index) => (
+                      <SortableStepItem
+                        key={step.id}
+                        step={step}
+                        index={index}
+                        editText={editingSteps[step.id ?? 0]}
+                        showSaved={!!savedStepIds[step.id ?? 0]}
+                        onTextChange={(text) =>
+                          setEditingSteps((prev) => ({ ...prev, [step.id ?? 0]: text }))
+                        }
+                        onBlur={() => {
+                          const current = editingSteps[step.id ?? 0];
+                          if (current === undefined) return;
+                          if (current === step.text) {
+                            setEditingSteps((prev) => {
+                              const next = { ...prev };
+                              delete next[step.id ?? 0];
+                              return next;
+                            });
+                          } else {
+                            handleSaveStep(step.id ?? 0, step.order ?? 0);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSaveStep(step.id ?? 0, step.order ?? 0);
+                          }
+                        }}
+                        onDelete={() => handleDeleteStep(step.id ?? 0)}
+                        isDeletePending={deleteStep.isPending}
+                        isOnline={isOnline}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              </ol>
+            )}
+            <form onSubmit={handleAddStep} className="mt-4">
+              <div className="flex gap-1 items-center">
+                <div className="relative flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={newStepText}
+                    onChange={(e) => setNewStepText(e.target.value)}
+                    placeholder="Step description..."
+                    className="w-full px-2 py-1.5 pr-7 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                  />
+                  <span
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 ${stepAddedSuccess ? "opacity-100" : "opacity-0"}`}
+                    aria-hidden="true"
+                  >
+                    <Check className="h-3.5 w-3.5 text-green-500" />
+                  </span>
+                </div>
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={addStep.isPending || !isOnline}
+                  title={isOnline ? undefined : OFFLINE_TITLE}
+                  aria-label="Add step"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </>

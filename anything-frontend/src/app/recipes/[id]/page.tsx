@@ -256,7 +256,10 @@ export default function RecipeDetailPage() {
   }, [isEditMode, recipeId, recipe?.link, setHeaderActions, setLeftAction, isOnline]);
 
   return (
-    <div className="max-w-4xl mx-auto">
+    // w-full matters: <main> is a column flex container, and mx-auto on a flex
+    // item disables the default stretch, which sized this page to its content
+    // (roughly half a desktop window) no matter what max-w said.
+    <div className="w-full max-w-6xl mx-auto">
       <PageTitle>{isEditMode ? "Edit Recipe" : "Recipe"}</PageTitle>
 
       {isEditMode ? (
