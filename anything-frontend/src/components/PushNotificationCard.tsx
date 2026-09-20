@@ -1,6 +1,7 @@
 "use client";
 
 import { BellOff, BellRing } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -13,6 +14,19 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 export function PushNotificationCard() {
   const { status, isBusy, enable, disable } = usePushSubscription();
   const isOnline = useOnlineStatus();
+
+  // Both of these can reject — the browser can refuse to subscribe, and the
+  // server call can fail. Without catching, `void enable()` would leave an
+  // unhandled rejection and the user would see the button stop spinning with
+  // nothing else happening at all. An error nothing on screen reflects is
+  // exactly what the toast rules are for.
+  const run = async (action: () => Promise<void>, failure: string) => {
+    try {
+      await action();
+    } catch {
+      toast.error(failure);
+    }
+  };
 
   // Nothing to offer and nothing the user can do about it — a disabled control
   // explaining a server-side configuration gap is just noise on the page.
@@ -34,7 +48,9 @@ export function PushNotificationCard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => void disable()}
+            onClick={() =>
+              void run(disable, "Couldn't turn off notifications for this device. Please try again.")
+            }
             disabled={isBusy || !isOnline}
           >
             <BellOff className="mr-1.5 h-4 w-4" />
@@ -45,7 +61,9 @@ export function PushNotificationCard() {
         {status === "off" && (
           <Button
             size="sm"
-            onClick={() => void enable()}
+            onClick={() =>
+              void run(enable, "Couldn't turn on notifications for this device. Please try again.")
+            }
             disabled={isBusy || !isOnline}
             title={isOnline ? undefined : "Turning on notifications requires an internet connection"}
           >

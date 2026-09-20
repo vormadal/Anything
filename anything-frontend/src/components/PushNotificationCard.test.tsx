@@ -1,6 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PushNotificationCard } from "@/components/PushNotificationCard";
+
+const mockToastError = jest.fn();
+jest.mock("sonner", () => ({
+  toast: { error: (...args: unknown[]) => mockToastError(...args) },
+}));
 
 let mockStatus = "off";
 let mockIsBusy = false;
@@ -21,6 +26,8 @@ describe("PushNotificationCard", () => {
     jest.clearAllMocks();
     mockStatus = "off";
     mockIsBusy = false;
+    mockEnable.mockResolvedValue(undefined);
+    mockDisable.mockResolvedValue(undefined);
   });
 
   it.each(["loading", "unavailable"])("renders nothing while %s", (status) => {
@@ -65,6 +72,44 @@ describe("PushNotificationCard", () => {
 
     expect(screen.getByText(/add the app to your home screen/i)).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("reports a failed subscribe instead of failing silently", async () => {
+    // enable() rejects when the browser refuses or the server call fails.
+    // Unhandled, the button would just stop spinning and the user would be
+    // left with no notifications and no explanation.
+    const user = userEvent.setup();
+    mockEnable.mockRejectedValue(new Error("boom"));
+    render(<PushNotificationCard />);
+
+    await user.click(screen.getByRole("button", { name: /turn on/i }));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(expect.stringMatching(/turn on notifications/i))
+    );
+  });
+
+  it("reports a failed unsubscribe too", async () => {
+    const user = userEvent.setup();
+    mockStatus = "on";
+    mockDisable.mockRejectedValue(new Error("boom"));
+    render(<PushNotificationCard />);
+
+    await user.click(screen.getByRole("button", { name: /turn off/i }));
+
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith(expect.stringMatching(/turn off notifications/i))
+    );
+  });
+
+  it("stays quiet when the action succeeds", async () => {
+    const user = userEvent.setup();
+    mockEnable.mockResolvedValue(undefined);
+    render(<PushNotificationCard />);
+
+    await user.click(screen.getByRole("button", { name: /turn on/i }));
+
+    expect(mockToastError).not.toHaveBeenCalled();
   });
 
   it("disables the control while a subscribe is in flight", () => {
