@@ -985,6 +985,38 @@ async function setupApiMocks(page: Page) {
   await page.route("**/api/events**", (route) => route.abort());
 }
 
+/**
+ * Gives the page a service worker whose PushManager returns
+ * `subscription` — pass null for "supported but not subscribed".
+ *
+ * Required, not a convenience: CI runs the headless shell build, which has no
+ * `navigator.serviceWorker` at all, so an unstubbed page reports push as
+ * unsupported and renders different copy than a developer sees locally in full
+ * Chromium. Stubbing pins the state in both.
+ */
+async function stubPushSupport(page: Page, subscription: { endpoint: string } | null) {
+  await page.addInitScript((endpoint) => {
+    const pushSubscription = endpoint
+      ? { endpoint, getKey: () => null, unsubscribe: async () => true }
+      : null;
+    const registration = {
+      pushManager: {
+        getSubscription: async () => pushSubscription,
+        subscribe: async () => pushSubscription,
+      },
+    };
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        register: async () => registration,
+        getRegistration: async () => registration,
+        ready: Promise.resolve(registration),
+        addEventListener: () => {},
+      },
+    });
+  }, subscription?.endpoint ?? null);
+}
+
 /** Common options for toHaveScreenshot. */
 const screenshotOptions = {
   fullPage: true,
@@ -2678,9 +2710,9 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("notifications - settings", async ({ page }) => {
-    // Chromium supports Web Push and has no subscription here, so this is the
-    // not-yet-subscribed state: the device card offers "Turn on" and the
+    // Supported but not subscribed: the device card offers "Turn on" and the
     // per-category push switches are still hidden.
+    await stubPushSupport(page, null);
     await page.goto("/notifications/settings");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("switch", { name: "Announcements" })).toBeVisible();
@@ -2697,29 +2729,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     // a real one against a fake VAPID key, and the state worth capturing is
     // what subscribing reveals: the per-category "also notify this device"
     // switches, which don't exist until then.
-    await page.addInitScript(() => {
-      const subscription = {
-        endpoint: "https://push.example.com/visual",
-        getKey: () => null,
-        unsubscribe: async () => true,
-      };
-      const registration = {
-        pushManager: {
-          getSubscription: async () => subscription,
-          subscribe: async () => subscription,
-        },
-      };
-      Object.defineProperty(navigator, "serviceWorker", {
-        configurable: true,
-        value: {
-          register: async () => registration,
-          getRegistration: async () => registration,
-          ready: Promise.resolve(registration),
-          addEventListener: () => {},
-        },
-      });
-    });
-
+    await stubPushSupport(page, { endpoint: "https://push.example.com/visual" });
     await page.goto("/notifications/settings");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("button", { name: /turn off/i })).toBeVisible();
