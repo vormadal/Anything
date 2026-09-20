@@ -17,9 +17,6 @@ const UNREAD_COUNT_KEY = ["notificationUnreadCount"] as const;
 const PREFERENCES_KEY = ["notificationPreferences"] as const;
 const PUSH_CONFIG_KEY = ["notificationPushConfig"] as const;
 
-/** What the header popover shows before "see all" takes over. */
-export const NOTIFICATION_POPOVER_LIMIT = 8;
-
 export interface NotificationListOptions {
   unreadOnly?: boolean;
   limit?: number;
