@@ -11,7 +11,7 @@ Reusable UI components shared across multiple pages.
   - Layout/nav: `AppLayout`, `PageTitle`
   - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`, `BillRecurrenceFields` (Recurring/One-time toggle, an optional Amount+Date row right under it — create form only, since edit has no initial-amount concept to bind — then, only while Recurring, Frequency+Payment; shared by `bills/new` and `bills/[id]/edit` so the two forms can't drift out of sync with the backend's recurrence invariant), `BillEntryForm` (the "quick add" amount+date+notes form used by the price-history section on `bills/[id]`), `BillPriceHistorySection` (that price-history list itself — see "Bills detail page" below)
   - Auth: `AuthGuard`
-  - Error: `ErrorBoundary`
+  - Error: `ErrorBoundary`, `LoadErrorState` (the "this section failed to load, it isn't empty" block — see below)
   - PWA: `ServiceWorkerRegistration`, `OfflineBanner` (shown app-wide via `useOnlineStatus()`; the underlying offline read/write support is scoped to shopping list / general checklist items only — see `src/lib/agent.md`)
 - `ui/` — Shadcn UI primitives (`button`, `dialog`, `dropdown-menu`, `sheet`, `combobox-field`, `count-badge`, `sonner`, etc.)
   - Add new Shadcn components manually by copying from the Shadcn docs into this folder
@@ -69,6 +69,34 @@ The note editor is Tiptap (ProseMirror). `NoteWorkspace` is the whole note scree
 `bills/[id]/page.tsx`'s summary card shows one current amount, computed server-side from the *most recent price history entry* (`BillHelpers.ToBillResponse` in the backend). `BillPriceHistorySection` is that price history's "how it got there" log — every recorded price change, newest first.
 
 **There used to be a second, parallel history here — don't reintroduce it.** An earlier iteration of this feature also had `BillAmountEntry` ("amount entries": what was actually paid each period, for a `HasVariableAmount` bill) shown alongside price history behind a tab switch. It was removed at the user's request: `currentAmount` and every spend total (home card, bills list, monthly equivalent — see `GetBillSummaryQuery` in the backend) were *always* computed from price history alone, so amount entries never fed into anything else in the app — it was a second, disconnected log that looked like it should relate to the first but didn't, and the two together read as confusing/redundant rather than as intentionally different concepts. If a future request wants to track period-to-period amount variation again, make it feed the numbers that already exist (current amount, summary totals) rather than sitting beside them unconnected.
+
+## Failed loads are never empty states (`LoadErrorState`)
+
+A React Query result with no data looks identical whether the household owns
+nothing or the request failed — both are `data === undefined`. Rendering the
+empty state for both is how a connectivity problem came to read as "No notes
+yet" on the home page, with nothing on screen saying a load had failed. Rules:
+
+- **Check for a failed load before the empty state, everywhere data is listed.**
+  `loadFailure(...)` from `@/lib/queryState` folds one or more query results
+  into `{ failed, isRetrying, retry }`; render `<LoadErrorState what="notes" …>`
+  when `failed`, and guard the empty state on `!failed` so the two can't stack.
+- **`failed` covers two states, not one.** An errored query, and a query React
+  Query *paused* because the browser went offline before it ever ran (default
+  `networkMode: "online"` — neither loading nor empty). `LoadErrorState` reads
+  `useOnlineStatus()` itself and swaps the explanation, which is why callers
+  don't branch on offline: the old per-card `!isOnline && !data` checks were
+  exactly that branch, duplicated.
+- **Cached data beats an error.** A query holding data from the persisted
+  offline cache is not `failed` — showing something stale beats showing a
+  warning instead of it.
+- **A card that hides itself when empty must not hide on failure.** `BillsCard`
+  returns `null` for a household with no bills; on a failed load it renders the
+  section with the error instead, because disappearing is indistinguishable
+  from "you have no bills".
+- Visual coverage lives in two snapshots — `home-load-error` (card context) and
+  `notes-load-error` (page context, with the retry button). Reuse the component
+  rather than adding a per-page variant, and those two keep covering it.
 
 ## Toast usage rules (sonner)
 

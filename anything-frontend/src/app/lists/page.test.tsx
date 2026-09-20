@@ -67,7 +67,7 @@ describe('ListsPage', () => {
     mockShoppingListsGet.mockRejectedValue(new Error('API error'))
     render(<ListsPage />)
     await waitFor(() => {
-      expect(screen.getByText(/Failed to load lists/i)).toBeInTheDocument()
+      expect(screen.getByText(/Couldn't load lists/i)).toBeInTheDocument()
     })
   })
 

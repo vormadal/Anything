@@ -7,6 +7,8 @@ import { PageTitle } from "@/components/PageTitle";
 import { useBills, useBillSummary, FREQUENCY_LABELS } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
 import { isSafeUrl } from "@/lib/utils";
+import { LoadErrorState } from "@/components/LoadErrorState";
+import { loadFailure } from "@/lib/queryState";
 import {
   Plus,
   ChevronRight,
@@ -27,7 +29,9 @@ function formatCurrency(amount: number): string {
 
 export default function BillsPage() {
   const router = useRouter();
-  const { data: bills, isLoading } = useBills();
+  const billsQuery = useBills();
+  const { data: bills, isLoading } = billsQuery;
+  const billsLoad = loadFailure(billsQuery);
   const { data: billSummary } = useBillSummary();
   const { setHeaderActions } = useHeaderActions();
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -147,7 +151,10 @@ export default function BillsPage() {
       {isLoading && (
         <div className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">Loading...</div>
       )}
-      {!isLoading && filtered.length === 0 && (
+      {billsLoad.failed && (
+        <LoadErrorState what="bills" onRetry={billsLoad.retry} isRetrying={billsLoad.isRetrying} />
+      )}
+      {!isLoading && !billsLoad.failed && filtered.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             {(bills ?? []).length === 0 ? "No bills yet." : "No bills match the current filters."}

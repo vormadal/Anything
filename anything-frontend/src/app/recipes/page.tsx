@@ -12,6 +12,8 @@ import { Search, X, CookingPot, Plus, CalendarPlus, Clock, Users, Package, Layer
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
+import { LoadErrorState } from "@/components/LoadErrorState";
+import { loadFailure } from "@/lib/queryState";
 
 const MAX_VISIBLE_TAGS = 3;
 
@@ -116,7 +118,9 @@ export default function RecipesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { data: recipes, isLoading, error } = useRecipes(debouncedSearch || undefined, activeTag ?? undefined);
+  const recipesQuery = useRecipes(debouncedSearch || undefined, activeTag ?? undefined);
+  const { data: recipes, isLoading } = recipesQuery;
+  const recipesLoad = loadFailure(recipesQuery);
   const { data: topTags } = useTopRecipeTags(10);
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
@@ -214,13 +218,16 @@ export default function RecipesPage() {
         </div>
       )}
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4">
-          Failed to load recipes. Please try again later.
-        </div>
+      {recipesLoad.failed && (
+        <LoadErrorState
+          what="recipes"
+          onRetry={recipesLoad.retry}
+          isRetrying={recipesLoad.isRetrying}
+          className="mb-4"
+        />
       )}
 
-      {recipes?.length === 0 && !isLoading && !error && (
+      {recipes?.length === 0 && !isLoading && !recipesLoad.failed && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           {hasActiveFilter
             ? "No recipes match your search."

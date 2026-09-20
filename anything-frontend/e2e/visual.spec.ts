@@ -30,7 +30,7 @@
  * data so that screenshots are stable across environments and over time.
  */
 
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page, Route } from "@playwright/test";
 
 // ---------------------------------------------------------------------------
 // Fixed clock date – keeps date-sensitive UI strings consistent across runs.
@@ -1144,6 +1144,48 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-empty.png", screenshotOptions);
   });
 
+  test("home page - load error state", async ({ page }) => {
+    // The regression this guards: a failed load leaves React Query with no
+    // data, which used to render exactly like an empty household ("No notes
+    // yet", "No meals planned", Bills card gone). Every card must say the
+    // load failed instead.
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "foodplan", sortOrder: 0, isVisible: true },
+            { cardKey: "notes", sortOrder: 1, isVisible: true },
+            { cardKey: "lists", sortOrder: 2, isVisible: true },
+            { cardKey: "bills", sortOrder: 3, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    const fail = (route: Route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ status: 500, json: { error: "Internal Server Error" } });
+      } else {
+        route.continue();
+      }
+    };
+    await page.route("**/api/food-plan/entries**", fail);
+    await page.route("**/api/notes**", fail);
+    await page.route("**/api/checklists**", fail);
+    await page.route("**/api/bills/summary**", fail);
+
+    await page.goto("/");
+    // Each card retries before giving up, so wait on the messages themselves
+    // rather than networkidle, which resolves during the retry backoff.
+    await expect(page.getByText("Couldn't load today's menu")).toBeVisible();
+    await expect(page.getByText("Couldn't load notes")).toBeVisible();
+    await expect(page.getByText("Couldn't load lists")).toBeVisible();
+    await expect(page.getByText("Couldn't load bills")).toBeVisible();
+    await expect(page.getByText("No notes yet. Jot down anything you want to keep.")).toHaveCount(0);
+    await expect(page).toHaveScreenshot("home-load-error.png", screenshotOptions);
+  });
+
   test("home page - note without meals", async ({ page }) => {
     // No meals planned for today, but a note exists for the day
     await page.route("**/api/food-plan/entries**", (route) =>
@@ -1244,7 +1286,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await page.getByLabel("Search everything").fill("pasta");
-    await expect(page.getByText("Search failed. Try again.")).toBeVisible();
+    await expect(page.getByText("Couldn't load search results")).toBeVisible();
     await expect(page).toHaveScreenshot("home-search-card-error.png", screenshotOptions);
   });
 
@@ -1290,6 +1332,23 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByText(/No notes yet/)).toBeVisible();
     await expect(page).toHaveScreenshot("notes-empty.png", screenshotOptions);
+  });
+
+  test("notes - load error state", async ({ page }) => {
+    // Covers the shared LoadErrorState at page scale (with its retry button);
+    // the home-page test covers the same component in a card.
+    await page.route("**/api/notes**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ status: 500, json: { error: "Internal Server Error" } });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/notes");
+    await expect(page.getByText("Couldn't load notes")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(page.getByText(/No notes yet/)).toHaveCount(0);
+    await expect(page).toHaveScreenshot("notes-load-error.png", screenshotOptions);
   });
 
   test("note detail - always-on editor with the title in the header", async ({ page }) => {
