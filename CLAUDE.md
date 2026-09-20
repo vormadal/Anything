@@ -295,6 +295,17 @@ global, **any new visual snapshot needs `**/api/notifications/unread-count**`
 mocked** or `networkidle` never resolves — `setupApiMocks` already does it, and
 returns `0` so the badge doesn't churn every unrelated baseline.
 
+The push client is `@/lib/push.ts` (browser plumbing), `usePushSubscription`
+(the two halves of a subscription, kept in step) and `PushNotificationCard` —
+see the frontend `agent.md`s for the ordering rules and why the status enum
+distinguishes "unsupported" from "unavailable" from "denied". The service
+worker gained `push`/`notificationclick` handlers; `push` must always show a
+notification, because browsers require one per push (`userVisibleOnly`) and a
+silent push can cost the site its permission — so a malformed payload still
+falls back to a generic title rather than returning early. **`/push/config` is
+mocked in `setupApiMocks` for the same reason as the badge**: Chromium really
+does support Web Push, so the settings page requests it on every visit.
+
 Bills (`/api/bills`) — household-scoped subscriptions/expenses (`Bill`), each optionally
 tracking `BillPriceHistory` (price over time, `EffectiveDate`/optional `EndDate` ranges,
 overlap-validated with a 409 on conflict) and `BillAttachment`s (receipts/contracts, the

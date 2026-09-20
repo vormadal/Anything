@@ -8,6 +8,18 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "/notifications/settings",
 }));
 
+let mockPushStatus: string = "unsupported";
+const mockEnable = jest.fn();
+const mockDisable = jest.fn();
+jest.mock("@/hooks/usePushSubscription", () => ({
+  usePushSubscription: () => ({
+    status: mockPushStatus,
+    isBusy: false,
+    enable: mockEnable,
+    disable: mockDisable,
+  }),
+}));
+
 const mockPreferencesGet = jest.fn();
 const mockPreferencesPut = jest.fn();
 
@@ -28,6 +40,7 @@ describe("NotificationSettingsPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPreferencesPut.mockResolvedValue(undefined);
+    mockPushStatus = "unsupported";
   });
 
   it("renders a labelled toggle per category", async () => {
@@ -42,6 +55,84 @@ describe("NotificationSettingsPage", () => {
       expect(screen.getByRole("switch", { name: "Announcements" })).toBeChecked()
     );
     expect(screen.getByRole("switch", { name: "Household members" })).not.toBeChecked();
+  });
+
+  it("hides the per-category push switch until this device is subscribed", async () => {
+    mockPushStatus = "off";
+    mockPreferencesGet.mockResolvedValue([
+      { category: "announcement", inAppEnabled: true, pushEnabled: true },
+    ]);
+
+    renderWithClient(<NotificationSettingsPage />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("switch", { name: "Announcements" })).toBeInTheDocument()
+    );
+    // A push switch would be a setting for something that cannot happen.
+    expect(
+      screen.queryByRole("switch", { name: /Also notify this device/ })
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers the per-category push switch once subscribed", async () => {
+    mockPushStatus = "on";
+    mockPreferencesGet.mockResolvedValue([
+      { category: "announcement", inAppEnabled: true, pushEnabled: false },
+    ]);
+
+    renderWithClient(<NotificationSettingsPage />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("switch", { name: "Also notify this device about Announcements" })
+      ).not.toBeChecked()
+    );
+  });
+
+  it("sends only the push switch when the push toggle is flipped", async () => {
+    const user = userEvent.setup();
+    mockPushStatus = "on";
+    mockPreferencesGet.mockResolvedValue([
+      { category: "announcement", inAppEnabled: true, pushEnabled: true },
+    ]);
+
+    renderWithClient(<NotificationSettingsPage />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("switch", { name: "Also notify this device about Announcements" })
+      ).toBeInTheDocument()
+    );
+    await user.click(
+      screen.getByRole("switch", { name: "Also notify this device about Announcements" })
+    );
+
+    // No inAppEnabled in the payload — omitting it is what stops one toggle
+    // resetting the other.
+    await waitFor(() =>
+      expect(mockPreferencesPut).toHaveBeenCalledWith({
+        preferences: [{ category: "announcement", pushEnabled: false }],
+      })
+    );
+  });
+
+  it("disables the push switch while the category itself is off", async () => {
+    // Push narrows in-app: with no notification there is nothing to push.
+    mockPushStatus = "on";
+    mockPreferencesGet.mockResolvedValue([
+      { category: "announcement", inAppEnabled: false, pushEnabled: true },
+    ]);
+
+    renderWithClient(<NotificationSettingsPage />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("switch", { name: "Also notify this device about Announcements" })
+      ).toBeDisabled()
+    );
+    expect(
+      screen.getByRole("switch", { name: "Also notify this device about Announcements" })
+    ).not.toBeChecked();
   });
 
   it("sends only the toggled category, because the update is partial", async () => {

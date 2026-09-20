@@ -637,6 +637,11 @@ const mockNotifications = [
   },
 ];
 
+// A syntactically valid (not real) VAPID public key: 65 base64url-encoded
+// bytes, which is what vapidKeyToBytes decodes and PushManager expects.
+const MOCK_VAPID_PUBLIC_KEY =
+  "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM";
+
 const mockNotificationPreferences = [
   { category: "announcement", inAppEnabled: true },
   { category: "householdmember", inAppEnabled: false },
@@ -965,6 +970,15 @@ async function setupApiMocks(page: Page) {
       route.fulfill({ status: 204, body: "" });
     }
   });
+  // Push. The settings page reads this on every visit, and a real Chromium
+  // *does* support Web Push — so without a route here the request goes
+  // unmocked and networkidle never resolves.
+  await page.route("**/api/notifications/push/config**", (route) =>
+    route.fulfill({ json: { enabled: true, publicKey: MOCK_VAPID_PUBLIC_KEY } })
+  );
+  await page.route("**/api/notifications/push/devices**", (route) =>
+    route.fulfill({ status: 204, body: "" })
+  );
 
   // Block SSE / EventSource connections — no backend is running in visual tests,
   // and an open or retrying EventSource would prevent networkidle from resolving.
@@ -2664,12 +2678,56 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   });
 
   test("notifications - settings", async ({ page }) => {
+    // Chromium supports Web Push and has no subscription here, so this is the
+    // not-yet-subscribed state: the device card offers "Turn on" and the
+    // per-category push switches are still hidden.
     await page.goto("/notifications/settings");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("switch", { name: "Announcements" })).toBeVisible();
     await expect(page.getByRole("switch", { name: "Household members" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /turn on/i })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "notifications-settings.png",
+      screenshotOptions
+    );
+  });
+
+  test("notifications - settings with push enabled on this device", async ({ page }) => {
+    // Pretend the browser already holds a subscription. There's no way to mint
+    // a real one against a fake VAPID key, and the state worth capturing is
+    // what subscribing reveals: the per-category "also notify this device"
+    // switches, which don't exist until then.
+    await page.addInitScript(() => {
+      const subscription = {
+        endpoint: "https://push.example.com/visual",
+        getKey: () => null,
+        unsubscribe: async () => true,
+      };
+      const registration = {
+        pushManager: {
+          getSubscription: async () => subscription,
+          subscribe: async () => subscription,
+        },
+      };
+      Object.defineProperty(navigator, "serviceWorker", {
+        configurable: true,
+        value: {
+          register: async () => registration,
+          getRegistration: async () => registration,
+          ready: Promise.resolve(registration),
+          addEventListener: () => {},
+        },
+      });
+    });
+
+    await page.goto("/notifications/settings");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("button", { name: /turn off/i })).toBeVisible();
+    await expect(
+      page.getByRole("switch", { name: "Also notify this device about Announcements" })
+    ).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "notifications-settings-push-on.png",
       screenshotOptions
     );
   });

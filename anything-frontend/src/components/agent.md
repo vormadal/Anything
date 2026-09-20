@@ -105,3 +105,21 @@ the toast rules: the sender is excluded from their own announcement, so nothing
 on their screen changes. The toast reports the recipient *count*, which is the
 part they can't see — and it's lower than the member count when someone has
 switched announcements off.
+
+## PushNotificationCard
+
+This device's subscription, shown above the per-category switches on
+`/notifications/settings` because it answers a different question: the switches
+decide *what* you'd be notified about, this decides whether *this browser* gets
+woken at all.
+
+It renders nothing for `loading` and `unavailable` — a disabled control
+explaining a server-side configuration gap is noise, not information — and
+renders an explanation with **no button** for `denied` and `unsupported`, since
+a blocked site can't re-prompt from script and an unsupported browser never
+could. Only `off`/`on` get an actionable control.
+
+The per-category "also notify this device" switches appear only once the device
+is actually subscribed, and are **disabled while that category's in-app switch
+is off**: push narrows in-app, so with no notification there is nothing to push
+and an enabled switch would imply otherwise.
