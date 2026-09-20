@@ -986,35 +986,56 @@ async function setupApiMocks(page: Page) {
 }
 
 /**
- * Gives the page a service worker whose PushManager returns
- * `subscription` — pass null for "supported but not subscribed".
+ * Pins the browser's push capability: a service worker whose PushManager
+ * returns `subscription` (null for "supported but not subscribed"), and a
+ * Notification permission.
  *
- * Required, not a convenience: CI runs the headless shell build, which has no
- * `navigator.serviceWorker` at all, so an unstubbed page reports push as
- * unsupported and renders different copy than a developer sees locally in full
- * Chromium. Stubbing pins the state in both.
+ * Both halves are required, and for different reasons — this cost two CI
+ * round trips:
+ *  - CI runs the headless shell, which has **no `navigator.serviceWorker`**,
+ *    so an unstubbed page reports push unsupported while full Chromium
+ *    (what a web session verifies against locally) reports it supported.
+ *  - Headless Chrome defaults `Notification.permission` to **"denied"**, so
+ *    even with a worker the page renders the blocked copy rather than an
+ *    actionable "Turn on".
+ * Neither shows up locally, and an already-subscribed page hides both
+ * (usePushSubscription resolves "on" before "denied").
  */
-async function stubPushSupport(page: Page, subscription: { endpoint: string } | null) {
-  await page.addInitScript((endpoint) => {
-    const pushSubscription = endpoint
-      ? { endpoint, getKey: () => null, unsubscribe: async () => true }
-      : null;
-    const registration = {
-      pushManager: {
-        getSubscription: async () => pushSubscription,
-        subscribe: async () => pushSubscription,
-      },
-    };
-    Object.defineProperty(navigator, "serviceWorker", {
-      configurable: true,
-      value: {
-        register: async () => registration,
-        getRegistration: async () => registration,
-        ready: Promise.resolve(registration),
-        addEventListener: () => {},
-      },
-    });
-  }, subscription?.endpoint ?? null);
+async function stubPushSupport(
+  page: Page,
+  subscription: { endpoint: string } | null,
+  permission: "default" | "granted" | "denied" = "default"
+) {
+  await page.addInitScript(
+    ({ endpoint, permission: notificationPermission }) => {
+      const pushSubscription = endpoint
+        ? { endpoint, getKey: () => null, unsubscribe: async () => true }
+        : null;
+      const registration = {
+        pushManager: {
+          getSubscription: async () => pushSubscription,
+          subscribe: async () => pushSubscription,
+        },
+      };
+      Object.defineProperty(navigator, "serviceWorker", {
+        configurable: true,
+        value: {
+          register: async () => registration,
+          getRegistration: async () => registration,
+          ready: Promise.resolve(registration),
+          addEventListener: () => {},
+        },
+      });
+      Object.defineProperty(window, "Notification", {
+        configurable: true,
+        value: {
+          permission: notificationPermission,
+          requestPermission: async () => notificationPermission,
+        },
+      });
+    },
+    { endpoint: subscription?.endpoint ?? null, permission }
+  );
 }
 
 /** Common options for toHaveScreenshot. */
