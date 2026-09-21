@@ -2755,19 +2755,35 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("notifications-empty.png", screenshotOptions);
   });
 
-  test("notifications - unread badge on the header bell", async ({ page }) => {
+  test("notifications - unread badge on the burger menu", async ({ page }) => {
     // The default mocks return a zero count so every other snapshot shows a
-    // bare bell; this is the one place the badge is exercised.
+    // bare burger; these two are the only places the badge is exercised.
     await page.route("**/api/notifications/unread-count**", (route) =>
       route.fulfill({ json: { count: 4 } })
     );
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await expect(
-      page.getByRole("link", { name: "Notifications, 4 unread" })
+      page.getByRole("button", { name: "Open menu, 4 unread notifications" })
     ).toBeVisible();
     await expect(page).toHaveScreenshot(
-      "notifications-header-badge.png",
+      "notifications-burger-badge.png",
+      screenshotOptions
+    );
+  });
+
+  test("notifications - unread badge on the drawer entry", async ({ page }) => {
+    await page.route("**/api/notifications/unread-count**", (route) =>
+      route.fulfill({ json: { count: 4 } })
+    );
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /Open menu/ }).click();
+    await expect(
+      page.getByRole("dialog").getByRole("button", { name: "Notifications, 4 unread" })
+    ).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "notifications-drawer-badge.png",
       screenshotOptions
     );
   });

@@ -227,7 +227,8 @@ creates a notification goes through `INotificationDispatcher`
 it commits on its own and must be called *after* the calling handler saves.
 Endpoints: `GET /` (`?unreadOnly=`/`?limit=`, hard-capped at
 `GetNotificationsHandler.MaxResults`), `GET /unread-count` (separate so the
-header badge doesn't pull bodies), `POST /` (household-manager announcement),
+badge doesn't pull bodies), `GET /sent` (the caller's own send history),
+`POST /` (household-manager announcement),
 `PUT /{id}/read`, `PUT /read-all`, `DELETE /{id}` (soft delete), plus
 `GET`/`PUT /preferences`.
 
@@ -239,6 +240,15 @@ are **opt-out** — an absent row means enabled, so adding a key to
 `NotificationCategories.All` reaches existing users with no backfill, exactly
 like `HomeCardKeys.All` (and, exactly like it, `NotificationEndpointTests`
 asserts the full default list and must be updated in the same change).
+
+`GET /sent` is the one read that goes by author rather than recipient. Dispatch
+fans a send out into one row per recipient sharing a single `CreatedOn`, so the
+handler reconstructs the send by grouping on that timestamp plus the text, and
+reports `Recipients`/`ReadCount` off the group. Two deliberate choices there:
+soft-deleted rows are **counted** (a recipient dismissing their copy is not an
+unsend, and filtering them would shrink a number that already went out), and the
+endpoint is authorized but *not* manager-gated — it returns nothing but the
+caller's own history, so a demoted manager can still see what they sent.
 
 Delivery is in-app only today; the realtime nudge reuses the existing SSE
 channel via `SyncEvent.Notifications()`, which is **contentless on purpose** —
@@ -289,12 +299,15 @@ The library is `Lib.Net.Http.WebPush` (its net6.0 target pulls only
 `WebPush` package which drags in BouncyCastle and Newtonsoft). It exports its own
 `PushSubscription` type, which is why the entity is called `PushDevice`.
 
-Frontend: `useNotifications.ts` (inbox, badge, preferences — the badge is its
-own query key because `NotificationBell` renders in the global header on every
-page), `/notifications` and `/notifications/settings`. Because the bell is
-global, **any new visual snapshot needs `**/api/notifications/unread-count**`
-mocked** or `networkidle` never resolves — `setupApiMocks` already does it, and
-returns `0` so the badge doesn't churn every unrelated baseline.
+Frontend: `useNotifications.ts` (inbox, badge, sent history, preferences — the
+badge is its own query key because `AppLayout` renders it on every page),
+`/notifications`, `/notifications/sent` and `/notifications/settings`. There is
+deliberately **no notification control in the header**: the unread count badges
+the burger button and the drawer's Notifications entry instead
+(`NotificationBadge`). The count is still fetched everywhere, so **any new
+visual snapshot needs `**/api/notifications/unread-count**` mocked** or
+`networkidle` never resolves — `setupApiMocks` already does it, and returns `0`
+so the badge doesn't churn every unrelated baseline.
 
 The push client is `@/lib/push.ts` (browser plumbing), `usePushSubscription`
 (the two halves of a subscription, kept in step) and `PushNotificationCard` —

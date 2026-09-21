@@ -125,19 +125,34 @@ A toast's only job is to communicate an outcome the user **cannot otherwise see 
 - **Screen already changes** — a dialog closes on success, or navigation lands on a page showing the result.
 - **Form validation** — use an inline field error message (`<p role="alert" className="text-sm text-red-600 dark:text-red-400">`) and keep native `required`, never a toast. Auth pages (login, register) surface *all* errors inline, including the async auth failure; in-app forms keep validation inline but may toast the async outcome.
 
-## NotificationBell / SendNotificationDialog
+## NotificationBadge / SendNotificationDialog
 
-`NotificationBell` is mounted once in `AppLayout`'s header, so it shows on every
-authenticated page — which means **every visual snapshot includes it**, and the
-visual spec's default mocks return an unread count of `0` on purpose so the
-badge doesn't alter ~130 unrelated baselines (one dedicated test covers the
-badge). It also means `**/api/notifications/unread-count**` must stay mocked in
-`setupApiMocks`: unmocked, the request never settles and `networkidle` never
-resolves on any page.
+`NotificationBadge` is the unread-count pill, and it is **not a control**. There
+used to be a `NotificationBell` link of its own in `AppLayout`'s header; it put
+a notification affordance on every authenticated page for something most visits
+never act on, so the count now decorates two things that are already there — the
+burger button, and the drawer's Notifications entry — and the header carries no
+extra icon.
 
-The bell carries its count in its `aria-label` ("Notifications, 3 unread"), not
-only in the badge, so tests and screen readers read the same thing and the badge
-stays free to abbreviate (`99+`).
+Two consequences worth knowing:
+
+- **The count is still fetched on every authenticated page**, since `AppLayout`
+  itself calls `useUnreadNotificationCount`. `**/api/notifications/unread-count**`
+  must therefore stay mocked in `setupApiMocks` — unmocked, the request never
+  settles and `networkidle` never resolves on any page — and the visual spec's
+  default mocks return `0` on purpose so the badge doesn't alter ~130 unrelated
+  baselines (two dedicated tests cover the badged states).
+- **The count belongs to the host control's accessible name, never the badge.**
+  The badge is always `aria-hidden`; the burger reads "Open menu, 4 unread
+  notifications" and the drawer entry "Notifications, 4 unread". A badge
+  announced on its own is a stray "4", and keeping the number in the name leaves
+  the badge free to abbreviate (`99+`). Note the burger's name is therefore
+  *dynamic* — a selector matching it exactly (`{ name: "Open menu" }` in RTL)
+  breaks as soon as something is unread.
+
+One thing the move gives up on purpose: pages that set a back arrow instead of
+the burger (`leftAction: "back"`) show no badge at all. Those are detail pages
+reached from somewhere that did show it.
 
 `SendNotificationDialog` is one of the legitimate `toast.success` cases under
 the toast rules: the sender is excluded from their own announcement, so nothing

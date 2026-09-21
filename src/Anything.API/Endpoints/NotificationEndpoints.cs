@@ -18,6 +18,12 @@ public class NotificationListQueryParameters
     public int? Limit { get; set; }
 }
 
+public class SentNotificationQueryParameters
+{
+    // Nullable for the same reason as NotificationListQueryParameters.Limit.
+    public int? Limit { get; set; }
+}
+
 public static class NotificationEndpoints
 {
     public static void MapNotificationEndpoints(this IEndpointRouteBuilder app)
@@ -50,6 +56,25 @@ public static class NotificationEndpoints
         })
         .WithName("GetUnreadNotificationCount")
         .Produces<UnreadNotificationCountResponse>()
+        .RequireAuthorization();
+
+        // The author's own view of what they sent, as opposed to "/" which reads
+        // the caller's inbox. Not manager-gated even though only a manager can
+        // send: it returns nothing but the caller's own history, and a demoted
+        // manager should still be able to see what they sent while they were one.
+        group.MapGet("/sent", async (
+            [AsParameters] SentNotificationQueryParameters parameters,
+            ClaimsPrincipal user,
+            IMediator mediator) =>
+        {
+            if (!TryGetUserId(user, out var userId))
+                return Results.Unauthorized();
+
+            return Results.Ok(await mediator.Send(
+                new GetSentNotificationsQuery(userId, parameters.Limit)));
+        })
+        .WithName("GetSentNotifications")
+        .Produces<List<SentNotificationResponse>>()
         .RequireAuthorization();
 
         group.MapPost("/", async (SendNotificationRequest request, ClaimsPrincipal user, IMediator mediator) =>
