@@ -157,7 +157,8 @@ export function GeneralChecklistEditMode({ listId }: Props) {
   const [editingItem, setEditingItem] = useState<{ id: number; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: items, isLoading, error } = useShoppingListItems(listId);
+  const itemsQuery = useShoppingListItems(listId);
+  const { data: items } = itemsQuery;
   const addItem = useAddShoppingListItem(listId);
   const updateItem = useUpdateShoppingListItem(listId);
   const reorderItems = useReorderShoppingListItems(listId);
@@ -247,11 +248,7 @@ export function GeneralChecklistEditMode({ listId }: Props) {
         </div>
       </form>
 
-      <ListItemsStatus
-        isLoading={isLoading}
-        error={error}
-        isEmpty={!!items && items.length === 0}
-      />
+      <ListItemsStatus query={itemsQuery} isEmpty={!!items && items.length === 0} />
 
       {items && items.length > 0 && (
         <DndContext

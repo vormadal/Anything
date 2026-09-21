@@ -94,9 +94,20 @@ yet" on the home page, with nothing on screen saying a load had failed. Rules:
   returns `null` for a household with no bills; on a failed load it renders the
   section with the error instead, because disappearing is indistinguishable
   from "you have no bills".
-- Visual coverage lives in two snapshots — `home-load-error` (card context) and
-  `notes-load-error` (page context, with the retry button). Reuse the component
-  rather than adding a per-page variant, and those two keep covering it.
+- **`ListItemsStatus` takes the query, not `isLoading`/`error` booleans.** Those
+  two flags cannot express a paused query, so a cold offline open of a list this
+  device had never loaded rendered *nothing at all*: not loading, not errored,
+  and `isEmpty` false because `items` was `undefined` rather than `[]`. It is the
+  shared status block for all four list views (shopping/general × view/edit), so
+  the fix covers them together.
+- Offline support for lists is unaffected by any of this: the persisted cache
+  means a list opened before still has `data`, so it renders its items (and the
+  item outbox still queues writes) rather than a failure. The error only appears
+  when there is genuinely nothing cached.
+- Visual coverage lives in three snapshots — `home-load-error` (card context),
+  `notes-load-error` (page context, with the retry button) and
+  `list-detail-items-load-error` (the list body). Reuse the component rather than
+  adding a per-page variant, and those keep covering it.
 
 ## Toast usage rules (sonner)
 

@@ -108,7 +108,8 @@ interface Props {
 }
 
 export function ShoppingListView({ listId }: Props) {
-  const { data: items, isLoading, error } = useShoppingListItems(listId);
+  const itemsQuery = useShoppingListItems(listId);
+  const { data: items } = itemsQuery;
   const updateItem = useUpdateShoppingListItem(listId);
   const completeList = useCompleteShoppingList();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -198,11 +199,7 @@ export function ShoppingListView({ listId }: Props) {
         onComplete={() => { setConfirmDialogOpen(false); handleCompleteList(true); }}
       />
 
-      <ListItemsStatus
-        isLoading={isLoading}
-        error={error}
-        isEmpty={!!items && items.length === 0}
-      />
+      <ListItemsStatus query={itemsQuery} isEmpty={!!items && items.length === 0} />
 
       {items && items.length > 0 && (
         <>

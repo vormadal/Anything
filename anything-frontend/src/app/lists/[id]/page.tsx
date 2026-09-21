@@ -22,6 +22,8 @@ import { ShoppingListView } from "@/app/shopping-lists/[id]/ShoppingListView";
 import { ShoppingListEditMode } from "@/app/shopping-lists/[id]/ShoppingListEditMode";
 import { GeneralChecklistView } from "./GeneralChecklistView";
 import { GeneralChecklistEditMode } from "./GeneralChecklistEditMode";
+import { LoadErrorState } from "@/components/LoadErrorState";
+import { loadFailure } from "@/lib/queryState";
 
 export default function ListDetailPage() {
   const params = useParams();
@@ -44,7 +46,13 @@ export default function ListDetailPage() {
   const openEditNameDialogRef = useRef<() => void>(() => undefined);
   const [showAddToTemplateDialog, setShowAddToTemplateDialog] = useState(false);
 
-  const { data: list } = useShoppingList(listId);
+  const listQuery = useShoppingList(listId);
+  const { data: list } = listQuery;
+  // `useShoppingList` seeds itself from the cached lists, so this only fires
+  // when the list is genuinely unavailable — an outage, or an offline open of
+  // a list this device has never loaded. Showing the views instead would put
+  // an untitled page above a second copy of the same failure.
+  const listLoad = loadFailure(listQuery);
 
   const deleteList = useDeleteShoppingList();
   const convertType = useConvertShoppingListType();
@@ -190,7 +198,13 @@ export default function ListDetailPage() {
           <span>From template: {sourceTemplate.name}</span>
         </div>
       )}
-      {isEditMode ? (
+      {listLoad.failed ? (
+        <LoadErrorState
+          what="this list"
+          onRetry={listLoad.retry}
+          isRetrying={listLoad.isRetrying}
+        />
+      ) : isEditMode ? (
         isGeneral ? (
           <GeneralChecklistEditMode listId={listId} />
         ) : (

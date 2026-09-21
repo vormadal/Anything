@@ -107,7 +107,7 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to load items/i)).toBeInTheDocument()
+      expect(screen.getByText(/Couldn't load items/i)).toBeInTheDocument()
     })
   })
 

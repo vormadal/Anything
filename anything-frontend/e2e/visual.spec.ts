@@ -2029,6 +2029,23 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  test("list detail - items load error state", async ({ page }) => {
+    // The list itself still resolves (it is cached from the lists page in real
+    // use), so this is the items-only failure: previously a paused/failed items
+    // query rendered nothing at all under the title.
+    await page.route(/\/api\/checklists\/\d+\/items/, (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ status: 500, json: { error: "Internal Server Error" } });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/lists/1");
+    await expect(page.getByText("Couldn't load items")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(page).toHaveScreenshot("list-detail-items-load-error.png", screenshotOptions);
+  });
+
   test("create list dialog - default (checklist)", async ({ page }) => {
     await page.goto("/lists");
     await page.waitForSelector('[aria-label="New list"]');

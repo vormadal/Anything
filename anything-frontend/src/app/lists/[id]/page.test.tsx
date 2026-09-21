@@ -87,6 +87,20 @@ describe('ListDetailPage', () => {
     expect(screen.getByText('List')).toBeInTheDocument()
   })
 
+  it("says the list couldn't be loaded when it is unavailable", async () => {
+    mockGet.mockRejectedValue(new Error('API error'))
+    mockItemsGet.mockResolvedValue([])
+
+    render(<ListDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load this list")).toBeInTheDocument()
+    })
+    // The views would otherwise render under an untitled page and report the
+    // same failure a second time.
+    expect(screen.queryByText('No items yet.')).not.toBeInTheDocument()
+  })
+
   it('shows Rename in action menu when not in edit mode', async () => {
     const user = userEvent.setup()
     mockGet.mockResolvedValue({ id: 1, name: 'My List', type: 1 })
