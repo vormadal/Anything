@@ -604,8 +604,8 @@ const mockPendingInvites = [
   },
 ];
 
-// Notifications. The default unread count is 0 so the header bell renders
-// without a badge on every other page's snapshot — the badge gets its own test
+// Notifications. The default unread count is 0 so the burger button renders
+// without a badge on every other page's snapshot — the badge gets its own tests
 // below rather than altering ~130 unrelated baselines.
 const mockNotifications = [
   {
@@ -634,6 +634,26 @@ const mockNotifications = [
     linkUrl: null,
     createdOn: "2025-01-12T11:00:00Z",
     readOn: "2025-01-12T12:00:00Z",
+  },
+];
+
+// One row per send, not per recipient — the endpoint groups the fan-out.
+const mockSentNotifications = [
+  {
+    category: "announcement",
+    title: "Bin day moved to Thursday",
+    body: "The council changed the collection day for this week only.",
+    sentOn: "2025-01-15T08:30:00Z",
+    recipients: 4,
+    readCount: 2,
+  },
+  {
+    category: "announcement",
+    title: "Summerhouse keys are in the drawer",
+    body: null,
+    sentOn: "2025-01-12T11:00:00Z",
+    recipients: 1,
+    readCount: 1,
   },
 ];
 
@@ -949,9 +969,9 @@ async function setupApiMocks(page: Page) {
   );
 
   // ---- Notifications ----
-  // The header bell is on every authenticated page, so the unread-count route
-  // has to exist for every snapshot — without it the request goes unmocked and
-  // networkidle never settles.
+  // AppLayout reads the unread count on every authenticated page (it badges the
+  // burger button), so this route has to exist for every snapshot — without it
+  // the request goes unmocked and networkidle never settles.
   await page.route("**/api/notifications**", (route) => {
     if (route.request().method() === "GET") {
       route.fulfill({ json: mockNotifications });
@@ -962,6 +982,9 @@ async function setupApiMocks(page: Page) {
   // More-specific (LIFO: registered after → higher priority)
   await page.route("**/api/notifications/unread-count**", (route) =>
     route.fulfill({ json: { count: 0 } })
+  );
+  await page.route("**/api/notifications/sent**", (route) =>
+    route.fulfill({ json: mockSentNotifications })
   );
   await page.route("**/api/notifications/preferences**", (route) => {
     if (route.request().method() === "GET") {
@@ -2716,6 +2739,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Bin day moved to Thursday")).toBeVisible();
     await expect(page.getByRole("button", { name: /mark all read/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Sent announcements" })).toBeVisible();
     await expect(page).toHaveScreenshot("notifications-inbox.png", screenshotOptions);
   });
 
@@ -2801,6 +2825,32 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  test("notifications - sent history", async ({ page }) => {
+    await page.goto("/notifications/sent");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Bin day moved to Thursday")).toBeVisible();
+    // Reach is the reason this page exists — assert it directly so a stale
+    // baseline can't pass while showing a list without it.
+    await expect(page.getByText(/4 recipients · 2 read/)).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "notifications-sent.png",
+      screenshotOptions
+    );
+  });
+
+  test("notifications - sent history, nothing sent yet", async ({ page }) => {
+    await page.route("**/api/notifications/sent**", (route) =>
+      route.fulfill({ json: [] })
+    );
+    await page.goto("/notifications/sent");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/haven't sent any announcements yet/)).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "notifications-sent-empty.png",
+      screenshotOptions
+    );
+  });
+
   test("notifications - inbox as a plain member", async ({ page }) => {
     // A Member sees no send action — the announcement endpoint is manager-only.
     await page.route("**/api/households**", (route) => {
@@ -2816,6 +2866,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(
       page.getByRole("button", { name: "Send an announcement" })
     ).toBeHidden();
+    await expect(page.getByRole("link", { name: "Sent announcements" })).toBeHidden();
     await expect(page).toHaveScreenshot(
       "notifications-inbox-member.png",
       screenshotOptions

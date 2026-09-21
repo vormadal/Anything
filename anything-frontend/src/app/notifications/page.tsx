@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { CheckCheck, Megaphone, Settings, X } from "lucide-react";
+import { CheckCheck, Megaphone, Send, Settings, X } from "lucide-react";
 import { PageTitle } from "@/components/PageTitle";
 import { SendNotificationDialog } from "@/components/SendNotificationDialog";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 
 const SETTINGS_LABEL = "Notification settings";
 const SEND_LABEL = "Send an announcement";
+const SENT_LABEL = "Sent announcements";
 
 function formatWhen(createdOn: Date | null | undefined): string {
   if (!createdOn) return "";
@@ -109,15 +110,28 @@ export default function NotificationsPage() {
     setHeaderActions(
       <div className="ml-auto flex items-center gap-1">
         {isManager && (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={SEND_LABEL}
-            title={SEND_LABEL}
-            onClick={() => setSendOpen(true)}
-          >
-            <Megaphone className="h-5 w-5" />
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={SEND_LABEL}
+              title={SEND_LABEL}
+              onClick={() => setSendOpen(true)}
+            >
+              <Megaphone className="h-5 w-5" />
+            </Button>
+            {/* Manager-only because only a manager can send. The endpoint
+                itself isn't gated — a demoted manager reaching the URL still
+                sees their own history rather than a 403. */}
+            <Link
+              href="/notifications/sent"
+              aria-label={SENT_LABEL}
+              title={SENT_LABEL}
+              className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+            >
+              <Send className="h-5 w-5" />
+            </Link>
+          </>
         )}
         <Link
           href="/notifications/settings"
