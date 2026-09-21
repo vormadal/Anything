@@ -19,6 +19,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSortableOrder } from "@/hooks/useSortableOrder";
 import type { ShoppingListResponse } from "@/lib/api-client/models/index";
+import { LoadErrorState } from "@/components/LoadErrorState";
+import { loadFailure } from "@/lib/queryState";
 
 const getListId = (list: ShoppingListResponse) => list.id ?? 0;
 
@@ -81,7 +83,9 @@ function DraggableListItem({
 
 export default function ListsPage() {
   const [isCreating, setIsCreating] = useState(false);
-  const { data: lists, isLoading, error } = useShoppingLists();
+  const listsQuery = useShoppingLists();
+  const { data: lists, isLoading } = listsQuery;
+  const listsLoad = loadFailure(listsQuery);
   const reorderLists = useReorderShoppingLists();
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
@@ -130,16 +134,13 @@ export default function ListsPage() {
         </div>
       )}
 
-      {error && !lists && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4">
-          Failed to load lists. Please try again later.
-        </div>
-      )}
-
-      {!isOnline && !lists && !isLoading && (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          You&apos;re offline — lists will appear once you&apos;re back online.
-        </div>
+      {listsLoad.failed && (
+        <LoadErrorState
+          what="lists"
+          onRetry={listsLoad.retry}
+          isRetrying={listsLoad.isRetrying}
+          className="mb-4"
+        />
       )}
 
       {lists?.length === 0 && (

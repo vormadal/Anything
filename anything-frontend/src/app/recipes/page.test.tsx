@@ -131,7 +131,12 @@ describe('RecipesPage', () => {
     render(<RecipesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to load recipes/i)).toBeInTheDocument()
+      expect(screen.getByText(/Couldn't load recipes/i)).toBeInTheDocument()
+    })
+    // The empty state must not double up with the failure — they mean opposite things.
+    expect(screen.queryByText(/No recipes yet/i)).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Try again/i })).toBeInTheDocument()
     })
   })
 

@@ -21,7 +21,8 @@ interface Props {
 
 export function GeneralChecklistView({ listId }: Props) {
   const router = useRouter();
-  const { data: items, isLoading, error } = useShoppingListItems(listId);
+  const itemsQuery = useShoppingListItems(listId);
+  const { data: items } = itemsQuery;
   const updateItem = useUpdateShoppingListItem(listId);
   const deleteList = useDeleteShoppingList();
   const pendingItemIds = usePendingItemIds(listId);
@@ -70,11 +71,7 @@ export function GeneralChecklistView({ listId }: Props) {
 
   return (
     <>
-      <ListItemsStatus
-        isLoading={isLoading}
-        error={error}
-        isEmpty={!!items && items.length === 0}
-      />
+      <ListItemsStatus query={itemsQuery} isEmpty={!!items && items.length === 0} />
 
       {items && items.length > 0 && (
         <ul ref={listRef}>

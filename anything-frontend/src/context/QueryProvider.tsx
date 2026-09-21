@@ -18,6 +18,16 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
+            // React Query's default is 3 retries with exponential backoff, so a
+            // dead connection spends ~7s looking like a loading state before any
+            // page can tell the user something went wrong. Two retries (~3s) keeps
+            // the cover for a single dropped request without stretching the lie.
+            // A 4xx is the caller's fault and won't fix itself, so it fails fast.
+            retry: (failureCount, error) => {
+              const status = (error as { responseStatusCode?: number })?.responseStatusCode;
+              if (typeof status === "number" && status >= 400 && status < 500) return false;
+              return failureCount < 2;
+            },
           },
           // Mutations implement their own offline handling (isOffline()/isNetworkError()
           // checks that queue into the outbox — see useShoppingLists.ts). React Query's

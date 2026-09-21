@@ -111,7 +111,17 @@ describe('Home Page Integration Tests', () => {
     mockFoodPlanEntriesGet.mockResolvedValue([])
     mockFoodPlanNotesGet.mockResolvedValue([])
     mockRecipesFetch([])
-    mockBillSummaryGet.mockResolvedValue(undefined)
+    // The API always answers with a zeroed summary for a household with no
+    // bills — never an empty body, which React Query would treat as an error
+    // (and which would now render the card's failed-to-load state).
+    mockBillSummaryGet.mockResolvedValue({
+      totalBills: 0,
+      automatedCount: 0,
+      manualCount: 0,
+      totalMonthlyEquivalent: 0,
+      totalCurrentMonthAmount: 0,
+      totalCurrentYearAmount: 0,
+    })
     mockSearchGet.mockResolvedValue([])
     mockNotesGet.mockResolvedValue([])
     mockHomeCardPreferencesGet.mockResolvedValue([
@@ -566,8 +576,12 @@ describe('Home Page Integration Tests', () => {
 
     render(<Home />)
 
+    // Scoped to the Lists section: offline, the Bills card renders its own
+    // "couldn't load" state (with its own Create button) rather than hiding,
+    // so an unscoped name match finds two buttons.
+    const listsSection = screen.getByRole('heading', { name: 'Lists' }).closest('section') as HTMLElement
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+      expect(within(listsSection).getByRole('button', { name: 'Create' })).toBeDisabled()
     })
   })
 
@@ -884,5 +898,77 @@ describe('Home Page Integration Tests', () => {
     })
 
     setOnline(true)
+  })
+
+  // ------- Failed loads -------
+  // A request that fails leaves React Query with no data, which used to render
+  // exactly like a household that owns nothing — "No notes yet" during an
+  // outage. Each card must say the load failed instead.
+
+  it('should say notes could not be loaded instead of showing the empty state', async () => {
+    mockHomeCardPreferencesGet.mockResolvedValue(notesVisible)
+    mockNotesGet.mockRejectedValue(new Error('Network request failed'))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load notes")).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/No notes yet/)).not.toBeInTheDocument()
+  })
+
+  it('should refetch notes when the failed card is retried', async () => {
+    mockHomeCardPreferencesGet.mockResolvedValue(notesVisible)
+    mockNotesGet.mockRejectedValue(new Error('Network request failed'))
+
+    render(<Home />)
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load notes")).toBeInTheDocument()
+    })
+
+    mockNotesGet.mockResolvedValue([{ id: 7, title: 'Back online', snippet: null }])
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /Try again/ }))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Back online')).toBeInTheDocument()
+    })
+  })
+
+  it('should say lists could not be loaded instead of showing the empty state', async () => {
+    mockHomeCardPreferencesGet.mockResolvedValue([{ cardKey: 'lists', sortOrder: 0, isVisible: true }])
+    mockShoppingListsGet.mockRejectedValue(new Error('Network request failed'))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load lists")).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/No shopping lists yet/)).not.toBeInTheDocument()
+  })
+
+  it("should say today's menu could not be loaded instead of showing no meals planned", async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockHomeCardPreferencesGet.mockResolvedValue([{ cardKey: 'foodplan', sortOrder: 0, isVisible: true }])
+    mockFoodPlanEntriesGet.mockRejectedValue(new Error('Network request failed'))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load today's menu")).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/No meals planned/)).not.toBeInTheDocument()
+  })
+
+  it('should keep the Bills card visible with an error instead of hiding it', async () => {
+    mockHomeCardPreferencesGet.mockResolvedValue([{ cardKey: 'bills', sortOrder: 0, isVisible: true }])
+    mockBillSummaryGet.mockRejectedValue(new Error('Network request failed'))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load bills")).toBeInTheDocument()
+    })
   })
 })

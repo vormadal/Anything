@@ -132,7 +132,7 @@ describe("InventoryPage", () => {
     renderWithClient(<InventoryPage />);
 
     await waitFor(() =>
-      expect(screen.getByText(/Failed to load your storage/)).toBeInTheDocument()
+      expect(screen.getByText(/Couldn't load your storage/)).toBeInTheDocument()
     );
   });
 

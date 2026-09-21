@@ -38,7 +38,8 @@ export function ShoppingListEditMode({ listId }: Props) {
   const amountInputRef = useRef<HTMLInputElement>(null);
   const cancelEditRef = useRef(false);
 
-  const { data: items, isLoading, error } = useShoppingListItems(listId);
+  const itemsQuery = useShoppingListItems(listId);
+  const { data: items } = itemsQuery;
   const addItem = useAddShoppingListItem(listId);
   const updateItem = useUpdateShoppingListItem(listId);
   const removeItem = useRemoveShoppingListItem(listId);
@@ -201,11 +202,7 @@ export function ShoppingListEditMode({ listId }: Props) {
         ))}
       </datalist>
 
-      <ListItemsStatus
-        isLoading={isLoading}
-        error={error}
-        isEmpty={!!items && items.length === 0}
-      />
+      <ListItemsStatus query={itemsQuery} isEmpty={!!items && items.length === 0} />
 
       {sortedItems.length > 0 && (
         <ul>

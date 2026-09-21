@@ -24,6 +24,8 @@ import {
   unplacedItems,
 } from "@/lib/inventory";
 import { fuzzyRank } from "@/lib/fuzzy";
+import { LoadErrorState } from "@/components/LoadErrorState";
+import { loadFailure } from "@/lib/queryState";
 
 const SECTION_HEADING_CLASS =
   "text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400";
@@ -38,7 +40,10 @@ export default function InventoryPage() {
   const items = useInventoryItems();
 
   const isLoading = places.isLoading || boxes.isLoading || items.isLoading;
-  const error = places.error ?? boxes.error ?? items.error;
+  // All three feed one merged view, so any of them failing makes the page's
+  // "nothing here" misleading — treat it as a single load.
+  const inventoryLoad = loadFailure(places, boxes, items);
+  const error = inventoryLoad.failed;
 
   useEffect(() => {
     setHeaderActions(
@@ -103,9 +108,11 @@ export default function InventoryPage() {
       )}
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-4 rounded-lg">
-          Failed to load your storage. Please try again later.
-        </div>
+        <LoadErrorState
+          what="your storage"
+          onRetry={inventoryLoad.retry}
+          isRetrying={inventoryLoad.isRetrying}
+        />
       )}
 
       {!isLoading && !error && isSearching && (

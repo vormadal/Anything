@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { onlineManager } from '@tanstack/react-query'
 import { render } from '@/__tests__/utils/test-utils'
 import { GeneralChecklistView } from './GeneralChecklistView'
 import { toast } from 'sonner'
@@ -38,6 +39,15 @@ jest.mock('sonner', () => ({
   Toaster: () => null,
 }))
 
+function setOnline(value: boolean) {
+  // Covers all three readers: navigator for components reading it directly,
+  // react-query's onlineManager (which gates query pausing and only reacts to a
+  // direct call), and a real event for useOnlineStatus's post-mount re-render.
+  Object.defineProperty(navigator, 'onLine', { configurable: true, value })
+  onlineManager.setOnline(value)
+  window.dispatchEvent(new Event(value ? 'online' : 'offline'))
+}
+
 describe('GeneralChecklistView', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -45,12 +55,47 @@ describe('GeneralChecklistView', () => {
     localStorage.setItem('accessToken', 'test-token')
   })
 
-  afterEach(() => { localStorage.clear() })
+  afterEach(() => {
+    localStorage.clear()
+    setOnline(true)
+  })
 
   it('shows loading state', () => {
     mockItemsGet.mockImplementation(() => new Promise(() => {}))
     render(<GeneralChecklistView listId={1} />)
     expect(screen.getByText('Loading...')).toBeInTheDocument()
+  })
+
+  it("says items couldn't be loaded when the request fails, instead of the empty state", async () => {
+    mockItemsGet.mockRejectedValue(new Error('API error'))
+    render(<GeneralChecklistView listId={1} />)
+    await waitFor(() => { expect(screen.getByText("Couldn't load items")).toBeInTheDocument() })
+    expect(screen.queryByText('No items yet.')).not.toBeInTheDocument()
+  })
+
+  it('says so when offline with nothing cached, rather than rendering nothing', async () => {
+    // Offline, React Query pauses the query instead of failing it: not loading,
+    // not errored, and `items` is undefined rather than [], so the old
+    // isLoading/error/isEmpty props left the page completely blank.
+    setOnline(false)
+    mockItemsGet.mockImplementation(() => new Promise(() => {}))
+
+    render(<GeneralChecklistView listId={1} />)
+
+    await waitFor(() => { expect(screen.getByText("Couldn't load items")).toBeInTheDocument() })
+    expect(screen.getByText(/you're offline/i)).toBeInTheDocument()
+    expect(mockItemsGet).not.toHaveBeenCalled()
+  })
+
+  it('shows cached items while offline instead of a failure', async () => {
+    mockItemsGet.mockResolvedValue([{ id: 1, name: 'Task A', isChecked: false }])
+    render(<GeneralChecklistView listId={1} />)
+    await waitFor(() => { expect(screen.getByText('Task A')).toBeInTheDocument() })
+
+    setOnline(false)
+
+    expect(screen.getByText('Task A')).toBeInTheDocument()
+    expect(screen.queryByText("Couldn't load items")).not.toBeInTheDocument()
   })
 
   it('shows empty state', async () => {

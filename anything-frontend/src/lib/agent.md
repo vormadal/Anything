@@ -14,6 +14,7 @@ Shared utilities and the generated API client.
 - `foodPlanUtils.ts` — date/slot helpers for the food plan calendar
 - `roles.ts` — household role constants (`HOUSEHOLD_ROLES`) and role-check helpers (`isAdmin`, `canManageHousehold`, `isHouseholdOwner`)
 - `utils.ts` — generic helpers (class merging via `cn()`, etc.)
+- `queryState.ts` — `loadFailure(...queries)`: the "no data and none coming" test (errored, or paused offline before the query ever ran) that decides whether a page or card renders `LoadErrorState` instead of its empty state — see `src/components/agent.md`
 - `offline/` — offline-first read caching for the whole app, plus a write outbox scoped to shopping list / general checklist items only (see below)
 - `notes/` — the note editor's Tiptap schema (`extensions.ts`), document (de)serialization (`noteDocument.ts`), and the client-side document importer behind `/notes/import` (`import/`, see below)
 
@@ -23,6 +24,7 @@ Shared utilities and the generated API client.
 - Use the fluent builder API: `apiClient.api.somethings.get()`, `.post(body)`, `.byId(id).put(body)`, `.byId(id).delete()`.
 - Catch `ApiError` (re-exported from `apiClient.ts`) to handle HTTP error responses — inspect `err.responseStatusCode`.
 - The base URL defaults to `http://localhost:5238` and is overridden by `NEXT_PUBLIC_API_URL` in production.
+- **Query retries are capped at 2 and skip 4xx** (`QueryProvider`). React Query's default of 3 retries with exponential backoff leaves a dead connection looking like a loading state for ~7s before any card can say the load failed; a 4xx won't fix itself on a retry at all. Lowering this further would start showing an error for a single dropped request.
 - Never cast API response types to `any`; use the generated model types from `api-client/models/index`.
 - **Never use raw `fetch` or `apiFetch` for API calls** — use the configured `apiClient`. If the endpoint you need isn't in the generated client yet, do **not** reach for `apiFetch` as a stopgap: push the backend change (or open the PR) first so the `update-api-client` workflow regenerates and commits `api-client/**`, pull/rebase those changes, then implement the call against the regenerated `apiClient`. This holds even when the file you're editing already uses raw `fetch`/`apiFetch` — and when you touch such a file, migrate its legacy calls to `apiClient` as part of your change rather than copying the pattern.
 

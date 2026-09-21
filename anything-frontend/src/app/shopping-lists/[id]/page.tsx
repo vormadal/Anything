@@ -18,6 +18,8 @@ import { PageTitle } from "@/components/PageTitle";
 import { Pencil, Trash2, MoreVertical, SquarePen } from "lucide-react";
 import { ShoppingListView } from "./ShoppingListView";
 import { ShoppingListEditMode } from "./ShoppingListEditMode";
+import { LoadErrorState } from "@/components/LoadErrorState";
+import { loadFailure } from "@/lib/queryState";
 
 export default function ShoppingListDetailPage() {
   const params = useParams();
@@ -36,7 +38,9 @@ export default function ShoppingListDetailPage() {
   const handleDeleteListRef = useRef<() => void>(() => undefined);
   const openEditNameDialogRef = useRef<() => void>(() => undefined);
 
-  const { data: list } = useShoppingList(listId);
+  const listQuery = useShoppingList(listId);
+  const { data: list } = listQuery;
+  const listLoad = loadFailure(listQuery);
 
   const deleteList = useDeleteShoppingList();
   const editNameDialog = useEditListNameDialog(listId, list?.name, openEditNameDialogRef);
@@ -108,7 +112,13 @@ export default function ShoppingListDetailPage() {
         inputRef={editNameDialog.inputRef}
       />
       <PageTitle>{list?.name ?? "Shopping List"}</PageTitle>
-      {isEditMode ? (
+      {listLoad.failed ? (
+        <LoadErrorState
+          what="this list"
+          onRetry={listLoad.retry}
+          isRetrying={listLoad.isRetrying}
+        />
+      ) : isEditMode ? (
         <ShoppingListEditMode listId={listId} />
       ) : (
         <ShoppingListView listId={listId} />

@@ -10,12 +10,14 @@ import { useSearch, type SearchResultResponse } from "@/hooks/useSearch";
 import { useNotes } from "@/hooks/useNotes";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
-import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, Package, AlertCircle, NotebookPen } from "lucide-react";
+import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, Package, NotebookPen } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 import { CreateListDialog } from "@/components/CreateListDialog";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { itemPath } from "@/lib/inventory";
+import { LoadErrorState } from "@/components/LoadErrorState";
+import { loadFailure } from "@/lib/queryState";
 
 // Maps a search result's entityType to its detail-page route. Entity types not
 // listed here render as non-navigable rows instead of a broken link.
@@ -53,10 +55,14 @@ export function FoodPlanCard() {
   const isShowingTomorrow = new Date().getHours() >= 18;
 
   const dateStr = toDateInputValue(targetDate);
-  const { data: entries, isLoading: entriesLoading } = useFoodPlanEntries(
+  const entriesQuery = useFoodPlanEntries(
     dateStr + "T00:00:00Z",
     dateStr + "T23:59:59Z"
   );
+  const { data: entries, isLoading: entriesLoading } = entriesQuery;
+  // Only the entries drive the card's body — a failed recipes or notes fetch
+  // degrades a meal's name or hides a note, it doesn't make the card a lie.
+  const entriesLoad = loadFailure(entriesQuery);
   const { data: notes } = useFoodPlanNotes(
     dateStr + "T00:00:00Z",
     dateStr + "T23:59:59Z"
@@ -88,6 +94,12 @@ export function FoodPlanCard() {
 
       {entriesLoading ? (
         <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
+      ) : entriesLoad.failed ? (
+        <LoadErrorState
+          what="today's menu"
+          onRetry={entriesLoad.retry}
+          isRetrying={entriesLoad.isRetrying}
+        />
       ) : todayEntries.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
@@ -145,7 +157,9 @@ export function FoodPlanCard() {
 export function ListsCard() {
   const router = useRouter();
   const [isCreatingList, setIsCreatingList] = useState(false);
-  const { data: shoppingLists, isLoading: listsLoading } = useShoppingLists();
+  const listsQuery = useShoppingLists();
+  const { data: shoppingLists, isLoading: listsLoading } = listsQuery;
+  const listsLoad = loadFailure(listsQuery);
   const isOnline = useOnlineStatus();
   const topLists = shoppingLists?.slice(0, 5) ?? [];
 
@@ -178,12 +192,8 @@ export function ListsCard() {
 
       {listsLoading ? (
         <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
-      ) : !isOnline && !shoppingLists ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            You&apos;re offline — lists will appear once you&apos;re back online.
-          </p>
-        </div>
+      ) : listsLoad.failed ? (
+        <LoadErrorState what="lists" onRetry={listsLoad.retry} isRetrying={listsLoad.isRetrying} />
       ) : topLists.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No shopping lists yet.</p>
@@ -230,10 +240,15 @@ export function ListsCard() {
 
 export function BillsCard() {
   const router = useRouter();
-  const { data: billSummary } = useBillSummary();
+  const summaryQuery = useBillSummary();
+  const { data: billSummary } = summaryQuery;
+  const summaryLoad = loadFailure(summaryQuery);
   const isOnline = useOnlineStatus();
 
-  if (!billSummary || billSummary.totalBills === 0) {
+  // A household with no bills hides this card entirely, so a failed load must
+  // not take the same path — silently disappearing is exactly how an outage
+  // ends up looking like "you have no bills".
+  if (!summaryLoad.failed && (!billSummary || billSummary.totalBills === 0)) {
     return null;
   }
 
@@ -256,49 +271,53 @@ export function BillsCard() {
           Create
         </Button>
       </div>
-      <button
-        type="button"
-        className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
-        onClick={() => router.push("/bills")}
-      >
-        <div className="space-y-1">
-          <p className="text-xl font-bold text-gray-900 dark:text-white">
-            {new Intl.NumberFormat("da-DK", {
-              style: "currency",
-              currency: "DKK",
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            }).format(Math.round(billSummary.totalMonthlyEquivalent))}
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-1">/mo</span>
-          </p>
-          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-            <span className="flex items-center gap-1">
-              <Zap className="h-3 w-3 text-green-500" />
-              {billSummary.automatedCount} auto
-            </span>
-            <span className="flex items-center gap-1">
-              <Hand className="h-3 w-3 text-orange-400" />
-              {billSummary.manualCount} manual
-            </span>
-            <span>{billSummary.totalBills} bills total</span>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 pt-0.5">
-            <span>
-              {new Date().toLocaleString("default", { month: "short" })}:{" "}
-              <span className="font-medium text-gray-700 dark:text-gray-300">
-                {new Intl.NumberFormat("da-DK", { style: "currency", currency: "DKK", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(billSummary.totalCurrentMonthAmount))}
+      {summaryLoad.failed || !billSummary ? (
+        <LoadErrorState what="bills" onRetry={summaryLoad.retry} isRetrying={summaryLoad.isRetrying} />
+      ) : (
+        <button
+          type="button"
+          className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+          onClick={() => router.push("/bills")}
+        >
+          <div className="space-y-1">
+            <p className="text-xl font-bold text-gray-900 dark:text-white">
+              {new Intl.NumberFormat("da-DK", {
+                style: "currency",
+                currency: "DKK",
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              }).format(Math.round(billSummary.totalMonthlyEquivalent))}
+              <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-1">/mo</span>
+            </p>
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-1">
+                <Zap className="h-3 w-3 text-green-500" />
+                {billSummary.automatedCount} auto
               </span>
-            </span>
-            <span>
-              {new Date().getFullYear()}:{" "}
-              <span className="font-medium text-gray-700 dark:text-gray-300">
-                {new Intl.NumberFormat("da-DK", { style: "currency", currency: "DKK", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(billSummary.totalCurrentYearAmount))}
+              <span className="flex items-center gap-1">
+                <Hand className="h-3 w-3 text-orange-400" />
+                {billSummary.manualCount} manual
               </span>
-            </span>
+              <span>{billSummary.totalBills} bills total</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 pt-0.5">
+              <span>
+                {new Date().toLocaleString("default", { month: "short" })}:{" "}
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {new Intl.NumberFormat("da-DK", { style: "currency", currency: "DKK", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(billSummary.totalCurrentMonthAmount))}
+                </span>
+              </span>
+              <span>
+                {new Date().getFullYear()}:{" "}
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {new Intl.NumberFormat("da-DK", { style: "currency", currency: "DKK", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(billSummary.totalCurrentYearAmount))}
+                </span>
+              </span>
+            </div>
           </div>
-        </div>
-        <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
-      </button>
+          <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+        </button>
+      )}
     </section>
   );
 }
@@ -351,7 +370,9 @@ export function GlobalSearchCard() {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query);
   const hasQuery = debouncedQuery.trim().length > 0;
-  const { data: results, isLoading, isError } = useSearch(debouncedQuery);
+  const searchQuery = useSearch(debouncedQuery);
+  const { data: results, isLoading } = searchQuery;
+  const searchLoad = loadFailure(searchQuery);
 
   const handleSelect = (result: SearchResultResponse) => {
     const toHref = result.entityType ? SEARCH_RESULT_ROUTES[result.entityType] : undefined;
@@ -391,11 +412,12 @@ export function GlobalSearchCard() {
       {hasQuery &&
         (isLoading ? (
           <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Searching...</div>
-        ) : isError ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center flex flex-col items-center gap-1">
-            <AlertCircle className="h-5 w-5 text-red-500" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Search failed. Try again.</p>
-          </div>
+        ) : searchLoad.failed ? (
+          <LoadErrorState
+            what="search results"
+            onRetry={searchLoad.retry}
+            isRetrying={searchLoad.isRetrying}
+          />
         ) : !results || results.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -436,7 +458,9 @@ const HOME_NOTES_LIMIT = 5;
 
 export function NotesCard() {
   const router = useRouter();
-  const { data: notes, isLoading } = useNotes(HOME_NOTES_LIMIT);
+  const notesQuery = useNotes(HOME_NOTES_LIMIT);
+  const { data: notes, isLoading } = notesQuery;
+  const notesLoad = loadFailure(notesQuery);
   const isOnline = useOnlineStatus();
 
   return (
@@ -461,6 +485,8 @@ export function NotesCard() {
 
       {isLoading ? (
         <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">Loading...</div>
+      ) : notesLoad.failed ? (
+        <LoadErrorState what="notes" onRetry={notesLoad.retry} isRetrying={notesLoad.isRetrying} />
       ) : !notes || notes.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">

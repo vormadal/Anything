@@ -60,7 +60,7 @@ describe("NotesPage", () => {
     renderWithClient(<NotesPage />);
 
     await waitFor(() =>
-      expect(screen.getByText(/Failed to load notes/)).toBeInTheDocument()
+      expect(screen.getByText(/Couldn't load notes/)).toBeInTheDocument()
     );
   });
 

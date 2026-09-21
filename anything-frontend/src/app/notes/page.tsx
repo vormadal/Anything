@@ -9,13 +9,17 @@ import { PageTitle } from "@/components/PageTitle";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Plus, Upload } from "lucide-react";
+import { LoadErrorState } from "@/components/LoadErrorState";
+import { loadFailure } from "@/lib/queryState";
 
 const IMPORT_LABEL = "Import notes";
 
 export default function NotesPage() {
   const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
-  const { data: notes, isLoading, error } = useNotes();
+  const notesQuery = useNotes();
+  const { data: notes, isLoading } = notesQuery;
+  const notesLoad = loadFailure(notesQuery);
 
   useEffect(() => {
     setHeaderActions(
@@ -49,13 +53,11 @@ export default function NotesPage() {
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
       )}
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-4 rounded-lg">
-          Failed to load notes. Please try again later.
-        </div>
+      {notesLoad.failed && (
+        <LoadErrorState what="notes" onRetry={notesLoad.retry} isRetrying={notesLoad.isRetrying} />
       )}
 
-      {notes?.length === 0 && !isLoading && !error && (
+      {notes?.length === 0 && !isLoading && !notesLoad.failed && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           No notes yet. Tap + to write your first one!
         </div>
