@@ -1,5 +1,5 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import React from "react";
 import { useLogin, useLogout, useUpdateProfile, useChangePassword, useMyPendingInvites, useAcceptHouseholdInvite, setTokens, clearTokens, getAccessToken, getRefreshToken, setUser, getUser } from "@/hooks/useAuth";
 
@@ -100,6 +100,38 @@ describe("useAuth hooks", () => {
 
       expect(getAccessToken()).toBe("test-access-token");
       expect(getRefreshToken()).toBe("test-refresh-token");
+    });
+
+    it("refetches queries that failed before login", async () => {
+      // HouseholdProvider queries ["households"] on /login with no token; that
+      // 401 isn't retried, so login must refetch it or no household is selected.
+      mockLoginPost.mockResolvedValueOnce({ accessToken: "a", refreshToken: "r" });
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      });
+      const householdsFn = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("401"))
+        .mockResolvedValue([{ id: 1 }]);
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+
+      const { result } = renderHook(
+        () => ({
+          households: useQuery({ queryKey: ["households"], queryFn: householdsFn }),
+          login: useLogin(),
+        }),
+        { wrapper }
+      );
+      await waitFor(() => expect(result.current.households.isError).toBe(true));
+
+      await act(async () => {
+        await result.current.login.mutateAsync({ email: "a@b.c", password: "p" });
+      });
+
+      await waitFor(() => expect(result.current.households.data).toEqual([{ id: 1 }]));
+      expect(householdsFn).toHaveBeenCalledTimes(2);
     });
 
     it("should throw error on invalid credentials", async () => {

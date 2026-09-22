@@ -82,7 +82,12 @@ export function useLogin() {
         name: data.name ?? "",
         role: data.role ?? "",
       });
-      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+      // Invalidate everything, not just the user: HouseholdProvider lives in the
+      // root layout, so ["households"] already ran on /login without a token and
+      // 401'd. The QueryProvider doesn't retry 4xx, and router.push keeps the
+      // provider mounted, so without this the query stays failed and no
+      // household is ever selected until a full reload.
+      queryClient.invalidateQueries();
     },
   });
 }
