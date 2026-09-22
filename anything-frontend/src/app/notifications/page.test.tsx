@@ -182,4 +182,29 @@ describe("NotificationsPage", () => {
       ).toBeInTheDocument()
     );
   });
+
+  it("links a household manager to their sent history", async () => {
+    mockGet.mockResolvedValue([]);
+    mockHouseholdRole = "Admin";
+
+    renderWithClient(<NotificationsPage />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("link", { name: "Sent announcements" })
+      ).toHaveAttribute("href", "/notifications/sent")
+    );
+  });
+
+  it("hides the sent history from a plain member, who has none", async () => {
+    mockGet.mockResolvedValue([]);
+    mockHouseholdRole = "Member";
+
+    renderWithClient(<NotificationsPage />);
+
+    await waitFor(() => expect(screen.getByText(/Nothing here yet/)).toBeInTheDocument());
+    expect(
+      screen.queryByRole("link", { name: "Sent announcements" })
+    ).not.toBeInTheDocument();
+  });
 });

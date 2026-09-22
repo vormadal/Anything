@@ -12,6 +12,8 @@ import { PushRequestBuilderNavigationMetadata, type PushRequestBuilder } from '.
 // @ts-ignore
 import { ReadAllRequestBuilderRequestsMetadata, type ReadAllRequestBuilder } from './readAll/index';
 // @ts-ignore
+import { SentRequestBuilderRequestsMetadata, type SentRequestBuilder } from './sent/index';
+// @ts-ignore
 import { type UnreadCountRequestBuilder, UnreadCountRequestBuilderRequestsMetadata } from './unreadCount/index';
 // @ts-ignore
 import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
@@ -32,6 +34,10 @@ export interface NotificationsRequestBuilder extends BaseRequestBuilder<Notifica
      * The readAll property
      */
     get readAll(): ReadAllRequestBuilder;
+    /**
+     * The sent property
+     */
+    get sent(): SentRequestBuilder;
     /**
      * The unreadCount property
      */
@@ -98,6 +104,9 @@ export const NotificationsRequestBuilderNavigationMetadata: Record<Exclude<keyof
     },
     readAll: {
         requestsMetadata: ReadAllRequestBuilderRequestsMetadata,
+    },
+    sent: {
+        requestsMetadata: SentRequestBuilderRequestsMetadata,
     },
     unreadCount: {
         requestsMetadata: UnreadCountRequestBuilderRequestsMetadata,

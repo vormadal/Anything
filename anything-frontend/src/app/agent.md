@@ -41,11 +41,15 @@ Next.js 15 App Router pages. Each subfolder maps 1:1 to a URL segment.
 `notifications/page.tsx` is the inbox and `notifications/settings/page.tsx` the
 per-category opt-outs. Three things that are deliberate:
 
-- **The header bell is a `Link`, not a popover.** `NotificationBell` lives in
-  `AppLayout`'s header on every authenticated page and just navigates here. On a
-  phone a dropdown of notifications is worse than the page it would link to, and
-  keeping a global-header control out of Radix's dismissable-layer machinery
-  avoids the class of bug CLAUDE.md's Radix gotcha describes.
+- **There is no header entry point — the drawer is the way in.** An earlier
+  `NotificationBell` link sat in `AppLayout`'s header on every authenticated
+  page; it was removed as too invasive for something most visits never act on.
+  The unread count now badges the burger button and the drawer's Notifications
+  entry (`NotificationBadge`, see the components `agent.md`). It was never a
+  popover for two reasons that still hold: on a phone a dropdown of
+  notifications is worse than the page it would link to, and keeping a
+  global-header control out of Radix's dismissable-layer machinery avoids the
+  class of bug CLAUDE.md's Radix gotcha describes.
 - **Sending is manager-only, and the UI mirrors the server rather than guarding
   it.** The megaphone action appears only when
   `canManageHousehold(currentHouseholdRole)`; `POST /api/notifications` is

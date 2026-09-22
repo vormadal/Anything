@@ -88,6 +88,15 @@ public class NotificationEndpointTests : IntegrationTestBase
         return result!.Count;
     }
 
+    private static async Task<List<SentNotificationDto>> GetSent(HttpClient client, string query = "")
+    {
+        var response = await client.GetAsync($"/api/notifications/sent{query}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<List<SentNotificationDto>>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        return result;
+    }
+
     private static Task<HttpResponseMessage> Send(HttpClient client, string title, string? body = null, bool includeSelf = false) =>
         client.PostAsJsonAsync("/api/notifications",
             new { title, body, includeSelf },
@@ -538,10 +547,112 @@ public class NotificationEndpointTests : IntegrationTestBase
         Assert.Contains(await GetNotifications(memberClient), n => n.Title == "Still arrives in the app");
     }
 
+    // --- sent history ---
+
+    [Fact]
+    public async Task GetSent_CollapsesTheFanOutIntoOneRowPerSend()
+    {
+        await AddMember("sent-a@test.com");
+        await AddMember("sent-b@test.com");
+        var admin = await AdminClient();
+
+        await Send(admin, "Two recipients", "Body text");
+
+        var sent = Assert.Single(await GetSent(admin), s => s.Title == "Two recipients");
+        Assert.Equal("Body text", sent.Body);
+        Assert.Equal(AnnouncementCategory, sent.Category);
+        Assert.Equal(2, sent.Recipients);
+        Assert.Equal(0, sent.ReadCount);
+    }
+
+    [Fact]
+    public async Task GetSent_CountsRecipientsWhoHaveReadTheirCopy()
+    {
+        var (_, memberClient) = await AddMember("sent-read@test.com");
+        var admin = await AdminClient();
+
+        await Send(admin, "Please read this");
+        var received = Assert.Single(await GetNotifications(memberClient), n => n.Title == "Please read this");
+        var readResponse = await memberClient.PutAsync(
+            $"/api/notifications/{received.Id}/read", null, TestContext.Current.CancellationToken);
+        readResponse.EnsureSuccessStatusCode();
+
+        var sent = Assert.Single(await GetSent(admin), s => s.Title == "Please read this");
+        Assert.Equal(1, sent.Recipients);
+        Assert.Equal(1, sent.ReadCount);
+    }
+
+    [Fact]
+    public async Task GetSent_StillCountsARecipientWhoDismissedTheirCopy()
+    {
+        // Dismissing soft-deletes the recipient's row; the send still happened.
+        var (_, memberClient) = await AddMember("sent-dismissed@test.com");
+        var admin = await AdminClient();
+
+        await Send(admin, "Dismissed by its recipient");
+        var received = Assert.Single(
+            await GetNotifications(memberClient), n => n.Title == "Dismissed by its recipient");
+        var deleteResponse = await memberClient.DeleteAsync(
+            $"/api/notifications/{received.Id}", TestContext.Current.CancellationToken);
+        deleteResponse.EnsureSuccessStatusCode();
+
+        var sent = Assert.Single(await GetSent(admin), s => s.Title == "Dismissed by its recipient");
+        Assert.Equal(1, sent.Recipients);
+    }
+
+    [Fact]
+    public async Task GetSent_ShowsOnlyTheCallersOwnSends()
+    {
+        var (_, memberClient) = await AddMember("sent-manager@test.com", "Admin");
+        var admin = await AdminClient();
+
+        await Send(admin, "From the admin");
+        await Send(memberClient, "From the other manager");
+
+        Assert.DoesNotContain(await GetSent(admin), s => s.Title == "From the other manager");
+        Assert.DoesNotContain(await GetSent(memberClient), s => s.Title == "From the admin");
+    }
+
+    [Fact]
+    public async Task GetSent_ByAPlainMemberWhoNeverSentAnything_IsEmpty()
+    {
+        // Not manager-gated — a member simply has no history to show.
+        var (_, memberClient) = await AddMember("sent-none@test.com");
+        var admin = await AdminClient();
+        await Send(admin, "Nothing to do with them");
+
+        Assert.Empty(await GetSent(memberClient));
+    }
+
+    [Fact]
+    public async Task GetSent_AppliesTheRequestedLimit()
+    {
+        await AddMember("sent-limit@test.com");
+        var admin = await AdminClient();
+
+        await Send(admin, "First");
+        await Send(admin, "Second");
+
+        var sent = await GetSent(admin, "?limit=1");
+
+        Assert.Single(sent);
+        Assert.Equal("Second", sent[0].Title);
+    }
+
+    [Fact]
+    public async Task GetSent_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync(
+            "/api/notifications/sent", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     // --- local DTOs ---
 
     private record NotificationDto(
         int Id, string Category, string Title, string? Body, string? LinkUrl, DateTime CreatedOn, DateTime? ReadOn);
+    private record SentNotificationDto(
+        string Category, string Title, string? Body, DateTime SentOn, int Recipients, int ReadCount);
     private record UnreadCountDto(int Count);
     private record SendResultDto(int Recipients);
     private record PreferenceDto(string Category, bool InAppEnabled, bool PushEnabled);

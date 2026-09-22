@@ -7,13 +7,19 @@ import type {
   NotificationResponse,
   PushConfigResponse,
   SendNotificationResponse,
+  SentNotificationResponse,
 } from "@/lib/api-client/models/index";
 import type { PushSubscriptionKeys } from "@/lib/push";
 
-export type { NotificationPreferenceResponse, NotificationResponse };
+export type {
+  NotificationPreferenceResponse,
+  NotificationResponse,
+  SentNotificationResponse,
+};
 
 const NOTIFICATIONS_KEY = ["notifications"] as const;
 const UNREAD_COUNT_KEY = ["notificationUnreadCount"] as const;
+const SENT_KEY = ["notificationsSent"] as const;
 const PREFERENCES_KEY = ["notificationPreferences"] as const;
 const PUSH_CONFIG_KEY = ["notificationPushConfig"] as const;
 
@@ -25,9 +31,9 @@ export interface NotificationListOptions {
 /**
  * The signed-in user's inbox for the current household, newest first.
  *
- * Keyed on both options for the same reason `useNotes` keys on its limit: the
- * header popover asks for a short list while `/notifications` asks for the
- * full one, and sharing a key would let the truncated list satisfy the page.
+ * Keyed on both options for the same reason `useNotes` keys on its limit: a
+ * caller asking for a short list must not leave a truncated result behind that
+ * satisfies `/notifications`, which wants the full one.
  */
 export function useNotifications({ unreadOnly, limit }: NotificationListOptions = {}) {
   return useQuery({
@@ -43,7 +49,7 @@ export function useNotifications({ unreadOnly, limit }: NotificationListOptions 
 
 /**
  * Just the badge number. Deliberately its own endpoint and its own query key —
- * the header renders on every page, and it has no use for notification bodies.
+ * `AppLayout` renders the badge on every page, and it has no use for bodies.
  */
 export function useUnreadNotificationCount() {
   return useQuery({
@@ -51,6 +57,25 @@ export function useUnreadNotificationCount() {
     queryFn: async (): Promise<number> => {
       const result = await apiClient.api.notifications.unreadCount.get();
       return result?.count ?? 0;
+    },
+  });
+}
+
+/**
+ * What the signed-in user has sent into this household, newest first — the
+ * inverse of `useNotifications`, which reads their inbox.
+ *
+ * Its own query key rather than a variant of the inbox's: these are sends, not
+ * notifications, and one entry here stands for many rows there.
+ */
+export function useSentNotifications(limit?: number) {
+  return useQuery({
+    queryKey: [...SENT_KEY, limit ?? null],
+    queryFn: async (): Promise<SentNotificationResponse[]> => {
+      const sent = await apiClient.api.notifications.sent.get({
+        queryParameters: { limit },
+      });
+      return sent ?? [];
     },
   });
 }
@@ -66,6 +91,9 @@ function useNotificationInvalidation() {
   return () => {
     queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_KEY });
     queryClient.invalidateQueries({ queryKey: UNREAD_COUNT_KEY });
+    // The sent list carries per-send read counts, so someone else's read moves
+    // it too — but the only mutation here that can is the sender's own send.
+    queryClient.invalidateQueries({ queryKey: SENT_KEY });
   };
 }
 

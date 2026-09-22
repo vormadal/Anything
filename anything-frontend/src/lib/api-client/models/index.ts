@@ -1733,6 +1733,15 @@ export function createSendNotificationResponseFromDiscriminatorValue(parseNode: 
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SentNotificationResponse}
+ */
+// @ts-ignore
+export function createSentNotificationResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSentNotificationResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {SharedIngredientResponse}
  */
 // @ts-ignore
@@ -3918,6 +3927,22 @@ export function deserializeIntoSendNotificationResponse(sendNotificationResponse
 }
 /**
  * The deserialization information for the current model
+ * @param SentNotificationResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSentNotificationResponse(sentNotificationResponse: Partial<SentNotificationResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "body": n => { sentNotificationResponse.body = n.getStringValue(); },
+        "category": n => { sentNotificationResponse.category = n.getStringValue(); },
+        "readCount": n => { sentNotificationResponse.readCount = n.getNumberValue(); },
+        "recipients": n => { sentNotificationResponse.recipients = n.getNumberValue(); },
+        "sentOn": n => { sentNotificationResponse.sentOn = n.getDateValue(); },
+        "title": n => { sentNotificationResponse.title = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param SharedIngredientResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -6074,6 +6099,32 @@ export interface SendNotificationResponse extends Parsable {
      */
     recipients?: number | null;
 }
+export interface SentNotificationResponse extends Parsable {
+    /**
+     * The body property
+     */
+    body?: string | null;
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The readCount property
+     */
+    readCount?: number | null;
+    /**
+     * The recipients property
+     */
+    recipients?: number | null;
+    /**
+     * The sentOn property
+     */
+    sentOn?: Date | null;
+    /**
+     * The title property
+     */
+    title?: string | null;
+}
 /**
  * Serializes information the current object
  * @param AddBillPriceRequest The instance to serialize from.
@@ -7790,6 +7841,22 @@ export function serializeSendNotificationRequest(writer: SerializationWriter, se
 export function serializeSendNotificationResponse(writer: SerializationWriter, sendNotificationResponse: Partial<SendNotificationResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!sendNotificationResponse || isSerializingDerivedType) { return; }
     writer.writeNumberValue("recipients", sendNotificationResponse.recipients);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SentNotificationResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSentNotificationResponse(writer: SerializationWriter, sentNotificationResponse: Partial<SentNotificationResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!sentNotificationResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("body", sentNotificationResponse.body);
+    writer.writeStringValue("category", sentNotificationResponse.category);
+    writer.writeNumberValue("readCount", sentNotificationResponse.readCount);
+    writer.writeNumberValue("recipients", sentNotificationResponse.recipients);
+    writer.writeDateValue("sentOn", sentNotificationResponse.sentOn);
+    writer.writeStringValue("title", sentNotificationResponse.title);
 }
 /**
  * Serializes information the current object

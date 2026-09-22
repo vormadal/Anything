@@ -30,6 +30,7 @@ import {
   Package,
   Bell,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   PageActionsProvider,
   useHeaderActions,
@@ -42,12 +43,21 @@ import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { OnboardingTourDialog } from "@/components/OnboardingTourDialog";
-import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationBadge } from "@/components/NotificationBadge";
+import { useUnreadNotificationCount } from "@/hooks/useNotifications";
 
 const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 
 
-const NAV_ITEMS = [
+interface NavItem {
+  label: string;
+  path: string;
+  icon: LucideIcon;
+  /** Renders the unread-notification count on this entry. */
+  showUnreadBadge?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
   { label: "Home", path: "/", icon: Home },
   { label: "Lists", path: "/lists", icon: LayoutList },
   { label: "Notes", path: "/notes", icon: NotebookPen },
@@ -56,10 +66,12 @@ const NAV_ITEMS = [
   { label: "Bills", path: "/bills", icon: Receipt },
   { label: "Storage", path: "/inventory", icon: Package },
   { label: "Households", path: "/households", icon: Users },
-  { label: "Notifications", path: "/notifications", icon: Bell },
+  // The only entry carrying a badge — see NotificationBadge for why the count
+  // lives here and on the burger rather than on a header icon of its own.
+  { label: "Notifications", path: "/notifications", icon: Bell, showUnreadBadge: true },
 ];
 
-const ADMIN_NAV_ITEMS = [
+const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Invite Users", path: "/admin/invite", icon: UserPlus },
   { label: "Search Index", path: "/admin/search-index", icon: Search },
 ];
@@ -95,6 +107,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthenticated = useIsAuthenticated();
   const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
+  const { data: unreadCount } = useUnreadNotificationCount();
+  const unread = unreadCount ?? 0;
   const { navigateBack } = useSmartBack();
   useOfflineSync();
   const tour = useOnboardingTour();
@@ -143,10 +157,22 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
+              className="relative"
               onClick={() => setDrawerOpen(true)}
-              aria-label="Open menu"
+              // The count is part of the name rather than a separate element so
+              // a screen reader gets it from the one control that's actually
+              // focusable, and tests can assert it without touching styling.
+              aria-label={
+                unread > 0
+                  ? `Open menu, ${unread} unread notifications`
+                  : "Open menu"
+              }
             >
               <Menu className="h-5 w-5" />
+              <NotificationBadge
+                count={unread}
+                className="absolute right-0.5 top-0.5"
+              />
             </Button>
           )}
           {!hideTitle && (
@@ -154,9 +180,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               {title || "Anything"}
             </h1>
           )}
-          {/* ml-auto on the bell itself, so it still sits right when a page
-              hides the title and there's no flex-1 spacer to push it there. */}
-          <NotificationBell />
           {headerActions}
         </div>
       </header>
@@ -177,16 +200,23 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 px-3 py-2 space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
+              const showBadge = Boolean(item.showUnreadBadge) && unread > 0;
               return (
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
+                  aria-label={
+                    showBadge ? `${item.label}, ${unread} unread` : undefined
+                  }
                   className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.path) ? NAV_ACTIVE_CLASS : NAV_INACTIVE_CLASS
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
                   {item.label}
+                  {item.showUnreadBadge && (
+                    <NotificationBadge count={unread} className="ml-auto" />
+                  )}
                 </button>
               );
             })}

@@ -174,6 +174,136 @@ public class GetUnreadNotificationCountHandlerTests : NotificationHandlerTestBas
     }
 }
 
+public class GetSentNotificationsHandlerTests : NotificationHandlerTestBase
+{
+    private GetSentNotificationsHandler CreateHandler() => new(NotificationRepo, HouseholdContext);
+
+    /// <summary>
+    /// The rows one dispatch produces: <paramref name="recipients"/> copies
+    /// sharing a single <paramref name="createdOn"/>, the first
+    /// <paramref name="readCount"/> of them already read.
+    /// </summary>
+    private static Notification[] Send(
+        DateTime createdOn,
+        string title,
+        int senderId = UserId,
+        int householdId = HouseholdId,
+        int recipients = 1,
+        int readCount = 0) =>
+        // No Id: the handler groups on the send, never the row, and these rows
+        // only ever live in an in-memory queryable.
+        Enumerable.Range(0, recipients).Select(i => new Notification
+        {
+            HouseholdId = householdId,
+            UserId = 100 + i,
+            Category = NotificationCategories.Announcement,
+            Title = title,
+            CreatedByUserId = senderId,
+            CreatedOn = createdOn,
+            ReadOn = i < readCount ? createdOn.AddMinutes(1) : null
+        }).ToArray();
+
+    [Fact]
+    public async Task Handle_CollapsesOneDispatchIntoOneRow()
+    {
+        SeedNotifications(Send(Now, "Bin day", recipients: 3, readCount: 1));
+
+        var result = await CreateHandler().Handle(
+            new GetSentNotificationsQuery(UserId), TestContext.Current.CancellationToken);
+
+        var sent = Assert.Single(result);
+        Assert.Equal("Bin day", sent.Title);
+        Assert.Equal(NotificationCategories.Announcement, sent.Category);
+        Assert.Equal(Now, sent.SentOn);
+        Assert.Equal(3, sent.Recipients);
+        Assert.Equal(1, sent.ReadCount);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsSendsNewestFirst()
+    {
+        SeedNotifications([
+            .. Send(Now.AddHours(-2), "Older"),
+            .. Send(Now, "Newer")
+        ]);
+
+        var result = await CreateHandler().Handle(
+            new GetSentNotificationsQuery(UserId), TestContext.Current.CancellationToken);
+
+        Assert.Equal(["Newer", "Older"], result.Select(s => s.Title).ToList());
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesOtherPeoplesSendsAndOtherHouseholds()
+    {
+        SeedNotifications([
+            .. Send(Now, "Mine"),
+            .. Send(Now.AddMinutes(1), "Someone else's", senderId: UserId + 1),
+            .. Send(Now.AddMinutes(2), "Other household", householdId: HouseholdId + 1)
+        ]);
+
+        var result = await CreateHandler().Handle(
+            new GetSentNotificationsQuery(UserId), TestContext.Current.CancellationToken);
+
+        Assert.Equal(["Mine"], result.Select(s => s.Title).ToList());
+    }
+
+    [Fact]
+    public async Task Handle_StillCountsARecipientWhoDismissedTheirCopy()
+    {
+        // Dismissing is not unsending — the recipient count must not shrink
+        // behind the sender's back.
+        var dispatch = Send(Now, "Bin day", recipients: 2);
+        dispatch[1].DeletedOn = Now;
+        SeedNotifications(dispatch);
+
+        var result = await CreateHandler().Handle(
+            new GetSentNotificationsQuery(UserId), TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, Assert.Single(result).Recipients);
+    }
+
+    [Fact]
+    public async Task Handle_AppliesTheRequestedLimit()
+    {
+        SeedNotifications([
+            .. Send(Now.AddHours(-2), "A"),
+            .. Send(Now.AddHours(-1), "B"),
+            .. Send(Now, "C")
+        ]);
+
+        var result = await CreateHandler().Handle(
+            new GetSentNotificationsQuery(UserId, Limit: 2), TestContext.Current.CancellationToken);
+
+        Assert.Equal(["C", "B"], result.Select(s => s.Title).ToList());
+    }
+
+    [Fact]
+    public async Task Handle_CapsAnOversizedLimitAtMaxResults()
+    {
+        SeedNotifications(Enumerable.Range(1, GetSentNotificationsHandler.MaxResults + 20)
+            .SelectMany(i => Send(Now.AddMinutes(-i), $"Send {i}"))
+            .ToArray());
+
+        var result = await CreateHandler().Handle(
+            new GetSentNotificationsQuery(UserId, Limit: 5000), TestContext.Current.CancellationToken);
+
+        Assert.Equal(GetSentNotificationsHandler.MaxResults, result.Count);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheCallerHasSentNothing_ReturnsEmpty()
+    {
+        // Mine() leaves CreatedByUserId null: received, never sent.
+        SeedNotifications(Mine(1, Now));
+
+        var result = await CreateHandler().Handle(
+            new GetSentNotificationsQuery(UserId), TestContext.Current.CancellationToken);
+
+        Assert.Empty(result);
+    }
+}
+
 public class MarkNotificationReadHandlerTests : NotificationHandlerTestBase
 {
     private MarkNotificationReadHandler CreateHandler() =>
