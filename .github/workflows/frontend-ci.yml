@@ -317,5 +317,5 @@ jobs:
           -Dsonar.sources=src
           -Dsonar.exclusions=**/*.test.ts,**/*.test.tsx,**/node_modules/**,**/.next/**,**/public/**,**/lib/api-client/**
           -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx
-          -Dsonar.coverage.exclusions=**/app/layout.tsx,**/middleware.ts,**/context/QueryProvider.tsx,**/components/ui/sonner.tsx,**/lib/api-client/**
+          -Dsonar.coverage.exclusions=**/app/layout.tsx,**/proxy.ts,**/context/QueryProvider.tsx,**/components/ui/sonner.tsx,**/lib/api-client/**
           -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
