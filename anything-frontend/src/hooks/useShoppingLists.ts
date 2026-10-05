@@ -5,6 +5,7 @@ import { apiClient } from "@/lib/apiClient";
 import type { ShoppingList, ShoppingListResponse, ShoppingListItem, ShoppingListTemplateResponse } from "@/lib/api-client/models/index";
 import { isOffline } from "@/hooks/useOnlineStatus";
 import { isNetworkError } from "@/lib/offline/networkError";
+import { latestDate } from "@/lib/checklistOrder";
 import {
   createTempItemId,
   isTempItemId,
@@ -303,8 +304,13 @@ export function useUpdateShoppingListItem(listId: number) {
     onMutate: async (vars) => {
       await queryClient.cancelQueries({ queryKey: ["shoppingListItems", listId] });
       const previousItems = queryClient.getQueryData<ShoppingListItem[]>(["shoppingListItems", listId]);
-      queryClient.setQueryData<ShoppingListItem[]>(["shoppingListItems", listId], (old) =>
-        old?.map((item) =>
+      queryClient.setQueryData<ShoppingListItem[]>(["shoppingListItems", listId], (old) => {
+        // Never older than any other row's server-set modifiedOn: a client
+        // clock running behind the server would otherwise sort the toggled
+        // item below rows checked moments earlier, until the refetch moves it.
+        const latest = latestDate(old?.map((item) => item.modifiedOn) ?? []);
+        const modifiedOn = new Date(Math.max(Date.now(), (latest?.getTime() ?? 0) + 1));
+        return old?.map((item) =>
           item.id === vars.itemId
             ? {
                 ...item,
@@ -319,11 +325,11 @@ export function useUpdateShoppingListItem(listId: number) {
                 // again a moment later once the server-confirmed modifiedOn comes
                 // back from the onSettled refetch — a double FLIP move that reads
                 // as a jitter on every single toggle.
-                modifiedOn: new Date(),
+                modifiedOn,
               }
             : item
-        )
-      );
+        );
+      });
       return { previousItems };
     },
     onError: (_err, _vars, context) => {
