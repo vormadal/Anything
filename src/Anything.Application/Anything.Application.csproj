@@ -15,7 +15,7 @@
   <ItemGroup>
     <PackageReference Include="Minio" Version="7.0.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
     <!-- Web Push (VAPID + payload encryption). Its net6.0 target pulls only
          Lib.Net.Http.EncryptedContentEncoding and uses BCL crypto — unlike the
@@ -25,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
     <ProjectReference Include="..\Anything.Core\Anything.Core.csproj" />
     <ProjectReference Include="..\Anything.Contracts\Anything.Contracts.csproj" />
     <ProjectReference Include="..\Anything.Mediator\Anything.Mediator.csproj" />
