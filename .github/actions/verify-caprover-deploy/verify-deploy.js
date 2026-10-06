@@ -31,6 +31,11 @@ const RETRY_INTERVAL_MS = parseInt(
   10
 );
 
+// How many consecutive CapRover API failures (e.g. a 502 from the captain's
+// nginx while the server is under build load or reloading) to ride out before
+// giving up. Resets on every successful call.
+const MAX_API_FAILURES = parseInt(process.env.MAX_API_FAILURES || "30", 10);
+
 const SKIP_HEALTH_CHECK = process.env.SKIP_HEALTH_CHECK === "true";
 const HEALTH_CHECK_URL = process.env.HEALTH_CHECK_URL || "";
 const HEALTH_CHECK_PATH = process.env.HEALTH_CHECK_PATH || "/health";
@@ -102,15 +107,33 @@ function fetchAppDefinition() {
   const app = response.appDefinitions.find((a) => a.appName === APP_NAME);
 
   if (!app) {
-    throw new Error(`App "${APP_NAME}" not found on CapRover`);
+    throw new AppNotFoundError(`App "${APP_NAME}" not found on CapRover`);
   }
 
   return app;
 }
 
+class AppNotFoundError extends Error {}
+
 async function waitForBuild() {
+  let apiFailures = 0;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const app = fetchAppDefinition();
+    let app;
+    try {
+      app = fetchAppDefinition();
+      apiFailures = 0;
+    } catch (err) {
+      // The captain API routinely goes briefly unavailable (502/503) during a
+      // deploy - the build is still running or finishing, so keep polling.
+      if (err instanceof AppNotFoundError || ++apiFailures > MAX_API_FAILURES) {
+        throw err;
+      }
+      console.log(
+        `[${attempt}/${MAX_RETRIES}] CapRover API unavailable (${apiFailures}/${MAX_API_FAILURES}): ${err.message}`
+      );
+      await sleep(RETRY_INTERVAL_MS);
+      continue;
+    }
     const latestVersion = app.versions[app.versions.length - 1].version;
 
     if (app.deployedVersion === latestVersion) {
