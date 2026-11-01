@@ -6,6 +6,10 @@ namespace Anything.Contracts.Renovation;
 /// One payment covering one or more lines. <see cref="TotalAmount"/> is split across the lines in
 /// proportion to each line's estimate for the quantity bought (quantity × unit price).
 /// </summary>
+/// <param name="Vendor">Free-text shop name, used when no <paramref name="VendorId"/> is given.</param>
+/// <param name="VendorId">
+/// One of the household's vendors (<c>/api/vendors</c>). When set, its name replaces <paramref name="Vendor"/>.
+/// </param>
 public record CreateRenovationPurchaseRequest(
     [StringLength(200, ErrorMessage = "Vendor must be 200 characters or less.")]
     string? Vendor,
