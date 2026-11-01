@@ -3327,3 +3327,385 @@ test.describe("Visual Snapshots - Onboarding Tour", () => {
   });
 });
 
+
+// ---------------------------------------------------------------------------
+// Renovation
+//
+// One fixture set shared by every test: project "Ground floor refresh" with a
+// kitchen (partly bought, one line over estimate) and a bedroom (not started).
+// Figures follow RenovationCalculator: a room's quantities come from its
+// dimensions, waste is added on top, and each line's estimate is quantity x
+// unit price rounded to whole øre. Purchase allocations split each receipt by
+// quantity x unit price, so the line actuals sum back to the receipts.
+//
+// Kitchen: estimate 102 183.94, actual 46 920.00, forecast 104 853.97
+// Bedroom: estimate  13 330.24, actual      0.00, forecast  13 330.24
+// Project: estimate 115 514.18, actual 46 920.00, forecast 118 184.21 (budget 200 000)
+// ---------------------------------------------------------------------------
+
+const renovationMaterials = [
+  { id: 1, name: "Oak laminate 8 mm", category: "Flooring", unit: "m²", defaultPrice: 289, wastePercent: 10, packSize: 2.13, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 2, name: "Foam underlay 3 mm", category: "Flooring", unit: "m²", defaultPrice: 39, wastePercent: 5, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 3, name: "Wall paint, 2 coats", category: "Paint", unit: "m²", defaultPrice: 48, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 4, name: "Ceiling paint", category: "Paint", unit: "m²", defaultPrice: 35, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 5, name: "Oak skirting 12×58", category: "Trim", unit: "m", defaultPrice: 59, wastePercent: 10, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 6, name: "Kitchen cabinets, 8 units", category: "Fixtures", unit: "set", defaultPrice: 42000, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 7, name: "Oak countertop 38 mm", category: "Fixtures", unit: "m", defaultPrice: 1950, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 8, name: "Wall tiles 10×20", category: "Tiles", unit: "m²", defaultPrice: 420, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 9, name: "Oven, hob, fridge, dishwasher", category: "Fixtures", unit: "set", defaultPrice: 24000, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 10, name: "Electrician, kitchen", category: "Labour", unit: "job", defaultPrice: 12000, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 11, name: "Plumber, kitchen", category: "Labour", unit: "job", defaultPrice: 8500, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 12, name: "Electrician, sockets and lights", category: "Labour", unit: "job", defaultPrice: 6500, wastePercent: 0, packSize: null, productUrl: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+  { id: 13, name: "Vinyl click plank 4 mm", category: "Flooring", unit: "m²", defaultPrice: 265, wastePercent: 10, packSize: null, productUrl: "https://example.com/products/vinyl-click-plank", createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+];
+
+const renovationKitchenRoom = {
+  id: 1,
+  name: "Kitchen",
+  roomType: "kitchen",
+  sortOrder: 0,
+  length: 4.2,
+  width: 3,
+  height: 2.5,
+  doors: 1,
+  windows: 1,
+  floorArea: 12.6,
+  wallArea: 32.61,
+  perimeter: 13.5,
+  estimate: 102183.94,
+  actual: 46920,
+  forecast: 104853.97,
+  lines: [
+    { id: 1, roomId: 1, sortOrder: 0, label: "Floor", group: "Surfaces", basis: "Floor", description: "Oak laminate 8 mm", materialId: 1, unit: "m²", unitPrice: 289, wastePercent: 10, fixedQuantity: null, isComplete: false, requiredQuantity: 13.86, purchasedQuantity: 6, remainingQuantity: 7.86, estimate: 4005.54, actual: 1839.7, forecast: 4111.24, status: "Partial" },
+    { id: 2, roomId: 1, sortOrder: 1, label: "Underlay", group: "Surfaces", basis: "Floor", description: "Foam underlay 3 mm", materialId: 2, unit: "m²", unitPrice: 39, wastePercent: 5, fixedQuantity: null, isComplete: true, requiredQuantity: 13.23, purchasedQuantity: 13.23, remainingQuantity: 0, estimate: 515.97, actual: 520, forecast: 520, status: "Complete" },
+    { id: 3, roomId: 1, sortOrder: 2, label: "Walls", group: "Surfaces", basis: "Wall", description: "Wall paint, 2 coats", materialId: 3, unit: "m²", unitPrice: 48, wastePercent: 0, fixedQuantity: null, isComplete: false, requiredQuantity: 32.61, purchasedQuantity: 0, remainingQuantity: 32.61, estimate: 1565.28, actual: 0, forecast: 1565.28, status: "NotStarted" },
+    { id: 4, roomId: 1, sortOrder: 3, label: "Ceiling", group: "Surfaces", basis: "Ceiling", description: "Ceiling paint", materialId: 4, unit: "m²", unitPrice: 35, wastePercent: 0, fixedQuantity: null, isComplete: false, requiredQuantity: 12.6, purchasedQuantity: 0, remainingQuantity: 12.6, estimate: 441, actual: 0, forecast: 441, status: "NotStarted" },
+    { id: 5, roomId: 1, sortOrder: 4, label: "Skirting", group: "Surfaces", basis: "Perimeter", description: "Oak skirting 12×58", materialId: 5, unit: "m", unitPrice: 59, wastePercent: 10, fixedQuantity: null, isComplete: false, requiredQuantity: 14.85, purchasedQuantity: 0, remainingQuantity: 14.85, estimate: 876.15, actual: 0, forecast: 876.15, status: "NotStarted" },
+    { id: 6, roomId: 1, sortOrder: 5, label: "Cabinets", group: "Fixtures", basis: "Fixed", description: "Kitchen cabinets, 8 units", materialId: 6, unit: "set", unitPrice: 42000, wastePercent: 0, fixedQuantity: 1, isComplete: true, requiredQuantity: 1, purchasedQuantity: 1, remainingQuantity: 0, estimate: 42000, actual: 44560.3, forecast: 44560.3, status: "Complete" },
+    { id: 7, roomId: 1, sortOrder: 6, label: "Countertop", group: "Fixtures", basis: "Fixed", description: "Oak countertop 38 mm", materialId: 7, unit: "m", unitPrice: 1950, wastePercent: 0, fixedQuantity: 3.6, isComplete: false, requiredQuantity: 3.6, purchasedQuantity: 0, remainingQuantity: 3.6, estimate: 7020, actual: 0, forecast: 7020, status: "NotStarted" },
+    { id: 8, roomId: 1, sortOrder: 7, label: "Backsplash", group: "Fixtures", basis: "Fixed", description: "Wall tiles 10×20", materialId: 8, unit: "m²", unitPrice: 420, wastePercent: 0, fixedQuantity: 3, isComplete: false, requiredQuantity: 3, purchasedQuantity: 0, remainingQuantity: 3, estimate: 1260, actual: 0, forecast: 1260, status: "NotStarted" },
+    { id: 9, roomId: 1, sortOrder: 8, label: "Appliances", group: "Fixtures", basis: "Fixed", description: "Oven, hob, fridge, dishwasher", materialId: 9, unit: "set", unitPrice: 24000, wastePercent: 0, fixedQuantity: 1, isComplete: false, requiredQuantity: 1, purchasedQuantity: 0, remainingQuantity: 1, estimate: 24000, actual: 0, forecast: 24000, status: "NotStarted" },
+    { id: 10, roomId: 1, sortOrder: 9, label: "Electrician", group: "Labour", basis: "Fixed", description: "Electrician, kitchen", materialId: 10, unit: "job", unitPrice: 12000, wastePercent: 0, fixedQuantity: 1, isComplete: false, requiredQuantity: 1, purchasedQuantity: 0, remainingQuantity: 1, estimate: 12000, actual: 0, forecast: 12000, status: "NotStarted" },
+    { id: 11, roomId: 1, sortOrder: 10, label: "Plumber", group: "Labour", basis: "Fixed", description: "Plumber, kitchen", materialId: 11, unit: "job", unitPrice: 8500, wastePercent: 0, fixedQuantity: 1, isComplete: false, requiredQuantity: 1, purchasedQuantity: 0, remainingQuantity: 1, estimate: 8500, actual: 0, forecast: 8500, status: "NotStarted" },
+  ],
+};
+
+const renovationBedroomRoom = {
+  id: 2,
+  name: "Bedroom",
+  roomType: "bedroom",
+  sortOrder: 1,
+  length: 3.6,
+  width: 3.2,
+  height: 2.5,
+  doors: 1,
+  windows: 1,
+  floorArea: 11.52,
+  wallArea: 30.61,
+  perimeter: 12.7,
+  estimate: 13330.24,
+  actual: 0,
+  forecast: 13330.24,
+  lines: [
+    { id: 12, roomId: 2, sortOrder: 0, label: "Floor", group: "Surfaces", basis: "Floor", description: "Oak laminate 8 mm", materialId: 1, unit: "m²", unitPrice: 289, wastePercent: 10, fixedQuantity: null, isComplete: false, requiredQuantity: 12.67, purchasedQuantity: 0, remainingQuantity: 12.67, estimate: 3661.63, actual: 0, forecast: 3661.63, status: "NotStarted" },
+    { id: 13, roomId: 2, sortOrder: 1, label: "Underlay", group: "Surfaces", basis: "Floor", description: "Foam underlay 3 mm", materialId: 2, unit: "m²", unitPrice: 39, wastePercent: 5, fixedQuantity: null, isComplete: false, requiredQuantity: 12.1, purchasedQuantity: 0, remainingQuantity: 12.1, estimate: 471.9, actual: 0, forecast: 471.9, status: "NotStarted" },
+    { id: 14, roomId: 2, sortOrder: 2, label: "Walls", group: "Surfaces", basis: "Wall", description: "Wall paint, 2 coats", materialId: 3, unit: "m²", unitPrice: 48, wastePercent: 0, fixedQuantity: null, isComplete: false, requiredQuantity: 30.61, purchasedQuantity: 0, remainingQuantity: 30.61, estimate: 1469.28, actual: 0, forecast: 1469.28, status: "NotStarted" },
+    { id: 15, roomId: 2, sortOrder: 3, label: "Ceiling", group: "Surfaces", basis: "Ceiling", description: "Ceiling paint", materialId: 4, unit: "m²", unitPrice: 35, wastePercent: 0, fixedQuantity: null, isComplete: false, requiredQuantity: 11.52, purchasedQuantity: 0, remainingQuantity: 11.52, estimate: 403.2, actual: 0, forecast: 403.2, status: "NotStarted" },
+    { id: 16, roomId: 2, sortOrder: 4, label: "Skirting", group: "Surfaces", basis: "Perimeter", description: "Oak skirting 12×58", materialId: 5, unit: "m", unitPrice: 59, wastePercent: 10, fixedQuantity: null, isComplete: false, requiredQuantity: 13.97, purchasedQuantity: 0, remainingQuantity: 13.97, estimate: 824.23, actual: 0, forecast: 824.23, status: "NotStarted" },
+    { id: 17, roomId: 2, sortOrder: 5, label: "Electrician", group: "Labour", basis: "Fixed", description: "Electrician, sockets and lights", materialId: 12, unit: "job", unitPrice: 6500, wastePercent: 0, fixedQuantity: 1, isComplete: false, requiredQuantity: 1, purchasedQuantity: 0, remainingQuantity: 1, estimate: 6500, actual: 0, forecast: 6500, status: "NotStarted" },
+  ],
+};
+
+const renovationProject = {
+  id: 1,
+  name: "Ground floor refresh",
+  budget: 200000,
+  estimate: 115514.18,
+  actual: 46920,
+  forecast: 118184.21,
+  notes: null,
+  createdOn: "2025-01-01T00:00:00Z",
+  modifiedOn: null,
+  rooms: [renovationKitchenRoom, renovationBedroomRoom],
+};
+
+const renovationProjectSummaries = [
+  { id: 1, name: "Ground floor refresh", budget: 200000, estimate: 115514.18, actual: 46920, forecast: 118184.21, roomCount: 2, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null },
+];
+
+const renovationPurchases = [
+  {
+    id: 1,
+    purchasedOn: "2025-01-10",
+    vendor: "Timber & Tile Co",
+    vendorId: 1,
+    totalAmount: 46400,
+    notes: null,
+    createdOn: "2025-01-10T09:00:00Z",
+    lines: [
+      { lineId: 1, roomId: 1, roomName: "Kitchen", lineLabel: "Floor", quantity: 6, unit: "m²", amount: 1839.7, description: null, inventoryItemId: null },
+      { lineId: 6, roomId: 1, roomName: "Kitchen", lineLabel: "Cabinets", quantity: 1, unit: "set", amount: 44560.3, description: null, inventoryItemId: 41 },
+    ],
+  },
+  {
+    id: 2,
+    purchasedOn: "2025-01-12",
+    vendor: "Brightside Hardware",
+    vendorId: 2,
+    totalAmount: 520,
+    notes: null,
+    createdOn: "2025-01-12T16:30:00Z",
+    lines: [
+      { lineId: 2, roomId: 1, roomName: "Kitchen", lineLabel: "Underlay", quantity: 13.23, unit: "m²", amount: 520, description: null, inventoryItemId: null },
+    ],
+  },
+];
+
+const renovationVendors = [
+  { id: 1, name: "Timber & Tile Co", website: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+  { id: 2, name: "Brightside Hardware", website: null, createdOn: "2025-01-01T00:00:00Z", modifiedOn: null, deletedOn: null },
+];
+
+// Mirrors RenovationRoomTemplates.cs: the kitchen starts with every line on,
+// the bedroom leaves the door and the electrician off.
+const renovationRoomTemplates = [
+  {
+    label: "Kitchen",
+    roomType: "kitchen",
+    length: 4.2,
+    width: 3,
+    height: 2.5,
+    doors: 1,
+    windows: 1,
+    lines: [
+      { key: "floor", label: "Floor", group: "Surfaces", materialName: "Oak laminate 8 mm", category: "Flooring", basis: "Floor", unit: "m²", defaultPrice: 289, wastePercent: 10, fixedQuantity: null, enabledByDefault: true },
+      { key: "underlay", label: "Underlay", group: "Surfaces", materialName: "Foam underlay 3 mm", category: "Flooring", basis: "Floor", unit: "m²", defaultPrice: 39, wastePercent: 5, fixedQuantity: null, enabledByDefault: true },
+      { key: "walls", label: "Walls", group: "Surfaces", materialName: "Wall paint, 2 coats", category: "Paint", basis: "Wall", unit: "m²", defaultPrice: 48, wastePercent: 0, fixedQuantity: null, enabledByDefault: true },
+      { key: "ceiling", label: "Ceiling", group: "Surfaces", materialName: "Ceiling paint", category: "Paint", basis: "Ceiling", unit: "m²", defaultPrice: 35, wastePercent: 0, fixedQuantity: null, enabledByDefault: true },
+      { key: "skirting", label: "Skirting", group: "Surfaces", materialName: "Oak skirting 12×58", category: "Trim", basis: "Perimeter", unit: "m", defaultPrice: 59, wastePercent: 10, fixedQuantity: null, enabledByDefault: true },
+      { key: "cabinets", label: "Cabinets", group: "Fixtures", materialName: "Kitchen cabinets, 8 units", category: "Fixtures", basis: "Fixed", unit: "set", defaultPrice: 42000, wastePercent: 0, fixedQuantity: 1, enabledByDefault: true },
+      { key: "countertop", label: "Countertop", group: "Fixtures", materialName: "Oak countertop 38 mm", category: "Fixtures", basis: "Fixed", unit: "m", defaultPrice: 1950, wastePercent: 0, fixedQuantity: 3.6, enabledByDefault: true },
+      { key: "backsplash", label: "Backsplash", group: "Fixtures", materialName: "Wall tiles 10×20", category: "Tiles", basis: "Fixed", unit: "m²", defaultPrice: 420, wastePercent: 0, fixedQuantity: 3, enabledByDefault: true },
+      { key: "appliances", label: "Appliances", group: "Fixtures", materialName: "Oven, hob, fridge, dishwasher", category: "Fixtures", basis: "Fixed", unit: "set", defaultPrice: 24000, wastePercent: 0, fixedQuantity: 1, enabledByDefault: true },
+      { key: "electrician", label: "Electrician", group: "Labour", materialName: "Electrician, kitchen", category: "Labour", basis: "Fixed", unit: "job", defaultPrice: 12000, wastePercent: 0, fixedQuantity: 1, enabledByDefault: true },
+      { key: "plumber", label: "Plumber", group: "Labour", materialName: "Plumber, kitchen", category: "Labour", basis: "Fixed", unit: "job", defaultPrice: 8500, wastePercent: 0, fixedQuantity: 1, enabledByDefault: true },
+    ],
+  },
+  {
+    label: "Bedroom",
+    roomType: "bedroom",
+    length: 3.6,
+    width: 3.2,
+    height: 2.5,
+    doors: 1,
+    windows: 1,
+    lines: [
+      { key: "floor", label: "Floor", group: "Surfaces", materialName: "Oak laminate 8 mm", category: "Flooring", basis: "Floor", unit: "m²", defaultPrice: 289, wastePercent: 10, fixedQuantity: null, enabledByDefault: true },
+      { key: "underlay", label: "Underlay", group: "Surfaces", materialName: "Foam underlay 3 mm", category: "Flooring", basis: "Floor", unit: "m²", defaultPrice: 39, wastePercent: 5, fixedQuantity: null, enabledByDefault: true },
+      { key: "walls", label: "Walls", group: "Surfaces", materialName: "Wall paint, 2 coats", category: "Paint", basis: "Wall", unit: "m²", defaultPrice: 48, wastePercent: 0, fixedQuantity: null, enabledByDefault: true },
+      { key: "ceiling", label: "Ceiling", group: "Surfaces", materialName: "Ceiling paint", category: "Paint", basis: "Ceiling", unit: "m²", defaultPrice: 35, wastePercent: 0, fixedQuantity: null, enabledByDefault: true },
+      { key: "skirting", label: "Skirting", group: "Surfaces", materialName: "Oak skirting 12×58", category: "Trim", basis: "Perimeter", unit: "m", defaultPrice: 59, wastePercent: 10, fixedQuantity: null, enabledByDefault: true },
+      { key: "doors", label: "Doors", group: "Fixtures", materialName: "Interior door with frame", category: "Fixtures", basis: "Doors", unit: "pcs", defaultPrice: 2400, wastePercent: 0, fixedQuantity: null, enabledByDefault: false },
+      { key: "electrician", label: "Electrician", group: "Labour", materialName: "Electrician, sockets and lights", category: "Labour", basis: "Fixed", unit: "job", defaultPrice: 6500, wastePercent: 0, fixedQuantity: 1, enabledByDefault: false },
+    ],
+  },
+];
+
+/**
+ * Renovation API mocks. Registered after setupApiMocks, and the more specific
+ * patterns come last so they win (LIFO). Tests that need a different state
+ * register their own route after calling this.
+ */
+async function setupRenovationMocks(page: Page) {
+  await page.route(/\/api\/renovation-projects\/?(\?.*)?$/, (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: renovationProjectSummaries });
+    } else {
+      route.continue();
+    }
+  });
+  await page.route(/\/api\/renovation-projects\/1\/purchases(\?.*)?$/, (route) =>
+    route.fulfill({ json: renovationPurchases })
+  );
+  await page.route(/\/api\/renovation-projects\/1(\?.*)?$/, (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: renovationProject });
+    } else {
+      route.continue();
+    }
+  });
+  await page.route(/\/api\/renovation-materials\/?(\?.*)?$/, (route) =>
+    route.fulfill({ json: renovationMaterials })
+  );
+  await page.route(/\/api\/renovation-room-templates\/?(\?.*)?$/, (route) =>
+    route.fulfill({ json: renovationRoomTemplates })
+  );
+  await page.route(/\/api\/vendors\/?(\?.*)?$/, (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: renovationVendors });
+    } else {
+      route.continue();
+    }
+  });
+}
+
+test.describe("Renovation", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(FIXED_DATE);
+    await setupApiMocks(page);
+    await setupRenovationMocks(page);
+  });
+
+  // ---- Projects list ----
+
+  test("renovation - projects list loaded", async ({ page }) => {
+    await page.goto("/renovation");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Ground floor refresh")).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-projects.png", screenshotOptions);
+  });
+
+  test("renovation - projects empty state", async ({ page }) => {
+    await page.route(/\/api\/renovation-projects\/?(\?.*)?$/, (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({ json: [] });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/renovation");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("No renovation projects yet")).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-projects-empty.png", screenshotOptions);
+  });
+
+  // ---- Project overview ----
+
+  test("renovation - project overview on track", async ({ page }) => {
+    await page.goto("/renovation/1");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("On track", { exact: true })).toBeVisible();
+    await expect(page.getByText("Kitchen", { exact: true })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-project-on-track.png", screenshotOptions);
+  });
+
+  test("renovation - project overview over budget", async ({ page }) => {
+    // Same spend and forecast, a budget below the 118 184 kr forecast.
+    await page.route(/\/api\/renovation-projects\/1(\?.*)?$/, (route) =>
+      route.fulfill({ json: { ...renovationProject, budget: 110000 } })
+    );
+    await page.goto("/renovation/1");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Over budget", { exact: true })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-project-over-budget.png", screenshotOptions);
+  });
+
+  test("renovation - project load error", async ({ page }) => {
+    await page.route(/\/api\/renovation-projects\/1(\?.*)?$/, (route) =>
+      route.fulfill({ status: 500, json: { error: "Internal Server Error" } })
+    );
+    await page.goto("/renovation/1");
+    await expect(page.getByText("Couldn't load this project")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-project-load-error.png", screenshotOptions);
+  });
+
+  // ---- Add room wizard ----
+
+  test("renovation - add room wizard, room type with kitchen picked", async ({ page }) => {
+    await page.goto("/renovation/1/rooms/new");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("What kind of room?")).toBeVisible();
+    await page.getByRole("button", { name: /^Kitchen/ }).click();
+    await expect(page.getByRole("button", { name: /^Kitchen/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByLabel("Room name")).toHaveValue("Kitchen");
+    await expect(page).toHaveScreenshot("renovation-room-wizard-type.png", screenshotOptions);
+  });
+
+  test("renovation - add room wizard, size and measurements", async ({ page }) => {
+    await page.goto("/renovation/1/rooms/new");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^Kitchen/ }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByText("How big is it?")).toBeVisible();
+    await expect(page.getByLabel("Length (m)")).toHaveValue("4.2");
+    await expect(page).toHaveScreenshot("renovation-room-wizard-size.png", screenshotOptions);
+  });
+
+  test("renovation - add room wizard, scope with a line unticked", async ({ page }) => {
+    await page.goto("/renovation/1/rooms/new");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^Kitchen/ }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByText("What are you doing?")).toBeVisible();
+    await page.getByRole("checkbox", { name: /Appliances/ }).uncheck();
+    await expect(page.getByRole("checkbox", { name: /Appliances/ })).not.toBeChecked();
+    await expect(page).toHaveScreenshot("renovation-room-wizard-scope.png", screenshotOptions);
+  });
+
+  // ---- Room budget ----
+
+  test("renovation - kitchen room budget", async ({ page }) => {
+    await page.goto("/renovation/1/rooms/1");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Budget lines (11)")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Floor/ })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-room-kitchen.png", screenshotOptions);
+  });
+
+  test("renovation - room change material dialog", async ({ page }) => {
+    await page.goto("/renovation/1/rooms/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^Floor/ }).click();
+    await expect(page.getByRole("button", { name: "Change material" })).toBeVisible();
+    await page.getByRole("button", { name: "Change material" }).click();
+    await expect(page.getByRole("dialog", { name: "Change material" })).toBeVisible();
+    await page.getByRole("radio", { name: /Vinyl click plank/ }).check();
+    await expect(page.getByRole("button", { name: "Use Vinyl click plank 4 mm" })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-room-change-material.png", screenshotOptions);
+  });
+
+  // ---- Materials library ----
+
+  test("renovation - materials library", async ({ page }) => {
+    await page.goto("/renovation/materials");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Oak laminate 8 mm", { exact: true })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-materials.png", screenshotOptions);
+  });
+
+  // ---- Shopping ----
+
+  test("renovation - shopping with a group selected", async ({ page }) => {
+    await page.goto("/renovation/1/shopping");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Still to buy, all rooms")).toBeVisible();
+    await page.getByRole("checkbox", { name: /Oak laminate 8 mm/ }).check();
+    await expect(page.getByText("1 material · 2 lines in 2 rooms")).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-shopping-selected.png", screenshotOptions);
+  });
+
+  test("renovation - record purchase with a partial quantity", async ({ page }) => {
+    await page.goto("/renovation/1/shopping");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("checkbox", { name: /Oak laminate 8 mm/ }).check();
+    await page.getByRole("button", { name: "Record purchase" }).click();
+    await expect(page.getByRole("dialog", { name: "Record purchase" })).toBeVisible();
+    // The dialog defaults the date to today; pin it so the screenshot is stable.
+    await page.getByLabel("Date", { exact: true }).fill("2025-01-15");
+    await page.getByLabel("Quantity bought for Floor in Kitchen").fill("5");
+    await page.getByLabel("Total paid (kr)").fill("5200");
+    await expect(page.getByText("Partial · 2.9 m² still to buy")).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-shopping-record-purchase.png", screenshotOptions);
+  });
+
+  test("renovation - purchase history expanded", async ({ page }) => {
+    await page.goto("/renovation/1/shopping");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /Timber & Tile Co/ }).click();
+    await expect(page.getByRole("button", { name: "Add to inventory" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "In inventory" })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-shopping-history.png", screenshotOptions);
+  });
+});

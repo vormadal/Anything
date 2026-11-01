@@ -371,6 +371,14 @@ allocation (`InventoryItemId`) so a second call is a 409. Pieces and sets become
 item's `Quantity`; area and length materials can't be counted, so their bought amount
 goes into `Description` instead.
 
+Frontend: `/renovation` (projects), `/renovation/[id]` (overview), `.../rooms/new`
+(wizard — its live estimate comes from `src/lib/renovation.ts`, which mirrors
+`RenovationCalculator` and must change with it), `.../rooms/[roomId]` (room budget,
+material swap), `.../shopping` (to-buy list grouped across rooms by material, record
+purchase with a quantity per line, purchase history, add to inventory) and
+`/renovation/materials`. Hooks are all in `useRenovation.ts`; visual snapshots are the
+`Renovation` block at the end of `e2e/visual.spec.ts`.
+
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
 - `GET /{id}` — Get by ID
