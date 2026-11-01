@@ -23,6 +23,7 @@ import {
   UserPlus,
   CalendarDays,
   Receipt,
+  Hammer,
   Users,
   HelpCircle,
   Search,
@@ -64,6 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Recipes", path: "/recipes", icon: CookingPot },
   { label: "Food Plan", path: "/food-plans", icon: CalendarDays },
   { label: "Bills", path: "/bills", icon: Receipt },
+  { label: "Renovation", path: "/renovation", icon: Hammer },
   { label: "Storage", path: "/inventory", icon: Package },
   { label: "Households", path: "/households", icon: Users },
   // The only entry carrying a badge — see NotificationBadge for why the count
