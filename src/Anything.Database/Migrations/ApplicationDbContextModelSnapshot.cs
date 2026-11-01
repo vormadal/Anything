@@ -1416,11 +1416,16 @@ namespace Anything.Database.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int?>("VendorId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("HouseholdId");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("VendorId");
 
                     b.ToTable("RenovationPurchases");
                 });
@@ -1436,6 +1441,9 @@ namespace Anything.Database.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("InventoryItemId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("LineId")
                         .HasColumnType("integer");
 
@@ -1446,6 +1454,8 @@ namespace Anything.Database.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
 
                     b.HasIndex("LineId");
 
@@ -2339,10 +2349,20 @@ namespace Anything.Database.Migrations
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Anything.Core.Entities.Vendor", null)
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Anything.Core.Entities.RenovationPurchaseAllocation", b =>
                 {
+                    b.HasOne("Anything.Core.Entities.InventoryItem", null)
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Anything.Core.Entities.RenovationLine", null)
                         .WithMany()
                         .HasForeignKey("LineId")
