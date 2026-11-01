@@ -70,6 +70,28 @@ export interface AddRecipeImageRequest extends Parsable {
      */
     url?: string | null;
 }
+export interface AddRenovationLineToInventoryRequest extends Parsable {
+    /**
+     * The boxId property
+     */
+    boxId?: number | null;
+    /**
+     * The brand property
+     */
+    brand?: string | null;
+    /**
+     * The model property
+     */
+    model?: string | null;
+    /**
+     * The storageUnitId property
+     */
+    storageUnitId?: number | null;
+    /**
+     * The warrantyExpiresOn property
+     */
+    warrantyExpiresOn?: Date | null;
+}
 export interface AddToShoppingListRequest extends Parsable {
     /**
      * The multiplier property
@@ -430,6 +452,15 @@ export function createAddRecipeImageRequestFromDiscriminatorValue(parseNode: Par
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {AddRenovationLineToInventoryRequest}
+ */
+// @ts-ignore
+export function createAddRenovationLineToInventoryRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoAddRenovationLineToInventoryRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {AddToShoppingListRequest}
  */
 // @ts-ignore
@@ -715,6 +746,42 @@ export function createCreateRecipeTagRequestFromDiscriminatorValue(parseNode: Pa
 // @ts-ignore
 export function createCreateRecommendationRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoCreateRecommendationRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateRenovationProjectRequest}
+ */
+// @ts-ignore
+export function createCreateRenovationProjectRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRenovationProjectRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateRenovationPurchaseLineRequest}
+ */
+// @ts-ignore
+export function createCreateRenovationPurchaseLineRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRenovationPurchaseLineRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateRenovationPurchaseRequest}
+ */
+// @ts-ignore
+export function createCreateRenovationPurchaseRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRenovationPurchaseRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {CreateRenovationRoomRequest}
+ */
+// @ts-ignore
+export function createCreateRenovationRoomRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoCreateRenovationRoomRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -1625,6 +1692,175 @@ export function createRenameRecipeTagRequestFromDiscriminatorValue(parseNode: Pa
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationLineResponse}
+ */
+// @ts-ignore
+export function createRenovationLineResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationLineResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationMaterialResponse}
+ */
+// @ts-ignore
+export function createRenovationMaterialResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationMaterialResponse;
+}
+export interface CreateRenovationProjectRequest extends Parsable {
+    /**
+     * The budget property
+     */
+    budget?: number | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationProjectResponse}
+ */
+// @ts-ignore
+export function createRenovationProjectResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationProjectResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationProjectSummaryResponse}
+ */
+// @ts-ignore
+export function createRenovationProjectSummaryResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationProjectSummaryResponse;
+}
+export interface CreateRenovationPurchaseLineRequest extends Parsable {
+    /**
+     * The lineId property
+     */
+    lineId?: number | null;
+    /**
+     * The markComplete property
+     */
+    markComplete?: boolean | null;
+    /**
+     * The quantity property
+     */
+    quantity?: number | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationPurchaseLineResponse}
+ */
+// @ts-ignore
+export function createRenovationPurchaseLineResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationPurchaseLineResponse;
+}
+export interface CreateRenovationPurchaseRequest extends Parsable {
+    /**
+     * The lines property
+     */
+    lines?: CreateRenovationPurchaseLineRequest[] | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The purchasedOn property
+     */
+    purchasedOn?: DateOnly | null;
+    /**
+     * The totalAmount property
+     */
+    totalAmount?: number | null;
+    /**
+     * The vendor property
+     */
+    vendor?: string | null;
+    /**
+     * The vendorId property
+     */
+    vendorId?: number | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationPurchaseResponse}
+ */
+// @ts-ignore
+export function createRenovationPurchaseResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationPurchaseResponse;
+}
+export interface CreateRenovationRoomRequest extends Parsable {
+    /**
+     * The doors property
+     */
+    doors?: number | null;
+    /**
+     * The height property
+     */
+    height?: number | null;
+    /**
+     * The length property
+     */
+    length?: number | null;
+    /**
+     * The lineKeys property
+     */
+    lineKeys?: string[] | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The roomType property
+     */
+    roomType?: string | null;
+    /**
+     * The width property
+     */
+    width?: number | null;
+    /**
+     * The windows property
+     */
+    windows?: number | null;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationRoomResponse}
+ */
+// @ts-ignore
+export function createRenovationRoomResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationRoomResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationRoomTemplateResponse}
+ */
+// @ts-ignore
+export function createRenovationRoomTemplateResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationRoomTemplateResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationTemplateLineResponse}
+ */
+// @ts-ignore
+export function createRenovationTemplateLineResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationTemplateLineResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {ReorderRecipeIngredientsRequest}
  */
 // @ts-ignore
@@ -1670,11 +1906,47 @@ export function createReorderSuggestionCategoriesRequestFromDiscriminatorValue(p
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ReplaceRenovationMaterialRequest}
+ */
+// @ts-ignore
+export function createReplaceRenovationMaterialRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoReplaceRenovationMaterialRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ReplaceRenovationMaterialResponse}
+ */
+// @ts-ignore
+export function createReplaceRenovationMaterialResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoReplaceRenovationMaterialResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {SaveAsTemplateRequest}
  */
 // @ts-ignore
 export function createSaveAsTemplateRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoSaveAsTemplateRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SaveRenovationLineRequest}
+ */
+// @ts-ignore
+export function createSaveRenovationLineRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSaveRenovationLineRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SaveRenovationMaterialRequest}
+ */
+// @ts-ignore
+export function createSaveRenovationMaterialRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSaveRenovationMaterialRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -2122,6 +2394,24 @@ export function createUpdateRecommendationRequestFromDiscriminatorValue(parseNod
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateRenovationProjectRequest}
+ */
+// @ts-ignore
+export function createUpdateRenovationProjectRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateRenovationProjectRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {UpdateRenovationRoomRequest}
+ */
+// @ts-ignore
+export function createUpdateRenovationRoomRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoUpdateRenovationRoomRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {UpdateShoppingListItemRequest}
  */
 // @ts-ignore
@@ -2272,6 +2562,21 @@ export function deserializeIntoAddHouseholdMemberRequest(addHouseholdMemberReque
 export function deserializeIntoAddRecipeImageRequest(addRecipeImageRequest: Partial<AddRecipeImageRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "url": n => { addRecipeImageRequest.url = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param AddRenovationLineToInventoryRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoAddRenovationLineToInventoryRequest(addRenovationLineToInventoryRequest: Partial<AddRenovationLineToInventoryRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "boxId": n => { addRenovationLineToInventoryRequest.boxId = n.getNumberValue(); },
+        "brand": n => { addRenovationLineToInventoryRequest.brand = n.getStringValue(); },
+        "model": n => { addRenovationLineToInventoryRequest.model = n.getStringValue(); },
+        "storageUnitId": n => { addRenovationLineToInventoryRequest.storageUnitId = n.getNumberValue(); },
+        "warrantyExpiresOn": n => { addRenovationLineToInventoryRequest.warrantyExpiresOn = n.getDateValue(); },
     }
 }
 /**
@@ -2669,6 +2974,66 @@ export function deserializeIntoCreateRecommendationRequest(createRecommendationR
         "name": n => { createRecommendationRequest.name = n.getStringValue(); },
         "preferredUnit": n => { createRecommendationRequest.preferredUnit = n.getStringValue(); },
         "shoppingListId": n => { createRecommendationRequest.shoppingListId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateRenovationProjectRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateRenovationProjectRequest(createRenovationProjectRequest: Partial<CreateRenovationProjectRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "budget": n => { createRenovationProjectRequest.budget = n.getNumberValue(); },
+        "name": n => { createRenovationProjectRequest.name = n.getStringValue(); },
+        "notes": n => { createRenovationProjectRequest.notes = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateRenovationPurchaseLineRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateRenovationPurchaseLineRequest(createRenovationPurchaseLineRequest: Partial<CreateRenovationPurchaseLineRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "lineId": n => { createRenovationPurchaseLineRequest.lineId = n.getNumberValue(); },
+        "markComplete": n => { createRenovationPurchaseLineRequest.markComplete = n.getBooleanValue(); },
+        "quantity": n => { createRenovationPurchaseLineRequest.quantity = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateRenovationPurchaseRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateRenovationPurchaseRequest(createRenovationPurchaseRequest: Partial<CreateRenovationPurchaseRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "lines": n => { createRenovationPurchaseRequest.lines = n.getCollectionOfObjectValues<CreateRenovationPurchaseLineRequest>(createCreateRenovationPurchaseLineRequestFromDiscriminatorValue); },
+        "notes": n => { createRenovationPurchaseRequest.notes = n.getStringValue(); },
+        "purchasedOn": n => { createRenovationPurchaseRequest.purchasedOn = n.getDateOnlyValue(); },
+        "totalAmount": n => { createRenovationPurchaseRequest.totalAmount = n.getNumberValue(); },
+        "vendor": n => { createRenovationPurchaseRequest.vendor = n.getStringValue(); },
+        "vendorId": n => { createRenovationPurchaseRequest.vendorId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param CreateRenovationRoomRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoCreateRenovationRoomRequest(createRenovationRoomRequest: Partial<CreateRenovationRoomRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "doors": n => { createRenovationRoomRequest.doors = n.getNumberValue(); },
+        "height": n => { createRenovationRoomRequest.height = n.getNumberValue(); },
+        "length": n => { createRenovationRoomRequest.length = n.getNumberValue(); },
+        "lineKeys": n => { createRenovationRoomRequest.lineKeys = n.getCollectionOfPrimitiveValues<string>(); },
+        "name": n => { createRenovationRoomRequest.name = n.getStringValue(); },
+        "roomType": n => { createRenovationRoomRequest.roomType = n.getStringValue(); },
+        "width": n => { createRenovationRoomRequest.width = n.getNumberValue(); },
+        "windows": n => { createRenovationRoomRequest.windows = n.getNumberValue(); },
     }
 }
 /**
@@ -3783,6 +4148,197 @@ export function deserializeIntoRenameRecipeTagRequest(renameRecipeTagRequest: Pa
 }
 /**
  * The deserialization information for the current model
+ * @param RenovationLineResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationLineResponse(renovationLineResponse: Partial<RenovationLineResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "actual": n => { renovationLineResponse.actual = n.getNumberValue(); },
+        "basis": n => { renovationLineResponse.basis = n.getStringValue(); },
+        "description": n => { renovationLineResponse.description = n.getStringValue(); },
+        "estimate": n => { renovationLineResponse.estimate = n.getNumberValue(); },
+        "fixedQuantity": n => { renovationLineResponse.fixedQuantity = n.getNumberValue(); },
+        "forecast": n => { renovationLineResponse.forecast = n.getNumberValue(); },
+        "group": n => { renovationLineResponse.group = n.getStringValue(); },
+        "id": n => { renovationLineResponse.id = n.getNumberValue(); },
+        "isComplete": n => { renovationLineResponse.isComplete = n.getBooleanValue(); },
+        "label": n => { renovationLineResponse.label = n.getStringValue(); },
+        "materialId": n => { renovationLineResponse.materialId = n.getNumberValue(); },
+        "purchasedQuantity": n => { renovationLineResponse.purchasedQuantity = n.getNumberValue(); },
+        "remainingQuantity": n => { renovationLineResponse.remainingQuantity = n.getNumberValue(); },
+        "requiredQuantity": n => { renovationLineResponse.requiredQuantity = n.getNumberValue(); },
+        "roomId": n => { renovationLineResponse.roomId = n.getNumberValue(); },
+        "sortOrder": n => { renovationLineResponse.sortOrder = n.getNumberValue(); },
+        "status": n => { renovationLineResponse.status = n.getStringValue(); },
+        "unit": n => { renovationLineResponse.unit = n.getStringValue(); },
+        "unitPrice": n => { renovationLineResponse.unitPrice = n.getNumberValue(); },
+        "wastePercent": n => { renovationLineResponse.wastePercent = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenovationMaterialResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationMaterialResponse(renovationMaterialResponse: Partial<RenovationMaterialResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "category": n => { renovationMaterialResponse.category = n.getStringValue(); },
+        "createdOn": n => { renovationMaterialResponse.createdOn = n.getDateValue(); },
+        "defaultPrice": n => { renovationMaterialResponse.defaultPrice = n.getNumberValue(); },
+        "id": n => { renovationMaterialResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { renovationMaterialResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { renovationMaterialResponse.name = n.getStringValue(); },
+        "packSize": n => { renovationMaterialResponse.packSize = n.getNumberValue(); },
+        "productUrl": n => { renovationMaterialResponse.productUrl = n.getStringValue(); },
+        "unit": n => { renovationMaterialResponse.unit = n.getStringValue(); },
+        "wastePercent": n => { renovationMaterialResponse.wastePercent = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenovationProjectResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationProjectResponse(renovationProjectResponse: Partial<RenovationProjectResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "actual": n => { renovationProjectResponse.actual = n.getNumberValue(); },
+        "budget": n => { renovationProjectResponse.budget = n.getNumberValue(); },
+        "createdOn": n => { renovationProjectResponse.createdOn = n.getDateValue(); },
+        "estimate": n => { renovationProjectResponse.estimate = n.getNumberValue(); },
+        "forecast": n => { renovationProjectResponse.forecast = n.getNumberValue(); },
+        "id": n => { renovationProjectResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { renovationProjectResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { renovationProjectResponse.name = n.getStringValue(); },
+        "notes": n => { renovationProjectResponse.notes = n.getStringValue(); },
+        "rooms": n => { renovationProjectResponse.rooms = n.getCollectionOfObjectValues<RenovationRoomResponse>(createRenovationRoomResponseFromDiscriminatorValue); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenovationProjectSummaryResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationProjectSummaryResponse(renovationProjectSummaryResponse: Partial<RenovationProjectSummaryResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "actual": n => { renovationProjectSummaryResponse.actual = n.getNumberValue(); },
+        "budget": n => { renovationProjectSummaryResponse.budget = n.getNumberValue(); },
+        "createdOn": n => { renovationProjectSummaryResponse.createdOn = n.getDateValue(); },
+        "estimate": n => { renovationProjectSummaryResponse.estimate = n.getNumberValue(); },
+        "forecast": n => { renovationProjectSummaryResponse.forecast = n.getNumberValue(); },
+        "id": n => { renovationProjectSummaryResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { renovationProjectSummaryResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { renovationProjectSummaryResponse.name = n.getStringValue(); },
+        "roomCount": n => { renovationProjectSummaryResponse.roomCount = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenovationPurchaseLineResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationPurchaseLineResponse(renovationPurchaseLineResponse: Partial<RenovationPurchaseLineResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "amount": n => { renovationPurchaseLineResponse.amount = n.getNumberValue(); },
+        "description": n => { renovationPurchaseLineResponse.description = n.getStringValue(); },
+        "inventoryItemId": n => { renovationPurchaseLineResponse.inventoryItemId = n.getNumberValue(); },
+        "lineId": n => { renovationPurchaseLineResponse.lineId = n.getNumberValue(); },
+        "lineLabel": n => { renovationPurchaseLineResponse.lineLabel = n.getStringValue(); },
+        "quantity": n => { renovationPurchaseLineResponse.quantity = n.getNumberValue(); },
+        "roomId": n => { renovationPurchaseLineResponse.roomId = n.getNumberValue(); },
+        "roomName": n => { renovationPurchaseLineResponse.roomName = n.getStringValue(); },
+        "unit": n => { renovationPurchaseLineResponse.unit = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenovationPurchaseResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationPurchaseResponse(renovationPurchaseResponse: Partial<RenovationPurchaseResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "createdOn": n => { renovationPurchaseResponse.createdOn = n.getDateValue(); },
+        "id": n => { renovationPurchaseResponse.id = n.getNumberValue(); },
+        "lines": n => { renovationPurchaseResponse.lines = n.getCollectionOfObjectValues<RenovationPurchaseLineResponse>(createRenovationPurchaseLineResponseFromDiscriminatorValue); },
+        "notes": n => { renovationPurchaseResponse.notes = n.getStringValue(); },
+        "purchasedOn": n => { renovationPurchaseResponse.purchasedOn = n.getDateOnlyValue(); },
+        "totalAmount": n => { renovationPurchaseResponse.totalAmount = n.getNumberValue(); },
+        "vendor": n => { renovationPurchaseResponse.vendor = n.getStringValue(); },
+        "vendorId": n => { renovationPurchaseResponse.vendorId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenovationRoomResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationRoomResponse(renovationRoomResponse: Partial<RenovationRoomResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "actual": n => { renovationRoomResponse.actual = n.getNumberValue(); },
+        "doors": n => { renovationRoomResponse.doors = n.getNumberValue(); },
+        "estimate": n => { renovationRoomResponse.estimate = n.getNumberValue(); },
+        "floorArea": n => { renovationRoomResponse.floorArea = n.getNumberValue(); },
+        "forecast": n => { renovationRoomResponse.forecast = n.getNumberValue(); },
+        "height": n => { renovationRoomResponse.height = n.getNumberValue(); },
+        "id": n => { renovationRoomResponse.id = n.getNumberValue(); },
+        "length": n => { renovationRoomResponse.length = n.getNumberValue(); },
+        "lines": n => { renovationRoomResponse.lines = n.getCollectionOfObjectValues<RenovationLineResponse>(createRenovationLineResponseFromDiscriminatorValue); },
+        "name": n => { renovationRoomResponse.name = n.getStringValue(); },
+        "perimeter": n => { renovationRoomResponse.perimeter = n.getNumberValue(); },
+        "roomType": n => { renovationRoomResponse.roomType = n.getStringValue(); },
+        "sortOrder": n => { renovationRoomResponse.sortOrder = n.getNumberValue(); },
+        "wallArea": n => { renovationRoomResponse.wallArea = n.getNumberValue(); },
+        "width": n => { renovationRoomResponse.width = n.getNumberValue(); },
+        "windows": n => { renovationRoomResponse.windows = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenovationRoomTemplateResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationRoomTemplateResponse(renovationRoomTemplateResponse: Partial<RenovationRoomTemplateResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "doors": n => { renovationRoomTemplateResponse.doors = n.getNumberValue(); },
+        "height": n => { renovationRoomTemplateResponse.height = n.getNumberValue(); },
+        "label": n => { renovationRoomTemplateResponse.label = n.getStringValue(); },
+        "length": n => { renovationRoomTemplateResponse.length = n.getNumberValue(); },
+        "lines": n => { renovationRoomTemplateResponse.lines = n.getCollectionOfObjectValues<RenovationTemplateLineResponse>(createRenovationTemplateLineResponseFromDiscriminatorValue); },
+        "roomType": n => { renovationRoomTemplateResponse.roomType = n.getStringValue(); },
+        "width": n => { renovationRoomTemplateResponse.width = n.getNumberValue(); },
+        "windows": n => { renovationRoomTemplateResponse.windows = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param RenovationTemplateLineResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationTemplateLineResponse(renovationTemplateLineResponse: Partial<RenovationTemplateLineResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "basis": n => { renovationTemplateLineResponse.basis = n.getStringValue(); },
+        "category": n => { renovationTemplateLineResponse.category = n.getStringValue(); },
+        "defaultPrice": n => { renovationTemplateLineResponse.defaultPrice = n.getNumberValue(); },
+        "enabledByDefault": n => { renovationTemplateLineResponse.enabledByDefault = n.getBooleanValue(); },
+        "fixedQuantity": n => { renovationTemplateLineResponse.fixedQuantity = n.getNumberValue(); },
+        "group": n => { renovationTemplateLineResponse.group = n.getStringValue(); },
+        "key": n => { renovationTemplateLineResponse.key = n.getStringValue(); },
+        "label": n => { renovationTemplateLineResponse.label = n.getStringValue(); },
+        "materialName": n => { renovationTemplateLineResponse.materialName = n.getStringValue(); },
+        "unit": n => { renovationTemplateLineResponse.unit = n.getStringValue(); },
+        "wastePercent": n => { renovationTemplateLineResponse.wastePercent = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param ReorderRecipeIngredientsRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -3838,6 +4394,30 @@ export function deserializeIntoReorderSuggestionCategoriesRequest(reorderSuggest
 }
 /**
  * The deserialization information for the current model
+ * @param ReplaceRenovationMaterialRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoReplaceRenovationMaterialRequest(replaceRenovationMaterialRequest: Partial<ReplaceRenovationMaterialRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "fromMaterialId": n => { replaceRenovationMaterialRequest.fromMaterialId = n.getNumberValue(); },
+        "toMaterialId": n => { replaceRenovationMaterialRequest.toMaterialId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param ReplaceRenovationMaterialResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoReplaceRenovationMaterialResponse(replaceRenovationMaterialResponse: Partial<ReplaceRenovationMaterialResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "skippedPurchasedLines": n => { replaceRenovationMaterialResponse.skippedPurchasedLines = n.getNumberValue(); },
+        "updatedLines": n => { replaceRenovationMaterialResponse.updatedLines = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param SaveAsTemplateRequest The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -3845,6 +4425,43 @@ export function deserializeIntoReorderSuggestionCategoriesRequest(reorderSuggest
 export function deserializeIntoSaveAsTemplateRequest(saveAsTemplateRequest: Partial<SaveAsTemplateRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
         "name": n => { saveAsTemplateRequest.name = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param SaveRenovationLineRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSaveRenovationLineRequest(saveRenovationLineRequest: Partial<SaveRenovationLineRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "basis": n => { saveRenovationLineRequest.basis = n.getStringValue(); },
+        "description": n => { saveRenovationLineRequest.description = n.getStringValue(); },
+        "fixedQuantity": n => { saveRenovationLineRequest.fixedQuantity = n.getNumberValue(); },
+        "group": n => { saveRenovationLineRequest.group = n.getStringValue(); },
+        "isComplete": n => { saveRenovationLineRequest.isComplete = n.getBooleanValue(); },
+        "label": n => { saveRenovationLineRequest.label = n.getStringValue(); },
+        "materialId": n => { saveRenovationLineRequest.materialId = n.getNumberValue(); },
+        "unit": n => { saveRenovationLineRequest.unit = n.getStringValue(); },
+        "unitPrice": n => { saveRenovationLineRequest.unitPrice = n.getNumberValue(); },
+        "wastePercent": n => { saveRenovationLineRequest.wastePercent = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param SaveRenovationMaterialRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSaveRenovationMaterialRequest(saveRenovationMaterialRequest: Partial<SaveRenovationMaterialRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "category": n => { saveRenovationMaterialRequest.category = n.getStringValue(); },
+        "defaultPrice": n => { saveRenovationMaterialRequest.defaultPrice = n.getNumberValue(); },
+        "name": n => { saveRenovationMaterialRequest.name = n.getStringValue(); },
+        "packSize": n => { saveRenovationMaterialRequest.packSize = n.getNumberValue(); },
+        "productUrl": n => { saveRenovationMaterialRequest.productUrl = n.getStringValue(); },
+        "unit": n => { saveRenovationMaterialRequest.unit = n.getStringValue(); },
+        "wastePercent": n => { saveRenovationMaterialRequest.wastePercent = n.getNumberValue(); },
     }
 }
 /**
@@ -4455,6 +5072,35 @@ export function deserializeIntoUpdateRecommendationRequest(updateRecommendationR
         "name": n => { updateRecommendationRequest.name = n.getStringValue(); },
         "preferredUnit": n => { updateRecommendationRequest.preferredUnit = n.getStringValue(); },
         "shoppingListId": n => { updateRecommendationRequest.shoppingListId = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param UpdateRenovationProjectRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateRenovationProjectRequest(updateRenovationProjectRequest: Partial<UpdateRenovationProjectRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "budget": n => { updateRenovationProjectRequest.budget = n.getNumberValue(); },
+        "name": n => { updateRenovationProjectRequest.name = n.getStringValue(); },
+        "notes": n => { updateRenovationProjectRequest.notes = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param UpdateRenovationRoomRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoUpdateRenovationRoomRequest(updateRenovationRoomRequest: Partial<UpdateRenovationRoomRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "doors": n => { updateRenovationRoomRequest.doors = n.getNumberValue(); },
+        "height": n => { updateRenovationRoomRequest.height = n.getNumberValue(); },
+        "length": n => { updateRenovationRoomRequest.length = n.getNumberValue(); },
+        "name": n => { updateRenovationRoomRequest.name = n.getStringValue(); },
+        "width": n => { updateRenovationRoomRequest.width = n.getNumberValue(); },
+        "windows": n => { updateRenovationRoomRequest.windows = n.getNumberValue(); },
     }
 }
 /**
@@ -5979,6 +6625,428 @@ export interface RenameRecipeTagRequest extends Parsable {
      */
     newName?: string | null;
 }
+export interface RenovationLineResponse extends Parsable {
+    /**
+     * The actual property
+     */
+    actual?: number | null;
+    /**
+     * The basis property
+     */
+    basis?: string | null;
+    /**
+     * The description property
+     */
+    description?: string | null;
+    /**
+     * The estimate property
+     */
+    estimate?: number | null;
+    /**
+     * The fixedQuantity property
+     */
+    fixedQuantity?: number | null;
+    /**
+     * The forecast property
+     */
+    forecast?: number | null;
+    /**
+     * The group property
+     */
+    group?: string | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The isComplete property
+     */
+    isComplete?: boolean | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
+     * The materialId property
+     */
+    materialId?: number | null;
+    /**
+     * The purchasedQuantity property
+     */
+    purchasedQuantity?: number | null;
+    /**
+     * The remainingQuantity property
+     */
+    remainingQuantity?: number | null;
+    /**
+     * The requiredQuantity property
+     */
+    requiredQuantity?: number | null;
+    /**
+     * The roomId property
+     */
+    roomId?: number | null;
+    /**
+     * The sortOrder property
+     */
+    sortOrder?: number | null;
+    /**
+     * The status property
+     */
+    status?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
+    /**
+     * The unitPrice property
+     */
+    unitPrice?: number | null;
+    /**
+     * The wastePercent property
+     */
+    wastePercent?: number | null;
+}
+export interface RenovationMaterialResponse extends Parsable {
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The defaultPrice property
+     */
+    defaultPrice?: number | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The packSize property
+     */
+    packSize?: number | null;
+    /**
+     * The productUrl property
+     */
+    productUrl?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
+    /**
+     * The wastePercent property
+     */
+    wastePercent?: number | null;
+}
+export interface RenovationProjectResponse extends Parsable {
+    /**
+     * The actual property
+     */
+    actual?: number | null;
+    /**
+     * The budget property
+     */
+    budget?: number | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The estimate property
+     */
+    estimate?: number | null;
+    /**
+     * The forecast property
+     */
+    forecast?: number | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The rooms property
+     */
+    rooms?: RenovationRoomResponse[] | null;
+}
+export interface RenovationProjectSummaryResponse extends Parsable {
+    /**
+     * The actual property
+     */
+    actual?: number | null;
+    /**
+     * The budget property
+     */
+    budget?: number | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The estimate property
+     */
+    estimate?: number | null;
+    /**
+     * The forecast property
+     */
+    forecast?: number | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The roomCount property
+     */
+    roomCount?: number | null;
+}
+export interface RenovationPurchaseLineResponse extends Parsable {
+    /**
+     * The amount property
+     */
+    amount?: number | null;
+    /**
+     * The description property
+     */
+    description?: string | null;
+    /**
+     * The inventoryItemId property
+     */
+    inventoryItemId?: number | null;
+    /**
+     * The lineId property
+     */
+    lineId?: number | null;
+    /**
+     * The lineLabel property
+     */
+    lineLabel?: string | null;
+    /**
+     * The quantity property
+     */
+    quantity?: number | null;
+    /**
+     * The roomId property
+     */
+    roomId?: number | null;
+    /**
+     * The roomName property
+     */
+    roomName?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
+}
+export interface RenovationPurchaseResponse extends Parsable {
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The lines property
+     */
+    lines?: RenovationPurchaseLineResponse[] | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+    /**
+     * The purchasedOn property
+     */
+    purchasedOn?: DateOnly | null;
+    /**
+     * The totalAmount property
+     */
+    totalAmount?: number | null;
+    /**
+     * The vendor property
+     */
+    vendor?: string | null;
+    /**
+     * The vendorId property
+     */
+    vendorId?: number | null;
+}
+export interface RenovationRoomResponse extends Parsable {
+    /**
+     * The actual property
+     */
+    actual?: number | null;
+    /**
+     * The doors property
+     */
+    doors?: number | null;
+    /**
+     * The estimate property
+     */
+    estimate?: number | null;
+    /**
+     * The floorArea property
+     */
+    floorArea?: number | null;
+    /**
+     * The forecast property
+     */
+    forecast?: number | null;
+    /**
+     * The height property
+     */
+    height?: number | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The length property
+     */
+    length?: number | null;
+    /**
+     * The lines property
+     */
+    lines?: RenovationLineResponse[] | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The perimeter property
+     */
+    perimeter?: number | null;
+    /**
+     * The roomType property
+     */
+    roomType?: string | null;
+    /**
+     * The sortOrder property
+     */
+    sortOrder?: number | null;
+    /**
+     * The wallArea property
+     */
+    wallArea?: number | null;
+    /**
+     * The width property
+     */
+    width?: number | null;
+    /**
+     * The windows property
+     */
+    windows?: number | null;
+}
+export interface RenovationRoomTemplateResponse extends Parsable {
+    /**
+     * The doors property
+     */
+    doors?: number | null;
+    /**
+     * The height property
+     */
+    height?: number | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
+     * The length property
+     */
+    length?: number | null;
+    /**
+     * The lines property
+     */
+    lines?: RenovationTemplateLineResponse[] | null;
+    /**
+     * The roomType property
+     */
+    roomType?: string | null;
+    /**
+     * The width property
+     */
+    width?: number | null;
+    /**
+     * The windows property
+     */
+    windows?: number | null;
+}
+export interface RenovationTemplateLineResponse extends Parsable {
+    /**
+     * The basis property
+     */
+    basis?: string | null;
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The defaultPrice property
+     */
+    defaultPrice?: number | null;
+    /**
+     * The enabledByDefault property
+     */
+    enabledByDefault?: boolean | null;
+    /**
+     * The fixedQuantity property
+     */
+    fixedQuantity?: number | null;
+    /**
+     * The group property
+     */
+    group?: string | null;
+    /**
+     * The key property
+     */
+    key?: string | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
+     * The materialName property
+     */
+    materialName?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
+    /**
+     * The wastePercent property
+     */
+    wastePercent?: number | null;
+}
 export interface ReorderRecipeIngredientsRequest extends Parsable {
     /**
      * The ids property
@@ -6009,11 +7077,103 @@ export interface ReorderSuggestionCategoriesRequest extends Parsable {
      */
     ids?: number[] | null;
 }
+export interface ReplaceRenovationMaterialRequest extends Parsable {
+    /**
+     * The fromMaterialId property
+     */
+    fromMaterialId?: number | null;
+    /**
+     * The toMaterialId property
+     */
+    toMaterialId?: number | null;
+}
+export interface ReplaceRenovationMaterialResponse extends Parsable {
+    /**
+     * The skippedPurchasedLines property
+     */
+    skippedPurchasedLines?: number | null;
+    /**
+     * The updatedLines property
+     */
+    updatedLines?: number | null;
+}
 export interface SaveAsTemplateRequest extends Parsable {
     /**
      * The name property
      */
     name?: string | null;
+}
+export interface SaveRenovationLineRequest extends Parsable {
+    /**
+     * The basis property
+     */
+    basis?: string | null;
+    /**
+     * The description property
+     */
+    description?: string | null;
+    /**
+     * The fixedQuantity property
+     */
+    fixedQuantity?: number | null;
+    /**
+     * The group property
+     */
+    group?: string | null;
+    /**
+     * The isComplete property
+     */
+    isComplete?: boolean | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
+     * The materialId property
+     */
+    materialId?: number | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
+    /**
+     * The unitPrice property
+     */
+    unitPrice?: number | null;
+    /**
+     * The wastePercent property
+     */
+    wastePercent?: number | null;
+}
+export interface SaveRenovationMaterialRequest extends Parsable {
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The defaultPrice property
+     */
+    defaultPrice?: number | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The packSize property
+     */
+    packSize?: number | null;
+    /**
+     * The productUrl property
+     */
+    productUrl?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
+    /**
+     * The wastePercent property
+     */
+    wastePercent?: number | null;
 }
 export interface SearchIndexOverviewResponse extends Parsable {
     /**
@@ -6188,6 +7348,21 @@ export function serializeAddHouseholdMemberRequest(writer: SerializationWriter, 
 export function serializeAddRecipeImageRequest(writer: SerializationWriter, addRecipeImageRequest: Partial<AddRecipeImageRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!addRecipeImageRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("url", addRecipeImageRequest.url);
+}
+/**
+ * Serializes information the current object
+ * @param AddRenovationLineToInventoryRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeAddRenovationLineToInventoryRequest(writer: SerializationWriter, addRenovationLineToInventoryRequest: Partial<AddRenovationLineToInventoryRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!addRenovationLineToInventoryRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("boxId", addRenovationLineToInventoryRequest.boxId);
+    writer.writeStringValue("brand", addRenovationLineToInventoryRequest.brand);
+    writer.writeStringValue("model", addRenovationLineToInventoryRequest.model);
+    writer.writeNumberValue("storageUnitId", addRenovationLineToInventoryRequest.storageUnitId);
+    writer.writeDateValue("warrantyExpiresOn", addRenovationLineToInventoryRequest.warrantyExpiresOn);
 }
 /**
  * Serializes information the current object
@@ -6585,6 +7760,66 @@ export function serializeCreateRecommendationRequest(writer: SerializationWriter
     writer.writeStringValue("name", createRecommendationRequest.name);
     writer.writeStringValue("preferredUnit", createRecommendationRequest.preferredUnit);
     writer.writeNumberValue("shoppingListId", createRecommendationRequest.shoppingListId);
+}
+/**
+ * Serializes information the current object
+ * @param CreateRenovationProjectRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateRenovationProjectRequest(writer: SerializationWriter, createRenovationProjectRequest: Partial<CreateRenovationProjectRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRenovationProjectRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("budget", createRenovationProjectRequest.budget);
+    writer.writeStringValue("name", createRenovationProjectRequest.name);
+    writer.writeStringValue("notes", createRenovationProjectRequest.notes);
+}
+/**
+ * Serializes information the current object
+ * @param CreateRenovationPurchaseLineRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateRenovationPurchaseLineRequest(writer: SerializationWriter, createRenovationPurchaseLineRequest: Partial<CreateRenovationPurchaseLineRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRenovationPurchaseLineRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("lineId", createRenovationPurchaseLineRequest.lineId);
+    writer.writeBooleanValue("markComplete", createRenovationPurchaseLineRequest.markComplete);
+    writer.writeNumberValue("quantity", createRenovationPurchaseLineRequest.quantity);
+}
+/**
+ * Serializes information the current object
+ * @param CreateRenovationPurchaseRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateRenovationPurchaseRequest(writer: SerializationWriter, createRenovationPurchaseRequest: Partial<CreateRenovationPurchaseRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRenovationPurchaseRequest || isSerializingDerivedType) { return; }
+    writer.writeCollectionOfObjectValues<CreateRenovationPurchaseLineRequest>("lines", createRenovationPurchaseRequest.lines, serializeCreateRenovationPurchaseLineRequest);
+    writer.writeStringValue("notes", createRenovationPurchaseRequest.notes);
+    writer.writeDateOnlyValue("purchasedOn", createRenovationPurchaseRequest.purchasedOn);
+    writer.writeNumberValue("totalAmount", createRenovationPurchaseRequest.totalAmount);
+    writer.writeStringValue("vendor", createRenovationPurchaseRequest.vendor);
+    writer.writeNumberValue("vendorId", createRenovationPurchaseRequest.vendorId);
+}
+/**
+ * Serializes information the current object
+ * @param CreateRenovationRoomRequest The instance to serialize from.
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeCreateRenovationRoomRequest(writer: SerializationWriter, createRenovationRoomRequest: Partial<CreateRenovationRoomRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!createRenovationRoomRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("doors", createRenovationRoomRequest.doors);
+    writer.writeNumberValue("height", createRenovationRoomRequest.height);
+    writer.writeNumberValue("length", createRenovationRoomRequest.length);
+    writer.writeCollectionOfPrimitiveValues<string>("lineKeys", createRenovationRoomRequest.lineKeys);
+    writer.writeStringValue("name", createRenovationRoomRequest.name);
+    writer.writeStringValue("roomType", createRenovationRoomRequest.roomType);
+    writer.writeNumberValue("width", createRenovationRoomRequest.width);
+    writer.writeNumberValue("windows", createRenovationRoomRequest.windows);
 }
 /**
  * Serializes information the current object
@@ -7701,6 +8936,197 @@ export function serializeRenameRecipeTagRequest(writer: SerializationWriter, ren
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationLineResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationLineResponse(writer: SerializationWriter, renovationLineResponse: Partial<RenovationLineResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationLineResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("actual", renovationLineResponse.actual);
+    writer.writeStringValue("basis", renovationLineResponse.basis);
+    writer.writeStringValue("description", renovationLineResponse.description);
+    writer.writeNumberValue("estimate", renovationLineResponse.estimate);
+    writer.writeNumberValue("fixedQuantity", renovationLineResponse.fixedQuantity);
+    writer.writeNumberValue("forecast", renovationLineResponse.forecast);
+    writer.writeStringValue("group", renovationLineResponse.group);
+    writer.writeNumberValue("id", renovationLineResponse.id);
+    writer.writeBooleanValue("isComplete", renovationLineResponse.isComplete);
+    writer.writeStringValue("label", renovationLineResponse.label);
+    writer.writeNumberValue("materialId", renovationLineResponse.materialId);
+    writer.writeNumberValue("purchasedQuantity", renovationLineResponse.purchasedQuantity);
+    writer.writeNumberValue("remainingQuantity", renovationLineResponse.remainingQuantity);
+    writer.writeNumberValue("requiredQuantity", renovationLineResponse.requiredQuantity);
+    writer.writeNumberValue("roomId", renovationLineResponse.roomId);
+    writer.writeNumberValue("sortOrder", renovationLineResponse.sortOrder);
+    writer.writeStringValue("status", renovationLineResponse.status);
+    writer.writeStringValue("unit", renovationLineResponse.unit);
+    writer.writeNumberValue("unitPrice", renovationLineResponse.unitPrice);
+    writer.writeNumberValue("wastePercent", renovationLineResponse.wastePercent);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationMaterialResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationMaterialResponse(writer: SerializationWriter, renovationMaterialResponse: Partial<RenovationMaterialResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationMaterialResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("category", renovationMaterialResponse.category);
+    writer.writeDateValue("createdOn", renovationMaterialResponse.createdOn);
+    writer.writeNumberValue("defaultPrice", renovationMaterialResponse.defaultPrice);
+    writer.writeNumberValue("id", renovationMaterialResponse.id);
+    writer.writeDateValue("modifiedOn", renovationMaterialResponse.modifiedOn);
+    writer.writeStringValue("name", renovationMaterialResponse.name);
+    writer.writeNumberValue("packSize", renovationMaterialResponse.packSize);
+    writer.writeStringValue("productUrl", renovationMaterialResponse.productUrl);
+    writer.writeStringValue("unit", renovationMaterialResponse.unit);
+    writer.writeNumberValue("wastePercent", renovationMaterialResponse.wastePercent);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationProjectResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationProjectResponse(writer: SerializationWriter, renovationProjectResponse: Partial<RenovationProjectResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationProjectResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("actual", renovationProjectResponse.actual);
+    writer.writeNumberValue("budget", renovationProjectResponse.budget);
+    writer.writeDateValue("createdOn", renovationProjectResponse.createdOn);
+    writer.writeNumberValue("estimate", renovationProjectResponse.estimate);
+    writer.writeNumberValue("forecast", renovationProjectResponse.forecast);
+    writer.writeNumberValue("id", renovationProjectResponse.id);
+    writer.writeDateValue("modifiedOn", renovationProjectResponse.modifiedOn);
+    writer.writeStringValue("name", renovationProjectResponse.name);
+    writer.writeStringValue("notes", renovationProjectResponse.notes);
+    writer.writeCollectionOfObjectValues<RenovationRoomResponse>("rooms", renovationProjectResponse.rooms, serializeRenovationRoomResponse);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationProjectSummaryResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationProjectSummaryResponse(writer: SerializationWriter, renovationProjectSummaryResponse: Partial<RenovationProjectSummaryResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationProjectSummaryResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("actual", renovationProjectSummaryResponse.actual);
+    writer.writeNumberValue("budget", renovationProjectSummaryResponse.budget);
+    writer.writeDateValue("createdOn", renovationProjectSummaryResponse.createdOn);
+    writer.writeNumberValue("estimate", renovationProjectSummaryResponse.estimate);
+    writer.writeNumberValue("forecast", renovationProjectSummaryResponse.forecast);
+    writer.writeNumberValue("id", renovationProjectSummaryResponse.id);
+    writer.writeDateValue("modifiedOn", renovationProjectSummaryResponse.modifiedOn);
+    writer.writeStringValue("name", renovationProjectSummaryResponse.name);
+    writer.writeNumberValue("roomCount", renovationProjectSummaryResponse.roomCount);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationPurchaseLineResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationPurchaseLineResponse(writer: SerializationWriter, renovationPurchaseLineResponse: Partial<RenovationPurchaseLineResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationPurchaseLineResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("amount", renovationPurchaseLineResponse.amount);
+    writer.writeStringValue("description", renovationPurchaseLineResponse.description);
+    writer.writeNumberValue("inventoryItemId", renovationPurchaseLineResponse.inventoryItemId);
+    writer.writeNumberValue("lineId", renovationPurchaseLineResponse.lineId);
+    writer.writeStringValue("lineLabel", renovationPurchaseLineResponse.lineLabel);
+    writer.writeNumberValue("quantity", renovationPurchaseLineResponse.quantity);
+    writer.writeNumberValue("roomId", renovationPurchaseLineResponse.roomId);
+    writer.writeStringValue("roomName", renovationPurchaseLineResponse.roomName);
+    writer.writeStringValue("unit", renovationPurchaseLineResponse.unit);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationPurchaseResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationPurchaseResponse(writer: SerializationWriter, renovationPurchaseResponse: Partial<RenovationPurchaseResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationPurchaseResponse || isSerializingDerivedType) { return; }
+    writer.writeDateValue("createdOn", renovationPurchaseResponse.createdOn);
+    writer.writeNumberValue("id", renovationPurchaseResponse.id);
+    writer.writeCollectionOfObjectValues<RenovationPurchaseLineResponse>("lines", renovationPurchaseResponse.lines, serializeRenovationPurchaseLineResponse);
+    writer.writeStringValue("notes", renovationPurchaseResponse.notes);
+    writer.writeDateOnlyValue("purchasedOn", renovationPurchaseResponse.purchasedOn);
+    writer.writeNumberValue("totalAmount", renovationPurchaseResponse.totalAmount);
+    writer.writeStringValue("vendor", renovationPurchaseResponse.vendor);
+    writer.writeNumberValue("vendorId", renovationPurchaseResponse.vendorId);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationRoomResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationRoomResponse(writer: SerializationWriter, renovationRoomResponse: Partial<RenovationRoomResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationRoomResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("actual", renovationRoomResponse.actual);
+    writer.writeNumberValue("doors", renovationRoomResponse.doors);
+    writer.writeNumberValue("estimate", renovationRoomResponse.estimate);
+    writer.writeNumberValue("floorArea", renovationRoomResponse.floorArea);
+    writer.writeNumberValue("forecast", renovationRoomResponse.forecast);
+    writer.writeNumberValue("height", renovationRoomResponse.height);
+    writer.writeNumberValue("id", renovationRoomResponse.id);
+    writer.writeNumberValue("length", renovationRoomResponse.length);
+    writer.writeCollectionOfObjectValues<RenovationLineResponse>("lines", renovationRoomResponse.lines, serializeRenovationLineResponse);
+    writer.writeStringValue("name", renovationRoomResponse.name);
+    writer.writeNumberValue("perimeter", renovationRoomResponse.perimeter);
+    writer.writeStringValue("roomType", renovationRoomResponse.roomType);
+    writer.writeNumberValue("sortOrder", renovationRoomResponse.sortOrder);
+    writer.writeNumberValue("wallArea", renovationRoomResponse.wallArea);
+    writer.writeNumberValue("width", renovationRoomResponse.width);
+    writer.writeNumberValue("windows", renovationRoomResponse.windows);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationRoomTemplateResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationRoomTemplateResponse(writer: SerializationWriter, renovationRoomTemplateResponse: Partial<RenovationRoomTemplateResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationRoomTemplateResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("doors", renovationRoomTemplateResponse.doors);
+    writer.writeNumberValue("height", renovationRoomTemplateResponse.height);
+    writer.writeStringValue("label", renovationRoomTemplateResponse.label);
+    writer.writeNumberValue("length", renovationRoomTemplateResponse.length);
+    writer.writeCollectionOfObjectValues<RenovationTemplateLineResponse>("lines", renovationRoomTemplateResponse.lines, serializeRenovationTemplateLineResponse);
+    writer.writeStringValue("roomType", renovationRoomTemplateResponse.roomType);
+    writer.writeNumberValue("width", renovationRoomTemplateResponse.width);
+    writer.writeNumberValue("windows", renovationRoomTemplateResponse.windows);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationTemplateLineResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationTemplateLineResponse(writer: SerializationWriter, renovationTemplateLineResponse: Partial<RenovationTemplateLineResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationTemplateLineResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("basis", renovationTemplateLineResponse.basis);
+    writer.writeStringValue("category", renovationTemplateLineResponse.category);
+    writer.writeNumberValue("defaultPrice", renovationTemplateLineResponse.defaultPrice);
+    writer.writeBooleanValue("enabledByDefault", renovationTemplateLineResponse.enabledByDefault);
+    writer.writeNumberValue("fixedQuantity", renovationTemplateLineResponse.fixedQuantity);
+    writer.writeStringValue("group", renovationTemplateLineResponse.group);
+    writer.writeStringValue("key", renovationTemplateLineResponse.key);
+    writer.writeStringValue("label", renovationTemplateLineResponse.label);
+    writer.writeStringValue("materialName", renovationTemplateLineResponse.materialName);
+    writer.writeStringValue("unit", renovationTemplateLineResponse.unit);
+    writer.writeNumberValue("wastePercent", renovationTemplateLineResponse.wastePercent);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param ReorderRecipeIngredientsRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -7756,6 +9182,30 @@ export function serializeReorderSuggestionCategoriesRequest(writer: Serializatio
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ReplaceRenovationMaterialRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeReplaceRenovationMaterialRequest(writer: SerializationWriter, replaceRenovationMaterialRequest: Partial<ReplaceRenovationMaterialRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!replaceRenovationMaterialRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("fromMaterialId", replaceRenovationMaterialRequest.fromMaterialId);
+    writer.writeNumberValue("toMaterialId", replaceRenovationMaterialRequest.toMaterialId);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ReplaceRenovationMaterialResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeReplaceRenovationMaterialResponse(writer: SerializationWriter, replaceRenovationMaterialResponse: Partial<ReplaceRenovationMaterialResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!replaceRenovationMaterialResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("skippedPurchasedLines", replaceRenovationMaterialResponse.skippedPurchasedLines);
+    writer.writeNumberValue("updatedLines", replaceRenovationMaterialResponse.updatedLines);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param SaveAsTemplateRequest The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -7763,6 +9213,43 @@ export function serializeReorderSuggestionCategoriesRequest(writer: Serializatio
 export function serializeSaveAsTemplateRequest(writer: SerializationWriter, saveAsTemplateRequest: Partial<SaveAsTemplateRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!saveAsTemplateRequest || isSerializingDerivedType) { return; }
     writer.writeStringValue("name", saveAsTemplateRequest.name);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SaveRenovationLineRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSaveRenovationLineRequest(writer: SerializationWriter, saveRenovationLineRequest: Partial<SaveRenovationLineRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!saveRenovationLineRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("basis", saveRenovationLineRequest.basis);
+    writer.writeStringValue("description", saveRenovationLineRequest.description);
+    writer.writeNumberValue("fixedQuantity", saveRenovationLineRequest.fixedQuantity);
+    writer.writeStringValue("group", saveRenovationLineRequest.group);
+    writer.writeBooleanValue("isComplete", saveRenovationLineRequest.isComplete);
+    writer.writeStringValue("label", saveRenovationLineRequest.label);
+    writer.writeNumberValue("materialId", saveRenovationLineRequest.materialId);
+    writer.writeStringValue("unit", saveRenovationLineRequest.unit);
+    writer.writeNumberValue("unitPrice", saveRenovationLineRequest.unitPrice);
+    writer.writeNumberValue("wastePercent", saveRenovationLineRequest.wastePercent);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SaveRenovationMaterialRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSaveRenovationMaterialRequest(writer: SerializationWriter, saveRenovationMaterialRequest: Partial<SaveRenovationMaterialRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!saveRenovationMaterialRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("category", saveRenovationMaterialRequest.category);
+    writer.writeNumberValue("defaultPrice", saveRenovationMaterialRequest.defaultPrice);
+    writer.writeStringValue("name", saveRenovationMaterialRequest.name);
+    writer.writeNumberValue("packSize", saveRenovationMaterialRequest.packSize);
+    writer.writeStringValue("productUrl", saveRenovationMaterialRequest.productUrl);
+    writer.writeStringValue("unit", saveRenovationMaterialRequest.unit);
+    writer.writeNumberValue("wastePercent", saveRenovationMaterialRequest.wastePercent);
 }
 /**
  * Serializes information the current object
@@ -8373,6 +9860,35 @@ export function serializeUpdateRecommendationRequest(writer: SerializationWriter
     writer.writeStringValue("name", updateRecommendationRequest.name);
     writer.writeStringValue("preferredUnit", updateRecommendationRequest.preferredUnit);
     writer.writeNumberValue("shoppingListId", updateRecommendationRequest.shoppingListId);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateRenovationProjectRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateRenovationProjectRequest(writer: SerializationWriter, updateRenovationProjectRequest: Partial<UpdateRenovationProjectRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateRenovationProjectRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("budget", updateRenovationProjectRequest.budget);
+    writer.writeStringValue("name", updateRenovationProjectRequest.name);
+    writer.writeStringValue("notes", updateRenovationProjectRequest.notes);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param UpdateRenovationRoomRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeUpdateRenovationRoomRequest(writer: SerializationWriter, updateRenovationRoomRequest: Partial<UpdateRenovationRoomRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!updateRenovationRoomRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("doors", updateRenovationRoomRequest.doors);
+    writer.writeNumberValue("height", updateRenovationRoomRequest.height);
+    writer.writeNumberValue("length", updateRenovationRoomRequest.length);
+    writer.writeStringValue("name", updateRenovationRoomRequest.name);
+    writer.writeNumberValue("width", updateRenovationRoomRequest.width);
+    writer.writeNumberValue("windows", updateRenovationRoomRequest.windows);
 }
 /**
  * Serializes information the current object
@@ -9183,6 +10699,46 @@ export interface UpdateRecommendationRequest extends Parsable {
      * The shoppingListId property
      */
     shoppingListId?: number | null;
+}
+export interface UpdateRenovationProjectRequest extends Parsable {
+    /**
+     * The budget property
+     */
+    budget?: number | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The notes property
+     */
+    notes?: string | null;
+}
+export interface UpdateRenovationRoomRequest extends Parsable {
+    /**
+     * The doors property
+     */
+    doors?: number | null;
+    /**
+     * The height property
+     */
+    height?: number | null;
+    /**
+     * The length property
+     */
+    length?: number | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The width property
+     */
+    width?: number | null;
+    /**
+     * The windows property
+     */
+    windows?: number | null;
 }
 export interface UpdateShoppingListItemRequest extends Parsable {
     /**
