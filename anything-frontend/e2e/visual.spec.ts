@@ -3001,6 +3001,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     // config's 2% maxDiffPixelRatio, so adding one does NOT fail this
     // comparison and the baseline silently keeps its pre-change contents.
     await expect(page.getByRole("dialog").getByRole("button", { name: "Notes" })).toBeVisible();
+    await expect(page.getByRole("dialog").getByRole("button", { name: "Renovation" })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "navigation-drawer-open.png",
       screenshotOptions
@@ -3301,6 +3302,7 @@ test.describe("Visual Snapshots - Onboarding Tour", () => {
     // See navigation-drawer-open: a new nav row alone won't fail the pixel
     // comparison, so each entry the drawer must show is asserted directly.
     await expect(page.getByRole("dialog").getByRole("button", { name: "Notes" })).toBeVisible();
+    await expect(page.getByRole("dialog").getByRole("button", { name: "Renovation" })).toBeVisible();
     await expect(page).toHaveScreenshot("nav-drawer.png", screenshotOptions);
   });
 
