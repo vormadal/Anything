@@ -363,6 +363,13 @@ soft-delete of their own — every reader filters on the purchase's `DeletedOn`.
 Deleting a room or line with a recorded purchase is a **409**. All six tables carry
 `HouseholdId` (rooms/lines denormalised) so every query scopes in the query itself;
 the handlers take the repositories as one injected `RenovationRepositories` bundle.
+A purchase can link the household's `Vendor` (`VendorId`, `SetNull` on delete); the
+free-text `Vendor` column always holds the display name, so it is overwritten with
+the vendor's name when a vendor is linked. `POST .../purchases/{purchaseId}/lines/{lineId}/inventory-item`
+adds a purchased line to the inventory as one item, recording the new id on the
+allocation (`InventoryItemId`) so a second call is a 409. Pieces and sets become the
+item's `Quantity`; area and length materials can't be counted, so their bought amount
+goes into `Description` instead.
 
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)

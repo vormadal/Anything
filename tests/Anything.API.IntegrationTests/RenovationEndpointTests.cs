@@ -157,6 +157,56 @@ public class RenovationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task PurchaseFromVendor_AddsLineToInventoryOnce()
+    {
+        var client = await ClientAsync();
+        var (project, kitchen) = await CreateProjectWithKitchen(client);
+        var appliances = kitchen.Lines.Single(l => l.Label == "Appliances");
+
+        var vendorResponse = await client.PostAsJsonAsync("/api/vendors", new { name = $"Appliance store {Guid.NewGuid()}" }, Ct);
+        Assert.Equal(HttpStatusCode.Created, vendorResponse.StatusCode);
+        var vendor = await Read<VendorDto>(vendorResponse);
+
+        var purchaseResponse = await client.PostAsJsonAsync($"/api/renovation-projects/{project.Id}/purchases", new
+        {
+            vendorId = vendor.Id,
+            purchasedOn = "2026-11-01",
+            totalAmount = 24000m,
+            lines = new[] { new { lineId = appliances.Id, quantity = 1m } }
+        }, Ct);
+        Assert.Equal(HttpStatusCode.Created, purchaseResponse.StatusCode);
+        var purchase = await Read<PurchaseDto>(purchaseResponse);
+        Assert.Equal(vendor.Id, purchase.VendorId);
+        Assert.Equal(vendor.Name, purchase.Vendor);
+
+        var listed = Assert.Single(await Read<List<PurchaseDto>>(
+            await client.GetAsync($"/api/renovation-projects/{project.Id}/purchases", Ct)));
+        Assert.Equal(vendor.Id, listed.VendorId);
+        Assert.Equal(vendor.Name, listed.Vendor);
+        var allocation = listed.Lines.Single();
+        Assert.Null(allocation.InventoryItemId);
+
+        var url = $"/api/renovation-projects/{project.Id}/purchases/{purchase.Id}/lines/{appliances.Id}/inventory-item";
+        var add = await client.PostAsJsonAsync(url, new { brand = "Bosch" }, Ct);
+        Assert.Equal(HttpStatusCode.Created, add.StatusCode);
+        var item = await Read<InventoryItemDto>(add);
+        Assert.Equal("Oven, hob, fridge, dishwasher", item.Name);
+        Assert.Equal(1, item.Quantity);
+        Assert.Equal(allocation.Amount, item.PurchasePrice);
+
+        var fetched = await Read<InventoryItemDto>(await client.GetAsync($"/api/inventory-items/{item.Id}", Ct));
+        Assert.Equal("Oven, hob, fridge, dishwasher", fetched.Name);
+        Assert.Equal(allocation.Amount, fetched.PurchasePrice);
+
+        var afterAdd = Assert.Single(await Read<List<PurchaseDto>>(
+            await client.GetAsync($"/api/renovation-projects/{project.Id}/purchases", Ct)));
+        Assert.Equal(item.Id, afterAdd.Lines.Single().InventoryItemId);
+
+        var again = await client.PostAsJsonAsync(url, new { brand = "Bosch" }, Ct);
+        Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
+    }
+
+    [Fact]
     public async Task ReplaceMaterial_UpdatesUnpurchasedLinesOnly()
     {
         var client = await ClientAsync();
@@ -275,13 +325,15 @@ public class RenovationEndpointTests : IntegrationTestBase
     }
 
     private record IdDto(int Id);
+    private record VendorDto(int Id, string Name);
+    private record InventoryItemDto(int Id, string Name, int? Quantity, decimal? PurchasePrice);
     private record ProjectDto(int Id, string Name, decimal? Budget, decimal Estimate, decimal Actual, decimal Forecast, List<RoomDto> Rooms);
     private record RoomDto(int Id, string Name, decimal FloorArea, decimal WallArea, decimal Estimate, decimal Forecast, List<LineDto> Lines);
     private record LineDto(int Id, string Label, int? MaterialId, string Description, decimal UnitPrice,
         decimal RequiredQuantity, decimal RemainingQuantity, decimal Estimate, decimal Forecast, string Status);
     private record MaterialDto(int Id, string Name, decimal DefaultPrice);
-    private record PurchaseDto(int Id, List<PurchaseLineDto> Lines);
-    private record PurchaseLineDto(int LineId, string RoomName, decimal Quantity, decimal Amount);
+    private record PurchaseDto(int Id, int? VendorId, string? Vendor, List<PurchaseLineDto> Lines);
+    private record PurchaseLineDto(int LineId, string RoomName, decimal Quantity, decimal Amount, int? InventoryItemId);
     private record ReplaceDto(int UpdatedLines, int SkippedPurchasedLines);
     private record TemplateDto(string RoomType, List<TemplateLineDto> Lines);
     private record TemplateLineDto(string Key, string Basis);

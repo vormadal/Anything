@@ -19,5 +19,10 @@ public class RenovationPurchaseAllocationConfiguration : IEntityTypeConfiguratio
             .WithMany()
             .HasForeignKey(e => e.LineId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<InventoryItem>()
+            .WithMany()
+            .HasForeignKey(e => e.InventoryItemId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 }

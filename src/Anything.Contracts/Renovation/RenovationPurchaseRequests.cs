@@ -9,6 +9,7 @@ namespace Anything.Contracts.Renovation;
 public record CreateRenovationPurchaseRequest(
     [StringLength(200, ErrorMessage = "Vendor must be 200 characters or less.")]
     string? Vendor,
+    int? VendorId,
     DateOnly PurchasedOn,
     [Range(typeof(decimal), "0", "1000000000", ErrorMessage = "Total must be between 0 and 1,000,000,000.")]
     decimal TotalAmount,
@@ -34,6 +35,7 @@ public record CreateRenovationPurchaseLineRequest(
 public record RenovationPurchaseResponse(
     int Id,
     string? Vendor,
+    int? VendorId,
     DateOnly PurchasedOn,
     decimal TotalAmount,
     string? Notes,
@@ -48,4 +50,18 @@ public record RenovationPurchaseLineResponse(
     string Description,
     string Unit,
     decimal Quantity,
-    decimal Amount);
+    decimal Amount,
+    int? InventoryItemId);
+
+/// <summary>
+/// Adds one purchased line to the inventory as a single item. The box, when given, decides the place;
+/// Brand/Model/WarrantyExpiresOn are the only metadata the purchase doesn't already supply.
+/// </summary>
+public record AddRenovationLineToInventoryRequest(
+    int? BoxId,
+    int? StorageUnitId,
+    DateTime? WarrantyExpiresOn,
+    [StringLength(100, ErrorMessage = "Brand must be 100 characters or less.")]
+    string? Brand,
+    [StringLength(100, ErrorMessage = "Model must be 100 characters or less.")]
+    string? Model);

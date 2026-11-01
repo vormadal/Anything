@@ -12,4 +12,6 @@ public class RenovationPurchaseAllocation
     public int LineId { get; set; }
     public decimal Quantity { get; set; }
     public decimal Amount { get; set; }
+    /// <summary>Set once this allocation has been added to the inventory; guards against adding it twice.</summary>
+    public int? InventoryItemId { get; set; }
 }

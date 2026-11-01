@@ -1,6 +1,7 @@
 using Anything.Application.Features.Renovation;
 using Anything.Application.Features.Renovation.Commands;
 using Anything.Application.UnitTests.Helpers;
+using Anything.Contracts.Inventory;
 using Anything.Contracts.Renovation;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
@@ -12,7 +13,7 @@ using Xunit;
 
 namespace Anything.Application.UnitTests.Features.Renovation;
 
-/// <summary>In-memory stand-ins for the six renovation repositories; Add/AddRange append to the lists.</summary>
+/// <summary>In-memory stand-ins for the renovation repositories (plus vendors); Add/AddRange append to the lists.</summary>
 internal sealed class RenovationFakes
 {
     public const int HouseholdId = 1;
@@ -22,6 +23,7 @@ internal sealed class RenovationFakes
     public List<RenovationMaterial> Materials { get; } = [];
     public List<RenovationPurchase> Purchases { get; } = [];
     public List<RenovationPurchaseAllocation> Allocations { get; } = [];
+    public List<Vendor> Vendors { get; } = [];
 
     public IHouseholdContext HouseholdContext { get; } = Substitute.For<IHouseholdContext>();
     public IUnitOfWork UnitOfWork { get; } = Substitute.For<IUnitOfWork>();
@@ -34,7 +36,7 @@ internal sealed class RenovationFakes
     }
 
     public RenovationRepositories Repos() => new(
-        Repo(Projects), Repo(Rooms), Repo(Lines), Repo(Materials), Repo(Purchases), Repo(Allocations));
+        Repo(Projects), Repo(Rooms), Repo(Lines), Repo(Materials), Repo(Purchases), Repo(Allocations), Repo(Vendors));
 
     private static IRepository<T> Repo<T>(List<T> items) where T : class
     {
@@ -80,7 +82,7 @@ public class CreateRenovationPurchaseHandlerTests
     public async Task Handle_SplitsTotalByEstimateShareOfQuantityBought()
     {
         _f.SeedKitchen();
-        var request = new CreateRenovationPurchaseRequest("Store", new DateOnly(2026, 11, 1), 1000m, null,
+        var request = new CreateRenovationPurchaseRequest("Store", null, new DateOnly(2026, 11, 1), 1000m, null,
         [
             new CreateRenovationPurchaseLineRequest(30, 2m),   // 2 × 289 = 578
             new CreateRenovationPurchaseLineRequest(31, 7m),   // 7 × 59 = 413
@@ -99,7 +101,7 @@ public class CreateRenovationPurchaseHandlerTests
     public async Task Handle_MarkComplete_FlagsTheLine()
     {
         var (_, floor, skirting) = _f.SeedKitchen();
-        var request = new CreateRenovationPurchaseRequest(null, new DateOnly(2026, 11, 1), 500m, null,
+        var request = new CreateRenovationPurchaseRequest(null, null, new DateOnly(2026, 11, 1), 500m, null,
             [new CreateRenovationPurchaseLineRequest(30, 1m, MarkComplete: true), new CreateRenovationPurchaseLineRequest(31, 1m)]);
 
         await Handler().Handle(new CreateRenovationPurchaseCommand(10, request), TestContext.Current.CancellationToken);
@@ -113,7 +115,7 @@ public class CreateRenovationPurchaseHandlerTests
     {
         _f.SeedKitchen();
         _f.Lines[0].HouseholdId = 99;
-        var request = new CreateRenovationPurchaseRequest(null, new DateOnly(2026, 11, 1), 500m, null,
+        var request = new CreateRenovationPurchaseRequest(null, null, new DateOnly(2026, 11, 1), 500m, null,
             [new CreateRenovationPurchaseLineRequest(30, 1m)]);
 
         var result = await Handler().Handle(new CreateRenovationPurchaseCommand(10, request), TestContext.Current.CancellationToken);
@@ -126,7 +128,7 @@ public class CreateRenovationPurchaseHandlerTests
     public async Task Handle_DuplicateLine_IsRejected()
     {
         _f.SeedKitchen();
-        var request = new CreateRenovationPurchaseRequest(null, new DateOnly(2026, 11, 1), 500m, null,
+        var request = new CreateRenovationPurchaseRequest(null, null, new DateOnly(2026, 11, 1), 500m, null,
             [new CreateRenovationPurchaseLineRequest(30, 1m), new CreateRenovationPurchaseLineRequest(30, 2m)]);
 
         var result = await Handler().Handle(new CreateRenovationPurchaseCommand(10, request), TestContext.Current.CancellationToken);
@@ -135,14 +137,160 @@ public class CreateRenovationPurchaseHandlerTests
     }
 
     [Fact]
+    public async Task Handle_VendorFromAnotherHousehold_IsRejected()
+    {
+        _f.SeedKitchen();
+        _f.Vendors.Add(new Vendor { Id = 7, HouseholdId = 99, Name = "Other household" });
+        var request = new CreateRenovationPurchaseRequest(null, 7, new DateOnly(2026, 11, 1), 500m, null,
+            [new CreateRenovationPurchaseLineRequest(30, 1m)]);
+
+        var result = await Handler().Handle(new CreateRenovationPurchaseCommand(10, request), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+        Assert.Empty(_f.Purchases);
+    }
+
+    [Fact]
+    public async Task Handle_LinkedVendor_StoresItsNameAndId()
+    {
+        _f.SeedKitchen();
+        _f.Vendors.Add(new Vendor { Id = 7, HouseholdId = RenovationFakes.HouseholdId, Name = "Acme Tiles" });
+        var request = new CreateRenovationPurchaseRequest("Typed name", 7, new DateOnly(2026, 11, 1), 500m, null,
+            [new CreateRenovationPurchaseLineRequest(30, 1m)]);
+
+        var result = await Handler().Handle(new CreateRenovationPurchaseCommand(10, request), TestContext.Current.CancellationToken);
+
+        var created = Assert.IsType<Created<RenovationPurchaseResponse>>(result);
+        Assert.Equal("Acme Tiles", _f.Purchases.Single().Vendor);
+        Assert.Equal(7, _f.Purchases.Single().VendorId);
+        Assert.Equal(7, created.Value!.VendorId);
+    }
+
+    [Fact]
     public async Task Handle_UnknownProject_ReturnsNotFound()
     {
-        var request = new CreateRenovationPurchaseRequest(null, new DateOnly(2026, 11, 1), 500m, null,
+        var request = new CreateRenovationPurchaseRequest(null, null, new DateOnly(2026, 11, 1), 500m, null,
             [new CreateRenovationPurchaseLineRequest(30, 1m)]);
 
         var result = await Handler().Handle(new CreateRenovationPurchaseCommand(10, request), TestContext.Current.CancellationToken);
 
         Assert.IsType<NotFound>(result);
+    }
+}
+
+public class AddRenovationLineToInventoryHandlerTests
+{
+    private readonly RenovationFakes _f = new();
+    private readonly List<InventoryItem> _items = [];
+    private readonly List<InventoryBox> _boxes = [];
+    private readonly List<InventoryStorageUnit> _storageUnits = [];
+
+    private AddRenovationLineToInventoryHandler Handler()
+    {
+        var itemRepo = Substitute.For<IRepository<InventoryItem>>();
+        itemRepo.Query().Returns(_ => _items.AsAsyncQueryable());
+        itemRepo.When(r => r.Add(Arg.Any<InventoryItem>())).Do(c =>
+        {
+            var item = c.Arg<InventoryItem>();
+            item.Id = 500;
+            _items.Add(item);
+        });
+        return new(_f.Repos(), itemRepo, Repo(_boxes), Repo(_storageUnits),
+            _f.HouseholdContext, _f.UnitOfWork, _f.TimeProvider);
+    }
+
+    private static IRepository<T> Repo<T>(List<T> items) where T : class
+    {
+        var repo = Substitute.For<IRepository<T>>();
+        repo.Query().Returns(_ => items.AsAsyncQueryable());
+        return repo;
+    }
+
+    private void SeedPurchasedFloor()
+    {
+        _f.SeedKitchen();
+        _f.Purchases.Add(new RenovationPurchase
+        {
+            Id = 40, HouseholdId = RenovationFakes.HouseholdId, ProjectId = 10,
+            PurchasedOn = new DateOnly(2026, 11, 1), TotalAmount = 289m
+        });
+        _f.Allocations.Add(new RenovationPurchaseAllocation { Id = 50, PurchaseId = 40, LineId = 30, Quantity = 1m, Amount = 289m });
+    }
+
+    private static AddRenovationLineToInventoryRequest Request(int? boxId = null, int? storageUnitId = null) =>
+        new(boxId, storageUnitId, null, "Oak", null);
+
+    [Fact]
+    public async Task Handle_CreatesItemFromAllocation_AndLinksIt()
+    {
+        SeedPurchasedFloor();
+
+        var result = await Handler().Handle(
+            new AddRenovationLineToInventoryCommand(10, 40, 30, Request()), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created<InventoryItemResponse>>(result);
+        var item = Assert.Single(_items);
+        Assert.Equal(RenovationFakes.HouseholdId, item.HouseholdId);
+        Assert.Equal("Oak laminate 8 mm", item.Name);
+        Assert.Equal("1 m²", item.Description);
+        Assert.Null(item.Quantity);
+        Assert.Equal(289m, item.PurchasePrice);
+        Assert.Equal("Oak", item.Brand);
+        Assert.Equal(new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc), item.PurchasedOn);
+        Assert.Equal("Renovation: Kitchen · Floor", item.Notes);
+        Assert.Equal(500, _f.Allocations.Single().InventoryItemId);
+    }
+
+    [Fact]
+    public async Task Handle_PieceUnit_BecomesRoundedQuantity()
+    {
+        SeedPurchasedFloor();
+        _f.Lines[0].Unit = "pcs";
+        _f.Allocations[0].Quantity = 2.5m;
+
+        await Handler().Handle(new AddRenovationLineToInventoryCommand(10, 40, 30, Request()), TestContext.Current.CancellationToken);
+
+        var item = Assert.Single(_items);
+        Assert.Equal(3, item.Quantity);
+        Assert.Null(item.Description);
+    }
+
+    [Fact]
+    public async Task Handle_CalledTwice_SecondCallConflicts()
+    {
+        SeedPurchasedFloor();
+        var handler = Handler();
+
+        await handler.Handle(new AddRenovationLineToInventoryCommand(10, 40, 30, Request()), TestContext.Current.CancellationToken);
+        var second = await handler.Handle(new AddRenovationLineToInventoryCommand(10, 40, 30, Request()), TestContext.Current.CancellationToken);
+
+        Assert.IsType<Conflict<string>>(second);
+        Assert.Single(_items);
+    }
+
+    [Fact]
+    public async Task Handle_PurchaseDeleted_ReturnsNotFound()
+    {
+        SeedPurchasedFloor();
+        _f.Purchases[0].DeletedOn = DateTime.UtcNow;
+
+        var result = await Handler().Handle(
+            new AddRenovationLineToInventoryCommand(10, 40, 30, Request()), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound>(result);
+        Assert.Empty(_items);
+    }
+
+    [Fact]
+    public async Task Handle_UnknownBox_ReturnsBadRequest()
+    {
+        SeedPurchasedFloor();
+
+        var result = await Handler().Handle(
+            new AddRenovationLineToInventoryCommand(10, 40, 30, Request(boxId: 77)), TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+        Assert.Empty(_items);
     }
 }
 

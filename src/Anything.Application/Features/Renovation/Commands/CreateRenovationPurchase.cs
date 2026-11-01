@@ -34,6 +34,10 @@ public class CreateRenovationPurchaseHandler(
         if (request.Lines.Count == 0 || request.Lines.Any(l => l.Quantity <= 0))
             return Results.BadRequest("Every purchased line needs a quantity above zero.");
 
+        var vendor = request.VendorId is null ? null : await FindVendor(request.VendorId.Value, householdId, ct);
+        if (request.VendorId is not null && vendor is null)
+            return Results.BadRequest("Invalid vendor ID.");
+
         var lineIds = request.Lines.Select(l => l.LineId).ToList();
         if (lineIds.Distinct().Count() != lineIds.Count)
             return Results.BadRequest("Each line can appear only once in a purchase.");
@@ -59,7 +63,8 @@ public class CreateRenovationPurchaseHandler(
         {
             HouseholdId = householdId,
             ProjectId = command.ProjectId,
-            Vendor = string.IsNullOrWhiteSpace(request.Vendor) ? null : request.Vendor.Trim(),
+            Vendor = vendor?.Name ?? (string.IsNullOrWhiteSpace(request.Vendor) ? null : request.Vendor.Trim()),
+            VendorId = vendor?.Id,
             PurchasedOn = request.PurchasedOn,
             TotalAmount = request.TotalAmount,
             Notes = request.Notes,
@@ -85,10 +90,15 @@ public class CreateRenovationPurchaseHandler(
 
         var lines = ordered.Select((o, i) => new RenovationPurchaseLineResponse(
             o.Line.Id, o.Line.RoomId, o.RoomName, o.Line.Label, o.Line.Description, o.Line.Unit,
-            o.Request.Quantity, amounts[i])).ToList();
+            o.Request.Quantity, amounts[i], null)).ToList();
         return Results.Created(
             $"/api/renovation-projects/{command.ProjectId}/purchases",
-            new RenovationPurchaseResponse(purchase.Id, purchase.Vendor, purchase.PurchasedOn, purchase.TotalAmount,
-                purchase.Notes, lines, purchase.CreatedOn));
+            new RenovationPurchaseResponse(purchase.Id, purchase.Vendor, purchase.VendorId, purchase.PurchasedOn,
+                purchase.TotalAmount, purchase.Notes, lines, purchase.CreatedOn));
     }
+
+    // Scoped in the query: another household's vendor, or a deleted one, simply isn't found.
+    private async Task<Vendor?> FindVendor(int vendorId, int householdId, CancellationToken ct) =>
+        await repos.Vendors.Query()
+            .FirstOrDefaultAsync(v => v.Id == vendorId && v.HouseholdId == householdId && v.DeletedOn == null, ct);
 }

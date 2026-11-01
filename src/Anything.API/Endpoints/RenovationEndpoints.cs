@@ -1,5 +1,6 @@
 using Anything.Application.Features.Renovation.Commands;
 using Anything.Application.Features.Renovation.Queries;
+using Anything.Contracts.Inventory;
 using Anything.Contracts.Renovation;
 using Anything.Mediator;
 using MinimalApis.Extensions.Binding;
@@ -142,6 +143,17 @@ public static class RenovationEndpoints
         .WithName("DeleteRenovationPurchase")
         .Produces(204)
         .Produces(404)
+        .RequireAuthorization();
+
+        group.MapPost("/{id}/purchases/{purchaseId}/lines/{lineId}/inventory-item",
+            async (int id, int purchaseId, int lineId, AddRenovationLineToInventoryRequest request, IMediator mediator) =>
+                await mediator.Send(new AddRenovationLineToInventoryCommand(id, purchaseId, lineId, request)))
+        .WithName("AddRenovationLineToInventory")
+        .Produces<InventoryItemResponse>(StatusCodes.Status201Created)
+        .Produces(400)
+        .Produces(404)
+        .Produces(409)
+        .WithParameterValidation()
         .RequireAuthorization();
     }
 

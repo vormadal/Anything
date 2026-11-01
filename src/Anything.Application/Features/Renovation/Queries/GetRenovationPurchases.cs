@@ -36,14 +36,14 @@ public class GetRenovationPurchasesHandler(
                 {
                     a.PurchaseId,
                     Line = new RenovationPurchaseLineResponse(
-                        l.Id, r.Id, r.Name, l.Label, l.Description, l.Unit, a.Quantity, a.Amount)
+                        l.Id, r.Id, r.Name, l.Label, l.Description, l.Unit, a.Quantity, a.Amount, a.InventoryItemId)
                 })
             .ToListAsync(ct);
         var byPurchase = lines.ToLookup(x => x.PurchaseId, x => x.Line);
 
         return Results.Ok(purchases
             .Select(p => new RenovationPurchaseResponse(
-                p.Id, p.Vendor, p.PurchasedOn, p.TotalAmount, p.Notes, byPurchase[p.Id].ToList(), p.CreatedOn))
+                p.Id, p.Vendor, p.VendorId, p.PurchasedOn, p.TotalAmount, p.Notes, byPurchase[p.Id].ToList(), p.CreatedOn))
             .ToList());
     }
 }

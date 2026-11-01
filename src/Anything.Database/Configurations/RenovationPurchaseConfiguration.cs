@@ -21,5 +21,10 @@ public class RenovationPurchaseConfiguration : IEntityTypeConfiguration<Renovati
             .WithMany()
             .HasForeignKey(e => e.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Vendor>()
+            .WithMany()
+            .HasForeignKey(e => e.VendorId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 }
