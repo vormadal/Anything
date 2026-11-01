@@ -186,6 +186,7 @@ app.MapHomePreferenceEndpoints();
 app.MapSearchEndpoints();
 app.MapNoteEndpoints();
 app.MapNotificationEndpoints();
+app.MapRenovationEndpoints();
 
 await app.RunAsync();
 

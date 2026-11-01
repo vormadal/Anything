@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IImageStorageService, MinioStorageService>();
         services.AddScoped<IRecipeImageService, RecipeImageService>();
         services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+        services.AddScoped<Features.Renovation.RenovationRepositories>();
 
         // Web Push. Registered unconditionally so the graph is identical
         // whether or not keys are present — VapidCredentials reports itself
