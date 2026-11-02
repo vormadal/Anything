@@ -383,7 +383,7 @@ Renovation projects and materials are `ISearchable` (`RenovationProject` indexes
 Frontend: `/renovation` (projects), `/renovation/[id]` (overview), `.../rooms/new`
 (wizard — its live estimate comes from `src/lib/renovation.ts`, which mirrors
 `RenovationCalculator` and must change with it), `.../rooms/[roomId]` (room budget,
-material swap), `.../shopping` (to-buy list grouped across rooms by material, record
+material swap), `/renovation/templates` (room template editor, managers only), `.../shopping` (to-buy list grouped across rooms by material, record
 purchase with a quantity per line, purchase history, add to inventory) and
 `/renovation/materials`. Hooks are all in `useRenovation.ts`; visual snapshots are the
 `Renovation` block at the end of `e2e/visual.spec.ts`.
