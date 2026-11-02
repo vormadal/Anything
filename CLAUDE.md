@@ -350,7 +350,14 @@ household's price beats the template's, and a missing material is created from
 the template defaults (a unit test asserts no two templates disagree on one
 material name's defaults — that would make the second silently use the first's).
 Lines copy the material's price when chosen; changing a material's default never
-re-prices existing lines (use `lines/replace-material` or a line update).
+re-prices existing lines (use `lines/replace-material` or a line update). A household can
+customise a built-in room template or add its own room type: a `RenovationRoomTemplate` row
+(lines in `RenovationRoomTemplateLine`, replaced wholesale on save) overrides the built-in with
+the same key or adds a new key, and `RenovationTemplateResolver` merges these over the built-ins
+for both `GET /api/renovation-room-templates` and room creation. Rooms seeded from a household-owned
+template copy that template's own price, unit and waste, while built-in lines still take the
+household's material price; `PUT`/`DELETE /api/renovation-room-templates/{roomType}` are
+household-manager only, and DELETE resets a built-in or removes a household room type.
 
 Spending is a `RenovationPurchase` (one receipt) with one
 `RenovationPurchaseAllocation` per line covered: the quantity bought (partial

@@ -17,15 +17,19 @@ public static class RenovationValidation
     public static bool TryParseBasis(string value, out RenovationQuantityBasis basis) =>
         Enum.TryParse(value, ignoreCase: true, out basis) && Enum.IsDefined(basis);
 
-    /// <summary>Returns an error message, or null when the line request is consistent.</summary>
-    public static string? ValidateLine(SaveRenovationLineRequest request, out RenovationQuantityBasis basis)
+    /// <summary>Returns an error message, or null when the basis is known and a Fixed basis has its quantity.</summary>
+    public static string? ValidateBasis(string basis, decimal? fixedQuantity, out RenovationQuantityBasis parsed)
     {
-        if (!TryParseBasis(request.Basis, out basis))
-            return $"Unknown basis '{request.Basis}'.";
-        if (basis == RenovationQuantityBasis.Fixed && request.FixedQuantity is null)
+        if (!TryParseBasis(basis, out parsed))
+            return $"Unknown basis '{basis}'.";
+        if (parsed == RenovationQuantityBasis.Fixed && fixedQuantity is null)
             return "Fixed quantity is required when the basis is Fixed.";
         return null;
     }
+
+    /// <summary>Returns an error message, or null when the line request is consistent.</summary>
+    public static string? ValidateLine(SaveRenovationLineRequest request, out RenovationQuantityBasis basis) =>
+        ValidateBasis(request.Basis, request.FixedQuantity, out basis);
 
     public static void Apply(RenovationLine line, SaveRenovationLineRequest request, RenovationQuantityBasis basis)
     {

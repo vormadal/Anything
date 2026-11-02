@@ -71,6 +71,8 @@ public record RenovationLineResponse(
     decimal Forecast,
     string Status);
 
+/// <param name="IsCustomised">The household has its own version of this built-in room type.</param>
+/// <param name="IsBuiltIn">A built-in room type exists for this key. False for household-defined room types.</param>
 public record RenovationRoomTemplateResponse(
     string RoomType,
     string Label,
@@ -79,7 +81,9 @@ public record RenovationRoomTemplateResponse(
     decimal Height,
     int Doors,
     int Windows,
-    List<RenovationTemplateLineResponse> Lines);
+    List<RenovationTemplateLineResponse> Lines,
+    bool IsCustomised,
+    bool IsBuiltIn);
 
 /// <param name="Key">Stable key, used in <c>CreateRenovationRoomRequest.LineKeys</c>.</param>
 public record RenovationTemplateLineResponse(

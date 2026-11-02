@@ -11,9 +11,11 @@ namespace Anything.Application.Features.Renovation.Commands;
 public record CreateRenovationRoomCommand(int ProjectId, CreateRenovationRoomRequest Request) : IRequest<IResult>;
 
 /// <summary>
-/// Adds a room and seeds its lines from the room type's template. Each template line resolves to
-/// the household's own material of the same name — so the household's price is used — and a
-/// material is created from the template's defaults the first time it's needed.
+/// Adds a room and seeds its lines from the household's effective template for the room type.
+/// Built-in lines resolve to the household's own material of the same name, so its price is used.
+/// Lines of a household-owned template (customised or household-defined) carry their own price,
+/// unit and waste instead. A material is created from the template's defaults the first time
+/// it's needed.
 /// </summary>
 public class CreateRenovationRoomHandler(
     RenovationRepositories repos,
@@ -31,9 +33,11 @@ public class CreateRenovationRoomHandler(
         if (!projectExists)
             return Results.NotFound();
 
-        var template = RenovationRoomTemplates.Find(request.RoomType);
-        if (template is null)
+        var resolved = RenovationTemplateResolver.Find(
+            await RenovationTemplateResolver.Resolve(repos, householdId, ct), request.RoomType);
+        if (resolved is null)
             return Results.BadRequest($"Unknown room type '{request.RoomType}'.");
+        var template = resolved.Template;
 
         List<RenovationRoomTemplates.TemplateLine> selected;
         if (request.LineKeys is not { } keys)
@@ -76,6 +80,9 @@ public class CreateRenovationRoomHandler(
         var lines = selected.Select((t, i) =>
         {
             var material = materials[t.MaterialName.ToLowerInvariant()];
+            var (unit, price, waste) = resolved.CarriesOwnPrices
+                ? (t.Unit, t.Price, t.Waste)
+                : (material.Unit, material.DefaultPrice, material.WastePercent);
             return new RenovationLine
             {
                 HouseholdId = householdId,
@@ -86,9 +93,9 @@ public class CreateRenovationRoomHandler(
                 Description = material.Name,
                 Basis = t.Basis,
                 FixedQuantity = t.FixedQuantity,
-                Unit = material.Unit,
-                UnitPrice = material.DefaultPrice,
-                WastePercent = material.WastePercent,
+                Unit = unit,
+                UnitPrice = price,
+                WastePercent = waste,
                 SortOrder = i,
                 CreatedOn = now
             };

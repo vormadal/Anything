@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Anything.API.IntegrationTests.ApiClient;
@@ -77,6 +78,46 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return client;
     }
 
+    /// <summary>Registers and logs in a second, plain (non-admin) user who is a Member of <paramref name="householdId"/>.</summary>
+    protected async Task<HttpClient> CreateHouseholdMemberClientAsync(int householdId)
+    {
+        var adminToken = await GetAdminTokenAsync();
+        var email = $"member-{Guid.NewGuid()}@test.local";
+
+        var inviteRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/invites")
+        {
+            Content = JsonContent.Create(new { email, householdId })
+        };
+        inviteRequest.Headers.Add("Authorization", $"Bearer {adminToken}");
+        var inviteResponse = await HttpClient.SendAsync(inviteRequest, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, inviteResponse.StatusCode);
+        var invite = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResponse>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(invite);
+
+        var registerResponse = await HttpClient.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Member123!",
+            name = "Test Member",
+            inviteToken = invite.Token,
+        }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
+
+        var loginResponse = await HttpClient.PostAsJsonAsync("/api/auth/login", new
+        {
+            email,
+            password = "Member123!",
+        }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(login);
+
+        var memberClient = Factory.CreateClient();
+        memberClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {login.AccessToken}");
+        memberClient.DefaultRequestHeaders.Add("X-Household-Id", householdId.ToString());
+        return memberClient;
+    }
+
     private async Task<int> SetupAdminHouseholdAsync()
     {
         var token = await GetAdminTokenAsync();
@@ -92,5 +133,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     }
 
     private record LoginResponse(string AccessToken, string RefreshToken, string Email, string Name, string Role);
+    private record CreateInviteResponse(string InviteUrl, string Token);
     private record HouseholdResponse(int Id, string Name, string CreatedOn);
 }

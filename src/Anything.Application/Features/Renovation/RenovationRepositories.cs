@@ -16,7 +16,9 @@ public sealed class RenovationRepositories(
     IRepository<RenovationPurchase> purchases,
     IRepository<RenovationPurchaseAllocation> allocations,
     IRepository<Vendor> vendors,
-    IRepository<RenovationPurchaseAttachment> purchaseAttachments)
+    IRepository<RenovationPurchaseAttachment> purchaseAttachments,
+    IRepository<RenovationRoomTemplate> roomTemplates,
+    IRepository<RenovationRoomTemplateLine> roomTemplateLines)
 {
     public IRepository<RenovationProject> Projects { get; } = projects;
     public IRepository<RenovationRoom> Rooms { get; } = rooms;
@@ -26,4 +28,6 @@ public sealed class RenovationRepositories(
     public IRepository<RenovationPurchaseAllocation> Allocations { get; } = allocations;
     public IRepository<Vendor> Vendors { get; } = vendors;
     public IRepository<RenovationPurchaseAttachment> PurchaseAttachments { get; } = purchaseAttachments;
+    public IRepository<RenovationRoomTemplate> RoomTemplates { get; } = roomTemplates;
+    public IRepository<RenovationRoomTemplateLine> RoomTemplateLines { get; } = roomTemplateLines;
 }

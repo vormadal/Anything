@@ -88,9 +88,15 @@ public static class RenovationRoomTemplates
     public static Template? Find(string roomType) =>
         All.FirstOrDefault(t => string.Equals(t.RoomType, roomType, StringComparison.OrdinalIgnoreCase));
 
-    public static RenovationRoomTemplateResponse ToResponse(Template t) => new(
-        t.RoomType, t.Label, t.Length, t.Width, t.Height, t.Doors, t.Windows,
-        t.Lines.Select(l => new RenovationTemplateLineResponse(
-            l.Key, l.Label, l.Group, l.MaterialName, l.Category, l.Basis.ToString(), l.Unit,
-            l.Price, l.Waste, l.FixedQuantity, l.EnabledByDefault)).ToList());
+    public static RenovationRoomTemplateResponse ToResponse(ResolvedRoomTemplate resolved)
+    {
+        var t = resolved.Template;
+        return new(
+            t.RoomType, t.Label, t.Length, t.Width, t.Height, t.Doors, t.Windows,
+            t.Lines.Select(l => new RenovationTemplateLineResponse(
+                l.Key, l.Label, l.Group, l.MaterialName, l.Category, l.Basis.ToString(), l.Unit,
+                l.Price, l.Waste, l.FixedQuantity, l.EnabledByDefault)).ToList(),
+            resolved.IsCustomised,
+            resolved.IsBuiltIn);
+    }
 }

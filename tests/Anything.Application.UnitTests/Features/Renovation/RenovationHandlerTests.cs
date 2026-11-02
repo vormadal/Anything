@@ -26,6 +26,11 @@ internal sealed class RenovationFakes
     public List<RenovationPurchaseAllocation> Allocations { get; } = [];
     public List<Vendor> Vendors { get; } = [];
     public List<RenovationPurchaseAttachment> PurchaseAttachments { get; } = [];
+    public List<RenovationRoomTemplate> RoomTemplates { get; } = [];
+    public List<RenovationRoomTemplateLine> RoomTemplateLines { get; } = [];
+
+    private int _nextTemplateId = 100;
+    private int _nextTemplateLineId = 1000;
 
     public IHouseholdContext HouseholdContext { get; } = Substitute.For<IHouseholdContext>();
     public IUnitOfWork UnitOfWork { get; } = Substitute.For<IUnitOfWork>();
@@ -39,15 +44,29 @@ internal sealed class RenovationFakes
 
     public RenovationRepositories Repos() => new(
         Repo(Projects), Repo(Rooms), Repo(Lines), Repo(Materials), Repo(Purchases), Repo(Allocations), Repo(Vendors),
-        Repo(PurchaseAttachments));
+        Repo(PurchaseAttachments),
+        Repo(RoomTemplates, t => t.Id = ++_nextTemplateId),
+        Repo(RoomTemplateLines, l => l.Id = ++_nextTemplateLineId));
 
-    private static IRepository<T> Repo<T>(List<T> items) where T : class
+    /// <summary>Substitute repository over <paramref name="items"/>. <paramref name="assignId"/> stands in for the database's identity column.</summary>
+    private static IRepository<T> Repo<T>(List<T> items, Action<T>? assignId = null) where T : class
     {
         var repo = Substitute.For<IRepository<T>>();
         repo.Query().Returns(_ => items.AsAsyncQueryable());
-        repo.When(r => r.Add(Arg.Any<T>())).Do(c => items.Add(c.Arg<T>()));
-        repo.When(r => r.AddRange(Arg.Any<IEnumerable<T>>())).Do(c => items.AddRange(c.Arg<IEnumerable<T>>()));
+        repo.When(r => r.Add(Arg.Any<T>())).Do(c => Store(c.Arg<T>()));
+        repo.When(r => r.AddRange(Arg.Any<IEnumerable<T>>())).Do(c =>
+        {
+            foreach (var entity in c.Arg<IEnumerable<T>>())
+                Store(entity);
+        });
+        repo.When(r => r.Remove(Arg.Any<T>())).Do(c => items.Remove(c.Arg<T>()));
         return repo;
+
+        void Store(T entity)
+        {
+            assignId?.Invoke(entity);
+            items.Add(entity);
+        }
     }
 
     public (RenovationRoom Room, RenovationLine Floor, RenovationLine Skirting) SeedKitchen()

@@ -359,6 +359,134 @@ public class RenovationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task CustomisedBathroom_SeedsNewRooms_AndResetsOnDelete()
+    {
+        var client = await ClientAsync();
+        var (project, _) = await CreateProjectWithKitchen(client);
+        var templatesUrl = "/api/renovation-room-templates";
+        var defaults = await Read<List<TemplateDto>>(await client.GetAsync(templatesUrl, Ct));
+        var defaultBathroom = defaults.Single(t => t.RoomType == "bathroom");
+        Assert.False(defaultBathroom.IsCustomised);
+
+        // Every built-in bathroom line except the floor heating, with the floor tiles dearer.
+        var lines = defaultBathroom.Lines
+            .Where(l => l.Key != "heating")
+            .Select(l => new
+            {
+                key = l.Key, label = l.Label, group = l.Group, materialName = l.MaterialName, category = l.Category,
+                basis = l.Basis, unit = l.Unit, defaultPrice = l.Key == "floor" ? 600m : l.DefaultPrice,
+                wastePercent = l.WastePercent, fixedQuantity = l.FixedQuantity, enabledByDefault = l.EnabledByDefault
+            })
+            .ToList();
+        var save = await client.PutAsJsonAsync($"{templatesUrl}/bathroom", new
+        {
+            label = "Wet room", length = 2.4m, width = 1.8m, height = 2.4m, doors = 1, windows = 0, lines
+        }, Ct);
+        Assert.Equal(HttpStatusCode.OK, save.StatusCode);
+        var saved = await Read<TemplateDto>(save);
+        Assert.True(saved.IsCustomised);
+        Assert.True(saved.IsBuiltIn);
+
+        var listed = (await Read<List<TemplateDto>>(await client.GetAsync(templatesUrl, Ct))).Single(t => t.RoomType == "bathroom");
+        Assert.True(listed.IsCustomised);
+        Assert.Equal("Wet room", listed.Label);
+        Assert.DoesNotContain(listed.Lines, l => l.Key == "heating");
+        Assert.Equal(600m, listed.Lines.Single(l => l.Key == "floor").DefaultPrice);
+
+        var roomResponse = await client.PostAsJsonAsync($"/api/renovation-projects/{project.Id}/rooms", new
+        {
+            name = "Bathroom", roomType = "bathroom", length = 2.4m, width = 1.8m, height = 2.4m, doors = 1, windows = 0
+        }, Ct);
+        Assert.Equal(HttpStatusCode.Created, roomResponse.StatusCode);
+        var room = await Read<RoomDto>(roomResponse);
+        Assert.Equal(10, room.Lines.Count);
+        Assert.DoesNotContain(room.Lines, l => l.Label == "Floor heating");
+        Assert.Equal(600m, room.Lines.Single(l => l.Label == "Floor").UnitPrice);
+
+        var reset = await client.DeleteAsync($"{templatesUrl}/bathroom", Ct);
+        Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
+        var afterReset = (await Read<List<TemplateDto>>(await client.GetAsync(templatesUrl, Ct))).Single(t => t.RoomType == "bathroom");
+        Assert.False(afterReset.IsCustomised);
+        Assert.True(afterReset.IsBuiltIn);
+        Assert.Equal(defaultBathroom.Lines.Count, afterReset.Lines.Count);
+        Assert.Equal(defaultBathroom.Lines.Single(l => l.Key == "floor").DefaultPrice,
+            afterReset.Lines.Single(l => l.Key == "floor").DefaultPrice);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync($"{templatesUrl}/bathroom", Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task HouseholdRoomType_IsListedLast_SeedsRooms_AndCanBeDeleted()
+    {
+        var client = await ClientAsync();
+        var (project, _) = await CreateProjectWithKitchen(client);
+        var templatesUrl = "/api/renovation-room-templates";
+        var key = $"garage-{Guid.NewGuid():N}";
+
+        var save = await client.PutAsJsonAsync($"{templatesUrl}/{key}", new
+        {
+            label = "Garage", length = 6m, width = 3m, height = 2.5m, doors = 1, windows = 0,
+            lines = new[]
+            {
+                new
+                {
+                    key = "floor", label = "Floor", group = "Surfaces", materialName = $"Concrete sealer {Guid.NewGuid():N}",
+                    category = "Floor", basis = "Floor", unit = "m²", defaultPrice = 40m, wastePercent = 5m
+                }
+            }
+        }, Ct);
+        Assert.Equal(HttpStatusCode.OK, save.StatusCode);
+        var saved = await Read<TemplateDto>(save);
+        Assert.False(saved.IsBuiltIn);
+        Assert.False(saved.IsCustomised);
+
+        var listed = await Read<List<TemplateDto>>(await client.GetAsync(templatesUrl, Ct));
+        Assert.Equal(key, listed.Last().RoomType);
+
+        var roomResponse = await client.PostAsJsonAsync($"/api/renovation-projects/{project.Id}/rooms", new
+        {
+            name = "Garage", roomType = key, length = 6m, width = 3m, height = 2.5m, doors = 1, windows = 0
+        }, Ct);
+        Assert.Equal(HttpStatusCode.Created, roomResponse.StatusCode);
+        var room = await Read<RoomDto>(roomResponse);
+        var floor = Assert.Single(room.Lines);
+        Assert.Equal(40m, floor.UnitPrice);
+        Assert.Equal(18m, room.FloorArea);
+
+        var delete = await client.DeleteAsync($"{templatesUrl}/{key}", Ct);
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+        Assert.DoesNotContain(await Read<List<TemplateDto>>(await client.GetAsync(templatesUrl, Ct)), t => t.RoomType == key);
+    }
+
+    [Fact]
+    public async Task SaveRoomTemplate_WithInvalidRoomType_IsBadRequest()
+    {
+        var client = await ClientAsync();
+
+        var response = await client.PutAsJsonAsync("/api/renovation-room-templates/Not_Valid", new
+        {
+            label = "Bad", length = 2m, width = 2m, height = 2.5m, doors = 0, windows = 0, lines = Array.Empty<object>()
+        }, Ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SaveRoomTemplate_AsHouseholdMember_IsForbidden()
+    {
+        var memberClient = await CreateHouseholdMemberClientAsync(DefaultHouseholdId);
+        var templatesUrl = "/api/renovation-room-templates/bathroom";
+
+        var save = await memberClient.PutAsJsonAsync(templatesUrl, new
+        {
+            label = "Mine", length = 2m, width = 2m, height = 2.5m, doors = 0, windows = 0, lines = Array.Empty<object>()
+        }, Ct);
+        var delete = await memberClient.DeleteAsync(templatesUrl, Ct);
+
+        Assert.Equal(HttpStatusCode.Forbidden, save.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, delete.StatusCode);
+    }
+
+    [Fact]
     public async Task GetProjects_RequiresAuthentication()
     {
         var response = await HttpClient.GetAsync("/api/renovation-projects", Ct);
@@ -377,6 +505,7 @@ public class RenovationEndpointTests : IntegrationTestBase
     private record PurchaseAttachmentDto(int Id, int PurchaseId, string Name, string ContentType, long Size, string Url, string? ThumbnailUrl);
     private record PurchaseLineDto(int LineId, string RoomName, decimal Quantity, decimal Amount, int? InventoryItemId);
     private record ReplaceDto(int UpdatedLines, int SkippedPurchasedLines);
-    private record TemplateDto(string RoomType, List<TemplateLineDto> Lines);
-    private record TemplateLineDto(string Key, string Basis);
+    private record TemplateDto(string RoomType, string Label, List<TemplateLineDto> Lines, bool IsCustomised, bool IsBuiltIn);
+    private record TemplateLineDto(string Key, string Label, string Group, string MaterialName, string Category,
+        string Basis, string Unit, decimal DefaultPrice, decimal WastePercent, decimal? FixedQuantity, bool EnabledByDefault);
 }

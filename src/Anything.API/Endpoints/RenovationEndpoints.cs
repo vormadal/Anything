@@ -1,3 +1,4 @@
+using Anything.API.Authorization;
 using Anything.Application.Features.Renovation.Commands;
 using Anything.Application.Features.Renovation.Queries;
 using Anything.Contracts.Inventory;
@@ -13,11 +14,35 @@ public static class RenovationEndpoints
     {
         MapProjects(app.MapGroup("/api/renovation-projects"));
         MapMaterials(app.MapGroup("/api/renovation-materials"));
+        MapRoomTemplates(app.MapGroup("/api/renovation-room-templates"));
+    }
 
-        app.MapGet("/api/renovation-room-templates", async (IMediator mediator) =>
+    private static void MapRoomTemplates(RouteGroupBuilder group)
+    {
+        group.MapGet("/", async (IMediator mediator) =>
             await mediator.Send(new GetRenovationRoomTemplatesQuery()))
         .WithName("GetRenovationRoomTemplates")
+        .Produces<List<RenovationRoomTemplateResponse>>()
         .RequireAuthorization();
+
+        group.MapPut("/{roomType}", async (string roomType, SaveRenovationRoomTemplateRequest request, IMediator mediator) =>
+            await mediator.Send(new SaveRenovationRoomTemplateCommand(roomType, request)))
+        .WithName("SaveRenovationRoomTemplate")
+        .Produces<RenovationRoomTemplateResponse>()
+        .Produces(400)
+        .Produces(403)
+        .WithParameterValidation()
+        .RequireAuthorization()
+        .RequireHouseholdManager();
+
+        group.MapDelete("/{roomType}", async (string roomType, IMediator mediator) =>
+            await mediator.Send(new DeleteRenovationRoomTemplateCommand(roomType)))
+        .WithName("DeleteRenovationRoomTemplate")
+        .Produces(204)
+        .Produces(403)
+        .Produces(404)
+        .RequireAuthorization()
+        .RequireHouseholdManager();
     }
 
     private static void MapProjects(RouteGroupBuilder group)

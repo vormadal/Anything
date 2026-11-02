@@ -55,46 +55,6 @@ public class SearchEndpointTests : IntegrationTestBase
         return result;
     }
 
-    /// <summary>Registers and logs in a second, plain (non-admin) user who is a Member of <paramref name="householdId"/>.</summary>
-    private async Task<HttpClient> CreateHouseholdMemberClientAsync(int householdId)
-    {
-        var adminToken = await GetAdminTokenAsync();
-        var email = $"member-{Guid.NewGuid()}@test.local";
-
-        var inviteRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/invites")
-        {
-            Content = JsonContent.Create(new { email, householdId })
-        };
-        inviteRequest.Headers.Add("Authorization", $"Bearer {adminToken}");
-        var inviteResponse = await HttpClient.SendAsync(inviteRequest, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, inviteResponse.StatusCode);
-        var invite = await inviteResponse.Content.ReadFromJsonAsync<CreateInviteResponseDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(invite);
-
-        var registerResponse = await HttpClient.PostAsJsonAsync("/api/auth/register", new
-        {
-            email,
-            password = "Member123!",
-            name = "Test Member",
-            inviteToken = invite.Token,
-        }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
-
-        var loginResponse = await HttpClient.PostAsJsonAsync("/api/auth/login", new
-        {
-            email,
-            password = "Member123!",
-        }, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
-        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>(JsonOptions, TestContext.Current.CancellationToken);
-        Assert.NotNull(login);
-
-        var memberClient = Factory.CreateClient();
-        memberClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {login.AccessToken}");
-        memberClient.DefaultRequestHeaders.Add("X-Household-Id", householdId.ToString());
-        return memberClient;
-    }
-
     [Fact]
     public async Task Search_RequiresAuthentication()
     {
@@ -283,6 +243,4 @@ public class SearchEndpointTests : IntegrationTestBase
     private record SearchResultDto(string EntityType, int EntityId, string Title, string? Snippet);
     private record IdDto(int Id);
     private record RebuildResultDto(int Indexed);
-    private record CreateInviteResponseDto(string InviteUrl, string Token);
-    private record LoginResponseDto(string AccessToken, string RefreshToken, string Email, string Name, string Role);
 }
