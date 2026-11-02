@@ -1739,6 +1739,15 @@ export function createRenovationProjectResponseFromDiscriminatorValue(parseNode:
 export function createRenovationProjectSummaryResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoRenovationProjectSummaryResponse;
 }
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {RenovationPurchaseAttachmentResponse}
+ */
+// @ts-ignore
+export function createRenovationPurchaseAttachmentResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoRenovationPurchaseAttachmentResponse;
+}
 export interface CreateRenovationPurchaseLineRequest extends Parsable {
     /**
      * The lineId property
@@ -1947,6 +1956,24 @@ export function createSaveRenovationLineRequestFromDiscriminatorValue(parseNode:
 // @ts-ignore
 export function createSaveRenovationMaterialRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
     return deserializeIntoSaveRenovationMaterialRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SaveRenovationRoomTemplateRequest}
+ */
+// @ts-ignore
+export function createSaveRenovationRoomTemplateRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSaveRenovationRoomTemplateRequest;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {SaveRenovationTemplateLineRequest}
+ */
+// @ts-ignore
+export function createSaveRenovationTemplateLineRequestFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoSaveRenovationTemplateLineRequest;
 }
 /**
  * Creates a new instance of the appropriate class based on discriminator value
@@ -4237,6 +4264,25 @@ export function deserializeIntoRenovationProjectSummaryResponse(renovationProjec
 }
 /**
  * The deserialization information for the current model
+ * @param RenovationPurchaseAttachmentResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoRenovationPurchaseAttachmentResponse(renovationPurchaseAttachmentResponse: Partial<RenovationPurchaseAttachmentResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "contentType": n => { renovationPurchaseAttachmentResponse.contentType = n.getStringValue(); },
+        "createdOn": n => { renovationPurchaseAttachmentResponse.createdOn = n.getDateValue(); },
+        "id": n => { renovationPurchaseAttachmentResponse.id = n.getNumberValue(); },
+        "modifiedOn": n => { renovationPurchaseAttachmentResponse.modifiedOn = n.getDateValue(); },
+        "name": n => { renovationPurchaseAttachmentResponse.name = n.getStringValue(); },
+        "purchaseId": n => { renovationPurchaseAttachmentResponse.purchaseId = n.getNumberValue(); },
+        "size": n => { renovationPurchaseAttachmentResponse.size = n.getNumberValue(); },
+        "thumbnailUrl": n => { renovationPurchaseAttachmentResponse.thumbnailUrl = n.getStringValue(); },
+        "url": n => { renovationPurchaseAttachmentResponse.url = n.getStringValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param RenovationPurchaseLineResponse The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -4262,6 +4308,7 @@ export function deserializeIntoRenovationPurchaseLineResponse(renovationPurchase
 // @ts-ignore
 export function deserializeIntoRenovationPurchaseResponse(renovationPurchaseResponse: Partial<RenovationPurchaseResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
     return {
+        "attachmentCount": n => { renovationPurchaseResponse.attachmentCount = n.getNumberValue(); },
         "createdOn": n => { renovationPurchaseResponse.createdOn = n.getDateValue(); },
         "id": n => { renovationPurchaseResponse.id = n.getNumberValue(); },
         "lines": n => { renovationPurchaseResponse.lines = n.getCollectionOfObjectValues<RenovationPurchaseLineResponse>(createRenovationPurchaseLineResponseFromDiscriminatorValue); },
@@ -4308,6 +4355,8 @@ export function deserializeIntoRenovationRoomTemplateResponse(renovationRoomTemp
     return {
         "doors": n => { renovationRoomTemplateResponse.doors = n.getNumberValue(); },
         "height": n => { renovationRoomTemplateResponse.height = n.getNumberValue(); },
+        "isBuiltIn": n => { renovationRoomTemplateResponse.isBuiltIn = n.getBooleanValue(); },
+        "isCustomised": n => { renovationRoomTemplateResponse.isCustomised = n.getBooleanValue(); },
         "label": n => { renovationRoomTemplateResponse.label = n.getStringValue(); },
         "length": n => { renovationRoomTemplateResponse.length = n.getNumberValue(); },
         "lines": n => { renovationRoomTemplateResponse.lines = n.getCollectionOfObjectValues<RenovationTemplateLineResponse>(createRenovationTemplateLineResponseFromDiscriminatorValue); },
@@ -4462,6 +4511,44 @@ export function deserializeIntoSaveRenovationMaterialRequest(saveRenovationMater
         "productUrl": n => { saveRenovationMaterialRequest.productUrl = n.getStringValue(); },
         "unit": n => { saveRenovationMaterialRequest.unit = n.getStringValue(); },
         "wastePercent": n => { saveRenovationMaterialRequest.wastePercent = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param SaveRenovationRoomTemplateRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSaveRenovationRoomTemplateRequest(saveRenovationRoomTemplateRequest: Partial<SaveRenovationRoomTemplateRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "doors": n => { saveRenovationRoomTemplateRequest.doors = n.getNumberValue(); },
+        "height": n => { saveRenovationRoomTemplateRequest.height = n.getNumberValue(); },
+        "label": n => { saveRenovationRoomTemplateRequest.label = n.getStringValue(); },
+        "length": n => { saveRenovationRoomTemplateRequest.length = n.getNumberValue(); },
+        "lines": n => { saveRenovationRoomTemplateRequest.lines = n.getCollectionOfObjectValues<SaveRenovationTemplateLineRequest>(createSaveRenovationTemplateLineRequestFromDiscriminatorValue); },
+        "width": n => { saveRenovationRoomTemplateRequest.width = n.getNumberValue(); },
+        "windows": n => { saveRenovationRoomTemplateRequest.windows = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
+ * @param SaveRenovationTemplateLineRequest The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoSaveRenovationTemplateLineRequest(saveRenovationTemplateLineRequest: Partial<SaveRenovationTemplateLineRequest> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "basis": n => { saveRenovationTemplateLineRequest.basis = n.getStringValue(); },
+        "category": n => { saveRenovationTemplateLineRequest.category = n.getStringValue(); },
+        "defaultPrice": n => { saveRenovationTemplateLineRequest.defaultPrice = n.getNumberValue(); },
+        "enabledByDefault": n => { saveRenovationTemplateLineRequest.enabledByDefault = n.getBooleanValue(); },
+        "fixedQuantity": n => { saveRenovationTemplateLineRequest.fixedQuantity = n.getNumberValue(); },
+        "group": n => { saveRenovationTemplateLineRequest.group = n.getStringValue(); },
+        "key": n => { saveRenovationTemplateLineRequest.key = n.getStringValue(); },
+        "label": n => { saveRenovationTemplateLineRequest.label = n.getStringValue(); },
+        "materialName": n => { saveRenovationTemplateLineRequest.materialName = n.getStringValue(); },
+        "unit": n => { saveRenovationTemplateLineRequest.unit = n.getStringValue(); },
+        "wastePercent": n => { saveRenovationTemplateLineRequest.wastePercent = n.getNumberValue(); },
     }
 }
 /**
@@ -6829,6 +6916,44 @@ export interface RenovationProjectSummaryResponse extends Parsable {
      */
     roomCount?: number | null;
 }
+export interface RenovationPurchaseAttachmentResponse extends Parsable {
+    /**
+     * The contentType property
+     */
+    contentType?: string | null;
+    /**
+     * The createdOn property
+     */
+    createdOn?: Date | null;
+    /**
+     * The id property
+     */
+    id?: number | null;
+    /**
+     * The modifiedOn property
+     */
+    modifiedOn?: Date | null;
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The purchaseId property
+     */
+    purchaseId?: number | null;
+    /**
+     * The size property
+     */
+    size?: number | null;
+    /**
+     * The thumbnailUrl property
+     */
+    thumbnailUrl?: string | null;
+    /**
+     * The url property
+     */
+    url?: string | null;
+}
 export interface RenovationPurchaseLineResponse extends Parsable {
     /**
      * The amount property
@@ -6868,6 +6993,10 @@ export interface RenovationPurchaseLineResponse extends Parsable {
     unit?: string | null;
 }
 export interface RenovationPurchaseResponse extends Parsable {
+    /**
+     * The attachmentCount property
+     */
+    attachmentCount?: number | null;
     /**
      * The createdOn property
      */
@@ -6976,6 +7105,14 @@ export interface RenovationRoomTemplateResponse extends Parsable {
      * The height property
      */
     height?: number | null;
+    /**
+     * The isBuiltIn property
+     */
+    isBuiltIn?: boolean | null;
+    /**
+     * The isCustomised property
+     */
+    isCustomised?: boolean | null;
     /**
      * The label property
      */
@@ -7166,6 +7303,82 @@ export interface SaveRenovationMaterialRequest extends Parsable {
      * The productUrl property
      */
     productUrl?: string | null;
+    /**
+     * The unit property
+     */
+    unit?: string | null;
+    /**
+     * The wastePercent property
+     */
+    wastePercent?: number | null;
+}
+export interface SaveRenovationRoomTemplateRequest extends Parsable {
+    /**
+     * The doors property
+     */
+    doors?: number | null;
+    /**
+     * The height property
+     */
+    height?: number | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
+     * The length property
+     */
+    length?: number | null;
+    /**
+     * The lines property
+     */
+    lines?: SaveRenovationTemplateLineRequest[] | null;
+    /**
+     * The width property
+     */
+    width?: number | null;
+    /**
+     * The windows property
+     */
+    windows?: number | null;
+}
+export interface SaveRenovationTemplateLineRequest extends Parsable {
+    /**
+     * The basis property
+     */
+    basis?: string | null;
+    /**
+     * The category property
+     */
+    category?: string | null;
+    /**
+     * The defaultPrice property
+     */
+    defaultPrice?: number | null;
+    /**
+     * The enabledByDefault property
+     */
+    enabledByDefault?: boolean | null;
+    /**
+     * The fixedQuantity property
+     */
+    fixedQuantity?: number | null;
+    /**
+     * The group property
+     */
+    group?: string | null;
+    /**
+     * The key property
+     */
+    key?: string | null;
+    /**
+     * The label property
+     */
+    label?: string | null;
+    /**
+     * The materialName property
+     */
+    materialName?: string | null;
     /**
      * The unit property
      */
@@ -9025,6 +9238,25 @@ export function serializeRenovationProjectSummaryResponse(writer: SerializationW
 /**
  * Serializes information the current object
  * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param RenovationPurchaseAttachmentResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeRenovationPurchaseAttachmentResponse(writer: SerializationWriter, renovationPurchaseAttachmentResponse: Partial<RenovationPurchaseAttachmentResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!renovationPurchaseAttachmentResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("contentType", renovationPurchaseAttachmentResponse.contentType);
+    writer.writeDateValue("createdOn", renovationPurchaseAttachmentResponse.createdOn);
+    writer.writeNumberValue("id", renovationPurchaseAttachmentResponse.id);
+    writer.writeDateValue("modifiedOn", renovationPurchaseAttachmentResponse.modifiedOn);
+    writer.writeStringValue("name", renovationPurchaseAttachmentResponse.name);
+    writer.writeNumberValue("purchaseId", renovationPurchaseAttachmentResponse.purchaseId);
+    writer.writeNumberValue("size", renovationPurchaseAttachmentResponse.size);
+    writer.writeStringValue("thumbnailUrl", renovationPurchaseAttachmentResponse.thumbnailUrl);
+    writer.writeStringValue("url", renovationPurchaseAttachmentResponse.url);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
  * @param RenovationPurchaseLineResponse The instance to serialize from.
  * @param writer Serialization writer to use to serialize this model
  */
@@ -9050,6 +9282,7 @@ export function serializeRenovationPurchaseLineResponse(writer: SerializationWri
 // @ts-ignore
 export function serializeRenovationPurchaseResponse(writer: SerializationWriter, renovationPurchaseResponse: Partial<RenovationPurchaseResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
     if (!renovationPurchaseResponse || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("attachmentCount", renovationPurchaseResponse.attachmentCount);
     writer.writeDateValue("createdOn", renovationPurchaseResponse.createdOn);
     writer.writeNumberValue("id", renovationPurchaseResponse.id);
     writer.writeCollectionOfObjectValues<RenovationPurchaseLineResponse>("lines", renovationPurchaseResponse.lines, serializeRenovationPurchaseLineResponse);
@@ -9096,6 +9329,8 @@ export function serializeRenovationRoomTemplateResponse(writer: SerializationWri
     if (!renovationRoomTemplateResponse || isSerializingDerivedType) { return; }
     writer.writeNumberValue("doors", renovationRoomTemplateResponse.doors);
     writer.writeNumberValue("height", renovationRoomTemplateResponse.height);
+    writer.writeBooleanValue("isBuiltIn", renovationRoomTemplateResponse.isBuiltIn);
+    writer.writeBooleanValue("isCustomised", renovationRoomTemplateResponse.isCustomised);
     writer.writeStringValue("label", renovationRoomTemplateResponse.label);
     writer.writeNumberValue("length", renovationRoomTemplateResponse.length);
     writer.writeCollectionOfObjectValues<RenovationTemplateLineResponse>("lines", renovationRoomTemplateResponse.lines, serializeRenovationTemplateLineResponse);
@@ -9250,6 +9485,44 @@ export function serializeSaveRenovationMaterialRequest(writer: SerializationWrit
     writer.writeStringValue("productUrl", saveRenovationMaterialRequest.productUrl);
     writer.writeStringValue("unit", saveRenovationMaterialRequest.unit);
     writer.writeNumberValue("wastePercent", saveRenovationMaterialRequest.wastePercent);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SaveRenovationRoomTemplateRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSaveRenovationRoomTemplateRequest(writer: SerializationWriter, saveRenovationRoomTemplateRequest: Partial<SaveRenovationRoomTemplateRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!saveRenovationRoomTemplateRequest || isSerializingDerivedType) { return; }
+    writer.writeNumberValue("doors", saveRenovationRoomTemplateRequest.doors);
+    writer.writeNumberValue("height", saveRenovationRoomTemplateRequest.height);
+    writer.writeStringValue("label", saveRenovationRoomTemplateRequest.label);
+    writer.writeNumberValue("length", saveRenovationRoomTemplateRequest.length);
+    writer.writeCollectionOfObjectValues<SaveRenovationTemplateLineRequest>("lines", saveRenovationRoomTemplateRequest.lines, serializeSaveRenovationTemplateLineRequest);
+    writer.writeNumberValue("width", saveRenovationRoomTemplateRequest.width);
+    writer.writeNumberValue("windows", saveRenovationRoomTemplateRequest.windows);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param SaveRenovationTemplateLineRequest The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeSaveRenovationTemplateLineRequest(writer: SerializationWriter, saveRenovationTemplateLineRequest: Partial<SaveRenovationTemplateLineRequest> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!saveRenovationTemplateLineRequest || isSerializingDerivedType) { return; }
+    writer.writeStringValue("basis", saveRenovationTemplateLineRequest.basis);
+    writer.writeStringValue("category", saveRenovationTemplateLineRequest.category);
+    writer.writeNumberValue("defaultPrice", saveRenovationTemplateLineRequest.defaultPrice);
+    writer.writeBooleanValue("enabledByDefault", saveRenovationTemplateLineRequest.enabledByDefault);
+    writer.writeNumberValue("fixedQuantity", saveRenovationTemplateLineRequest.fixedQuantity);
+    writer.writeStringValue("group", saveRenovationTemplateLineRequest.group);
+    writer.writeStringValue("key", saveRenovationTemplateLineRequest.key);
+    writer.writeStringValue("label", saveRenovationTemplateLineRequest.label);
+    writer.writeStringValue("materialName", saveRenovationTemplateLineRequest.materialName);
+    writer.writeStringValue("unit", saveRenovationTemplateLineRequest.unit);
+    writer.writeNumberValue("wastePercent", saveRenovationTemplateLineRequest.wastePercent);
 }
 /**
  * Serializes information the current object

@@ -34,7 +34,7 @@ import { RenovationMaterialsRequestBuilderNavigationMetadata, RenovationMaterial
 // @ts-ignore
 import { RenovationProjectsRequestBuilderNavigationMetadata, RenovationProjectsRequestBuilderRequestsMetadata, type RenovationProjectsRequestBuilder } from './renovationProjects/index';
 // @ts-ignore
-import { RenovationRoomTemplatesRequestBuilderRequestsMetadata, type RenovationRoomTemplatesRequestBuilder } from './renovationRoomTemplates/index';
+import { RenovationRoomTemplatesRequestBuilderNavigationMetadata, RenovationRoomTemplatesRequestBuilderRequestsMetadata, type RenovationRoomTemplatesRequestBuilder } from './renovationRoomTemplates/index';
 // @ts-ignore
 import { SearchRequestBuilderNavigationMetadata, SearchRequestBuilderRequestsMetadata, type SearchRequestBuilder } from './search/index';
 // @ts-ignore
@@ -224,6 +224,7 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     },
     renovationRoomTemplates: {
         requestsMetadata: RenovationRoomTemplatesRequestBuilderRequestsMetadata,
+        navigationMetadata: RenovationRoomTemplatesRequestBuilderNavigationMetadata,
     },
     search: {
         requestsMetadata: SearchRequestBuilderRequestsMetadata,

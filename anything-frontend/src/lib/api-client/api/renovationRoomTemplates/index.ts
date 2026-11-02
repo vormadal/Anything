@@ -4,12 +4,20 @@
 // @ts-ignore
 import { createRenovationRoomTemplateResponseFromDiscriminatorValue, type RenovationRoomTemplateResponse } from '../../models/index';
 // @ts-ignore
-import { type BaseRequestBuilder, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
+import { type WithRoomTypeItemRequestBuilder, WithRoomTypeItemRequestBuilderRequestsMetadata } from './item/index';
+// @ts-ignore
+import { type BaseRequestBuilder, type KeysToExcludeForNavigationMetadata, type NavigationMetadata, type Parsable, type ParsableFactory, type RequestConfiguration, type RequestInformation, type RequestsMetadata } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /api/renovation-room-templates
  */
 export interface RenovationRoomTemplatesRequestBuilder extends BaseRequestBuilder<RenovationRoomTemplatesRequestBuilder> {
+    /**
+     * Gets an item from the ApiSdk.api.renovationRoomTemplates.item collection
+     * @param roomType Unique identifier of the item
+     * @returns {WithRoomTypeItemRequestBuilder}
+     */
+     byRoomType(roomType: string) : WithRoomTypeItemRequestBuilder;
     /**
      * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
      * @returns {Promise<RenovationRoomTemplateResponse[]>}
@@ -25,6 +33,15 @@ export interface RenovationRoomTemplatesRequestBuilder extends BaseRequestBuilde
  * Uri template for the request builder.
  */
 export const RenovationRoomTemplatesRequestBuilderUriTemplate = "{+baseurl}/api/renovation-room-templates";
+/**
+ * Metadata for all the navigation properties in the request builder.
+ */
+export const RenovationRoomTemplatesRequestBuilderNavigationMetadata: Record<Exclude<keyof RenovationRoomTemplatesRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
+    byRoomType: {
+        requestsMetadata: WithRoomTypeItemRequestBuilderRequestsMetadata,
+        pathParametersMappings: ["roomType"],
+    },
+};
 /**
  * Metadata for all the requests in the request builder.
  */
