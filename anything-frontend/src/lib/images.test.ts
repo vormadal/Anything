@@ -4,6 +4,9 @@ import {
   downscaleImage,
   isResizableImage,
   prepareImageForUpload,
+  STORAGE_UNAVAILABLE_MESSAGE,
+  UPLOAD_TOO_LARGE_MESSAGE,
+  uploadErrorMessage,
 } from "./images";
 
 describe("downscaleImage", () => {
@@ -63,5 +66,21 @@ describe("assertUploadSize", () => {
       type: "image/jpeg",
     });
     expect(() => assertUploadSize(file)).toThrow(/File is too large \(11\.0 MB\)/);
+  });
+});
+
+describe("uploadErrorMessage", () => {
+  it("maps a 413 to the too-large message", () => {
+    expect(uploadErrorMessage({ responseStatusCode: 413 })).toBe(UPLOAD_TOO_LARGE_MESSAGE);
+  });
+
+  it("maps a 503 to the storage-unavailable message", () => {
+    expect(uploadErrorMessage({ responseStatusCode: 503 })).toBe(STORAGE_UNAVAILABLE_MESSAGE);
+  });
+
+  it("leaves other failures to the caller's fallback", () => {
+    expect(uploadErrorMessage({ responseStatusCode: 500 })).toBeUndefined();
+    expect(uploadErrorMessage(new Error("network"))).toBeUndefined();
+    expect(uploadErrorMessage(null)).toBeUndefined();
   });
 });

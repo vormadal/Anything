@@ -2,6 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Anything.API.IntegrationTests.Infrastructure;
+using Anything.Core.Services;
+using Anything.Core.Storage;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Anything.API.IntegrationTests;
@@ -197,6 +201,32 @@ public class BillEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Attachments_Upload_Returns503WhenStorageIsUnavailable()
+    {
+        var bill = await CreateBillAsync("Bill with broken storage", "Monthly", true);
+        var token = await GetAdminTokenAsync();
+
+        // Same database, but object storage that always fails — the way a
+        // dead MinIO behind a proxy does in a deployed environment.
+        await using var brokenStorageFactory = Factory.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services =>
+                services.AddScoped<IImageStorageService, UnavailableImageStorageService>()));
+        var client = brokenStorageFactory.CreateClient();
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+        client.DefaultRequestHeaders.Add("X-Household-Id", DefaultHouseholdId.ToString());
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "invoice.pdf");
+
+        var response = await client.PostAsync($"/api/bills/{bill.Id}/attachments", content, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
     public async Task Attachments_UploadWithCustomName_UsesProvidedName()
     {
         var client = await GetAuthenticatedHttpClientAsync();
@@ -334,4 +364,16 @@ public class BillEndpointTests : IntegrationTestBase
     private record SummaryDto(int TotalBills, decimal TotalMonthlyEquivalent, int AutomatedCount, int ManualCount, decimal TotalCurrentMonthAmount, decimal TotalCurrentYearAmount);
     private record AttachmentDto(int Id, int BillId, string Name, string ContentType, string Url, string? ThumbnailUrl, DateTime CreatedOn);
     private record PriceHistoryDto(int Id, int BillId, decimal Amount, DateTime EffectiveDate, DateTime? EndDate, string? Notes, decimal? PreviousAmount, DateTime CreatedOn, DateTime? ModifiedOn);
+}
+
+file class UnavailableImageStorageService : IImageStorageService
+{
+    private static StorageUnavailableException Unavailable() =>
+        new("Object storage is unavailable.", new HttpRequestException("connection refused"));
+
+    public Task Initialize(bool ensureBucketExists = false, CancellationToken ct = default) => Task.CompletedTask;
+    public Task<string> Upload(Stream stream, string fileName, string contentType, long contentLength, CancellationToken ct = default, string folder = "files") => throw Unavailable();
+    public string GetImageUrl(string storageKey, int width, int height, string resizingType = "fill") => storageKey;
+    public Task<Stream> GetFileStream(string storageKey, CancellationToken ct = default) => throw Unavailable();
+    public Task Delete(string storageKey, CancellationToken ct = default) => throw Unavailable();
 }

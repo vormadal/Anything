@@ -35,6 +35,11 @@ builder.Services.AddHostedService<PushSenderHostedService>();
 // Add real-time SSE services
 builder.Services.AddRealtimeServices();
 
+// Storage failures (MinIO down/misconfigured) become a 503 ProblemDetails
+// instead of an unhandled 500 — see StorageUnavailableExceptionHandler.
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<StorageUnavailableExceptionHandler>();
+
 // Add TimeProvider
 builder.Services.AddSingleton(TimeProvider.System);
 
@@ -154,6 +159,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseForwardedHeaders();
+
+app.UseExceptionHandler();
 
 app.UseCors();
 

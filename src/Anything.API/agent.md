@@ -9,6 +9,7 @@ Thin HTTP layer. Endpoints extract request data and dispatch to `IMediator.Send(
 - `Authorization/HouseholdMembershipLookup.cs` — the "is this user a member of this household" query, shared by `HouseholdMiddleware` and anywhere else that needs the same check outside the middleware's normal per-request activation (currently: `EventsEndpoints`' ticket issuance)
 - `Middleware/HouseholdMiddleware.cs` — resolves the active household from the request and populates `IHouseholdContext` (including the user's `Role` in that household)
 - `Realtime/` — `SseConnectionManager` (household-scoped broadcast) + `SseRealtimeNotifier` + `SseTicketService` (short-lived connect tickets) for Server-Sent Events push notifications
+- `Middleware/StorageUnavailableExceptionHandler.cs` — the only `IExceptionHandler`: maps `StorageUnavailableException` (thrown by `MinioStorageService.Upload`/`Delete` on any storage failure, including the HTML-instead-of-XML parse error a proxy in front of a dead MinIO produces) to a 503 ProblemDetails. `app.UseExceptionHandler()` runs right after `UseForwardedHeaders`, so every other unhandled exception now returns a ProblemDetails 500 too, rather than an empty body. The frontend maps the 503 in one place, `uploadErrorMessage` in `src/lib/images.ts`.
 - `Program.cs` — app bootstrap: DI registration, middleware pipeline, endpoint mapping
 - `DependencyInjection.cs` — extension methods for wiring up API-layer services
 

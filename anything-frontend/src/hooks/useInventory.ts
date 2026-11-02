@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { MultipartBody } from "@microsoft/kiota-abstractions";
 import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
-import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
+import { assertUploadSize, prepareImageForUpload, uploadErrorMessage } from "@/lib/images";
 import type {
   InventoryAttachmentResponse,
   InventoryBoxResponse,
@@ -344,9 +344,8 @@ async function uploadInventoryAttachment(
     await builder.post(multipartBody, { queryParameters: { kind: data.kind, name: data.name } });
   } catch (e) {
     const kiota = e as { responseStatusCode?: number; message?: string };
-    if (kiota.responseStatusCode === 413) {
-      throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
-    }
+    const knownFailure = uploadErrorMessage(e);
+    if (knownFailure) throw new Error(knownFailure);
     throw new Error(kiota.message || "Failed to upload attachment");
   }
 }
