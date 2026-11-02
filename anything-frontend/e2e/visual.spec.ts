@@ -200,6 +200,8 @@ const mockHomeCardPreferences = [
   { cardKey: "foodplan", sortOrder: 0, isVisible: true },
   { cardKey: "lists", sortOrder: 1, isVisible: true },
   { cardKey: "bills", sortOrder: 2, isVisible: true },
+  // Renovation is on by default for new users, so the default home snapshots show it.
+  { cardKey: "renovation", sortOrder: 3, isVisible: true },
 ];
 
 // Cross-entity search results (GET /api/search) — one navigable (Recipe) and
@@ -968,6 +970,17 @@ async function setupApiMocks(page: Page) {
     route.fulfill({ status: 204, body: "" })
   );
 
+  // ---- Renovation home card ----
+  // Empty by default, so the card shows its "No renovation projects yet" state.
+  // Renovation tests override this with a project (registered later, so it wins).
+  await page.route(/\/api\/renovation-projects\/?(\?.*)?$/, (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: [] });
+    } else {
+      route.continue();
+    }
+  });
+
   // ---- Notifications ----
   // AppLayout reads the unread count on every authenticated page (it badges the
   // burger button), so this route has to exist for every snapshot — without it
@@ -1115,6 +1128,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("home page - with data", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await expect(page.getByText("No renovation projects yet")).toBeVisible();
     await expect(page).toHaveScreenshot("home-with-data.png", screenshotOptions);
   });
 
@@ -1164,6 +1178,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await expect(page.getByText("No renovation projects yet")).toBeVisible();
     await expect(page).toHaveScreenshot("home-empty.png", screenshotOptions);
   });
 
@@ -1220,6 +1235,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await expect(page.getByText("No renovation projects yet")).toBeVisible();
     await expect(page).toHaveScreenshot("home-note-without-meals.png", screenshotOptions);
   });
 
@@ -2790,6 +2806,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(
       page.getByRole("button", { name: "Open menu, 4 unread notifications" })
     ).toBeVisible();
+    await expect(page.getByText("No renovation projects yet")).toBeVisible();
     await expect(page).toHaveScreenshot(
       "notifications-burger-badge.png",
       screenshotOptions
@@ -2806,6 +2823,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(
       page.getByRole("dialog").getByRole("button", { name: "Notifications, 4 unread" })
     ).toBeVisible();
+    await expect(page.getByText("No renovation projects yet")).toBeVisible();
     await expect(page).toHaveScreenshot(
       "notifications-drawer-badge.png",
       screenshotOptions
@@ -3002,6 +3020,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     // comparison and the baseline silently keeps its pre-change contents.
     await expect(page.getByRole("dialog").getByRole("button", { name: "Notes" })).toBeVisible();
     await expect(page.getByRole("dialog").getByRole("button", { name: "Renovation" })).toBeVisible();
+    await expect(page.getByText("No renovation projects yet")).toBeVisible();
     await expect(page).toHaveScreenshot(
       "navigation-drawer-open.png",
       screenshotOptions
@@ -3299,6 +3318,7 @@ test.describe("Visual Snapshots - Onboarding Tour", () => {
 
   test("nav drawer", async ({ page }) => {
     await expect(page.getByRole("button", { name: "Take the tour" })).toBeVisible();
+    await expect(page.getByText("No renovation projects yet")).toBeVisible();
     // See navigation-drawer-open: a new nav row alone won't fail the pixel
     // comparison, so each entry the drawer must show is asserted directly.
     await expect(page.getByRole("dialog").getByRole("button", { name: "Notes" })).toBeVisible();
@@ -3513,6 +3533,46 @@ const renovationRoomTemplates = [
   },
 ];
 
+// Built-in Bathroom template, customised so the templates page offers
+// "Reset to default". Only the templates tests use it.
+const renovationBathroomTemplate = {
+  label: "Bathroom",
+  roomType: "bathroom",
+  isBuiltIn: true,
+  isCustomised: true,
+  length: 2.4,
+  width: 2,
+  height: 2.5,
+  doors: 1,
+  windows: 1,
+  lines: [
+    { key: "floor", label: "Floor", group: "Surfaces", materialName: "Wall tiles 10×20", category: "Tiles", basis: "Floor", unit: "m²", defaultPrice: 420, wastePercent: 10, fixedQuantity: null, enabledByDefault: true },
+    { key: "walls", label: "Walls", group: "Surfaces", materialName: "Wall paint, 2 coats", category: "Paint", basis: "Wall", unit: "m²", defaultPrice: 48, wastePercent: 0, fixedQuantity: null, enabledByDefault: true },
+    { key: "ceiling", label: "Ceiling", group: "Surfaces", materialName: "Ceiling paint", category: "Paint", basis: "Ceiling", unit: "m²", defaultPrice: 35, wastePercent: 0, fixedQuantity: null, enabledByDefault: true },
+    { key: "plumber", label: "Plumber", group: "Labour", materialName: "Plumber, kitchen", category: "Labour", basis: "Fixed", unit: "job", defaultPrice: 8500, wastePercent: 0, fixedQuantity: 1, enabledByDefault: true },
+  ],
+};
+
+// The templates page's view of the built-in set: every template is built in,
+// and the bathroom is the one the household has customised.
+function templatesPageFixtures() {
+  return [
+    ...renovationRoomTemplates.map((template) => ({ ...template, isBuiltIn: true, isCustomised: false })),
+    renovationBathroomTemplate,
+  ];
+}
+
+/** Makes the signed-in user this role in household 1 (Owner by default). */
+async function setHouseholdRole(page: Page, role: string) {
+  await page.route("**/api/households**", (route) => {
+    if (route.request().method() === "GET") {
+      route.fulfill({ json: [{ id: 1, name: "Smith Family", createdOn: "2024-01-01T00:00:00Z", role }] });
+    } else {
+      route.continue();
+    }
+  });
+}
+
 /**
  * Renovation API mocks. Registered after setupApiMocks, and the more specific
  * patterns come last so they win (LIFO). Tests that need a different state
@@ -3528,6 +3588,10 @@ async function setupRenovationMocks(page: Page) {
   });
   await page.route(/\/api\/renovation-projects\/1\/purchases(\?.*)?$/, (route) =>
     route.fulfill({ json: renovationPurchases })
+  );
+  // Receipts default to none; the receipts test overrides one purchase's list.
+  await page.route(/\/api\/renovation-projects\/1\/purchases\/\d+\/attachments(\?.*)?$/, (route) =>
+    route.fulfill({ json: [] })
   );
   await page.route(/\/api\/renovation-projects\/1(\?.*)?$/, (route) => {
     if (route.request().method() === "GET") {
@@ -3565,6 +3629,7 @@ test.describe("Renovation", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Ground floor refresh")).toBeVisible();
     await expect(page.getByText("of 200.000 kr. budget")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Room templates" })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-projects.png", screenshotOptions);
   });
 
@@ -3579,6 +3644,7 @@ test.describe("Renovation", () => {
     await page.goto("/renovation");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("No renovation projects yet")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Room templates" })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-projects-empty.png", screenshotOptions);
   });
 
@@ -3624,6 +3690,7 @@ test.describe("Renovation", () => {
     await page.getByRole("button", { name: /^Kitchen/ }).click();
     await expect(page.getByRole("button", { name: /^Kitchen/ })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByLabel("Room name")).toHaveValue("Kitchen");
+    await expect(page.getByRole("link", { name: "Edit room templates" })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-room-wizard-type.png", screenshotOptions);
   });
 
@@ -3721,6 +3788,137 @@ test.describe("Renovation", () => {
     await expect(page.getByRole("button", { name: "Add to inventory" })).toBeVisible();
     await expect(page.getByRole("link", { name: "In inventory" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Timber & Tile Co/ })).toContainText("46.400");
+    await expect(page.getByText("No receipts attached yet.")).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-shopping-history.png", screenshotOptions);
+  });
+
+  test("renovation - purchase with a receipt expanded", async ({ page }) => {
+    await page.route(/\/api\/renovation-projects\/1\/purchases(\?.*)?$/, (route) =>
+      route.fulfill({ json: [{ ...renovationPurchases[0], attachmentCount: 1 }, renovationPurchases[1]] })
+    );
+    await page.route(/\/api\/renovation-projects\/1\/purchases\/1\/attachments(\?.*)?$/, (route) =>
+      route.fulfill({
+        json: [
+          {
+            id: 1,
+            purchaseId: 1,
+            name: "Timber & Tile receipt.pdf",
+            contentType: "application/pdf",
+            size: 183000,
+            createdOn: "2025-01-10T09:05:00Z",
+            modifiedOn: null,
+            url: null,
+            thumbnailUrl: null,
+          },
+        ],
+      })
+    );
+    await page.goto("/renovation/1/shopping");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /Timber & Tile Co/ }).click();
+    const receipts = page.getByRole("region", { name: "Receipts" });
+    await expect(receipts.getByText("Timber & Tile receipt.pdf")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Timber & Tile Co/ })).toContainText("1 receipt");
+    await expect(page).toHaveScreenshot("renovation-shopping-receipts.png", screenshotOptions);
+  });
+
+  // ---- Home ----
+
+  test("renovation - home card shows the most recent project", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: "Renovation", exact: true })).toBeVisible();
+    await expect(page.getByText("of 200.000 kr. budget")).toBeVisible();
+    await expect(page.getByText("On track", { exact: true })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-home-card-project.png", screenshotOptions);
+  });
+
+  test("renovation - home search finds a project", async ({ page }) => {
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "search", sortOrder: 0, isVisible: true },
+            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    await page.route("**/api/search**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { entityType: "RenovationProject", entityId: 1, title: "Ground floor refresh", snippet: "Kitchen and bedroom" },
+          ],
+        });
+      } else {
+        route.continue();
+      }
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.getByLabel("Search everything").fill("ground");
+    await expect(page.getByText("Kitchen and bedroom")).toBeVisible();
+    // A navigable result renders as an enabled button (a non-navigable one is disabled).
+    await expect(page.getByRole("button", { name: /Ground floor refresh/ })).toBeEnabled();
+    await expect(page).toHaveScreenshot("renovation-home-search-result.png", screenshotOptions);
+  });
+
+  // ---- Room templates ----
+
+  test("renovation - room templates as a manager, bathroom selected", async ({ page }) => {
+    await setHouseholdRole(page, "Owner");
+    await page.route(/\/api\/renovation-room-templates\/?(\?.*)?$/, (route) =>
+      route.fulfill({ json: templatesPageFixtures() })
+    );
+    await page.goto("/renovation/templates");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^Bathroom/ }).click();
+    await expect(page.getByRole("button", { name: /^Bathroom/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: "Save template" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset to default" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "New room type" })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-templates-bathroom.png", screenshotOptions);
+  });
+
+  test("renovation - room templates as a member is read-only", async ({ page }) => {
+    await setHouseholdRole(page, "Member");
+    await page.route(/\/api\/renovation-room-templates\/?(\?.*)?$/, (route) =>
+      route.fulfill({ json: templatesPageFixtures() })
+    );
+    await page.goto("/renovation/templates");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^Bathroom/ }).click();
+    await expect(
+      page.getByText("Only household owners and admins can change room templates.")
+    ).toBeVisible();
+    await expect(page.getByLabel("Room type name")).toBeDisabled();
+    await expect(page.getByRole("button", { name: "New room type" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Save template" })).toHaveCount(0);
+    await expect(page).toHaveScreenshot("renovation-templates-member.png", screenshotOptions);
+  });
+
+  test("renovation - room templates, new room type dialog", async ({ page }) => {
+    await setHouseholdRole(page, "Owner");
+    await page.route(/\/api\/renovation-room-templates\/?(\?.*)?$/, (route) =>
+      route.fulfill({ json: templatesPageFixtures() })
+    );
+    await page.goto("/renovation/templates");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "New room type" }).click();
+    await expect(page.getByRole("dialog", { name: "New room type" })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-templates-new-room-type.png", screenshotOptions);
+  });
+
+  test("renovation - room templates load error", async ({ page }) => {
+    await page.route(/\/api\/renovation-room-templates\/?(\?.*)?$/, (route) =>
+      route.fulfill({ status: 500, json: { error: "Internal Server Error" } })
+    );
+    await page.goto("/renovation/templates");
+    await expect(page.getByText("Couldn't load room templates")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(page).toHaveScreenshot("renovation-templates-load-error.png", screenshotOptions);
   });
 });
