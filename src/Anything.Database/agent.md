@@ -23,7 +23,7 @@ Infrastructure layer. EF Core implementation of the repository/UoW pattern; owns
 ## Migrations are auto-generated — do not hand-write them
 
 - The `update-ef-migrations` workflow detects pending model changes (new/changed entities or `IEntityTypeConfiguration`s under `src/Anything.Core/**` or `src/Anything.Database/**`) on non-main pushes, runs `dotnet ef migrations add`, and commits the migration back. **Do not hand-write migrations** (especially in web sessions where `dotnet ef` is unavailable) — push the entity/configuration change and let the workflow generate it. Design-time generation needs only a connection string, not a live DB.
-- Integration tests build their schema from the model via `EnsureCreated`, so they pass without the migration; the running app applies migrations on startup (`MigrateAsync`), so the migration IS required for the deployed app and for `aspire run`. See CLAUDE.md → CI Automation & Deployment for the model-change push ordering gotcha.
+- **Integration tests need the migration too.** The test host runs the API's startup `MigrateAsync`, which escalates `PendingModelChangesWarning` to an error — so on a push that changes the model, *every* integration test fails in ~1 ms ("Collection fixture … threw in InitializeAsync") until `update-ef-migrations` commits the migration. Its commit is `[skip ci]`, so push one more real change afterwards to get a green run. And if a model-changing push fails to *compile*, the bot generates nothing; the fix commit must itself touch `src/Anything.Core/**` or `src/Anything.Database/**` or the bot never re-runs.
 
 ## pg_trgm fuzzy search
 
