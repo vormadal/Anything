@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 using Anything.Contracts.Renovation;
 using Anything.Core.Entities;
@@ -82,9 +81,11 @@ public class SaveRenovationRoomTemplateHandler(
 
         foreach (var line in lines)
         {
-            var results = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(line, new ValidationContext(line), results, validateAllProperties: true))
-                return results[0].ErrorMessage;
+            // The endpoint's parameter validation checks lengths and ranges, but DataAnnotations'
+            // Validator can't see attributes on a positional record's parameters, so the fields a
+            // line can't do without are checked here explicitly.
+            if (new[] { line.Key, line.Label, line.Group, line.MaterialName, line.Unit }.Any(string.IsNullOrWhiteSpace))
+                return "Every line needs a key, label, group, material and unit.";
             if (RenovationValidation.ValidateBasis(line.Basis, line.FixedQuantity, out _) is { } basisError)
                 return basisError;
         }
