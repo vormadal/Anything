@@ -13,7 +13,25 @@ export class BillDetailPage {
     const fileInput = this.page.locator('input[type="file"]');
     const addFileButton = this.page.getByRole("button", { name: "Add file" });
 
+    // Capture the upload response so a server-side failure (e.g. the deployed
+    // environment's object storage being unreachable) fails here with the real
+    // status and body, instead of later as "attachment link not found".
+    const uploadResponse = this.page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" &&
+        /\/api\/bills\/\d+\/attachments$/.test(new URL(res.url()).pathname),
+      { timeout: 30_000 }
+    );
+
     await fileInput.setInputFiles(file);
+
+    const response = await uploadResponse;
+    if (!response.ok()) {
+      const body = await response.text().catch(() => "<unreadable body>");
+      throw new Error(
+        `Attachment upload failed: HTTP ${response.status()} ${body.slice(0, 500)}`
+      );
+    }
 
     // The upload runs asynchronously after setInputFiles triggers the onChange
     // handler.  Wait for it to complete:
