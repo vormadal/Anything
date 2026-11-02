@@ -241,11 +241,15 @@ public class AddRenovationLineToInventoryHandlerTests
         Assert.Equal(500, _f.Allocations.Single().InventoryItemId);
     }
 
-    [Fact]
-    public async Task Handle_PieceUnit_BecomesRoundedQuantity()
+    [Theory]
+    [InlineData("pcs")]
+    [InlineData("Pcs")]
+    [InlineData(" SET ")]
+    [InlineData("stk")]
+    public async Task Handle_PieceUnit_BecomesRoundedQuantity(string unit)
     {
         SeedPurchasedFloor();
-        _f.Lines[0].Unit = "pcs";
+        _f.Lines[0].Unit = unit;
         _f.Allocations[0].Quantity = 2.5m;
 
         await Handler().Handle(new AddRenovationLineToInventoryCommand(10, 40, 30, Request()), TestContext.Current.CancellationToken);

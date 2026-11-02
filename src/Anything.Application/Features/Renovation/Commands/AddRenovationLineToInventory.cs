@@ -30,8 +30,8 @@ public class AddRenovationLineToInventoryHandler(
     TimeProvider timeProvider) : IRequestHandler<AddRenovationLineToInventoryCommand, IResult>
 {
     private const int NotesMaxLength = 1000;
-    private const string CountableUnitPcs = "pcs";
-    private const string CountableUnitSet = "set";
+    // Units are free text on a line ("pcs", "Pcs", "set "), so compare loosely.
+    private static readonly HashSet<string> CountableUnits = new(StringComparer.OrdinalIgnoreCase) { "pcs", "set", "stk" };
 
     public async Task<IResult> Handle(AddRenovationLineToInventoryCommand command, CancellationToken ct = default)
     {
@@ -58,7 +58,7 @@ public class AddRenovationLineToInventoryHandler(
 
         var allocation = row.Allocation;
         var line = row.Line;
-        var countable = line.Unit is CountableUnitPcs or CountableUnitSet;
+        var countable = CountableUnits.Contains(line.Unit.Trim());
         var item = new InventoryItem
         {
             HouseholdId = householdId,
