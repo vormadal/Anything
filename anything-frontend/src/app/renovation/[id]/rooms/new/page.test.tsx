@@ -29,6 +29,8 @@ const mockMutateAsync = jest.fn();
 const TEMPLATES = [
   {
     roomType: "bedroom",
+    isBuiltIn: true,
+    isCustomised: false,
     label: "Bedroom",
     length: 3.6,
     width: 3.2,
@@ -43,6 +45,8 @@ const TEMPLATES = [
   },
   {
     roomType: "bathroom",
+    isBuiltIn: true,
+    isCustomised: false,
     label: "Bathroom",
     length: 2.4,
     width: 1.8,

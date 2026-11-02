@@ -57,6 +57,20 @@ describe('HomePreferencesPage', () => {
     expect(screen.getAllByRole('switch')).toHaveLength(3)
   })
 
+  it('should label the Renovation card in the list', async () => {
+    mockCardPreferencesGet.mockResolvedValue([
+      { cardKey: 'renovation', sortOrder: 0, isVisible: true },
+      { cardKey: 'bills', sortOrder: 1, isVisible: false },
+    ])
+
+    render(<HomePreferencesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Renovation')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('switch', { name: 'Show Renovation on home page' })).toBeInTheDocument()
+  })
+
   it('should render rows in the order returned by the API', async () => {
     mockCardPreferencesGet.mockResolvedValue([
       { cardKey: 'bills', sortOrder: 0, isVisible: true },

@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Paperclip, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RenovationPurchaseLineResponse, RenovationPurchaseResponse } from "@/lib/api-client/models/index";
 import { formatKr, formatQty } from "@/lib/renovation";
 import { formatDateOnly } from "./shoppingView";
+import { PurchaseReceipts } from "./PurchaseReceipts";
 
 interface PurchaseHistoryProps {
+  projectId: number;
   purchases: readonly RenovationPurchaseResponse[];
   onAddToInventory: (purchaseId: number, line: RenovationPurchaseLineResponse) => void;
   onDeletePurchase: (purchaseId: number) => void;
@@ -58,10 +60,12 @@ function PurchaseLine({
 }
 
 function PurchaseRow({
+  projectId,
   purchase,
   onAddToInventory,
   onDeletePurchase,
 }: {
+  projectId: number;
   purchase: RenovationPurchaseResponse;
   onAddToInventory: (line: RenovationPurchaseLineResponse) => void;
   onDeletePurchase: () => void;
@@ -75,6 +79,7 @@ function PurchaseRow({
       ? "No total"
       : formatKr(purchase.totalAmount);
   const panelId = `purchase-${purchase.id ?? 0}-lines`;
+  const receiptCount = purchase.attachmentCount ?? 0;
 
   return (
     <li className="border-t border-gray-100 first:border-t-0 dark:border-gray-700">
@@ -87,7 +92,16 @@ function PurchaseRow({
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate text-sm font-semibold">{title}</span>
-          <span className={`text-xs ${MUTED_CLASS}`}>{meta}</span>
+          <span className={`flex flex-wrap items-center gap-2 text-xs ${MUTED_CLASS}`}>
+            <span>{meta}</span>
+            {receiptCount > 0 && (
+              <span className="inline-flex items-center gap-0.5">
+                <Paperclip className="h-3 w-3" aria-hidden="true" />
+                <span aria-hidden="true">{receiptCount}</span>
+                <span className="sr-only">{countLabel(receiptCount, "receipt", "receipts")}</span>
+              </span>
+            )}
+          </span>
         </span>
         <span className="whitespace-nowrap text-sm font-semibold">{amount}</span>
       </button>
@@ -103,6 +117,7 @@ function PurchaseRow({
             ))}
           </ul>
           {purchase.notes && <p className={`text-xs ${MUTED_CLASS}`}>{purchase.notes}</p>}
+          {purchase.id != null && <PurchaseReceipts projectId={projectId} purchaseId={purchase.id} />}
           <Button
             variant="ghost"
             size="sm"
@@ -118,12 +133,18 @@ function PurchaseRow({
   );
 }
 
-export function PurchaseHistory({ purchases, onAddToInventory, onDeletePurchase }: PurchaseHistoryProps) {
+export function PurchaseHistory({
+  projectId,
+  purchases,
+  onAddToInventory,
+  onDeletePurchase,
+}: PurchaseHistoryProps) {
   return (
     <ul className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
       {purchases.map((purchase, index) => (
         <PurchaseRow
           key={purchase.id ?? index}
+          projectId={projectId}
           purchase={purchase}
           onAddToInventory={(line) => onAddToInventory(purchase.id ?? 0, line)}
           onDeletePurchase={() => onDeletePurchase(purchase.id ?? 0)}

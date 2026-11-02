@@ -14,6 +14,10 @@ import {
   useDeleteRenovationPurchase,
   useAddRenovationLineToInventory,
   useCreateRenovationMaterial,
+  useRenovationPurchaseAttachments,
+  useUploadRenovationPurchaseAttachment,
+  useDownloadRenovationPurchaseAttachment,
+  useDeleteRenovationPurchaseAttachment,
 } from '@/hooks/useRenovation'
 
 const mockProjectsGet = jest.fn()
@@ -30,10 +34,24 @@ const mockPurchaseDelete = jest.fn()
 const mockInventoryItemPost = jest.fn()
 
 const mockPurchaseLine = jest.fn((lineId: number) => ({ lineId, inventoryItem: { post: mockInventoryItemPost } }))
+const mockAttachmentsGet = jest.fn()
+const mockAttachmentsPost = jest.fn()
+const mockAttachmentDownloadGet = jest.fn()
+const mockAttachmentDelete = jest.fn()
+const mockAttachmentById = jest.fn((attachmentId: number) => ({
+  attachmentId,
+  delete: mockAttachmentDelete,
+  download: { get: mockAttachmentDownloadGet },
+}))
 const mockPurchaseById = jest.fn((purchaseId: number) => ({
   purchaseId,
   delete: mockPurchaseDelete,
   lines: { byLineId: (lineId: number) => mockPurchaseLine(lineId) },
+  attachments: {
+    get: (...args: unknown[]) => mockAttachmentsGet(...args),
+    post: (...args: unknown[]) => mockAttachmentsPost(...args),
+    byAttachmentId: (attachmentId: number) => mockAttachmentById(attachmentId),
+  },
 }))
 const mockRoomById = jest.fn((roomId: number) => ({
   roomId,
@@ -54,6 +72,7 @@ const mockProjectById = jest.fn((projectId: number) => ({
 }))
 
 jest.mock('@/lib/apiClient', () => ({
+  buildFileUploadBody: async () => ({ addOrReplacePart: jest.fn() }),
   apiClient: {
     api: {
       renovationProjects: {
@@ -339,6 +358,118 @@ describe('useRenovation hooks', () => {
         expect.objectContaining({ name: 'Underlay', defaultPrice: 39, wastePercent: 5, category: null }),
       )
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['renovationMaterials'] })
+    })
+  })
+  describe('purchase receipts', () => {
+    it('fetches the attachments of one purchase when enabled', async () => {
+      mockAttachmentsGet.mockResolvedValueOnce([{ id: 1, name: 'Kvittering.pdf' }])
+
+      const { result } = renderHook(() => useRenovationPurchaseAttachments(5, 9), {
+        wrapper: createWrapper(createTestClient()),
+      })
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(mockPurchaseById).toHaveBeenCalledWith(9)
+      expect(result.current.data).toEqual([{ id: 1, name: 'Kvittering.pdf' }])
+    })
+
+    it('does not fetch receipts while disabled', () => {
+      renderHook(() => useRenovationPurchaseAttachments(5, 9, false), {
+        wrapper: createWrapper(createTestClient()),
+      })
+
+      expect(mockAttachmentsGet).not.toHaveBeenCalled()
+    })
+
+    it('uploads a receipt and invalidates the purchase receipts and purchases', async () => {
+      mockAttachmentsPost.mockResolvedValueOnce(undefined)
+      const client = createTestClient()
+      const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
+
+      const { result } = renderHook(() => useUploadRenovationPurchaseAttachment(5), {
+        wrapper: createWrapper(client),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          purchaseId: 9,
+          file: new File(['content'], 'receipt.pdf', { type: 'application/pdf' }),
+        })
+      })
+
+      expect(mockAttachmentsPost).toHaveBeenCalled()
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['renovationPurchaseAttachments', 5, 9] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['renovationPurchases', 5] })
+    })
+
+    it('rejects a receipt over 10 MB without calling the API', async () => {
+      const bigFile = new File([new ArrayBuffer(11 * 1024 * 1024)], 'huge.pdf', { type: 'application/pdf' })
+      const { result } = renderHook(() => useUploadRenovationPurchaseAttachment(5), {
+        wrapper: createWrapper(createTestClient()),
+      })
+
+      await act(async () => {
+        result.current.mutate({ purchaseId: 9, file: bigFile })
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+      expect(result.current.error?.message).toContain('too large')
+      expect(mockAttachmentsPost).not.toHaveBeenCalled()
+    })
+
+    it('maps a 413 response to a friendly message', async () => {
+      mockAttachmentsPost.mockRejectedValueOnce({ responseStatusCode: 413, message: 'Payload Too Large' })
+      const { result } = renderHook(() => useUploadRenovationPurchaseAttachment(5), {
+        wrapper: createWrapper(createTestClient()),
+      })
+
+      await act(async () => {
+        result.current.mutate({ purchaseId: 9, file: new File(['content'], 'receipt.pdf', { type: 'application/pdf' }) })
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+      expect(result.current.error?.message).toBe('File is too large. Please use a file under 10 MB.')
+    })
+
+    it('downloads a receipt through a blob URL', async () => {
+      mockAttachmentDownloadGet.mockResolvedValueOnce(new ArrayBuffer(4))
+      const createObjectURL = jest.fn(() => 'blob:receipt')
+      const revokeObjectURL = jest.fn()
+      Object.assign(URL, { createObjectURL, revokeObjectURL })
+      const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+      const { result } = renderHook(() => useDownloadRenovationPurchaseAttachment(5), {
+        wrapper: createWrapper(createTestClient()),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({ purchaseId: 9, attachmentId: 3, name: 'receipt.pdf' })
+      })
+
+      expect(mockAttachmentById).toHaveBeenCalledWith(3)
+      expect(createObjectURL).toHaveBeenCalled()
+      expect(clickSpy).toHaveBeenCalled()
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:receipt')
+      clickSpy.mockRestore()
+    })
+
+    it('deletes a receipt and invalidates the purchase receipts and purchases', async () => {
+      mockAttachmentDelete.mockResolvedValueOnce(undefined)
+      const client = createTestClient()
+      const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
+
+      const { result } = renderHook(() => useDeleteRenovationPurchaseAttachment(5), {
+        wrapper: createWrapper(client),
+      })
+
+      await act(async () => {
+        await result.current.mutateAsync({ purchaseId: 9, attachmentId: 3 })
+      })
+
+      expect(mockAttachmentById).toHaveBeenCalledWith(3)
+      expect(mockAttachmentDelete).toHaveBeenCalled()
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['renovationPurchaseAttachments', 5, 9] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['renovationPurchases', 5] })
     })
   })
 })

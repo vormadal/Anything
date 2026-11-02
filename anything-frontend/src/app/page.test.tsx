@@ -25,6 +25,7 @@ const mockBillSummaryGet = jest.fn()
 const mockHomeCardPreferencesGet = jest.fn()
 const mockSearchGet = jest.fn()
 const mockNotesGet = jest.fn()
+const mockRenovationProjectsGet = jest.fn()
 
 jest.mock('@/lib/apiClient', () => ({
   apiClient: {
@@ -81,6 +82,9 @@ jest.mock('@/lib/apiClient', () => ({
       notes: {
         get: (...args: unknown[]) => mockNotesGet(...args),
       },
+      renovationProjects: {
+        get: (...args: unknown[]) => mockRenovationProjectsGet(...args),
+      },
     },
   },
 }))
@@ -124,6 +128,7 @@ describe('Home Page Integration Tests', () => {
     })
     mockSearchGet.mockResolvedValue([])
     mockNotesGet.mockResolvedValue([])
+    mockRenovationProjectsGet.mockResolvedValue([])
     mockHomeCardPreferencesGet.mockResolvedValue([
       { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
       { cardKey: 'lists', sortOrder: 1, isVisible: true },
@@ -970,5 +975,126 @@ describe('Home Page Integration Tests', () => {
     await waitFor(() => {
       expect(screen.getByText("Couldn't load bills")).toBeInTheDocument()
     })
+  })
+
+  // ------- Renovation: search results and home card -------
+  it('should navigate to a renovation project when a search result is selected', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    mockSearchGet.mockResolvedValue([
+      { entityType: 'RenovationProject', entityId: 4, title: 'Kitchen refit', snippet: 'Budget 150 000 kr' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Search everything')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Search everything'), 'kitchen')
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Kitchen refit')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Kitchen refit'))
+    expect(mockPush).toHaveBeenCalledWith('/renovation/4')
+  })
+
+  it('should navigate to the materials library when a renovation material search result is selected', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    mockSearchGet.mockResolvedValue([
+      { entityType: 'RenovationMaterial', entityId: 8, title: 'Oak laminate', snippet: 'Surfaces, m²' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Search everything')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Search everything'), 'oak')
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Oak laminate')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Oak laminate'))
+    expect(mockPush).toHaveBeenCalledWith('/renovation/materials')
+  })
+
+  const renovationVisible = [{ cardKey: 'renovation', sortOrder: 0, isVisible: true }]
+
+  it('should show the most recently updated renovation project on the Renovation card', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockHomeCardPreferencesGet.mockResolvedValue(renovationVisible)
+    mockRenovationProjectsGet.mockResolvedValue([
+      { id: 1, name: 'Bathroom', budget: 50000, forecast: 20000, actual: 0, roomCount: 1, modifiedOn: '2025-05-01T00:00:00Z' },
+      { id: 2, name: 'Kitchen refit', budget: 150000, forecast: 102184, actual: 40000, roomCount: 3, modifiedOn: '2025-06-10T00:00:00Z' },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Kitchen refit')).toBeInTheDocument()
+    })
+    expect(screen.getByText('On track')).toBeInTheDocument()
+    expect(screen.queryByText('Bathroom')).not.toBeInTheDocument()
+  })
+
+  it('should link the Renovation card to the project', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockHomeCardPreferencesGet.mockResolvedValue(renovationVisible)
+    mockRenovationProjectsGet.mockResolvedValue([
+      { id: 2, name: 'Kitchen refit', budget: 1000, forecast: 2000, actual: 0, roomCount: 1 },
+    ])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Kitchen refit')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Over budget')).toBeInTheDocument()
+
+    expect(screen.getByRole('link', { name: /Kitchen refit/ })).toHaveAttribute('href', '/renovation/2')
+  })
+
+  it('should show a Renovation card empty state linking to the renovation area', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockHomeCardPreferencesGet.mockResolvedValue(renovationVisible)
+    mockRenovationProjectsGet.mockResolvedValue([])
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No renovation projects yet')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('link', { name: 'Start a renovation project' })).toHaveAttribute('href', '/renovation')
+  })
+
+  it('should show a load error on the Renovation card instead of the empty state', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockHomeCardPreferencesGet.mockResolvedValue(renovationVisible)
+    mockRenovationProjectsGet.mockRejectedValue(new Error('Network request failed'))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load renovation projects")).toBeInTheDocument()
+    })
+    expect(screen.queryByText('No renovation projects yet')).not.toBeInTheDocument()
   })
 })

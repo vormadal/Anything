@@ -197,13 +197,16 @@ export function estimateTemplateRoom(
   selectedKeys: readonly string[],
   materialsByName?: ReadonlyMap<string, RenovationMaterialResponse>,
 ): TemplateRoomEstimate {
+  // Mirrors CreateRenovationRoom: only an untouched built-in template takes the household's
+  // material prices; a customised or household-defined template keeps its own line prices.
+  const pricingMaterials = template.isBuiltIn === true && !template.isCustomised ? materialsByName : undefined;
   const measurements = measureRoom(dims.length, dims.width, dims.height, dims.doors, dims.windows);
   const selected = new Set(selectedKeys);
   const lines = (template.lines ?? [])
     .filter((line) => selected.has(line.key ?? ""))
     .map((line): TemplateLineEstimate => {
       const material = line.materialName
-        ? materialsByName?.get(line.materialName.toLowerCase())
+        ? pricingMaterials?.get(line.materialName.toLowerCase())
         : undefined;
       // Both shapes carry unit, defaultPrice and wastePercent, so the material simply shadows the template.
       const priced = material ?? line;

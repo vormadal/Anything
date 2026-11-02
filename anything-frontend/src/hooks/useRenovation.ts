@@ -2,8 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { DateOnly } from "@microsoft/kiota-abstractions";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
+import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
 import type {
+  RenovationPurchaseAttachmentResponse,
   AddRenovationLineToInventoryRequest,
   CreateRenovationProjectRequest,
   CreateRenovationPurchaseLineRequest,
@@ -28,6 +30,8 @@ const INVENTORY_ITEMS_KEY = ["inventoryItems"] as const;
 
 const projectKey = (projectId: number) => ["renovationProject", projectId] as const;
 const purchasesKey = (projectId: number) => ["renovationPurchases", projectId] as const;
+const purchaseAttachmentsKey = (projectId: number, purchaseId: number) =>
+  ["renovationPurchaseAttachments", projectId, purchaseId] as const;
 
 export interface RenovationRoomDimensions {
   name: string;
@@ -427,5 +431,162 @@ export function useAddRenovationLineToInventory(projectId: number) {
       queryClient.invalidateQueries({ queryKey: INVENTORY_ITEMS_KEY });
       queryClient.invalidateQueries({ queryKey: purchasesKey(projectId) });
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Purchase receipts (attachments). Mirrors the bill attachment hooks in
+// useBills.ts; the purchase's attachmentCount lives on the purchases list, so
+// every write also refreshes that list.
+// ---------------------------------------------------------------------------
+
+export type { RenovationPurchaseAttachmentResponse };
+
+export function useRenovationPurchaseAttachments(projectId: number, purchaseId: number, enabled = true) {
+  return useQuery({
+    queryKey: purchaseAttachmentsKey(projectId, purchaseId),
+    queryFn: () =>
+      apiClient.api.renovationProjects
+        .byId(projectId)
+        .purchases.byPurchaseId(purchaseId)
+        .attachments.get()
+        .then((r) => r ?? []),
+    enabled: enabled && !!projectId && !!purchaseId,
+  });
+}
+
+export function useUploadRenovationPurchaseAttachment(projectId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { purchaseId: number; file: File; name?: string }) => {
+      const file = await prepareImageForUpload(data.file);
+      assertUploadSize(file);
+
+      const multipartBody = await buildFileUploadBody(file);
+      try {
+        await apiClient.api.renovationProjects
+          .byId(projectId)
+          .purchases.byPurchaseId(data.purchaseId)
+          .attachments.post(multipartBody, {
+            queryParameters: { name: data.name },
+          });
+      } catch (e) {
+        const kiota = e as { responseStatusCode?: number; message?: string };
+        if (kiota.responseStatusCode === 413) {
+          throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
+        }
+        throw new Error(kiota.message || "Failed to upload receipt");
+      }
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: purchaseAttachmentsKey(projectId, variables.purchaseId) });
+      queryClient.invalidateQueries({ queryKey: purchasesKey(projectId) });
+    },
+  });
+}
+
+export function useDownloadRenovationPurchaseAttachment(projectId: number) {
+  return useMutation({
+    mutationFn: async (data: { purchaseId: number; attachmentId: number; name: string }) => {
+      const arrayBuffer = await apiClient.api.renovationProjects
+        .byId(projectId)
+        .purchases.byPurchaseId(data.purchaseId)
+        .attachments.byAttachmentId(data.attachmentId)
+        .download.get();
+      if (!arrayBuffer) throw new Error("Attachment data not returned by server");
+      const blob = new Blob([arrayBuffer]);
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = data.name;
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+    },
+  });
+}
+
+export function useDeleteRenovationPurchaseAttachment(projectId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { purchaseId: number; attachmentId: number }) =>
+      apiClient.api.renovationProjects
+        .byId(projectId)
+        .purchases.byPurchaseId(data.purchaseId)
+        .attachments.byAttachmentId(data.attachmentId)
+        .delete(),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: purchaseAttachmentsKey(projectId, variables.purchaseId) });
+      queryClient.invalidateQueries({ queryKey: purchasesKey(projectId) });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Room templates (household overrides of the built-in defaults)
+// ---------------------------------------------------------------------------
+
+export interface RenovationTemplateLineInput {
+  key: string;
+  label: string;
+  group: string;
+  category: string;
+  materialName: string;
+  basis: string;
+  unit: string;
+  defaultPrice?: number;
+  wastePercent?: number;
+  fixedQuantity?: number;
+  enabledByDefault: boolean;
+}
+
+/** The whole template, sent on every save: the server replaces its fields and lines wholesale. */
+export interface RenovationRoomTemplateInput {
+  label: string;
+  length: number;
+  width: number;
+  height: number;
+  doors: number;
+  windows: number;
+  lines: RenovationTemplateLineInput[];
+}
+
+/** Upserts a room type's template for the household. Managers only (the server answers 403 otherwise). */
+export function useSaveRenovationRoomTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ roomType, ...data }: RenovationRoomTemplateInput & { roomType: string }) =>
+      apiClient.api.renovationRoomTemplates.byRoomType(roomType).put({
+        label: data.label,
+        length: data.length,
+        width: data.width,
+        height: data.height,
+        doors: data.doors,
+        windows: data.windows,
+        lines: data.lines.map((line) => ({
+          key: line.key,
+          label: line.label,
+          group: line.group,
+          category: line.category,
+          materialName: line.materialName,
+          basis: line.basis,
+          unit: line.unit,
+          defaultPrice: line.defaultPrice ?? null,
+          wastePercent: line.wastePercent ?? null,
+          fixedQuantity: line.fixedQuantity ?? null,
+          enabledByDefault: line.enabledByDefault,
+        })),
+      }),
+    // Returned, not fired and forgotten, so mutateAsync resolves once the list has refetched.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ROOM_TEMPLATES_KEY }),
+  });
+}
+
+/** Resets a customised built-in to its default, or removes a household-defined room type. */
+export function useDeleteRenovationRoomTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (roomType: string) =>
+      apiClient.api.renovationRoomTemplates.byRoomType(roomType).delete(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ROOM_TEMPLATES_KEY }),
   });
 }

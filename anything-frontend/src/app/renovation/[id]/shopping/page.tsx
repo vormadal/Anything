@@ -214,6 +214,7 @@ export default function RenovationShoppingPage() {
           </p>
         ) : (
           <PurchaseHistory
+            projectId={projectId}
             purchases={purchases}
             onAddToInventory={openInventoryDialog}
             onDeletePurchase={setPendingDeleteId}

@@ -14,6 +14,7 @@ import { ProjectFormDialog, type ProjectFormValues } from "@/components/renovati
 import { ProjectListItem } from "@/components/renovation/overview/ProjectListItem";
 
 const MATERIALS_HREF = "/renovation/materials";
+const TEMPLATES_HREF = "/renovation/templates";
 
 export default function RenovationPage() {
   const router = useRouter();
@@ -44,12 +45,20 @@ export default function RenovationPage() {
       <PageTitle>Renovation</PageTitle>
 
       <div className="flex items-center justify-between gap-3">
-        <Link
-          href={MATERIALS_HREF}
-          className="flex min-h-11 items-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-        >
-          Materials library
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href={MATERIALS_HREF}
+            className="flex min-h-11 items-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Materials library
+          </Link>
+          <Link
+            href={TEMPLATES_HREF}
+            className="flex min-h-11 items-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Room templates
+          </Link>
+        </div>
         <Button className="h-11" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           New project

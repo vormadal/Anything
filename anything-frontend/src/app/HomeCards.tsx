@@ -10,7 +10,7 @@ import { useSearch, type SearchResultResponse } from "@/hooks/useSearch";
 import { useNotes } from "@/hooks/useNotes";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
-import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, Package, NotebookPen } from "lucide-react";
+import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, Package, NotebookPen, Hammer } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 import { CreateListDialog } from "@/components/CreateListDialog";
@@ -18,6 +18,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { itemPath } from "@/lib/inventory";
 import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
+import { RenovationHomeCard } from "@/components/renovation/home/RenovationHomeCard";
 
 // Maps a search result's entityType to its detail-page route. Entity types not
 // listed here render as non-navigable rows instead of a broken link.
@@ -26,6 +27,9 @@ const SEARCH_RESULT_ROUTES: Record<string, (entityId: number) => string> = {
   ShoppingList: (entityId) => `/lists/${entityId}`,
   Note: (entityId) => `/notes/${entityId}`,
   InventoryItem: (entityId) => itemPath(entityId),
+  RenovationProject: (entityId) => `/renovation/${entityId}`,
+  // The materials library is one page, so the id has nowhere to go.
+  RenovationMaterial: () => "/renovation/materials",
 };
 
 // Icon shown per result row, matching the icons already used for these entity
@@ -35,6 +39,8 @@ const SEARCH_RESULT_ICONS: Record<string, typeof BookOpen> = {
   ShoppingList: ListChecks,
   InventoryItem: Package,
   Note: NotebookPen,
+  RenovationProject: Hammer,
+  RenovationMaterial: Package,
 };
 
 function getTargetDate(): Date {
@@ -544,6 +550,7 @@ export const HOME_CARD_KEYS = {
   Bills: "bills",
   Lists: "lists",
   Notes: "notes",
+  Renovation: "renovation",
 } as const;
 
 export type HomeCardKey = (typeof HOME_CARD_KEYS)[keyof typeof HOME_CARD_KEYS];
@@ -555,6 +562,7 @@ export const HOME_CARD_REGISTRY: Record<HomeCardKey, { title: string; component:
   [HOME_CARD_KEYS.Notes]: { title: "Notes", component: NotesCard },
   [HOME_CARD_KEYS.Lists]: { title: "Lists", component: ListsCard },
   [HOME_CARD_KEYS.Bills]: { title: "Bills", component: BillsCard },
+  [HOME_CARD_KEYS.Renovation]: { title: "Renovation", component: RenovationHomeCard },
 };
 
 // Mirrors HomeCardKeys.All on the backend, which is what decides the order for
@@ -566,4 +574,5 @@ export const DEFAULT_HOME_CARD_ORDER: HomeCardKey[] = [
   HOME_CARD_KEYS.Notes,
   HOME_CARD_KEYS.Lists,
   HOME_CARD_KEYS.Bills,
+  HOME_CARD_KEYS.Renovation,
 ];

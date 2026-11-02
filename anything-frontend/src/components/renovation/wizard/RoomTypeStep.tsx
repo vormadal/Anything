@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { RenovationRoomTemplateResponse } from "@/lib/api-client/models/index";
 import { cn } from "@/lib/utils";
 import { StepHeading } from "./StepHeading";
@@ -43,6 +44,12 @@ export function RoomTypeStep({ templates, selectedId, onPick, name, onNameChange
           })}
         </div>
       )}
+      <Link
+        href="/renovation/templates"
+        className="flex min-h-11 items-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+      >
+        Edit room templates
+      </Link>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="room-name" className="text-sm font-medium">
           Room name

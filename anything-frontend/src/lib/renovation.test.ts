@@ -21,6 +21,8 @@ import {
 const KITCHEN_DIMS = { length: 4.2, width: 3.0, height: 2.5, doors: 1, windows: 1 };
 
 const KITCHEN_TEMPLATE: RenovationRoomTemplateResponse = {
+  isBuiltIn: true,
+  isCustomised: false,
   label: "Kitchen",
   roomType: "Kitchen",
   length: 4.2,
@@ -164,6 +166,24 @@ describe("estimateTemplateRoom", () => {
       description: "Oak Laminate",
     });
     expect(result.total).toBe(3780);
+  });
+});
+
+describe("estimateTemplateRoom pricing source", () => {
+  const materials = indexMaterialsByName([
+    { id: 1, name: "Oak Laminate", unit: "m²", defaultPrice: 300, wastePercent: 0 },
+  ] as RenovationMaterialResponse[]);
+
+  it.each([
+    ["a customised built-in", { isBuiltIn: true, isCustomised: true }],
+    ["a household-defined type", { isBuiltIn: false, isCustomised: false }],
+  ])("keeps the template's own line prices for %s, like the server", (_name, flags) => {
+    const customised = { ...KITCHEN_TEMPLATE, ...flags };
+    const own = estimateTemplateRoom(customised, KITCHEN_DIMS, ["floor"], materials);
+    const builtIn = estimateTemplateRoom(KITCHEN_TEMPLATE, KITCHEN_DIMS, ["floor"], materials);
+
+    expect(own.lines[0].unitPrice).not.toBe(300);
+    expect(builtIn.lines[0].unitPrice).toBe(300);
   });
 });
 

@@ -25,6 +25,10 @@ jest.mock("@/hooks/useRenovation", () => ({
   useCreateRenovationPurchase: jest.fn(),
   useDeleteRenovationPurchase: jest.fn(),
   useAddRenovationLineToInventory: jest.fn(),
+  useRenovationPurchaseAttachments: jest.fn(() => ({ data: [], isLoading: false, isError: false, isPaused: false, isFetching: false, refetch: jest.fn() })),
+  useUploadRenovationPurchaseAttachment: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useDownloadRenovationPurchaseAttachment: jest.fn(() => ({ mutate: jest.fn(), isPending: false })),
+  useDeleteRenovationPurchaseAttachment: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
 }));
 
 jest.mock("@/hooks/useVendors", () => ({
