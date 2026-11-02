@@ -30,6 +30,12 @@ import { NotificationsRequestBuilderNavigationMetadata, NotificationsRequestBuil
 // @ts-ignore
 import { RecipesRequestBuilderNavigationMetadata, RecipesRequestBuilderRequestsMetadata, type RecipesRequestBuilder } from './recipes/index';
 // @ts-ignore
+import { RenovationMaterialsRequestBuilderNavigationMetadata, RenovationMaterialsRequestBuilderRequestsMetadata, type RenovationMaterialsRequestBuilder } from './renovationMaterials/index';
+// @ts-ignore
+import { RenovationProjectsRequestBuilderNavigationMetadata, RenovationProjectsRequestBuilderRequestsMetadata, type RenovationProjectsRequestBuilder } from './renovationProjects/index';
+// @ts-ignore
+import { RenovationRoomTemplatesRequestBuilderNavigationMetadata, RenovationRoomTemplatesRequestBuilderRequestsMetadata, type RenovationRoomTemplatesRequestBuilder } from './renovationRoomTemplates/index';
+// @ts-ignore
 import { SearchRequestBuilderNavigationMetadata, SearchRequestBuilderRequestsMetadata, type SearchRequestBuilder } from './search/index';
 // @ts-ignore
 import { SharedRequestBuilderNavigationMetadata, type SharedRequestBuilder } from './shared/index';
@@ -106,6 +112,18 @@ export interface ApiRequestBuilder extends BaseRequestBuilder<ApiRequestBuilder>
      * The recipes property
      */
     get recipes(): RecipesRequestBuilder;
+    /**
+     * The renovationMaterials property
+     */
+    get renovationMaterials(): RenovationMaterialsRequestBuilder;
+    /**
+     * The renovationProjects property
+     */
+    get renovationProjects(): RenovationProjectsRequestBuilder;
+    /**
+     * The renovationRoomTemplates property
+     */
+    get renovationRoomTemplates(): RenovationRoomTemplatesRequestBuilder;
     /**
      * The search property
      */
@@ -195,6 +213,18 @@ export const ApiRequestBuilderNavigationMetadata: Record<Exclude<keyof ApiReques
     recipes: {
         requestsMetadata: RecipesRequestBuilderRequestsMetadata,
         navigationMetadata: RecipesRequestBuilderNavigationMetadata,
+    },
+    renovationMaterials: {
+        requestsMetadata: RenovationMaterialsRequestBuilderRequestsMetadata,
+        navigationMetadata: RenovationMaterialsRequestBuilderNavigationMetadata,
+    },
+    renovationProjects: {
+        requestsMetadata: RenovationProjectsRequestBuilderRequestsMetadata,
+        navigationMetadata: RenovationProjectsRequestBuilderNavigationMetadata,
+    },
+    renovationRoomTemplates: {
+        requestsMetadata: RenovationRoomTemplatesRequestBuilderRequestsMetadata,
+        navigationMetadata: RenovationRoomTemplatesRequestBuilderNavigationMetadata,
     },
     search: {
         requestsMetadata: SearchRequestBuilderRequestsMetadata,

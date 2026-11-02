@@ -337,6 +337,57 @@ reintroducing anything like it). `bills/[id]/page.tsx`'s summary card shows a ca
 a plain chip (no "Category:" label — the value already reads as one, the way "Auto"/
 "Manual" do) rather than in the label/value metadata grid.
 
+Renovation (`/api/renovation-projects`, `/api/renovation-materials`,
+`/api/renovation-room-templates`) — budget-first renovation planning. A project
+has rooms (dimensions + door/window counts), each room has budget lines, and a
+line's required quantity is **derived, never stored**: `RenovationCalculator`
+measures the room (floor, wall minus openings, perimeter minus door widths) and
+the line's `Basis` (`Floor`/`Wall`/`Ceiling`/`Perimeter`/`FloorAndWall`/`Doors`/
+`Fixed`) picks one, plus waste — so resizing a room re-prices it on the next read.
+Rooms are seeded from built-in templates (`RenovationRoomTemplates`); each template
+line resolves to the household's own `RenovationMaterial` **by name**, so a
+household's price beats the template's, and a missing material is created from
+the template defaults (a unit test asserts no two templates disagree on one
+material name's defaults — that would make the second silently use the first's).
+Lines copy the material's price when chosen; changing a material's default never
+re-prices existing lines (use `lines/replace-material` or a line update). A household can
+customise a built-in room template or add its own room type: a `RenovationRoomTemplate` row
+(lines in `RenovationRoomTemplateLine`, replaced wholesale on save) overrides the built-in with
+the same key or adds a new key, and `RenovationTemplateResolver` merges these over the built-ins
+for both `GET /api/renovation-room-templates` and room creation. Rooms seeded from a household-owned
+template copy that template's own price, unit and waste, while built-in lines still take the
+household's material price; `PUT`/`DELETE /api/renovation-room-templates/{roomType}` are
+household-manager only, and DELETE resets a built-in or removes a household room type.
+
+Spending is a `RenovationPurchase` (one receipt) with one
+`RenovationPurchaseAllocation` per line covered: the quantity bought (partial
+purchases are normal) and that line's share of the total, split by
+quantity × unit price (`RenovationCalculator.Split`, last line takes the
+rounding remainder). A line's actual = sum of its allocations; forecast = actual +
+remaining quantity × unit price, or just actual once `IsComplete` (set explicitly
+or when the bought quantity reaches the required one). Allocations have no
+soft-delete of their own — every reader filters on the purchase's `DeletedOn`.
+Deleting a room or line with a recorded purchase is a **409**. All six tables carry
+`HouseholdId` (rooms/lines denormalised) so every query scopes in the query itself;
+the handlers take the repositories as one injected `RenovationRepositories` bundle.
+A purchase can link the household's `Vendor` (`VendorId`, `SetNull` on delete); the
+free-text `Vendor` column always holds the display name, so it is overwritten with
+the vendor's name when a vendor is linked. `POST .../purchases/{purchaseId}/lines/{lineId}/inventory-item`
+adds a purchased line to the inventory as one item, recording the new id on the
+allocation (`InventoryItemId`) so a second call is a 409. Pieces and sets become the
+item's `Quantity`; area and length materials can't be counted, so their bought amount
+goes into `Description` instead.
+
+Renovation projects and materials are `ISearchable` (`RenovationProject` indexes its name and notes; `RenovationMaterial` its name, category, unit and shop host), so both appear in `/api/search`; like any new searchable type they must also be added to both `SearchIndexRebuilder` callers. Receipts are `RenovationPurchaseAttachment`s under `/api/renovation-projects/{id}/purchases/{purchaseId}/attachments` (bill attachment rules, `folder: "renovation"`, scoped through the purchase's project), and each purchase in the list carries an `AttachmentCount` from one grouped query.
+
+Frontend: `/renovation` (projects), `/renovation/[id]` (overview), `.../rooms/new`
+(wizard — its live estimate comes from `src/lib/renovation.ts`, which mirrors
+`RenovationCalculator` and must change with it), `.../rooms/[roomId]` (room budget,
+material swap), `/renovation/templates` (room template editor, managers only), `.../shopping` (to-buy list grouped across rooms by material, record
+purchase with a quantity per line, purchase history, add to inventory) and
+`/renovation/materials`. Hooks are all in `useRenovation.ts`; visual snapshots are the
+`Renovation` block at the end of `e2e/visual.spec.ts`.
+
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
 - `GET /{id}` — Get by ID
@@ -360,6 +411,8 @@ SonarCloud runs static analysis on every push to main/develop for both backend (
 - The solution file is `.slnx` format (new XML-based solution format).
 - Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
 - Always run linter, build, and tests before committing changes. For any frontend UI change, that also means adding/updating the Playwright visual snapshot (see Frontend → Key Patterns and [`.claude/rules/e2e.md`](.claude/rules/e2e.md)) — it is not covered by lint/build/Jest.
+- **Commit `package-lock.json` changes; don't discard them or report them.** `npm install` in a fresh environment rewrites the lockfile (e.g. `"dev": true` flags on optional packages). Commit that with the work — never `git checkout` it away — and don't mention it in status updates.
+- **Keep status updates compact.** Report outcomes and decisions, not routine automation: don't narrate bot commits, expected first-push races, quality-gate comments or green check runs individually — one line when the whole thing is green, details only when something fails or needs a decision.
 - **Record expensive learnings.** When a task surfaces a non-obvious gotcha, a tool unavailable in an environment, an automated workflow that handles something for you, or a subtle ordering/dependency constraint, write it down so future sessions don't pay to rediscover it — in this CLAUDE.md for repo-wide or CI/deploy concerns, or the relevant directory [`agent.md`](#directory-documentation) / [`.claude/rules/*.md`](.claude/rules) for layer- or file-type-specific rules.
 
 ## CI Automation & Deployment

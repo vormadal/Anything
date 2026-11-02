@@ -47,6 +47,15 @@ public class ApplicationDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<PushDevice> PushDevices => Set<PushDevice>();
+    public DbSet<RenovationProject> RenovationProjects => Set<RenovationProject>();
+    public DbSet<RenovationRoom> RenovationRooms => Set<RenovationRoom>();
+    public DbSet<RenovationLine> RenovationLines => Set<RenovationLine>();
+    public DbSet<RenovationMaterial> RenovationMaterials => Set<RenovationMaterial>();
+    public DbSet<RenovationPurchase> RenovationPurchases => Set<RenovationPurchase>();
+    public DbSet<RenovationPurchaseAllocation> RenovationPurchaseAllocations => Set<RenovationPurchaseAllocation>();
+    public DbSet<RenovationPurchaseAttachment> RenovationPurchaseAttachments => Set<RenovationPurchaseAttachment>();
+    public DbSet<RenovationRoomTemplate> RenovationRoomTemplates => Set<RenovationRoomTemplate>();
+    public DbSet<RenovationRoomTemplateLine> RenovationRoomTemplateLines => Set<RenovationRoomTemplateLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
