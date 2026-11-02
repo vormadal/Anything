@@ -9,6 +9,7 @@ public class RenovationPurchaseAttachment
     public int Id { get; set; }
     public int HouseholdId { get; set; }
     public int PurchaseId { get; set; }
+    /// <summary>Object-storage key under the "renovation" folder; never exposed to clients, who download through the API.</summary>
     public required string StorageKey { get; set; }
     public required string Name { get; set; }
     public required string ContentType { get; set; }
