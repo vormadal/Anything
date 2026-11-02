@@ -71,6 +71,11 @@ public record RenovationLineResponse(
     decimal Forecast,
     string Status);
 
+/// <summary>
+/// A room type as this household sees it: a built-in, the household's override of one, or a
+/// household-defined type. Editing (PUT/DELETE) is limited to household managers; the UI should
+/// offer "Reset to default" when <paramref name="IsCustomised"/> and "Delete" when not <paramref name="IsBuiltIn"/>.
+/// </summary>
 /// <param name="IsCustomised">The household has its own version of this built-in room type.</param>
 /// <param name="IsBuiltIn">A built-in room type exists for this key. False for household-defined room types.</param>
 public record RenovationRoomTemplateResponse(
