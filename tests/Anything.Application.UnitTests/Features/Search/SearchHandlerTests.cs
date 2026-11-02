@@ -114,6 +114,8 @@ public class RebuildSearchIndexHandlerTests
     private readonly IRepository<ShoppingList> _shoppingListRepo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IRepository<InventoryItem> _inventoryItemRepo = Substitute.For<IRepository<InventoryItem>>();
     private readonly IRepository<Note> _noteRepo = Substitute.For<IRepository<Note>>();
+    private readonly IRepository<RenovationProject> _renovationProjectRepo = Substitute.For<IRepository<RenovationProject>>();
+    private readonly IRepository<RenovationMaterial> _renovationMaterialRepo = Substitute.For<IRepository<RenovationMaterial>>();
     private readonly IRepository<SearchDocument> _searchDocumentRepo = Substitute.For<IRepository<SearchDocument>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
@@ -123,11 +125,13 @@ public class RebuildSearchIndexHandlerTests
         _shoppingListRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
         _inventoryItemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
         _noteRepo.Query().Returns(new List<Note>().AsAsyncQueryable());
+        _renovationProjectRepo.Query().Returns(new List<RenovationProject>().AsAsyncQueryable());
+        _renovationMaterialRepo.Query().Returns(new List<RenovationMaterial>().AsAsyncQueryable());
         _searchDocumentRepo.Query().Returns(new List<SearchDocument>().AsAsyncQueryable());
     }
 
     private RebuildSearchIndexHandler CreateHandler() =>
-        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _noteRepo, _searchDocumentRepo, _unitOfWork);
+        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _noteRepo, _renovationProjectRepo, _renovationMaterialRepo, _searchDocumentRepo, _unitOfWork);
 
     [Fact]
     public async Task Handle_CreatesDocumentForEachSearchableEntity()
@@ -200,6 +204,8 @@ public class RebuildHouseholdSearchIndexHandlerTests
     private readonly IRepository<ShoppingList> _shoppingListRepo = Substitute.For<IRepository<ShoppingList>>();
     private readonly IRepository<InventoryItem> _inventoryItemRepo = Substitute.For<IRepository<InventoryItem>>();
     private readonly IRepository<Note> _noteRepo = Substitute.For<IRepository<Note>>();
+    private readonly IRepository<RenovationProject> _renovationProjectRepo = Substitute.For<IRepository<RenovationProject>>();
+    private readonly IRepository<RenovationMaterial> _renovationMaterialRepo = Substitute.For<IRepository<RenovationMaterial>>();
     private readonly IRepository<SearchDocument> _searchDocumentRepo = Substitute.For<IRepository<SearchDocument>>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IHouseholdContext _householdContext = Substitute.For<IHouseholdContext>();
@@ -211,11 +217,13 @@ public class RebuildHouseholdSearchIndexHandlerTests
         _shoppingListRepo.Query().Returns(new List<ShoppingList>().AsAsyncQueryable());
         _inventoryItemRepo.Query().Returns(new List<InventoryItem>().AsAsyncQueryable());
         _noteRepo.Query().Returns(new List<Note>().AsAsyncQueryable());
+        _renovationProjectRepo.Query().Returns(new List<RenovationProject>().AsAsyncQueryable());
+        _renovationMaterialRepo.Query().Returns(new List<RenovationMaterial>().AsAsyncQueryable());
         _searchDocumentRepo.Query().Returns(new List<SearchDocument>().AsAsyncQueryable());
     }
 
     private RebuildHouseholdSearchIndexHandler CreateHandler() =>
-        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _noteRepo, _searchDocumentRepo, _unitOfWork, _householdContext);
+        new(_recipeRepo, _shoppingListRepo, _inventoryItemRepo, _noteRepo, _renovationProjectRepo, _renovationMaterialRepo, _searchDocumentRepo, _unitOfWork, _householdContext);
 
     [Fact]
     public async Task Handle_OnlyIndexesCallersHousehold()
