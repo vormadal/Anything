@@ -9,13 +9,14 @@ import {
   useRenovationProject,
   useRenovationPurchases,
 } from "@/hooks/useRenovation";
-import { useVendors } from "@/hooks/useVendors";
+import { useCreateVendor, useVendors } from "@/hooks/useVendors";
 import type {
   RenovationMaterialResponse,
   RenovationProjectResponse,
   RenovationPurchaseResponse,
 } from "@/lib/api-client/models/index";
 import { toast } from "sonner";
+import userEvent from "@testing-library/user-event";
 
 jest.mock("@/hooks/useRenovation", () => ({
   useRenovationProject: jest.fn(),
@@ -28,6 +29,7 @@ jest.mock("@/hooks/useRenovation", () => ({
 
 jest.mock("@/hooks/useVendors", () => ({
   useVendors: jest.fn(),
+  useCreateVendor: jest.fn(),
 }));
 
 jest.mock("sonner", () => ({
@@ -109,6 +111,7 @@ function mutation(resolved: unknown = {}) {
 
 let createMock: ReturnType<typeof mutation>;
 let addMock: ReturnType<typeof mutation>;
+let createVendorMock: ReturnType<typeof mutation>;
 
 function laminateCheckbox(): HTMLElement {
   return screen.getByRole("checkbox", { name: /Oak laminate 8 mm/ });
@@ -130,6 +133,8 @@ describe("RenovationShoppingPage", () => {
     mockSearch = "";
     createMock = mutation();
     addMock = mutation({ id: 555 });
+    createVendorMock = mutation({ id: 9, name: "Gulvhuset", createdOn: "2026-02-01T00:00:00Z" });
+    (useCreateVendor as jest.Mock).mockReturnValue(createVendorMock);
     (useRenovationProject as jest.Mock).mockReturnValue(query(project));
     (useRenovationPurchases as jest.Mock).mockReturnValue(query(purchases));
     (useRenovationMaterials as jest.Mock).mockReturnValue(query(materials));
@@ -144,8 +149,8 @@ describe("RenovationShoppingPage", () => {
 
     const materialsSection = screen.getByRole("region", { name: "Materials" });
     expect(within(materialsSection).getAllByRole("checkbox")).toHaveLength(1);
-    expect(laminateRow()).toHaveTextContent("Bedroom 12.7 m² · Hallway 5.3 m²");
-    expect(laminateRow()).toHaveTextContent("Packs of 2.13 m² → 9 packs");
+    expect(laminateRow()).toHaveTextContent("Bedroom 12,7 m² · Hallway 5,3 m²");
+    expect(laminateRow()).toHaveTextContent("Packs of 2,13 m² → 9 packs");
 
     const services = screen.getByRole("region", { name: "Services" });
     expect(within(services).getByRole("checkbox", { name: /Plumber/ })).toBeInTheDocument();
@@ -174,15 +179,15 @@ describe("RenovationShoppingPage", () => {
 
     const dialog = openDialog();
     fireEvent.change(within(dialog).getByLabelText(/Total paid/), { target: { value: "6380" } });
-    // At the full 12.67 m² and 5.28 m² the 6380 splits roughly 4,503 / 1,877.
-    expect(within(dialog).getByText("4,503 kr")).toBeInTheDocument();
+    // At the full 12.67 m² and 5.28 m² the 6380 splits roughly 4.503 / 1.877.
+    expect(within(dialog).getByText("4.503 kr.")).toBeInTheDocument();
 
     fireEvent.change(within(dialog).getByLabelText("Quantity bought for Flooring in Bedroom"), {
       target: { value: "6" },
     });
-    // Lowering Bedroom to 6 m²: weights 1734 and 1525.92, so Bedroom takes about 3,394 kr.
-    expect(within(dialog).getByText("3,394 kr")).toBeInTheDocument();
-    expect(within(dialog).getByText(/Partial · 6\.7 m² still to buy/)).toBeInTheDocument();
+    // Lowering Bedroom to 6 m²: weights 1734 and 1525.92, so Bedroom takes about 3.394 kr.
+    expect(within(dialog).getByText("3.394 kr.")).toBeInTheDocument();
+    expect(within(dialog).getByText(/Partial · 6,7 m² still to buy/)).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByRole("button", { name: /Save purchase/ }));
     await waitFor(() =>
@@ -214,6 +219,52 @@ describe("RenovationShoppingPage", () => {
       ),
     );
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("creates a vendor from the picker and saves the purchase against it", async () => {
+    mockSearch = "line=21";
+    const user = userEvent.setup();
+    renderWithClient(<RenovationShoppingPage />);
+    await user.click(screen.getByRole("button", { name: "Record purchase" }));
+
+    await user.selectOptions(within(openDialog()).getByLabelText("Vendor"), "new");
+    const newVendor = screen.getByRole("dialog", { name: "New vendor" });
+    await user.type(within(newVendor).getAllByRole("textbox")[0], "Gulvhuset");
+    await user.click(within(newVendor).getByRole("button", { name: "Create" }));
+
+    await waitFor(() =>
+      expect(createVendorMock.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ name: "Gulvhuset" })),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New vendor" })).not.toBeInTheDocument());
+
+    // The purchase dialog must still be interactive after the nested dialog closed; user-event
+    // checks pointer-events, so a stuck body pointer-events value fails here.
+    const dialog = openDialog();
+    expect(within(dialog).getByLabelText("Vendor")).toHaveValue("9");
+    await user.type(within(dialog).getByLabelText(/Total paid/), "6380");
+    await user.click(within(dialog).getByRole("button", { name: /Save purchase/ }));
+
+    await waitFor(() =>
+      expect(createMock.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ vendorId: 9, totalAmount: 6380 }),
+      ),
+    );
+  });
+
+  it("keeps the previous vendor choice when creating a vendor is cancelled", async () => {
+    mockSearch = "line=21";
+    const user = userEvent.setup();
+    renderWithClient(<RenovationShoppingPage />);
+    await user.click(screen.getByRole("button", { name: "Record purchase" }));
+
+    await user.selectOptions(within(openDialog()).getByLabelText("Vendor"), "3");
+    await user.selectOptions(within(openDialog()).getByLabelText("Vendor"), "new");
+    const newVendor = screen.getByRole("dialog", { name: "New vendor" });
+    await user.click(within(newVendor).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New vendor" })).not.toBeInTheDocument());
+    expect(within(openDialog()).getByLabelText("Vendor")).toHaveValue("3");
+    expect(createVendorMock.mutateAsync).not.toHaveBeenCalled();
   });
 
   it("rejects a quantity of zero inline and does not save", () => {

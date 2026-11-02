@@ -149,11 +149,11 @@ describe("RenovationProjectPage", () => {
     renderWithClient(<RenovationProjectPage />);
 
     expect(screen.getByText("On track")).toBeInTheDocument();
-    expect(screen.getByText("187,352 kr")).toBeInTheDocument();
-    expect(screen.getByText("of 200,000 kr budget · 12,648 kr headroom")).toBeInTheDocument();
+    expect(screen.getByText("187.352 kr.")).toBeInTheDocument();
+    expect(screen.getByText("of 200.000 kr. budget · 12.648 kr. headroom")).toBeInTheDocument();
     expect(screen.getByText("3 lines to buy")).toBeInTheDocument();
-    expect(screen.getByText("+50 kr (5.0%)")).toBeInTheDocument();
-    expect(screen.getByText("2 rooms · 17.4 m² floor")).toBeInTheDocument();
+    expect(screen.getByText("+50 kr. (5,0%)")).toBeInTheDocument();
+    expect(screen.getByText("2 rooms · 17,4 m² floor")).toBeInTheDocument();
   });
 
   it("links to the shopping list and to each room", () => {
@@ -171,8 +171,8 @@ describe("RenovationProjectPage", () => {
     );
     const kitchen = screen.getByRole("link", { name: /Kitchen/ });
     expect(kitchen).toHaveAttribute("href", "/renovation/3/rooms/11");
-    expect(within(kitchen).getByText("4.2 × 3.0 m · 12.6 m² · 1 of 3 bought")).toBeInTheDocument();
-    expect(within(kitchen).getByText("+50 kr vs est.")).toBeInTheDocument();
+    expect(within(kitchen).getByText("4,2 × 3,0 m · 12,6 m² · 1 of 3 bought")).toBeInTheDocument();
+    expect(within(kitchen).getByText("+50 kr. vs est.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Hallway/ })).toHaveAttribute("href", "/renovation/3/rooms/12");
   });
 
@@ -194,7 +194,7 @@ describe("RenovationProjectPage", () => {
     renderWithClient(<RenovationProjectPage />);
 
     expect(screen.getByText("Over budget")).toBeInTheDocument();
-    expect(screen.getByText("of 200,000 kr budget · 10,000 kr over")).toBeInTheDocument();
+    expect(screen.getByText("of 200.000 kr. budget · 10.000 kr. over")).toBeInTheDocument();
   });
 
   it("hides the status and offers to set a budget when none is set", async () => {

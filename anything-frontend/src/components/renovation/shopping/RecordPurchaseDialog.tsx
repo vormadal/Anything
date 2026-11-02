@@ -3,6 +3,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CreateVendorDialog } from "@/components/CreateVendorDialog";
 import { FIELD_INPUT_CLASS, FIELD_LABEL_CLASS } from "@/components/inventory/inventoryFormStyles";
 import { formatKr, formatQty, round2, type ToBuyGroup, type ToBuyLine } from "@/lib/renovation";
 import type { RenovationPurchaseInput } from "@/hooks/useRenovation";
@@ -10,7 +11,7 @@ import type { Vendor } from "@/hooks/useVendors";
 import { parseDecimal } from "@/components/renovation/materials/materialsView";
 import { parseQuantity, previewSplit, todayIso } from "./shoppingView";
 
-const OTHER_VENDOR = "other";
+const NEW_VENDOR = "new";
 const NO_VENDOR = "";
 const OVER_CLASS = "text-orange-700 dark:text-orange-400";
 const UNDER_CLASS = "text-blue-700 dark:text-blue-400";
@@ -31,10 +32,12 @@ export function RecordPurchaseDialog(props: RecordPurchaseDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* The form mounts only while open, so each recording starts from a clean slate. */}
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Record purchase</DialogTitle>
-        </DialogHeader>
+      <DialogContent pinned>
+        <div className="shrink-0 px-6 pb-3 pr-12 pt-6">
+          <DialogHeader>
+            <DialogTitle>Record purchase</DialogTitle>
+          </DialogHeader>
+        </div>
         <RecordPurchaseForm {...props} />
       </DialogContent>
     </Dialog>
@@ -122,15 +125,13 @@ function LineRow({ line, unit, quantityText, done, amount, error, onQuantity, on
 function VendorField({
   vendors,
   choice,
-  otherName,
   onChoice,
-  onOtherName,
+  onNewVendor,
 }: {
   vendors: readonly Vendor[];
   choice: string;
-  otherName: string;
   onChoice: (choice: string) => void;
-  onOtherName: (name: string) => void;
+  onNewVendor: () => void;
 }) {
   const id = useId();
   return (
@@ -141,7 +142,11 @@ function VendorField({
       <select
         id={`${id}-vendor`}
         value={choice}
-        onChange={(event) => onChoice(event.target.value)}
+        // "+ New vendor…" opens the shared CreateVendorDialog; the current choice stays put
+        // until a vendor is actually created, so cancelling leaves the field as it was.
+        onChange={(event) =>
+          event.target.value === NEW_VENDOR ? onNewVendor() : onChoice(event.target.value)
+        }
         className={`${FIELD_INPUT_CLASS} h-11`}
       >
         <option value={NO_VENDOR}>No vendor</option>
@@ -150,18 +155,8 @@ function VendorField({
             {vendor.name}
           </option>
         ))}
-        <option value={OTHER_VENDOR}>Other…</option>
+        <option value={NEW_VENDOR}>+ New vendor…</option>
       </select>
-      {choice === OTHER_VENDOR && (
-        <input
-          type="text"
-          aria-label="Vendor name"
-          placeholder="Vendor name"
-          value={otherName}
-          onChange={(event) => onOtherName(event.target.value)}
-          className={`${FIELD_INPUT_CLASS} h-11`}
-        />
-      )}
     </div>
   );
 }
@@ -182,11 +177,23 @@ function RecordPurchaseForm({ groups, vendors, isPending, onSubmit, onOpenChange
 
   const [purchasedOn, setPurchasedOn] = useState(todayIso);
   const [vendorChoice, setVendorChoice] = useState(NO_VENDOR);
-  const [otherVendor, setOtherVendor] = useState("");
+  const [creatingVendor, setCreatingVendor] = useState(false);
+  // Vendors created in this form, so the picker shows them before the list query refetches.
+  const [createdVendors, setCreatedVendors] = useState<Vendor[]>([]);
   const [total, setTotal] = useState("");
   const [quantities, setQuantities] = useState<Record<number, string>>({});
   const [done, setDone] = useState<Record<number, boolean>>({});
   const [errors, setErrors] = useState<FormErrors>({ quantities: {} });
+
+  const knownVendors = [
+    ...vendors,
+    ...createdVendors.filter((created) => !vendors.some((vendor) => vendor.id === created.id)),
+  ];
+  const handleVendorCreated = (vendor: Vendor) => {
+    setCreatedVendors((prev) => [...prev, vendor]);
+    setVendorChoice(String(vendor.id));
+    setCreatingVendor(false);
+  };
 
   const quantityOf = (line: ToBuyLine) => quantities[line.lineId] ?? String(line.remainingQuantity);
   const rows = lines.map(({ line }) => ({
@@ -214,12 +221,10 @@ function RecordPurchaseForm({ groups, vendors, isPending, onSubmit, onOpenChange
     setErrors(found);
     if (found.purchasedOn || found.total || Object.keys(found.quantities).length > 0) return;
 
-    const vendorId = vendorChoice !== NO_VENDOR && vendorChoice !== OTHER_VENDOR ? Number(vendorChoice) : undefined;
-    const vendorName = vendorChoice === OTHER_VENDOR ? otherVendor.trim() || undefined : undefined;
     void onSubmit({
       purchasedOn,
-      vendorId,
-      vendor: vendorName,
+      // The backend fills the free-text vendor name from the linked vendor.
+      vendorId: vendorChoice === NO_VENDOR ? undefined : Number(vendorChoice),
       totalAmount: totalValue,
       lines: lines.map(({ line }) => ({
         lineId: line.lineId,
@@ -230,97 +235,112 @@ function RecordPurchaseForm({ groups, vendors, isPending, onSubmit, onOpenChange
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <label htmlFor={`${idPrefix}-date`} className={FIELD_LABEL_CLASS}>
-            Date
-          </label>
-          <input
-            id={`${idPrefix}-date`}
-            type="date"
-            required
-            value={purchasedOn}
-            onChange={(event) => setPurchasedOn(event.target.value)}
-            className={`${FIELD_INPUT_CLASS} h-11`}
-          />
-          {errors.purchasedOn && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-              {errors.purchasedOn}
-            </p>
-          )}
-        </div>
-        <VendorField
-          vendors={vendors}
-          choice={vendorChoice}
-          otherName={otherVendor}
-          onChoice={setVendorChoice}
-          onOtherName={setOtherVendor}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor={`${idPrefix}-total`} className={FIELD_LABEL_CLASS}>
-          Total paid (kr)
-        </label>
-        <input
-          id={`${idPrefix}-total`}
-          type="text"
-          inputMode="decimal"
-          required
-          value={total}
-          onChange={(event) => setTotal(event.target.value)}
-          aria-invalid={errors.total ? true : undefined}
-          className={`${FIELD_INPUT_CLASS} h-12 text-lg font-semibold`}
-        />
-        {errors.total ? (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-            {errors.total}
-          </p>
-        ) : (
-          diff && <p className={`text-xs font-medium ${diff.className}`}>{diff.text}</p>
-        )}
-        {!hasTotal && !errors.total && (
-          <p className={`text-xs ${MUTED_CLASS}`}>Enter the amount on the receipt</p>
-        )}
-      </div>
-
-      <section aria-labelledby={`${idPrefix}-split`} className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between">
-          <h3 id={`${idPrefix}-split`} className="text-sm font-semibold text-gray-900 dark:text-white">
-            Lines
-          </h3>
-          <span className={`text-xs ${MUTED_CLASS}`}>split by estimate share</span>
-        </div>
-        <p className={`text-xs ${MUTED_CLASS}`}>
-          Bought less than needed? Lower the quantity. The rest stays on the shopping list at its
-          estimated price.
-        </p>
-        <ul className="rounded-lg bg-gray-50 px-3 dark:bg-gray-900">
-          {lines.map(({ line, unit }, index) => (
-            <LineRow
-              key={line.lineId}
-              line={line}
-              unit={unit}
-              quantityText={quantityOf(line)}
-              done={!!done[line.lineId]}
-              amount={hasTotal ? formatKr(split.amounts[index]) : "—"}
-              error={errors.quantities[line.lineId]}
-              onQuantity={(text) => setQuantities((prev) => ({ ...prev, [line.lineId]: text }))}
-              onDone={(value) => setDone((prev) => ({ ...prev, [line.lineId]: value }))}
+    <>
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label htmlFor={`${idPrefix}-date`} className={FIELD_LABEL_CLASS}>
+                Date
+              </label>
+              <input
+                id={`${idPrefix}-date`}
+                type="date"
+                required
+                value={purchasedOn}
+                onChange={(event) => setPurchasedOn(event.target.value)}
+                className={`${FIELD_INPUT_CLASS} h-11`}
+              />
+              {errors.purchasedOn && (
+                <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+                  {errors.purchasedOn}
+                </p>
+              )}
+            </div>
+            <VendorField
+              vendors={knownVendors}
+              choice={vendorChoice}
+              onChoice={setVendorChoice}
+              onNewVendor={() => setCreatingVendor(true)}
             />
-          ))}
-        </ul>
-      </section>
+          </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-11">
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isPending} className="h-11">
-          Save purchase{hasTotal ? ` · ${formatKr(totalValue)}` : ""}
-        </Button>
-      </div>
-    </form>
+          <div className="flex flex-col gap-1">
+            <label htmlFor={`${idPrefix}-total`} className={FIELD_LABEL_CLASS}>
+              Total paid (kr)
+            </label>
+            <input
+              id={`${idPrefix}-total`}
+              type="text"
+              inputMode="decimal"
+              required
+              value={total}
+              onChange={(event) => setTotal(event.target.value)}
+              aria-invalid={errors.total ? true : undefined}
+              className={`${FIELD_INPUT_CLASS} h-12 text-lg font-semibold`}
+            />
+            {errors.total ? (
+              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+                {errors.total}
+              </p>
+            ) : (
+              diff && <p className={`text-xs font-medium ${diff.className}`}>{diff.text}</p>
+            )}
+            {!hasTotal && !errors.total && (
+              <p className={`text-xs ${MUTED_CLASS}`}>Enter the amount on the receipt</p>
+            )}
+          </div>
+
+          <section aria-labelledby={`${idPrefix}-split`} className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between">
+              <h3 id={`${idPrefix}-split`} className="text-sm font-semibold text-gray-900 dark:text-white">
+                Lines
+              </h3>
+              <span className={`text-xs ${MUTED_CLASS}`}>split by estimate share</span>
+            </div>
+            <p className={`text-xs ${MUTED_CLASS}`}>
+              Bought less than needed? Lower the quantity. The rest stays on the shopping list at its
+              estimated price.
+            </p>
+            <ul className="rounded-lg bg-gray-50 px-3 dark:bg-gray-900">
+              {lines.map(({ line, unit }, index) => (
+                <LineRow
+                  key={line.lineId}
+                  line={line}
+                  unit={unit}
+                  quantityText={quantityOf(line)}
+                  done={!!done[line.lineId]}
+                  amount={hasTotal ? formatKr(split.amounts[index]) : "—"}
+                  error={errors.quantities[line.lineId]}
+                  onQuantity={(text) => setQuantities((prev) => ({ ...prev, [line.lineId]: text }))}
+                  onDone={(value) => setDone((prev) => ({ ...prev, [line.lineId]: value }))}
+                />
+              ))}
+            </ul>
+          </section>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2 border-t border-gray-200 px-6 py-4 sm:flex-row sm:justify-end dark:border-gray-700">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-11">
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isPending} className="h-11">
+            Save purchase{hasTotal ? ` · ${formatKr(totalValue)}` : ""}
+          </Button>
+        </div>
+      </form>
+
+      {/*
+        Outside the <form>: React bubbles submit events through portals, so a vendor form nested
+        inside this one would also submit the purchase.
+      */}
+      {creatingVendor && (
+        <CreateVendorDialog
+          initialName=""
+          onCreated={handleVendorCreated}
+          onCancel={() => setCreatingVendor(false)}
+        />
+      )}
+    </>
   );
 }

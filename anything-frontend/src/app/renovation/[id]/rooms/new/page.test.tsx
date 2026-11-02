@@ -181,11 +181,11 @@ describe("NewRenovationRoomPage", () => {
     continueStep();
 
     expect(screen.getByText("Estimate with default scope")).toBeInTheDocument();
-    expect(totalText()).toBe("5,270 kr");
+    expect(totalText()).toBe("5.270\u00a0kr.");
 
     fireEvent.change(screen.getByLabelText("Length (m)"), { target: { value: "5" } });
 
-    expect(totalText()).toBe("7,085 kr");
+    expect(totalText()).toBe("7.085\u00a0kr.");
   });
 
   it("rejects a dimension that is not above 0 and blocks Continue", () => {
@@ -216,11 +216,11 @@ describe("NewRenovationRoomPage", () => {
     goToScopeFor("Bedroom");
 
     expect(screen.getByText("Room estimate")).toBeInTheDocument();
-    expect(totalText()).toBe("5,270 kr");
+    expect(totalText()).toBe("5.270\u00a0kr.");
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Walls/ }));
 
-    expect(totalText()).toBe("3,801 kr");
+    expect(totalText()).toBe("3.801\u00a0kr.");
   });
 
   it("ticking a line raises the estimate and shows the household's own price", () => {
@@ -228,8 +228,8 @@ describe("NewRenovationRoomPage", () => {
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Electrician/ }));
 
-    expect(totalText()).toBe("11,770 kr");
-    expect(screen.getByText(/12\.7 m² × 300 kr/)).toBeInTheDocument();
+    expect(totalText()).toBe("11.770\u00a0kr.");
+    expect(screen.getByText(/12,7 m² × 300\s*kr\./)).toBeInTheDocument();
   });
 
   it("submits the mutation with the checked line keys and opens the new room", async () => {

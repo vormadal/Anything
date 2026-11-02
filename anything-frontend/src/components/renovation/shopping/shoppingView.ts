@@ -1,5 +1,6 @@
 import type { RenovationMaterialResponse } from "@/lib/api-client/models/index";
 import {
+  formatDecimal,
   round2,
   splitByEstimateShare,
   type GroupedToBuy,
@@ -57,7 +58,7 @@ export function packHint(
   if (!packSize || packSize <= 0) return null;
   // toPrecision keeps 4.26 / 2.13 from becoming 2.0000000000000004 and rounding up to 3.
   const packs = Math.ceil(Number((group.totalQuantity / packSize).toPrecision(12)));
-  return `Packs of ${packSize} ${group.unit} → ${packs} ${packs === 1 ? "pack" : "packs"}`;
+  return `Packs of ${formatDecimal(packSize)} ${group.unit} → ${packs} ${packs === 1 ? "pack" : "packs"}`;
 }
 
 /** Splits a receipt total across lines in proportion to quantity × unit price. */

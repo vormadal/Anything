@@ -108,18 +108,18 @@ describe("RenovationRoomPage", () => {
 
     expect(screen.getByRole("heading", { name: "Surfaces" })).toBeInTheDocument()
     expect(screen.getByText("1 of 2 bought")).toBeInTheDocument()
-    expect(screen.getByText("102,184 kr")).toBeInTheDocument()
-    expect(screen.getByText("81,295 kr")).toBeInTheDocument()
-    expect(screen.getByText("Partial · 6.0 m² of 13.9 m²")).toBeInTheDocument()
+    expect(screen.getByText("102.184 kr.")).toBeInTheDocument()
+    expect(screen.getByText("81.295 kr.")).toBeInTheDocument()
+    expect(screen.getByText("Partial · 6,0 m² of 13,9 m²")).toBeInTheDocument()
     expect(screen.getAllByText("Bought")).toHaveLength(2)
     expect(screen.getByText("−36 vs est.")).toBeInTheDocument()
-    expect(screen.getByText("+2,950 vs est.")).toBeInTheDocument()
-    expect(screen.getByText("Partial · 6.0 m² of 13.9 m²").closest("button")).toHaveTextContent("Floor")
+    expect(screen.getByText("+2.950 vs est.")).toBeInTheDocument()
+    expect(screen.getByText("Partial · 6,0 m² of 13,9 m²").closest("button")).toHaveTextContent("Floor")
   })
 
   it("flags the forecast in orange when it is above the estimate", () => {
     renderWithClient(<RenovationRoomPage />)
-    expect(screen.getByText("104,677 kr")).toHaveClass("text-orange-700")
+    expect(screen.getByText("104.677 kr.")).toHaveClass("text-orange-700")
   })
 
   it("shows a not-found message for a room that is not in the project", () => {

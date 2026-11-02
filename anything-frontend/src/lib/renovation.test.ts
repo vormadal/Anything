@@ -247,16 +247,18 @@ describe("groupToBuy", () => {
 });
 
 describe("formatKr", () => {
-  it("formats whole kroner with en-US grouping", () => {
-    expect(formatKr(102183.94)).toBe("102,184 kr");
-    expect(formatKr(0)).toBe("0 kr");
+  // Intl's da-DK output puts a no-break space before "kr." — spelled out here so the test pins it.
+  it("formats whole kroner in the bills' da-DK style", () => {
+    expect(formatKr(102183.94)).toBe(`102.184\u00a0kr.`);
+    expect(formatKr(0)).toBe(`0\u00a0kr.`);
   });
 });
 
 describe("formatQty", () => {
   it("uses one decimal for m² and m", () => {
-    expect(formatQty(13.86, "m²")).toBe("13.9 m²");
-    expect(formatQty(14.85, "m")).toBe("14.9 m");
+    expect(formatQty(13.86, "m²")).toBe("13,9 m²");
+    expect(formatQty(14.85, "m")).toBe("14,9 m");
+    expect(formatQty(1234.5, "m²")).toBe("1.234,5 m²");
   });
 
   it("uses whole numbers for other units", () => {

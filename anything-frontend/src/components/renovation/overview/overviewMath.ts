@@ -3,7 +3,7 @@ import type {
   RenovationProjectResponse,
   RenovationRoomResponse,
 } from "@/lib/api-client/models/index";
-import { formatKr, round2 } from "@/lib/renovation";
+import { formatKr, formatOneDecimal, round2 } from "@/lib/renovation";
 
 /**
  * Display arithmetic for the project overview and its room rows. Estimate,
@@ -113,7 +113,7 @@ export function varianceTextClass(delta: number): string {
   return "text-gray-500 dark:text-gray-400";
 }
 
-/** "+2,593 kr", "−100 kr" or "0 kr". */
+/** "+2.593 kr.", "−100 kr." or "0 kr.". */
 export function formatSignedKr(amount: number): string {
   if (amount > 0) return `+${formatKr(amount)}`;
   if (amount < 0) return `−${formatKr(Math.abs(amount))}`;
@@ -121,7 +121,7 @@ export function formatSignedKr(amount: number): string {
 }
 
 export function formatMetres(value: number): string {
-  return value.toFixed(1);
+  return formatOneDecimal(value);
 }
 
 export function pluralize(count: number, singular: string, plural = `${singular}s`): string {

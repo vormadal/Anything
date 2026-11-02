@@ -33,12 +33,20 @@ const DOOR_WIDTH = 0.9;
 const WINDOW_AREA = 1.5;
 
 const ONE_DECIMAL_UNITS = new Set(["m²", "m2", "m"]);
-const KR_FORMAT = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-const ONE_DECIMAL_FORMAT = new Intl.NumberFormat("en-US", {
+// Same locale and currency as `formatCurrency` in `@/lib/billFormat`, so a household sees one
+// money style across bills and renovation. Budget figures are whole kroner.
+const KR_FORMAT = new Intl.NumberFormat("da-DK", {
+  style: "currency",
+  currency: "DKK",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+const ONE_DECIMAL_FORMAT = new Intl.NumberFormat("da-DK", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
-const WHOLE_FORMAT = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const WHOLE_FORMAT = new Intl.NumberFormat("da-DK", { maximumFractionDigits: 0 });
+const DECIMAL_FORMAT = new Intl.NumberFormat("da-DK", { maximumFractionDigits: 2 });
 
 export interface RoomDimensions {
   length: number;
@@ -291,11 +299,22 @@ export function groupToBuy(project: Pick<RenovationProjectResponse, "rooms">): G
   return { materials: [...materials.values()], services: [...services.values()] };
 }
 
+/** Whole kroner in da-DK style, e.g. "102.184 kr." (the locale's own space before "kr." is kept). */
 export function formatKr(amount: number): string {
-  return `${KR_FORMAT.format(amount)} kr`;
+  return KR_FORMAT.format(amount);
 }
 
-/** One decimal for m² and m, whole numbers otherwise. */
+/** Up to two decimals in da-DK style ("2,13", "9"), for user-entered sizes such as a pack size. */
+export function formatDecimal(value: number): string {
+  return DECIMAL_FORMAT.format(value);
+}
+
+/** One decimal in da-DK style ("3,0"), for metres and percentages as well as quantities. */
+export function formatOneDecimal(value: number): string {
+  return ONE_DECIMAL_FORMAT.format(value);
+}
+
+/** One decimal for m² and m, whole numbers otherwise, with da-DK separators ("13,9 m²"). */
 export function formatQty(quantity: number, unit: string | null | undefined): string {
   const formatter = ONE_DECIMAL_UNITS.has(unit ?? "") ? ONE_DECIMAL_FORMAT : WHOLE_FORMAT;
   const formatted = formatter.format(quantity);

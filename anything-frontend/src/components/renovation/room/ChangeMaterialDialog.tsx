@@ -14,12 +14,12 @@ import {
 } from "@/hooks/useRenovation";
 import { loadFailure } from "@/lib/queryState";
 import { formatKr, formatQty, round2 } from "@/lib/renovation";
+import { formatSignedKr } from "@/components/renovation/overview/overviewMath";
 import { CreateMaterialForm } from "./CreateMaterialForm";
 import {
   FIELD_ERROR_CLASS,
   GENERIC_ERROR_MESSAGE,
   costForMaterial,
-  formatSignedAmount,
   lineWithMaterial,
   varianceClass,
 } from "./roomDisplay";
@@ -137,7 +137,7 @@ export function ChangeMaterialDialog({ projectId, line, onClose }: ChangeMateria
           <span className="flex shrink-0 flex-col items-end gap-0.5 whitespace-nowrap">
             <span className="text-sm font-semibold">{formatKr(cost)}</span>
             <span className={isCurrent || delta === 0 ? MUTED_TEXT : `text-xs font-medium ${varianceClass(delta)}`}>
-              {isCurrent ? "current" : `${formatSignedAmount(delta)} kr`}
+              {isCurrent ? "current" : formatSignedKr(delta)}
             </span>
           </span>
         </label>

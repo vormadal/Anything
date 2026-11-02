@@ -38,7 +38,7 @@ const OVER_CLASS = "text-orange-700 dark:text-orange-400";
 const UNDER_CLASS = "text-blue-700 dark:text-blue-400";
 const EVEN_CLASS = "text-gray-500 dark:text-gray-400";
 
-const WHOLE_NUMBER = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const WHOLE_NUMBER = new Intl.NumberFormat("da-DK", { maximumFractionDigits: 0 });
 
 /** Field classes shared by every room dialog; a single literal keeps Sonar quiet about duplicates. */
 export const FIELD_INPUT_CLASS =
@@ -69,7 +69,7 @@ export function varianceClass(variance: number): string {
   return EVEN_CLASS;
 }
 
-/** "+2,950", "−376" or "±0", without a currency suffix (the row already reads as kr). */
+/** "+2.950", "−376" or "±0", without a currency suffix (the row already reads as kr). */
 export function formatSignedAmount(amount: number): string {
   const sign = amount > 0 ? "+" : amount < 0 ? "−" : "±";
   return `${sign}${WHOLE_NUMBER.format(Math.abs(amount))}`;

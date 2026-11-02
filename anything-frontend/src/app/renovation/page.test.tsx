@@ -68,8 +68,8 @@ describe("RenovationPage", () => {
     renderWithClient(<RenovationPage />);
 
     expect(screen.getByText("Ground floor refresh")).toBeInTheDocument();
-    expect(screen.getByText("187,352 kr")).toBeInTheDocument();
-    expect(screen.getByText("of 200,000 kr budget")).toBeInTheDocument();
+    expect(screen.getByText("187.352 kr.")).toBeInTheDocument();
+    expect(screen.getByText("of 200.000 kr. budget")).toBeInTheDocument();
     expect(screen.getByText("4 rooms")).toBeInTheDocument();
     expect(screen.getByText("No budget set")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Ground floor refresh/ })).toHaveAttribute(

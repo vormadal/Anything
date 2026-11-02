@@ -17,7 +17,7 @@ describe("lineStatusLabel", () => {
     expect(lineStatusLabel(line({ status: "NotStarted" }))).toBe("Estimate");
     expect(
       lineStatusLabel(line({ status: "Partial", purchasedQuantity: 6, requiredQuantity: 13.9 })),
-    ).toBe("Partial · 6.0 m² of 13.9 m²");
+    ).toBe("Partial · 6,0 m² of 13,9 m²");
     expect(lineStatusLabel(line({ status: "Complete" }))).toBe("Bought");
   });
 });
@@ -31,7 +31,7 @@ describe("lineVariance", () => {
 
 describe("formatSignedAmount", () => {
   it("signs over, under and even amounts with thousands separators", () => {
-    expect(formatSignedAmount(2950)).toBe("+2,950");
+    expect(formatSignedAmount(2950)).toBe("+2.950");
     expect(formatSignedAmount(-376)).toBe("−376");
     expect(formatSignedAmount(0)).toBe("±0");
   });

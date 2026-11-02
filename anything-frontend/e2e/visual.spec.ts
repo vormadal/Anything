@@ -3564,6 +3564,7 @@ test.describe("Renovation", () => {
     await page.goto("/renovation");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Ground floor refresh")).toBeVisible();
+    await expect(page.getByText("of 200.000 kr. budget")).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-projects.png", screenshotOptions);
   });
 
@@ -3588,6 +3589,7 @@ test.describe("Renovation", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("On track", { exact: true })).toBeVisible();
     await expect(page.getByText("Kitchen", { exact: true })).toBeVisible();
+    await expect(page.getByText("of 200.000 kr. budget · 81.816 kr. headroom")).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-project-on-track.png", screenshotOptions);
   });
 
@@ -3599,6 +3601,7 @@ test.describe("Renovation", () => {
     await page.goto("/renovation/1");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Over budget", { exact: true })).toBeVisible();
+    await expect(page.getByText("of 110.000 kr. budget · 8.184 kr. over")).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-project-over-budget.png", screenshotOptions);
   });
 
@@ -3631,6 +3634,7 @@ test.describe("Renovation", () => {
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByText("How big is it?")).toBeVisible();
     await expect(page.getByLabel("Length (m)")).toHaveValue("4.2");
+    await expect(page.getByText("12,6 m²").first()).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-room-wizard-size.png", screenshotOptions);
   });
 
@@ -3643,6 +3647,8 @@ test.describe("Renovation", () => {
     await expect(page.getByText("What are you doing?")).toBeVisible();
     await page.getByRole("checkbox", { name: /Appliances/ }).uncheck();
     await expect(page.getByRole("checkbox", { name: /Appliances/ })).not.toBeChecked();
+    // Kitchen estimate 102 183.94 less the unticked appliances (24 000).
+    await expect(page.getByText("78.184 kr.", { exact: true })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-room-wizard-scope.png", screenshotOptions);
   });
 
@@ -3653,6 +3659,7 @@ test.describe("Renovation", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Budget lines (11)")).toBeVisible();
     await expect(page.getByRole("button", { name: /^Floor/ })).toBeVisible();
+    await expect(page.getByText("102.184 kr.", { exact: true })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-room-kitchen.png", screenshotOptions);
   });
 
@@ -3665,6 +3672,7 @@ test.describe("Renovation", () => {
     await expect(page.getByRole("dialog", { name: "Change material" })).toBeVisible();
     await page.getByRole("radio", { name: /Vinyl click plank/ }).check();
     await expect(page.getByRole("button", { name: "Use Vinyl click plank 4 mm" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Change material" }).getByText("289 kr./m²", { exact: true })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-room-change-material.png", screenshotOptions);
   });
 
@@ -3674,6 +3682,7 @@ test.describe("Renovation", () => {
     await page.goto("/renovation/materials");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Oak laminate 8 mm", { exact: true })).toBeVisible();
+    await expect(page.getByText("289 kr./m²", { exact: true })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-materials.png", screenshotOptions);
   });
 
@@ -3685,6 +3694,7 @@ test.describe("Renovation", () => {
     await expect(page.getByText("Still to buy, all rooms")).toBeVisible();
     await page.getByRole("checkbox", { name: /Oak laminate 8 mm/ }).check();
     await expect(page.getByText("1 material · 2 lines in 2 rooms")).toBeVisible();
+    await expect(page.getByText("Estimated 5.933 kr.")).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-shopping-selected.png", screenshotOptions);
   });
 
@@ -3698,7 +3708,9 @@ test.describe("Renovation", () => {
     await page.getByLabel("Date", { exact: true }).fill("2025-01-15");
     await page.getByLabel("Quantity bought for Floor in Kitchen").fill("5");
     await page.getByLabel("Total paid (kr)").fill("5200");
-    await expect(page.getByText("Partial · 2.9 m² still to buy")).toBeVisible();
+    await expect(page.getByText("Partial · 2,9 m² still to buy")).toBeVisible();
+    // The footer is pinned below the scrolling lines; the total is on the save button.
+    await expect(page.getByRole("button", { name: /Save purchase · 5\.200\s*kr\./ })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-shopping-record-purchase.png", screenshotOptions);
   });
 
@@ -3708,6 +3720,7 @@ test.describe("Renovation", () => {
     await page.getByRole("button", { name: /Timber & Tile Co/ }).click();
     await expect(page.getByRole("button", { name: "Add to inventory" })).toBeVisible();
     await expect(page.getByRole("link", { name: "In inventory" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Timber & Tile Co/ })).toContainText("46.400");
     await expect(page).toHaveScreenshot("renovation-shopping-history.png", screenshotOptions);
   });
 });

@@ -91,9 +91,9 @@ describe("percentSpent", () => {
 
 describe("formatSignedKr and varianceTextClass", () => {
   it("signs over and under amounts and leaves zero unsigned", () => {
-    expect(formatSignedKr(2593)).toBe("+2,593 kr");
-    expect(formatSignedKr(-100)).toBe("−100 kr");
-    expect(formatSignedKr(0)).toBe("0 kr");
+    expect(formatSignedKr(2593)).toBe(`+2.593\u00a0kr.`);
+    expect(formatSignedKr(-100)).toBe(`−100\u00a0kr.`);
+    expect(formatSignedKr(0)).toBe(`0\u00a0kr.`);
   });
 
   it("colours over-estimate orange and under-estimate blue", () => {

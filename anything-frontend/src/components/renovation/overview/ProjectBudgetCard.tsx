@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { RenovationProjectResponse } from "@/lib/api-client/models/index";
 import { Button } from "@/components/ui/button";
-import { formatKr } from "@/lib/renovation";
+import { formatKr, formatOneDecimal } from "@/lib/renovation";
 import {
   allLines,
   boughtVsEstimate,
@@ -115,7 +115,7 @@ export function ProjectBudgetCard({ project, onSetBudget }: ProjectBudgetCardPro
           <span className="text-xs text-gray-500 dark:text-gray-400">Bought vs estimate</span>
           <span className={`text-base font-semibold ${varianceTextClass(bought.delta)}`}>
             {formatSignedKr(bought.delta)}
-            {bought.percent !== null && ` (${Math.abs(bought.percent).toFixed(1)}%)`}
+            {bought.percent !== null && ` (${formatOneDecimal(Math.abs(bought.percent))}%)`}
           </span>
         </div>
       </div>

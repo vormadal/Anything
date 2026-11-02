@@ -110,7 +110,7 @@ describe("RenovationMaterialsPage", () => {
     expect(within(filter).getByRole("button", { name: "Uncategorised" })).toBeInTheDocument();
 
     expect(rowFor("Oak laminate 8 mm")).toHaveTextContent("Flooring · +10% waste");
-    expect(rowFor("Oak laminate 8 mm")).toHaveTextContent("289 kr/m²");
+    expect(rowFor("Oak laminate 8 mm")).toHaveTextContent("289 kr./m²");
     expect(rowFor("Oak laminate 8 mm")).toHaveTextContent("Product linked");
     expect(rowFor("Floor tiles 30×60")).toHaveTextContent("No link");
   });

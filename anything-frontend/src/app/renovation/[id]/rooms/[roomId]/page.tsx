@@ -14,14 +14,14 @@ import type { RoomDialogState } from "@/components/renovation/room/roomDisplay";
 import { useRenovationProject } from "@/hooks/useRenovation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { loadFailure } from "@/lib/queryState";
-import { formatQty } from "@/lib/renovation";
+import { formatOneDecimal, formatQty } from "@/lib/renovation";
 
 const SKELETON_CLASS = "rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse";
 const PAGE_CLASS = "container mx-auto max-w-2xl px-4 py-4";
 const EMPTY_CLASS = "container mx-auto max-w-2xl px-4 py-8 text-center";
 
 function dimension(value: number | null | undefined): string {
-  return (value ?? 0).toFixed(1);
+  return formatOneDecimal(value ?? 0);
 }
 
 export default function RenovationRoomPage() {
