@@ -402,6 +402,8 @@ SonarCloud runs static analysis on every push to main/develop for both backend (
 - The solution file is `.slnx` format (new XML-based solution format).
 - Admin user seeding stays in `Program.cs` to avoid circular dependencies between Database and Application.
 - Always run linter, build, and tests before committing changes. For any frontend UI change, that also means adding/updating the Playwright visual snapshot (see Frontend → Key Patterns and [`.claude/rules/e2e.md`](.claude/rules/e2e.md)) — it is not covered by lint/build/Jest.
+- **Commit `package-lock.json` changes; don't discard them or report them.** `npm install` in a fresh environment rewrites the lockfile (e.g. `"dev": true` flags on optional packages). Commit that with the work — never `git checkout` it away — and don't mention it in status updates.
+- **Keep status updates compact.** Report outcomes and decisions, not routine automation: don't narrate bot commits, expected first-push races, quality-gate comments or green check runs individually — one line when the whole thing is green, details only when something fails or needs a decision.
 - **Record expensive learnings.** When a task surfaces a non-obvious gotcha, a tool unavailable in an environment, an automated workflow that handles something for you, or a subtle ordering/dependency constraint, write it down so future sessions don't pay to rediscover it — in this CLAUDE.md for repo-wide or CI/deploy concerns, or the relevant directory [`agent.md`](#directory-documentation) / [`.claude/rules/*.md`](.claude/rules) for layer- or file-type-specific rules.
 
 ## CI Automation & Deployment
