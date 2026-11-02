@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Anything.Contracts.Renovation;
 using Anything.Core.Entities;
 using Anything.Core.Repositories;
@@ -23,7 +22,7 @@ public class SaveRenovationRoomTemplateHandler(
     TimeProvider timeProvider) : IRequestHandler<SaveRenovationRoomTemplateCommand, IResult>
 {
     private const int MaxLines = 100;
-    private static readonly Regex RoomTypePattern = new(@"\A[a-z0-9-]{1,50}\z", RegexOptions.CultureInvariant);
+    private const int MaxRoomTypeLength = 50;
 
     public async Task<IResult> Handle(SaveRenovationRoomTemplateCommand command, CancellationToken ct = default)
     {
@@ -31,7 +30,7 @@ public class SaveRenovationRoomTemplateHandler(
         var roomType = command.RoomType;
         var request = command.Request;
 
-        if (!RoomTypePattern.IsMatch(roomType))
+        if (!IsValidRoomType(roomType))
             return Results.BadRequest("Room type must be 1–50 characters: lowercase letters, digits or hyphens.");
         if (ValidateLines(request.Lines) is { } error)
             return Results.BadRequest(error);
@@ -72,6 +71,11 @@ public class SaveRenovationRoomTemplateHandler(
             return Results.NotFound();
         return Results.Ok(RenovationRoomTemplates.ToResponse(saved));
     }
+
+    /// <summary>A room type is a URL slug: 1–50 of a–z, 0–9 and '-'. Checked by hand rather than with a regex.</summary>
+    internal static bool IsValidRoomType(string roomType) =>
+        roomType.Length is > 0 and <= MaxRoomTypeLength
+        && roomType.All(c => c is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '-');
 
     /// <summary>Returns an error message, or null when the lines are valid and their keys unique.</summary>
     private static string? ValidateLines(List<SaveRenovationTemplateLineRequest> lines)
