@@ -160,6 +160,48 @@ public class SearchEndpointTests : IntegrationTestBase
         Assert.DoesNotContain(results, r => r.EntityType == "Recipe" && r.EntityId == recipe.Id);
     }
 
+    [Fact]
+    public async Task Search_FindsRenovationMaterialByCategory()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/renovation-materials", new
+        {
+            name = "Zebrawood Veneer Sheet",
+            category = "Joinery",
+            unit = "m2",
+            defaultPrice = 45m,
+            wastePercent = 10m,
+            packSize = (decimal?)null,
+            productUrl = (string?)null,
+        }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var material = await response.Content.ReadFromJsonAsync<IdDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(material);
+
+        var results = await SearchAsync(client, "zebrawood");
+
+        Assert.Contains(results, r => r.EntityType == "RenovationMaterial" && r.EntityId == material.Id);
+    }
+
+    [Fact]
+    public async Task Search_FindsRenovationProjectByNotes()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync("/api/renovation-projects", new
+        {
+            name = "Summerhouse extension",
+            budget = (decimal?)null,
+            notes = "Quartzite worktops and oak beams",
+        }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var project = await response.Content.ReadFromJsonAsync<IdDto>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(project);
+
+        var results = await SearchAsync(client, "quartzite");
+
+        Assert.Contains(results, r => r.EntityType == "RenovationProject" && r.EntityId == project.Id);
+    }
+
     // --- Rebuild ---
 
     [Fact]
@@ -239,6 +281,7 @@ public class SearchEndpointTests : IntegrationTestBase
     private record RecipeDto(int Id, string? Name);
     private record HouseholdDto(int Id, string Name);
     private record SearchResultDto(string EntityType, int EntityId, string Title, string? Snippet);
+    private record IdDto(int Id);
     private record RebuildResultDto(int Indexed);
     private record CreateInviteResponseDto(string InviteUrl, string Token);
     private record LoginResponseDto(string AccessToken, string RefreshToken, string Email, string Name, string Role);

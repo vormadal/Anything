@@ -155,6 +155,46 @@ public static class RenovationEndpoints
         .Produces(409)
         .WithParameterValidation()
         .RequireAuthorization();
+
+        // Purchase receipts
+        group.MapGet("/{id}/purchases/{purchaseId}/attachments", async (int id, int purchaseId, IMediator mediator) =>
+            await mediator.Send(new GetRenovationPurchaseAttachmentsQuery(id, purchaseId)))
+        .WithName("GetRenovationPurchaseAttachments")
+        .Produces<RenovationPurchaseAttachmentResponse[]>()
+        .Produces(404)
+        .RequireAuthorization();
+
+        group.MapGet("/{id}/purchases/{purchaseId}/attachments/{attachmentId}/download",
+            async (int id, int purchaseId, int attachmentId, IMediator mediator) =>
+                await mediator.Send(new DownloadRenovationPurchaseAttachmentQuery(id, purchaseId, attachmentId)))
+        .WithName("DownloadRenovationPurchaseAttachment")
+        .Produces(200)
+        .Produces(404)
+        .RequireAuthorization();
+
+        group.MapPost("/{id}/purchases/{purchaseId}/attachments", async (
+            int id, int purchaseId, IFormFile? file, string? name, IMediator mediator) =>
+        {
+            if (UploadEndpointValidation.ValidateFile(file) is { } fileError)
+                return fileError;
+            await using var stream = file!.OpenReadStream();
+            return await mediator.Send(new UploadRenovationPurchaseAttachmentCommand(
+                id, purchaseId, stream, file.FileName, file.ContentType, file.Length, name));
+        })
+        .WithName("UploadRenovationPurchaseAttachment")
+        .Produces(StatusCodes.Status201Created)
+        .Produces(400)
+        .Produces(404)
+        .DisableAntiforgery()
+        .RequireAuthorization();
+
+        group.MapDelete("/{id}/purchases/{purchaseId}/attachments/{attachmentId}", async (
+            int id, int purchaseId, int attachmentId, IMediator mediator) =>
+            await mediator.Send(new DeleteRenovationPurchaseAttachmentCommand(id, purchaseId, attachmentId)))
+        .WithName("DeleteRenovationPurchaseAttachment")
+        .Produces(204)
+        .Produces(404)
+        .RequireAuthorization();
     }
 
     private static void MapMaterials(RouteGroupBuilder group)

@@ -94,7 +94,7 @@ public class CreateRenovationPurchaseHandler(
         return Results.Created(
             $"/api/renovation-projects/{command.ProjectId}/purchases",
             new RenovationPurchaseResponse(purchase.Id, purchase.Vendor, purchase.VendorId, purchase.PurchasedOn,
-                purchase.TotalAmount, purchase.Notes, lines, purchase.CreatedOn));
+                purchase.TotalAmount, purchase.Notes, lines, purchase.CreatedOn, AttachmentCount: 0));
     }
 
     // Scoped in the query: another household's vendor, or a deleted one, simply isn't found.

@@ -371,6 +371,8 @@ allocation (`InventoryItemId`) so a second call is a 409. Pieces and sets become
 item's `Quantity`; area and length materials can't be counted, so their bought amount
 goes into `Description` instead.
 
+Renovation projects and materials are `ISearchable` (`RenovationProject` indexes its name and notes; `RenovationMaterial` its name, category, unit and shop host), so both appear in `/api/search`; like any new searchable type they must also be added to both `SearchIndexRebuilder` callers. Receipts are `RenovationPurchaseAttachment`s under `/api/renovation-projects/{id}/purchases/{purchaseId}/attachments` (bill attachment rules, `folder: "renovation"`, scoped through the purchase's project), and each purchase in the list carries an `AttachmentCount` from one grouped query.
+
 Frontend: `/renovation` (projects), `/renovation/[id]` (overview), `.../rooms/new`
 (wizard — its live estimate comes from `src/lib/renovation.ts`, which mirrors
 `RenovationCalculator` and must change with it), `.../rooms/[roomId]` (room budget,

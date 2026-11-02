@@ -22,6 +22,8 @@ public class RebuildSearchIndexHandler(
     IRepository<ShoppingList> shoppingListRepository,
     IRepository<InventoryItem> inventoryItemRepository,
     IRepository<Note> noteRepository,
+    IRepository<RenovationProject> renovationProjectRepository,
+    IRepository<RenovationMaterial> renovationMaterialRepository,
     IRepository<SearchDocument> searchDocumentRepository,
     IUnitOfWork unitOfWork)
     : IRequestHandler<RebuildSearchIndexCommand, RebuildSearchIndexResponse>
@@ -29,6 +31,7 @@ public class RebuildSearchIndexHandler(
     public Task<RebuildSearchIndexResponse> Handle(RebuildSearchIndexCommand command, CancellationToken ct = default) =>
         SearchIndexRebuilder.Rebuild(
             recipeRepository, shoppingListRepository, inventoryItemRepository, noteRepository,
+            renovationProjectRepository, renovationMaterialRepository,
             searchDocumentRepository, unitOfWork, householdId: null, ct);
 }
 
@@ -45,6 +48,8 @@ public class RebuildHouseholdSearchIndexHandler(
     IRepository<ShoppingList> shoppingListRepository,
     IRepository<InventoryItem> inventoryItemRepository,
     IRepository<Note> noteRepository,
+    IRepository<RenovationProject> renovationProjectRepository,
+    IRepository<RenovationMaterial> renovationMaterialRepository,
     IRepository<SearchDocument> searchDocumentRepository,
     IUnitOfWork unitOfWork,
     IHouseholdContext householdContext)
@@ -53,6 +58,7 @@ public class RebuildHouseholdSearchIndexHandler(
     public Task<RebuildSearchIndexResponse> Handle(RebuildHouseholdSearchIndexCommand command, CancellationToken ct = default) =>
         SearchIndexRebuilder.Rebuild(
             recipeRepository, shoppingListRepository, inventoryItemRepository, noteRepository,
+            renovationProjectRepository, renovationMaterialRepository,
             searchDocumentRepository, unitOfWork, householdId: householdContext.HouseholdId, ct);
 }
 
@@ -64,6 +70,8 @@ internal static class SearchIndexRebuilder
         IRepository<ShoppingList> shoppingListRepository,
         IRepository<InventoryItem> inventoryItemRepository,
         IRepository<Note> noteRepository,
+        IRepository<RenovationProject> renovationProjectRepository,
+        IRepository<RenovationMaterial> renovationMaterialRepository,
         IRepository<SearchDocument> searchDocumentRepository,
         IUnitOfWork unitOfWork,
         int? householdId,
@@ -73,6 +81,8 @@ internal static class SearchIndexRebuilder
         var shoppingListsQuery = shoppingListRepository.Query().Where(l => l.DeletedOn == null);
         var inventoryItemsQuery = inventoryItemRepository.Query().Where(i => i.DeletedOn == null);
         var notesQuery = noteRepository.Query().Where(n => n.DeletedOn == null);
+        var renovationProjectsQuery = renovationProjectRepository.Query().Where(p => p.DeletedOn == null);
+        var renovationMaterialsQuery = renovationMaterialRepository.Query().Where(m => m.DeletedOn == null);
         var documentsQuery = searchDocumentRepository.Query();
 
         if (householdId.HasValue)
@@ -81,6 +91,8 @@ internal static class SearchIndexRebuilder
             shoppingListsQuery = shoppingListsQuery.Where(l => l.HouseholdId == householdId);
             inventoryItemsQuery = inventoryItemsQuery.Where(i => i.HouseholdId == householdId);
             notesQuery = notesQuery.Where(n => n.HouseholdId == householdId);
+            renovationProjectsQuery = renovationProjectsQuery.Where(p => p.HouseholdId == householdId);
+            renovationMaterialsQuery = renovationMaterialsQuery.Where(m => m.HouseholdId == householdId);
             documentsQuery = documentsQuery.Where(d => d.HouseholdId == householdId);
         }
 
@@ -88,11 +100,15 @@ internal static class SearchIndexRebuilder
         var shoppingLists = await shoppingListsQuery.ToListAsync(ct);
         var inventoryItems = await inventoryItemsQuery.ToListAsync(ct);
         var notes = await notesQuery.ToListAsync(ct);
+        var renovationProjects = await renovationProjectsQuery.ToListAsync(ct);
+        var renovationMaterials = await renovationMaterialsQuery.ToListAsync(ct);
 
         var searchable = recipes.Cast<ISearchable>()
             .Concat(shoppingLists)
             .Concat(inventoryItems)
             .Concat(notes)
+            .Concat(renovationProjects)
+            .Concat(renovationMaterials)
             .ToList();
 
         var existingDocuments = await documentsQuery.ToListAsync(ct);

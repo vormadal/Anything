@@ -41,9 +41,18 @@ public class GetRenovationPurchasesHandler(
             .ToListAsync(ct);
         var byPurchase = lines.ToLookup(x => x.PurchaseId, x => x.Line);
 
+        // One grouped count, so the list can show a paperclip without a call per purchase.
+        var attachmentCounts = await repos.PurchaseAttachments.Query().AsNoTracking()
+            .Where(a => purchaseIds.Contains(a.PurchaseId) && a.HouseholdId == householdId && a.DeletedOn == null)
+            .GroupBy(a => a.PurchaseId)
+            .Select(g => new { PurchaseId = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+        var countByPurchase = attachmentCounts.ToDictionary(c => c.PurchaseId, c => c.Count);
+
         return Results.Ok(purchases
             .Select(p => new RenovationPurchaseResponse(
-                p.Id, p.Vendor, p.VendorId, p.PurchasedOn, p.TotalAmount, p.Notes, byPurchase[p.Id].ToList(), p.CreatedOn))
+                p.Id, p.Vendor, p.VendorId, p.PurchasedOn, p.TotalAmount, p.Notes, byPurchase[p.Id].ToList(), p.CreatedOn,
+                countByPurchase.GetValueOrDefault(p.Id)))
             .ToList());
     }
 }

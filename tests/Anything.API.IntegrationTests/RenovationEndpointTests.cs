@@ -140,6 +140,47 @@ public class RenovationEndpointTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task PurchaseReceipt_UploadListDownloadDelete_CountsOnThePurchase()
+    {
+        var client = await ClientAsync();
+        var (project, kitchen) = await CreateProjectWithKitchen(client);
+        var floor = kitchen.Lines.Single(l => l.Label == "Floor");
+        var purchaseResponse = await client.PostAsJsonAsync($"/api/renovation-projects/{project.Id}/purchases", new
+        {
+            vendor = "Store",
+            purchasedOn = "2026-11-01",
+            totalAmount = 500m,
+            lines = new object[] { new { lineId = floor.Id, quantity = 1m } }
+        }, Ct);
+        Assert.Equal(HttpStatusCode.Created, purchaseResponse.StatusCode);
+        var purchase = await Read<PurchaseDto>(purchaseResponse);
+        Assert.Equal(0, purchase.AttachmentCount);
+        var attachmentsUrl = $"/api/renovation-projects/{project.Id}/purchases/{purchase.Id}/attachments";
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 }); // %PDF magic bytes
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "receipt.pdf");
+        var upload = await client.PostAsync(attachmentsUrl, content, Ct);
+        Assert.Equal(HttpStatusCode.Created, upload.StatusCode);
+
+        var listed = await Read<List<PurchaseAttachmentDto>>(await client.GetAsync(attachmentsUrl, Ct));
+        var attachment = Assert.Single(listed);
+        Assert.Equal("receipt", attachment.Name);
+        Assert.Equal(4L, attachment.Size);
+
+        var purchases = await Read<List<PurchaseDto>>(await client.GetAsync($"/api/renovation-projects/{project.Id}/purchases", Ct));
+        Assert.Equal(1, Assert.Single(purchases).AttachmentCount);
+
+        var download = await client.GetAsync($"{attachmentsUrl}/{attachment.Id}/download", Ct);
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+
+        var delete = await client.DeleteAsync($"{attachmentsUrl}/{attachment.Id}", Ct);
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+        Assert.Empty(await Read<List<PurchaseAttachmentDto>>(await client.GetAsync(attachmentsUrl, Ct)));
+    }
+
+    [Fact]
     public async Task Purchase_WithLineFromAnotherProject_IsRejected()
     {
         var client = await ClientAsync();
@@ -332,7 +373,8 @@ public class RenovationEndpointTests : IntegrationTestBase
     private record LineDto(int Id, string Label, int? MaterialId, string Description, decimal UnitPrice,
         decimal RequiredQuantity, decimal RemainingQuantity, decimal Estimate, decimal Forecast, string Status);
     private record MaterialDto(int Id, string Name, decimal DefaultPrice);
-    private record PurchaseDto(int Id, int? VendorId, string? Vendor, List<PurchaseLineDto> Lines);
+    private record PurchaseDto(int Id, int? VendorId, string? Vendor, List<PurchaseLineDto> Lines, int AttachmentCount);
+    private record PurchaseAttachmentDto(int Id, int PurchaseId, string Name, string ContentType, long Size, string Url, string? ThumbnailUrl);
     private record PurchaseLineDto(int LineId, string RoomName, decimal Quantity, decimal Amount, int? InventoryItemId);
     private record ReplaceDto(int UpdatedLines, int SkippedPurchasedLines);
     private record TemplateDto(string RoomType, List<TemplateLineDto> Lines);

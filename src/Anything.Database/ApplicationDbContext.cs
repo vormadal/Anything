@@ -53,6 +53,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RenovationMaterial> RenovationMaterials => Set<RenovationMaterial>();
     public DbSet<RenovationPurchase> RenovationPurchases => Set<RenovationPurchase>();
     public DbSet<RenovationPurchaseAllocation> RenovationPurchaseAllocations => Set<RenovationPurchaseAllocation>();
+    public DbSet<RenovationPurchaseAttachment> RenovationPurchaseAttachments => Set<RenovationPurchaseAttachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

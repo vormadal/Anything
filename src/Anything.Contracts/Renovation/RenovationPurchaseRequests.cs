@@ -44,7 +44,8 @@ public record RenovationPurchaseResponse(
     decimal TotalAmount,
     string? Notes,
     List<RenovationPurchaseLineResponse> Lines,
-    DateTime CreatedOn);
+    DateTime CreatedOn,
+    int AttachmentCount);
 
 public record RenovationPurchaseLineResponse(
     int LineId,

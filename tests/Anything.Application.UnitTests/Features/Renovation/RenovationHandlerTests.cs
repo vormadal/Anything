@@ -1,5 +1,6 @@
 using Anything.Application.Features.Renovation;
 using Anything.Application.Features.Renovation.Commands;
+using Anything.Application.Features.Renovation.Queries;
 using Anything.Application.UnitTests.Helpers;
 using Anything.Contracts.Inventory;
 using Anything.Contracts.Renovation;
@@ -24,6 +25,7 @@ internal sealed class RenovationFakes
     public List<RenovationPurchase> Purchases { get; } = [];
     public List<RenovationPurchaseAllocation> Allocations { get; } = [];
     public List<Vendor> Vendors { get; } = [];
+    public List<RenovationPurchaseAttachment> PurchaseAttachments { get; } = [];
 
     public IHouseholdContext HouseholdContext { get; } = Substitute.For<IHouseholdContext>();
     public IUnitOfWork UnitOfWork { get; } = Substitute.For<IUnitOfWork>();
@@ -36,7 +38,8 @@ internal sealed class RenovationFakes
     }
 
     public RenovationRepositories Repos() => new(
-        Repo(Projects), Repo(Rooms), Repo(Lines), Repo(Materials), Repo(Purchases), Repo(Allocations), Repo(Vendors));
+        Repo(Projects), Repo(Rooms), Repo(Lines), Repo(Materials), Repo(Purchases), Repo(Allocations), Repo(Vendors),
+        Repo(PurchaseAttachments));
 
     private static IRepository<T> Repo<T>(List<T> items) where T : class
     {
@@ -399,5 +402,215 @@ public class CreateRenovationRoomHandlerTests
             TestContext.Current.CancellationToken);
 
         Assert.IsType<BadRequest<string>>(result);
+    }
+}
+
+public class UploadRenovationPurchaseAttachmentHandlerTests
+{
+    private readonly RenovationFakes _f = new();
+    private readonly IImageStorageService _storage = Substitute.For<IImageStorageService>();
+
+    private UploadRenovationPurchaseAttachmentHandler Handler() =>
+        new(_f.Repos(), _storage, _f.HouseholdContext, _f.UnitOfWork, _f.TimeProvider);
+
+    private void SeedPurchase(int householdId = RenovationFakes.HouseholdId, int projectId = 10)
+    {
+        _f.Purchases.Add(new RenovationPurchase
+        {
+            Id = 50, HouseholdId = householdId, ProjectId = projectId, PurchasedOn = new DateOnly(2026, 11, 1),
+            TotalAmount = 500m, CreatedOn = DateTime.UtcNow
+        });
+    }
+
+    [Fact]
+    public async Task Handle_PurchaseFromAnotherHousehold_ReturnsNotFound()
+    {
+        SeedPurchase(householdId: 99);
+
+        var result = await Handler().Handle(
+            new UploadRenovationPurchaseAttachmentCommand(10, 50, Stream.Null, "receipt.pdf", "application/pdf", 10),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+        _ = _storage.DidNotReceiveWithAnyArgs().Upload(default!, default!, default!, default, default, default);
+    }
+
+    [Fact]
+    public async Task Handle_PurchaseInAnotherProject_ReturnsNotFound()
+    {
+        SeedPurchase(projectId: 11);
+
+        var result = await Handler().Handle(
+            new UploadRenovationPurchaseAttachmentCommand(10, 50, Stream.Null, "receipt.pdf", "application/pdf", 10),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+        Assert.Empty(_f.PurchaseAttachments);
+    }
+
+    [Fact]
+    public async Task Handle_DeletedPurchase_ReturnsNotFound()
+    {
+        SeedPurchase();
+        _f.Purchases[0].DeletedOn = DateTime.UtcNow;
+
+        var result = await Handler().Handle(
+            new UploadRenovationPurchaseAttachmentCommand(10, 50, Stream.Null, "receipt.pdf", "application/pdf", 10),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_EmptyFile_ReturnsBadRequest()
+    {
+        SeedPurchase();
+
+        var result = await Handler().Handle(
+            new UploadRenovationPurchaseAttachmentCommand(10, 50, Stream.Null, "receipt.pdf", "application/pdf", 0),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task Handle_DisallowedContentType_ReturnsBadRequest()
+    {
+        SeedPurchase();
+
+        var result = await Handler().Handle(
+            new UploadRenovationPurchaseAttachmentCommand(10, 50, Stream.Null, "page.html", "text/html", 10),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<BadRequest<string>>(result);
+        _ = _storage.DidNotReceiveWithAnyArgs().Upload(default!, default!, default!, default, default, default);
+    }
+
+    [Fact]
+    public async Task Handle_ValidUpload_StoresUnderRenovationFolderAndReturnsCreated()
+    {
+        SeedPurchase();
+        _storage.Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), Arg.Any<string>())
+            .Returns("renovation/receipt.pdf");
+
+        var result = await Handler().Handle(
+            new UploadRenovationPurchaseAttachmentCommand(10, 50, new MemoryStream(new byte[10]), "receipt.pdf", "application/pdf", 10),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<Created>(result);
+        _ = _storage.Received(1).Upload(Arg.Any<Stream>(), "receipt.pdf", "application/pdf", 10,
+            Arg.Any<CancellationToken>(), "renovation");
+        var stored = Assert.Single(_f.PurchaseAttachments);
+        Assert.Equal(RenovationFakes.HouseholdId, stored.HouseholdId);
+        Assert.Equal(50, stored.PurchaseId);
+        Assert.Equal("renovation/receipt.pdf", stored.StorageKey);
+        Assert.Equal("receipt", stored.Name);
+        Assert.Equal(10, stored.Size);
+        Assert.Equal("application/pdf", stored.ContentType);
+    }
+
+    [Fact]
+    public async Task Handle_CustomAttachmentName_UsesProvidedName()
+    {
+        SeedPurchase();
+        _storage.Upload(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>(), Arg.Any<string>())
+            .Returns("renovation/receipt.pdf");
+
+        await Handler().Handle(
+            new UploadRenovationPurchaseAttachmentCommand(10, 50, new MemoryStream(new byte[10]), "receipt.pdf", "application/pdf", 10, "Tile invoice"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal("Tile invoice", Assert.Single(_f.PurchaseAttachments).Name);
+    }
+}
+
+public class DeleteRenovationPurchaseAttachmentHandlerTests
+{
+    private readonly RenovationFakes _f = new();
+    private readonly IImageStorageService _storage = Substitute.For<IImageStorageService>();
+
+    private DeleteRenovationPurchaseAttachmentHandler Handler() =>
+        new(_f.Repos(), _storage, _f.HouseholdContext, _f.UnitOfWork, _f.TimeProvider);
+
+    private void SeedAttachment(int householdId = RenovationFakes.HouseholdId, int purchaseId = 50)
+    {
+        _f.Purchases.Add(new RenovationPurchase
+        {
+            Id = 50, HouseholdId = RenovationFakes.HouseholdId, ProjectId = 10, PurchasedOn = new DateOnly(2026, 11, 1),
+            TotalAmount = 500m, CreatedOn = DateTime.UtcNow
+        });
+        _f.PurchaseAttachments.Add(new RenovationPurchaseAttachment
+        {
+            Id = 7, HouseholdId = householdId, PurchaseId = purchaseId, StorageKey = "renovation/receipt.pdf",
+            Name = "Receipt", ContentType = "application/pdf", CreatedOn = DateTime.UtcNow
+        });
+    }
+
+    [Fact]
+    public async Task Handle_PurchaseFromAnotherHousehold_ReturnsNotFound()
+    {
+        SeedAttachment();
+        _f.Purchases[0].HouseholdId = 99;
+
+        var result = await Handler().Handle(new DeleteRenovationPurchaseAttachmentCommand(10, 50, 7), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+        Assert.Null(_f.PurchaseAttachments[0].DeletedOn);
+    }
+
+    [Fact]
+    public async Task Handle_AttachmentOfAnotherPurchase_ReturnsNotFound()
+    {
+        SeedAttachment(purchaseId: 99);
+
+        var result = await Handler().Handle(new DeleteRenovationPurchaseAttachmentCommand(10, 50, 7), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NotFound<string>>(result);
+        Assert.Null(_f.PurchaseAttachments[0].DeletedOn);
+    }
+
+    [Fact]
+    public async Task Handle_ValidAttachment_SoftDeletesAndRemovesFile()
+    {
+        SeedAttachment();
+
+        var result = await Handler().Handle(new DeleteRenovationPurchaseAttachmentCommand(10, 50, 7), TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result);
+        Assert.NotNull(_f.PurchaseAttachments[0].DeletedOn);
+        _ = _storage.Received(1).Delete("renovation/receipt.pdf", Arg.Any<CancellationToken>());
+    }
+}
+
+public class GetRenovationPurchasesAttachmentCountTests
+{
+    private readonly RenovationFakes _f = new();
+
+    [Fact]
+    public async Task Handle_CountsOnlyLiveAttachmentsPerPurchase()
+    {
+        _f.Projects.Add(new RenovationProject { Id = 10, HouseholdId = RenovationFakes.HouseholdId, Name = "Ground floor" });
+        _f.Purchases.Add(new RenovationPurchase
+        {
+            Id = 50, HouseholdId = RenovationFakes.HouseholdId, ProjectId = 10, PurchasedOn = new DateOnly(2026, 11, 1),
+            TotalAmount = 500m, CreatedOn = DateTime.UtcNow
+        });
+        _f.Purchases.Add(new RenovationPurchase
+        {
+            Id = 51, HouseholdId = RenovationFakes.HouseholdId, ProjectId = 10, PurchasedOn = new DateOnly(2026, 10, 1),
+            TotalAmount = 200m, CreatedOn = DateTime.UtcNow
+        });
+        _f.PurchaseAttachments.AddRange(
+        [
+            new RenovationPurchaseAttachment { Id = 1, HouseholdId = RenovationFakes.HouseholdId, PurchaseId = 50, StorageKey = "a", Name = "A", ContentType = "application/pdf", CreatedOn = DateTime.UtcNow },
+            new RenovationPurchaseAttachment { Id = 2, HouseholdId = RenovationFakes.HouseholdId, PurchaseId = 50, StorageKey = "b", Name = "B", ContentType = "application/pdf", CreatedOn = DateTime.UtcNow, DeletedOn = DateTime.UtcNow },
+        ]);
+        var handler = new GetRenovationPurchasesHandler(_f.Repos(), _f.HouseholdContext);
+
+        var result = await handler.Handle(new GetRenovationPurchasesQuery(10), TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<List<RenovationPurchaseResponse>>>(result);
+        Assert.Equal(1, ok.Value!.Single(p => p.Id == 50).AttachmentCount);
+        Assert.Equal(0, ok.Value!.Single(p => p.Id == 51).AttachmentCount);
     }
 }
