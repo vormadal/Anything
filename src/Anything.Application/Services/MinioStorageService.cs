@@ -213,7 +213,7 @@ public class MinioStorageService : IImageStorageService
     // InvalidOperationException it raises when a proxy in front of a dead
     // MinIO answers with an HTML page it can't parse as an S3 error — except a
     // cancellation the caller asked for, which must keep propagating as such.
-    private static bool IsStorageFailure(Exception ex, CancellationToken ct) =>
+    internal static bool IsStorageFailure(Exception ex, CancellationToken ct) =>
         ex is not OperationCanceledException || !ct.IsCancellationRequested;
 
     private StorageUnavailableException StorageFailure(string operation, string objectKey, Exception ex)
