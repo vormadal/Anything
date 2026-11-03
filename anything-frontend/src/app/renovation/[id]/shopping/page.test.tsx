@@ -271,7 +271,7 @@ describe("RenovationShoppingPage", () => {
     expect(createVendorMock.mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("rejects a quantity of zero inline and does not save", () => {
+  it("leaves a line at 0 out of the purchase and gives it no share of the total", async () => {
     mockSearch = "line=21";
     renderWithClient(<RenovationShoppingPage />);
     fireEvent.click(screen.getByRole("button", { name: "Record purchase" }));
@@ -281,10 +281,66 @@ describe("RenovationShoppingPage", () => {
     fireEvent.change(within(dialog).getByLabelText("Quantity bought for Flooring in Bedroom"), {
       target: { value: "0" },
     });
+    expect(within(dialog).getByText("Not bought · stays on the list")).toBeInTheDocument();
+    expect(within(dialog).getAllByLabelText("Done even if less")).toHaveLength(1);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: /Save purchase/ }));
+    await waitFor(() =>
+      expect(createMock.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ lines: [expect.objectContaining({ lineId: 21, quantity: 5.28 })] }),
+      ),
+    );
+  });
+
+  it("refuses to save when every line is at 0", () => {
+    mockSearch = "line=21";
+    renderWithClient(<RenovationShoppingPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Record purchase" }));
+
+    const dialog = openDialog();
+    fireEvent.change(within(dialog).getByLabelText(/Total paid/), { target: { value: "6380" } });
+    fireEvent.change(within(dialog).getByLabelText("Total bought of Oak laminate 8 mm"), {
+      target: { value: "0" },
+    });
     fireEvent.click(within(dialog).getByRole("button", { name: /Save purchase/ }));
 
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("Enter a quantity above 0");
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("at least one line");
     expect(createMock.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("splits a material's total bought across rooms by what each still needs", async () => {
+    mockSearch = "line=21";
+    renderWithClient(<RenovationShoppingPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Record purchase" }));
+
+    const dialog = openDialog();
+    const groupTotal = within(dialog).getByLabelText("Total bought of Oak laminate 8 mm");
+    // Defaults to the sum of what's still needed: 12.67 + 5.28.
+    expect(groupTotal).toHaveValue("17.95");
+
+    fireEvent.change(groupTotal, { target: { value: "10" } });
+    // 10 × 12.67 / 17.95 = 7.06; the last line takes the remainder.
+    expect(within(dialog).getByLabelText("Quantity bought for Flooring in Bedroom")).toHaveValue("7.06");
+    expect(within(dialog).getByLabelText("Quantity bought for Flooring in Hallway")).toHaveValue("2.94");
+
+    // Editing a line by hand makes the total follow the lines again.
+    fireEvent.change(within(dialog).getByLabelText("Quantity bought for Flooring in Hallway"), {
+      target: { value: "3" },
+    });
+    expect(groupTotal).toHaveValue("10.06");
+
+    fireEvent.change(within(dialog).getByLabelText(/Total paid/), { target: { value: "2900" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /Save purchase/ }));
+    await waitFor(() =>
+      expect(createMock.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          lines: [
+            expect.objectContaining({ lineId: 11, quantity: 7.06 }),
+            expect.objectContaining({ lineId: 21, quantity: 3 }),
+          ],
+        }),
+      ),
+    );
   });
 
   it("adds a purchased line to the inventory and offers a link to the item", async () => {

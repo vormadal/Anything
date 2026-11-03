@@ -3776,6 +3776,8 @@ test.describe("Renovation", () => {
     await page.getByLabel("Quantity bought for Floor in Kitchen").fill("5");
     await page.getByLabel("Total paid (kr)").fill("5200");
     await expect(page.getByText("Partial · 2,9 m² still to buy")).toBeVisible();
+    // Multi-room materials get one "total bought" field that follows the per-room quantities.
+    await expect(page.getByLabel("Total bought of Oak laminate 8 mm")).toBeVisible();
     // The footer is pinned below the scrolling lines; the total is on the save button.
     await expect(page.getByRole("button", { name: /Save purchase · 5\.200\s*kr\./ })).toBeVisible();
     await expect(page).toHaveScreenshot("renovation-shopping-record-purchase.png", screenshotOptions);
