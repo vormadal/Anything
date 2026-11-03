@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
-import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
+import { assertUploadSize, prepareImageForUpload, uploadErrorMessage } from "@/lib/images";
 import type {
   Recipe,
   RecipeListItemResponse,
@@ -480,9 +480,8 @@ export async function uploadRecipeImageFile(recipeId: number, imageFile: File): 
     await apiClient.api.recipes.byId(recipeId).images.upload.post(multipartBody);
   } catch (e) {
     const kiota = e as { responseStatusCode?: number };
-    if (kiota.responseStatusCode === 413) {
-      throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
-    }
+    const knownFailure = uploadErrorMessage(e);
+    if (knownFailure) throw new Error(knownFailure);
     if (kiota.responseStatusCode === 401 || kiota.responseStatusCode === 403) {
       throw new Error("You are not authorised to upload images.");
     }

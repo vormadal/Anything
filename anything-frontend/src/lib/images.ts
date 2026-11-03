@@ -83,6 +83,21 @@ const MAX_UPLOAD_MB = MAX_UPLOAD_BYTES / (1024 * 1024);
 /** Generic fallback for a server-side 413 (the request never reached the size check below). */
 export const UPLOAD_TOO_LARGE_MESSAGE = `File is too large. Please use a file under ${MAX_UPLOAD_MB} MB.`;
 
+/** Shown when the API answers 503: its object storage failed or is unreachable. */
+export const STORAGE_UNAVAILABLE_MESSAGE = "File storage is unavailable right now. Please try again later.";
+
+/**
+ * Maps the failure statuses every upload endpoint shares (413 too large, 503
+ * storage unavailable) to a user-facing message; `undefined` for anything else,
+ * so each hook keeps its own fallback.
+ */
+export function uploadErrorMessage(error: unknown): string | undefined {
+  const status = (error as { responseStatusCode?: number } | null)?.responseStatusCode;
+  if (status === 413) return UPLOAD_TOO_LARGE_MESSAGE;
+  if (status === 503) return STORAGE_UNAVAILABLE_MESSAGE;
+  return undefined;
+}
+
 /** Throws with the file's actual size when it exceeds the shared upload cap. */
 export function assertUploadSize(file: File): void {
   if (file.size > MAX_UPLOAD_BYTES) {

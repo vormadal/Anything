@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
-import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
+import { assertUploadSize, prepareImageForUpload, uploadErrorMessage } from "@/lib/images";
 import type { NoteResponse, NoteSummaryResponse } from "@/lib/api-client/models/index";
 
 export type { NoteResponse, NoteSummaryResponse };
@@ -93,9 +93,8 @@ export function useUploadNoteImage() {
         return { url: image.url, storageKey: image.storageKey };
       } catch (e) {
         const kiota = e as { responseStatusCode?: number; message?: string };
-        if (kiota.responseStatusCode === 413) {
-          throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
-        }
+        const knownFailure = uploadErrorMessage(e);
+        if (knownFailure) throw new Error(knownFailure);
         throw new Error(kiota.message || "Failed to upload image");
       }
     },

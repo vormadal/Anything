@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Anything.Application.Configuration;
 using Anything.Application.Services;
+using Anything.Core.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -117,5 +118,58 @@ public class MinioStorageServiceTests
 
         Assert.Equal(service.GetImageUrl(StorageKey, 300, 300), service.GetImageUrl(StorageKey, 300, 300));
         Assert.NotEqual(service.GetImageUrl(StorageKey, 300, 300), service.GetImageUrl(StorageKey, 600, 600));
+    }
+
+    [Fact]
+    public async Task Upload_WithUnreachableMinio_ThrowsStorageUnavailable()
+    {
+        // The API maps StorageUnavailableException to a 503; a raw MinIO/HTTP
+        // exception here would surface as an unhandled 500 instead.
+        var service = CreateService();
+        using var stream = new MemoryStream([1, 2, 3]);
+
+        var ex = await Assert.ThrowsAsync<StorageUnavailableException>(() =>
+            service.Upload(stream, "invoice.pdf", "application/pdf", stream.Length,
+                TestContext.Current.CancellationToken, folder: "bills"));
+
+        Assert.NotNull(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task Delete_WithUnreachableMinio_ThrowsStorageUnavailable()
+    {
+        var service = CreateService();
+
+        var ex = await Assert.ThrowsAsync<StorageUnavailableException>(() =>
+            service.Delete("bills/missing.pdf", TestContext.Current.CancellationToken));
+
+        Assert.NotNull(ex.InnerException);
+    }
+
+    [Fact]
+    public void IsStorageFailure_CallerCancellation_IsNotAStorageFailure()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        Assert.False(MinioStorageService.IsStorageFailure(new OperationCanceledException(cts.Token), cts.Token));
+    }
+
+    [Fact]
+    public void IsStorageFailure_TimeoutWithoutCallerCancellation_IsAStorageFailure()
+    {
+        // HttpClient reports its own timeout as a TaskCanceledException even
+        // though the caller never cancelled — that is storage being unreachable.
+        Assert.True(MinioStorageService.IsStorageFailure(new TaskCanceledException(), CancellationToken.None));
+    }
+
+    [Fact]
+    public void IsStorageFailure_ProxyHtmlParseError_IsAStorageFailure()
+    {
+        // What the MinIO client throws when a proxy in front of a dead MinIO
+        // answers with an HTML error page.
+        var parseError = new InvalidOperationException("There is an error in XML document (1, 2).");
+
+        Assert.True(MinioStorageService.IsStorageFailure(parseError, CancellationToken.None));
     }
 }

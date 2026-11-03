@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Anything.Application.Configuration;
 using Anything.Core.Services;
+using Anything.Core.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Minio;
@@ -99,12 +100,19 @@ public class MinioStorageService : IImageStorageService
         var extension = Path.GetExtension(fileName);
         var objectKey = $"{folder}/{Guid.NewGuid()}{extension}";
 
-        await _client.PutObjectAsync(new PutObjectArgs()
-            .WithBucket(_settings.BucketName)
-            .WithObject(objectKey)
-            .WithStreamData(stream)
-            .WithObjectSize(contentLength)
-            .WithContentType(contentType), ct);
+        try
+        {
+            await _client.PutObjectAsync(new PutObjectArgs()
+                .WithBucket(_settings.BucketName)
+                .WithObject(objectKey)
+                .WithStreamData(stream)
+                .WithObjectSize(contentLength)
+                .WithContentType(contentType), ct);
+        }
+        catch (Exception ex) when (IsStorageFailure(ex, ct))
+        {
+            throw StorageFailure("upload", objectKey, ex);
+        }
 
         return objectKey;
     }
@@ -189,8 +197,29 @@ public class MinioStorageService : IImageStorageService
 
     public async Task Delete(string storageKey, CancellationToken ct = default)
     {
-        await _client.RemoveObjectAsync(new RemoveObjectArgs()
-            .WithBucket(_settings.BucketName)
-            .WithObject(storageKey), ct);
+        try
+        {
+            await _client.RemoveObjectAsync(new RemoveObjectArgs()
+                .WithBucket(_settings.BucketName)
+                .WithObject(storageKey), ct);
+        }
+        catch (Exception ex) when (IsStorageFailure(ex, ct))
+        {
+            throw StorageFailure("delete", storageKey, ex);
+        }
+    }
+
+    // Everything the MinIO client throws counts — including the
+    // InvalidOperationException it raises when a proxy in front of a dead
+    // MinIO answers with an HTML page it can't parse as an S3 error — except a
+    // cancellation the caller asked for, which must keep propagating as such.
+    internal static bool IsStorageFailure(Exception ex, CancellationToken ct) =>
+        ex is not OperationCanceledException || !ct.IsCancellationRequested;
+
+    private StorageUnavailableException StorageFailure(string operation, string objectKey, Exception ex)
+    {
+        _logger.LogError(ex, "Object storage {Operation} failed for {ObjectKey} in bucket {BucketName} at {Endpoint}",
+            operation, objectKey, _settings.BucketName, _settings.Endpoint);
+        return new StorageUnavailableException($"Object storage {operation} failed.", ex);
     }
 }
