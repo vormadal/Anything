@@ -378,7 +378,9 @@ export function useCreateRenovationPurchase(projectId: number) {
       const lines: CreateRenovationPurchaseLineRequest[] = data.lines.map((line) => ({
         lineId: line.lineId,
         quantity: line.quantity,
-        markComplete: line.markComplete ?? null,
+        // Not `?? null`: Kiota writes an explicit null, which the backend's non-nullable
+        // `bool MarkComplete` rejects with a 400 — that failed every ordinary purchase.
+        markComplete: line.markComplete ?? false,
       }));
       const body: CreateRenovationPurchaseRequest = {
         purchasedOn: DateOnly.parse(data.purchasedOn),
