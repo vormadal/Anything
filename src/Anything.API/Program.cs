@@ -12,6 +12,7 @@ using Anything.API.Endpoints;
 using Anything.API.Notifications;
 using Anything.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -160,7 +161,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseForwardedHeaders();
 
-app.UseExceptionHandler();
+// StatusCodeSelector keeps a BadHttpRequestException (e.g. a missing required
+// form file, thrown when ThrowOnBadRequest is on in Development/tests) at its
+// own 400 instead of this middleware's default 500.
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    StatusCodeSelector = ex => ex is BadHttpRequestException badRequest
+        ? badRequest.StatusCode
+        : StatusCodes.Status500InternalServerError,
+});
 
 app.UseCors();
 
