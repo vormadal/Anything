@@ -287,7 +287,7 @@ describe('useRenovation hooks', () => {
         notes: null,
         lines: [
           { lineId: 100, quantity: 4, markComplete: true },
-          { lineId: 101, quantity: 2, markComplete: null },
+          { lineId: 101, quantity: 2, markComplete: false },
         ],
       })
 

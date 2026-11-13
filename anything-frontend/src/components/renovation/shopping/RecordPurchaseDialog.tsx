@@ -9,7 +9,7 @@ import { formatKr, formatQty, round2, type ToBuyGroup, type ToBuyLine } from "@/
 import type { RenovationPurchaseInput } from "@/hooks/useRenovation";
 import type { Vendor } from "@/hooks/useVendors";
 import { parseDecimal } from "@/components/renovation/materials/materialsView";
-import { parseQuantity, previewSplit, todayIso } from "./shoppingView";
+import { distributeQuantity, parseQuantity, previewSplit, todayIso } from "./shoppingView";
 
 const NEW_VENDOR = "new";
 const NO_VENDOR = "";
@@ -47,6 +47,8 @@ export function RecordPurchaseDialog(props: RecordPurchaseDialogProps) {
 interface FormErrors {
   purchasedOn?: string;
   total?: string;
+  /** Form-level: every line was left at 0. */
+  lines?: string;
   quantities: Record<number, string>;
 }
 
@@ -63,7 +65,8 @@ interface LineRowProps {
 
 function coverageNote(line: ToBuyLine, unit: string, quantityText: string): { text: string; className: string } {
   const quantity = parseQuantity(quantityText);
-  if (!Number.isFinite(quantity) || quantity <= 0) return { text: "", className: MUTED_CLASS };
+  if (!Number.isFinite(quantity) || quantity < 0) return { text: "", className: MUTED_CLASS };
+  if (quantity === 0) return { text: "Not bought · stays on the list", className: MUTED_CLASS };
   const remaining = line.remainingQuantity;
   if (quantity < remaining - 0.005) {
     return {
@@ -76,6 +79,8 @@ function coverageNote(line: ToBuyLine, unit: string, quantityText: string): { te
 
 function LineRow({ line, unit, quantityText, done, amount, error, onQuantity, onDone }: LineRowProps) {
   const note = coverageNote(line, unit, quantityText);
+  // A line left at 0 isn't sent at all, so "done" would have nothing to attach to.
+  const notBought = parseQuantity(quantityText) === 0;
   return (
     <li className="flex flex-col gap-2 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700">
       <div className="flex items-start gap-2">
@@ -108,17 +113,49 @@ function LineRow({ line, unit, quantityText, done, amount, error, onQuantity, on
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`text-xs font-medium ${note.className}`}>{note.text}</span>
-        <label className="flex min-h-11 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-          <input
-            type="checkbox"
-            checked={done}
-            onChange={(event) => onDone(event.target.checked)}
-            className="h-5 w-5 accent-gray-900 dark:accent-white"
-          />
-          Done even if less
-        </label>
+        {!notBought && (
+          <label className="flex min-h-11 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={done}
+              onChange={(event) => onDone(event.target.checked)}
+              className="h-5 w-5 accent-gray-900 dark:accent-white"
+            />
+            Done even if less
+          </label>
+        )}
       </div>
     </li>
+  );
+}
+
+function GroupTotalField({
+  group,
+  value,
+  onChange,
+}: {
+  group: ToBuyGroup;
+  value: string;
+  onChange: (text: string) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="flex items-center gap-2 border-b border-gray-200 py-3 dark:border-gray-700">
+      <label htmlFor={id} className="flex min-w-0 flex-1 flex-col">
+        <span className="text-sm font-semibold text-gray-900 dark:text-white">{group.description}</span>
+        <span className={`text-xs ${MUTED_CLASS}`}>Total bought, split by what each room needs</span>
+      </label>
+      <input
+        id={id}
+        type="text"
+        inputMode="decimal"
+        aria-label={`Total bought of ${group.description}`}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 w-20 rounded-md border border-gray-300 bg-white px-2 text-right text-sm dark:border-gray-600 dark:bg-gray-800"
+      />
+      <span className={`w-20 shrink-0 text-xs ${MUTED_CLASS}`}>{group.unit}</span>
+    </div>
   );
 }
 
@@ -173,7 +210,7 @@ function diffText(total: number, estimate: number): { text: string; className: s
 
 function RecordPurchaseForm({ groups, vendors, isPending, onSubmit, onOpenChange }: RecordPurchaseDialogProps) {
   const idPrefix = useId();
-  const lines = groups.flatMap((group) => group.lines.map((line) => ({ line, unit: group.unit })));
+  const lines = groups.flatMap((group) => group.lines.map((line) => ({ line })));
 
   const [purchasedOn, setPurchasedOn] = useState(todayIso);
   const [vendorChoice, setVendorChoice] = useState(NO_VENDOR);
@@ -182,6 +219,9 @@ function RecordPurchaseForm({ groups, vendors, isPending, onSubmit, onOpenChange
   const [createdVendors, setCreatedVendors] = useState<Vendor[]>([]);
   const [total, setTotal] = useState("");
   const [quantities, setQuantities] = useState<Record<number, string>>({});
+  // What was typed into a group's "total bought" field; cleared once a line is edited by hand,
+  // after which the field shows the lines' sum instead.
+  const [groupTotals, setGroupTotals] = useState<Record<string, string>>({});
   const [done, setDone] = useState<Record<number, boolean>>({});
   const [errors, setErrors] = useState<FormErrors>({ quantities: {} });
 
@@ -196,14 +236,50 @@ function RecordPurchaseForm({ groups, vendors, isPending, onSubmit, onOpenChange
   };
 
   const quantityOf = (line: ToBuyLine) => quantities[line.lineId] ?? String(line.remainingQuantity);
-  const rows = lines.map(({ line }) => ({
-    quantity: parseQuantity(quantityOf(line)),
-    unitPrice: line.unitPrice,
-  }));
+  const isBought = (line: ToBuyLine) => parseQuantity(quantityOf(line)) > 0;
+  // Only lines with a quantity are sent, so only they take a share of the total.
+  const bought = lines.filter(({ line }) => isBought(line));
   const totalValue = parseDecimal(total);
   const hasTotal = Number.isFinite(totalValue) && totalValue >= 0;
-  const split = previewSplit(hasTotal ? totalValue : 0, rows);
+  const split = previewSplit(
+    hasTotal ? totalValue : 0,
+    bought.map(({ line }) => ({ quantity: parseQuantity(quantityOf(line)), unitPrice: line.unitPrice })),
+  );
+  const amountOf = (line: ToBuyLine) => {
+    const index = bought.findIndex((entry) => entry.line.lineId === line.lineId);
+    return hasTotal && index >= 0 ? formatKr(split.amounts[index]) : "—";
+  };
   const diff = hasTotal ? diffText(totalValue, split.estimate) : null;
+
+  const groupTotalText = (group: ToBuyGroup) => {
+    const typed = groupTotals[group.key];
+    if (typed !== undefined) return typed;
+    const quantities = group.lines.map((line) => parseQuantity(quantityOf(line)));
+    return quantities.every(Number.isFinite)
+      ? String(round2(quantities.reduce((sum, quantity) => sum + quantity, 0)))
+      : "";
+  };
+  const handleGroupTotal = (group: ToBuyGroup, text: string) => {
+    setGroupTotals((prev) => ({ ...prev, [group.key]: text }));
+    const value = parseQuantity(text);
+    if (!Number.isFinite(value) || value < 0) return;
+    const parts = distributeQuantity(value, group.lines.map((line) => line.remainingQuantity));
+    setQuantities((prev) => {
+      const next = { ...prev };
+      group.lines.forEach((line, index) => {
+        next[line.lineId] = String(parts[index]);
+      });
+      return next;
+    });
+  };
+  const handleLineQuantity = (group: ToBuyGroup, line: ToBuyLine, text: string) => {
+    setQuantities((prev) => ({ ...prev, [line.lineId]: text }));
+    setGroupTotals((prev) => {
+      const next = { ...prev };
+      delete next[group.key];
+      return next;
+    });
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -214,19 +290,22 @@ function RecordPurchaseForm({ groups, vendors, isPending, onSubmit, onOpenChange
     }
     for (const { line } of lines) {
       const quantity = parseQuantity(quantityOf(line));
-      if (!Number.isFinite(quantity) || quantity <= 0) {
-        found.quantities[line.lineId] = "Enter a quantity above 0";
+      if (!Number.isFinite(quantity) || quantity < 0) {
+        found.quantities[line.lineId] = "Enter a quantity, or 0 if none was bought";
       }
     }
+    if (Object.keys(found.quantities).length === 0 && bought.length === 0) {
+      found.lines = "Enter a quantity above 0 for at least one line";
+    }
     setErrors(found);
-    if (found.purchasedOn || found.total || Object.keys(found.quantities).length > 0) return;
+    if (found.purchasedOn || found.total || found.lines || Object.keys(found.quantities).length > 0) return;
 
     void onSubmit({
       purchasedOn,
       // The backend fills the free-text vendor name from the linked vendor.
       vendorId: vendorChoice === NO_VENDOR ? undefined : Number(vendorChoice),
       totalAmount: totalValue,
-      lines: lines.map(({ line }) => ({
+      lines: bought.map(({ line }) => ({
         lineId: line.lineId,
         quantity: parseQuantity(quantityOf(line)),
         markComplete: done[line.lineId] ? true : undefined,
@@ -299,24 +378,40 @@ function RecordPurchaseForm({ groups, vendors, isPending, onSubmit, onOpenChange
               <span className={`text-xs ${MUTED_CLASS}`}>split by estimate share</span>
             </div>
             <p className={`text-xs ${MUTED_CLASS}`}>
-              Bought less than needed? Lower the quantity. The rest stays on the shopping list at its
-              estimated price.
+              Bought less than needed? Lower the quantity, or set 0 for a room that got none. The rest
+              stays on the shopping list at its estimated price.
             </p>
-            <ul className="rounded-lg bg-gray-50 px-3 dark:bg-gray-900">
-              {lines.map(({ line, unit }, index) => (
-                <LineRow
-                  key={line.lineId}
-                  line={line}
-                  unit={unit}
-                  quantityText={quantityOf(line)}
-                  done={!!done[line.lineId]}
-                  amount={hasTotal ? formatKr(split.amounts[index]) : "—"}
-                  error={errors.quantities[line.lineId]}
-                  onQuantity={(text) => setQuantities((prev) => ({ ...prev, [line.lineId]: text }))}
-                  onDone={(value) => setDone((prev) => ({ ...prev, [line.lineId]: value }))}
-                />
-              ))}
-            </ul>
+            {errors.lines && (
+              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+                {errors.lines}
+              </p>
+            )}
+            {groups.map((group) => (
+              <div key={group.key} className="rounded-lg bg-gray-50 px-3 dark:bg-gray-900">
+                {group.lines.length > 1 && (
+                  <GroupTotalField
+                    group={group}
+                    value={groupTotalText(group)}
+                    onChange={(text) => handleGroupTotal(group, text)}
+                  />
+                )}
+                <ul>
+                  {group.lines.map((line) => (
+                    <LineRow
+                      key={line.lineId}
+                      line={line}
+                      unit={group.unit}
+                      quantityText={quantityOf(line)}
+                      done={!!done[line.lineId]}
+                      amount={amountOf(line)}
+                      error={errors.quantities[line.lineId]}
+                      onQuantity={(text) => handleLineQuantity(group, line, text)}
+                      onDone={(value) => setDone((prev) => ({ ...prev, [line.lineId]: value }))}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))}
           </section>
         </div>
 
