@@ -110,3 +110,12 @@ export function parseLineParam(raw: string | null): number | null {
   const id = Number(raw);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
+
+/**
+ * Spreads one overall quantity (e.g. "bought 20 m² of laminate") across the lines that need it,
+ * in proportion to what each still needs, so a small room isn't handed half of everything.
+ * Rounded to 2 decimals; the last line takes the remainder so the parts sum to `total`.
+ */
+export function distributeQuantity(total: number, remaining: readonly number[]): number[] {
+  return splitByEstimateShare(total, remaining.map((quantity) => Math.max(quantity, 0)));
+}
