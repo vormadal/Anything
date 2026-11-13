@@ -29,6 +29,19 @@ jest.mock("next/navigation", () => ({
 describe("CustomFieldsEditor", () => {
   beforeEach(() => jest.clearAllMocks());
 
+  it("resets its rows when the saved fields change", () => {
+    const { rerender } = renderWithClient(
+      <CustomFieldsEditor itemId={100} fields={[{ id: 1, label: "Color", value: "Blue", sortOrder: 0 }]} />
+    );
+    expect(screen.getByDisplayValue("Blue")).toBeInTheDocument();
+
+    rerender(
+      <CustomFieldsEditor itemId={100} fields={[{ id: 1, label: "Color", value: "Red", sortOrder: 0 }]} />
+    );
+    expect(screen.getByDisplayValue("Red")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Blue")).not.toBeInTheDocument();
+  });
+
   it("shows a placeholder when there are no fields yet", () => {
     renderWithClient(<CustomFieldsEditor itemId={100} fields={[]} />);
     expect(screen.getByText("No custom fields yet.")).toBeInTheDocument();

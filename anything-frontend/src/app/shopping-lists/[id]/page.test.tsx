@@ -45,11 +45,12 @@ jest.mock('@/lib/apiClient', () => ({
 const mockPush = jest.fn()
 const mockBack = jest.fn()
 const mockRouter = { push: mockPush, back: mockBack }
+let mockEditParam = false
 jest.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
   useParams: () => ({ id: '1' }),
   usePathname: () => '/shopping-lists/1',
-  useSearchParams: () => ({ get: () => null }),
+  useSearchParams: () => ({ get: (key: string) => (key === 'edit' && mockEditParam ? 'true' : null) }),
 }))
 
 // Mock toast
@@ -64,6 +65,23 @@ jest.mock('sonner', () => ({
 const mockList = { id: 1, name: 'Groceries', createdOn: '2024-01-01T00:00:00Z' }
 
 describe('ShoppingListDetailPage', () => {
+  afterEach(() => {
+    mockEditParam = false
+  })
+
+  it('follows the ?edit= search param when it changes after mount', async () => {
+    mockEditParam = false
+    const { rerender } = render(<ShoppingListDetailPage />)
+    expect(await screen.findByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+
+    mockEditParam = true
+    rerender(<ShoppingListDetailPage />)
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Edit list' })).not.toBeInTheDocument())
+
+    mockEditParam = false
+    rerender(<ShoppingListDetailPage />)
+    expect(await screen.findByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+  })
   beforeEach(() => {
     jest.clearAllMocks()
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))

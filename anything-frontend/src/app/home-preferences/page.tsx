@@ -93,15 +93,12 @@ export default function HomePreferencesPage() {
   }, [setLeftAction]);
 
   // Seed local (draggable) state from the fetched preferences the first time they arrive,
-  // without clobbering in-flight local edits on subsequent refetches. Keyed on `data` itself
-  // (not just a reference change) so this still fires when `data` is served from a warm
+  // without clobbering in-flight local edits on subsequent refetches. Done during render (not in
+  // an effect) so it also seeds on the first render when `data` is served from a warm
   // react-query cache (e.g. navigating here from the home page, which already fetched it).
-  useEffect(() => {
-    if (cards === null && data) {
-      setCards(data.map((p) => ({ cardKey: p.cardKey as HomeCardKey, isVisible: p.isVisible ?? true })));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only seed once; `cards` is deliberately omitted to avoid re-running on every local edit
-  }, [data]);
+  if (cards === null && data) {
+    setCards(data.map((p) => ({ cardKey: p.cardKey as HomeCardKey, isVisible: p.isVisible ?? true })));
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor),
