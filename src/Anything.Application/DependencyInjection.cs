@@ -54,12 +54,21 @@ public static class DependencyInjection
         services.AddSingleton<IOutboundAddressResolver, DnsOutboundAddressResolver>();
         services.AddHttpClient<IRecipeParserService, RecipeParserService>(client =>
         {
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("AnythingApp/1.0 (recipe-parser)");
+            // Browser-compatible UA and Accept headers: some recipe sites serve
+            // bot-like clients a stripped page without the structured data.
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; AnythingApp/1.0; recipe-parser)");
+            client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml;q=0.9,*/*;q=0.8");
+            client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("da,en;q=0.8");
             client.Timeout = TimeSpan.FromSeconds(30);
         })
         // Auto-redirect must stay off: RecipeParserService's SSRF guard
-        // validates every redirect hop itself (see FetchHtml).
-        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+        // validates every redirect hop itself (see FetchHtml). Decompression is
+        // safe with the size cap: it is applied to the decoded stream.
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            AutomaticDecompression = System.Net.DecompressionMethods.All,
+        });
 
         // Configuration
         services.AddOptions<ImageSettings>()
