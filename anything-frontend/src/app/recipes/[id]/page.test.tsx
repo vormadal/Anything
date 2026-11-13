@@ -67,11 +67,12 @@ jest.mock('@/hooks/useRecommendations', () => ({
 
 // Mock next/navigation
 const mockPush = jest.fn()
+let mockEditParam = false
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush, back: jest.fn(), replace: jest.fn() }),
   useParams: () => ({ id: '1' }),
   usePathname: () => '/recipes/1',
-  useSearchParams: () => ({ get: jest.fn().mockReturnValue(null) }),
+  useSearchParams: () => ({ get: (key: string) => (key === 'edit' && mockEditParam ? 'true' : null) }),
 }))
 
 // Mock useAuth
@@ -103,6 +104,19 @@ const buildDetail = (overrides: Record<string, unknown> = {}) => ({
 })
 
 describe('RecipeDetailPage', () => {
+  afterEach(() => {
+    mockEditParam = false
+  })
+
+  it('follows the ?edit= search param when it changes after mount', async () => {
+    mockEditParam = false
+    const { rerender } = render(<RecipeDetailPage />)
+    expect(await screen.findByText('Recipe')).toBeInTheDocument()
+
+    mockEditParam = true
+    rerender(<RecipeDetailPage />)
+    expect(await screen.findByText('Edit Recipe')).toBeInTheDocument()
+  })
   beforeEach(() => {
     jest.clearAllMocks()
     mockDetailsGet.mockResolvedValue(buildDetail())

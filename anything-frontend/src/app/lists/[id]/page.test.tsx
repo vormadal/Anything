@@ -37,10 +37,11 @@ const mockBack = jest.fn()
 // Use a stable object reference so useRouter() returns the same object on every render,
 // preventing infinite re-render loops caused by the useEffect dependency on router.
 const mockRouter = { push: mockPush, back: mockBack }
+let mockEditParam = false
 jest.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
   useParams: () => ({ id: '1' }),
-  useSearchParams: () => ({ get: () => null }),
+  useSearchParams: () => ({ get: (key: string) => (key === 'edit' && mockEditParam ? 'true' : null) }),
   usePathname: () => '/lists/1',
 }))
 
@@ -54,6 +55,23 @@ jest.mock('@/hooks/useRecommendations', () => ({
 }))
 
 describe('ListDetailPage', () => {
+  afterEach(() => {
+    mockEditParam = false
+  })
+
+  it('follows the ?edit= search param when it changes after mount', async () => {
+    mockEditParam = false
+    const { rerender } = render(<ListDetailPage />)
+    expect(await screen.findByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+
+    mockEditParam = true
+    rerender(<ListDetailPage />)
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Edit list' })).not.toBeInTheDocument())
+
+    mockEditParam = false
+    rerender(<ListDetailPage />)
+    expect(await screen.findByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+  })
   beforeEach(() => {
     jest.clearAllMocks()
     localStorage.setItem('user', JSON.stringify({ email: 'test@test.com', name: 'Test User', role: 'User' }))
