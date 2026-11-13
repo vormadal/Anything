@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { DateOnly } from "@microsoft/kiota-abstractions";
 import { apiClient, buildFileUploadBody } from "@/lib/apiClient";
-import { UPLOAD_TOO_LARGE_MESSAGE, assertUploadSize, prepareImageForUpload } from "@/lib/images";
+import { assertUploadSize, prepareImageForUpload, uploadErrorMessage } from "@/lib/images";
 import type {
   RenovationPurchaseAttachmentResponse,
   AddRenovationLineToInventoryRequest,
@@ -474,9 +474,8 @@ export function useUploadRenovationPurchaseAttachment(projectId: number) {
           });
       } catch (e) {
         const kiota = e as { responseStatusCode?: number; message?: string };
-        if (kiota.responseStatusCode === 413) {
-          throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
-        }
+        const knownFailure = uploadErrorMessage(e);
+        if (knownFailure) throw new Error(knownFailure);
         throw new Error(kiota.message || "Failed to upload receipt");
       }
     },

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { BillDetailPage } from "./pages/BillDetailPage";
+import { apiRequest } from "./apiRequest";
 
 /**
  * Bills full flow:
@@ -68,25 +69,36 @@ test("can upload, view, and delete a bill attachment", async ({ page }) => {
   // 2. Navigate to the bill detail page
   await page.getByText(billName).click();
   await expect(page).toHaveURL(/\/bills\/\d+/);
+  const billId = Number(new URL(page.url()).pathname.split("/").pop());
 
   const detailPage = new BillDetailPage(page);
+  let billDeleted = false;
 
-  // 3. Upload a PDF attachment
-  await detailPage.uploadAttachment({
-    name: "invoice.pdf",
-    mimeType: "application/pdf",
-    buffer: Buffer.from("%PDF-1.4 test invoice"),
-  });
+  try {
+    // 3. Upload a PDF attachment
+    await detailPage.uploadAttachment({
+      name: "invoice.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4 test invoice"),
+    });
 
-  // 4. Verify the attachment appears with the correct name (filename without extension)
-  await expect(detailPage.attachmentLink("invoice")).toBeVisible();
+    // 4. Verify the attachment appears with the correct name (filename without extension)
+    await expect(detailPage.attachmentLink("invoice")).toBeVisible();
 
-  // 5. Delete the attachment
-  await detailPage.deleteAttachment("invoice");
-  await expect(detailPage.attachmentLink("invoice")).not.toBeVisible();
+    // 5. Delete the attachment
+    await detailPage.deleteAttachment("invoice");
+    await expect(detailPage.attachmentLink("invoice")).not.toBeVisible();
 
-  // 6. Clean up: delete the bill
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Delete bill" }).click();
-  await expect(page).toHaveURL("/bills");
+    // 6. Delete the bill through the UI
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Delete bill" }).click();
+    await expect(page).toHaveURL("/bills");
+    billDeleted = true;
+  } finally {
+    // Clean up even when an earlier step fails, so failed runs don't
+    // accumulate bills in the persistent deploy database.
+    if (!billDeleted) {
+      await apiRequest(page, "DELETE", `/api/bills/${billId}`);
+    }
+  }
 });
