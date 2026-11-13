@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,9 +38,12 @@ export function CustomFieldsEditor({ itemId, fields }: CustomFieldsEditorProps) 
   const updateFields = useUpdateInventoryItemFields(itemId);
   const isOnline = useOnlineStatus();
 
-  useEffect(() => {
+  // Reset local rows when the server copy changes (adjusting state during render, not in an effect).
+  const [prevFields, setPrevFields] = useState(fields);
+  if (fields !== prevFields) {
+    setPrevFields(fields);
     setRows(toRows(fields));
-  }, [fields]);
+  }
 
   function updateRow(index: number, patch: Partial<FieldRow>) {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));

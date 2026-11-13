@@ -29,10 +29,12 @@ export default function ShoppingListDetailPage() {
   const searchParams = useSearchParams();
   const editParam = searchParams.get("edit") === "true";
   const [isEditMode, setIsEditMode] = useState(editParam);
-
-  useEffect(() => {
+  // Follow ?edit= changes by adjusting state during render rather than in an effect.
+  const [prevEditParam, setPrevEditParam] = useState(editParam);
+  if (editParam !== prevEditParam) {
+    setPrevEditParam(editParam);
     setIsEditMode(editParam);
-  }, [editParam]);
+  }
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
   const handleDeleteListRef = useRef<() => void>(() => undefined);
