@@ -60,6 +60,20 @@ beforeEach(() => {
 });
 
 describe("EmbeddedListCard", () => {
+  it("links the header to the list's own page", () => {
+    renderCard();
+
+    expect(screen.getByRole("link", { name: "Groceries" })).toHaveAttribute("href", "/lists/7");
+  });
+
+  it("keeps the link in the read-only view and when offline", () => {
+    mockItems = undefined;
+    mockItemsError = new TypeError("Failed to fetch");
+    renderCard({ interactive: false });
+
+    expect(screen.getByRole("link", { name: "Groceries" })).toHaveAttribute("href", "/lists/7");
+  });
+
   it("lists unchecked items before checked ones", () => {
     mockItems = [
       item({ id: 1, name: "Milk", isChecked: true }),
@@ -154,6 +168,7 @@ describe("EmbeddedListCard", () => {
 
     expect(screen.getByText("Groceries")).toBeInTheDocument();
     expect(screen.getByText("This list is no longer available.")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("offers to remove the embed only when the note is editable", () => {
