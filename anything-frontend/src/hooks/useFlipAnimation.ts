@@ -19,6 +19,17 @@ function currentTranslateY(element: HTMLElement): number {
   return Number.isFinite(y) ? y : 0;
 }
 
+/** The container's direct children that opted in with a `data-flip-id`. */
+function flipRows(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.children).filter(
+    (child): child is HTMLElement => child instanceof HTMLElement && !!child.dataset.flipId
+  );
+}
+
+function sameOrder(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
+}
+
 /**
  * FLIP-animates the direct children of the returned container ref whenever
  * their position on screen changes between renders — e.g. a checked item
@@ -44,6 +55,14 @@ function currentTranslateY(element: HTMLElement): number {
  * restarts the slide from a mirrored offset — the row visibly jumps the wrong
  * way before settling.
  *
+ * Only a commit that changes the rows' *order* (or which rows exist) slides
+ * anything. A row can also shift without any reorder — text rewrapping after
+ * a width change, a font or image settling, or the container having been
+ * measured while detached from the document (all rects read as zero, so every
+ * row would then slide in from the top as if just added). Those commits only
+ * refresh the baseline. This matters most for lists embedded in a note, whose
+ * node views re-render on nearly every editor transaction (#807).
+ *
  * Uses the Web Animations API directly instead of toggling CSS transitions,
  * so there's no transition-then-clear dance to force a reflow between the
  * "jump" and "settle" steps. Browsers without `Element.animate` — and jsdom,
@@ -58,17 +77,23 @@ export function useFlipAnimation<T extends HTMLElement>() {
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    if (!container.isConnected) {
+      previousTopsRef.current = new Map();
+      return;
+    }
 
     const containerTop = container.getBoundingClientRect().top;
     const previousTops = previousTopsRef.current;
     const animations = animationsRef.current;
+    const rows = flipRows(container);
+    const reordered = !sameOrder(
+      rows.map((row) => row.dataset.flipId!),
+      Array.from(previousTops.keys())
+    );
     const nextTops = new Map<string, number>();
 
-    for (const child of Array.from(container.children)) {
-      if (!(child instanceof HTMLElement)) continue;
-      const flipId = child.dataset.flipId;
-      if (!flipId) continue;
-
+    for (const child of rows) {
+      const flipId = child.dataset.flipId!;
       const running = animations.get(flipId);
       const isRunning = running?.playState === "running";
       const offset = isRunning ? currentTranslateY(child) : 0;
@@ -76,7 +101,7 @@ export function useFlipAnimation<T extends HTMLElement>() {
       nextTops.set(flipId, layoutTop);
 
       const previousTop = previousTops.get(flipId);
-      if (previousTop == null || Math.abs(previousTop - layoutTop) < 0.5) continue;
+      if (!reordered || previousTop == null || Math.abs(previousTop - layoutTop) < 0.5) continue;
       if (typeof child.animate !== "function") continue;
 
       // Where the row appears right now, relative to where it will rest.

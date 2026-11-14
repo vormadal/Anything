@@ -102,6 +102,46 @@ describe("useFlipAnimation", () => {
     });
   });
 
+  // #807: a list embedded in a note re-renders on most editor transactions,
+  // and anything that shifts the rows without reordering them (rewrapping,
+  // a measurement taken while detached) used to slide every row.
+  it("does not animate when rows move without being reordered", () => {
+    const { container, rerender } = render(<TestList ids={[1, 2, 3]} />);
+    const animates = Array.from(container.querySelectorAll("li")).map((li) => {
+      const animate = jest.fn();
+      (li as unknown as { animate: jest.Mock }).animate = animate;
+      return animate;
+    });
+
+    const realRect = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      const rect = realRect.call(this);
+      return { ...rect, top: rect.top * 2 } as DOMRect;
+    };
+    rerender(<TestList ids={[1, 2, 3]} />);
+    HTMLElement.prototype.getBoundingClientRect = realRect;
+
+    animates.forEach((animate) => expect(animate).not.toHaveBeenCalled());
+  });
+
+  it("does not take a baseline while detached from the document", () => {
+    const { container, rerender } = render(<TestList ids={[1, 2, 3]} />);
+    const list = container.querySelector("ul")!;
+    const lis = Array.from(container.querySelectorAll("li"));
+    const animates = lis.map((li) => {
+      const animate = jest.fn();
+      (li as unknown as { animate: jest.Mock }).animate = animate;
+      return animate;
+    });
+
+    list.remove();
+    rerender(<TestList ids={[2, 1, 3]} />);
+    container.appendChild(list);
+    rerender(<TestList ids={[2, 1, 3]} />);
+
+    animates.forEach((animate) => expect(animate).not.toHaveBeenCalled());
+  });
+
   it("does not throw when Element.animate is unavailable (e.g. jsdom)", () => {
     const { rerender } = render(<TestList ids={[1, 2]} />);
     expect(() => rerender(<TestList ids={[2, 1]} />)).not.toThrow();
