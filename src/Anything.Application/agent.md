@@ -12,6 +12,7 @@ Business logic layer. Contains all CQRS handlers, domain services, and configura
   - `RecipeImageService` / `IRecipeImageService` — image upload orchestration
   - `MinioStorageService` — S3-compatible object storage
   - `RecipeParserService` / `IRecipeParserService` — scrape/parse recipes from URLs
+    - Parsing lives in `Services/RecipeParsing/`: `RecipeJsonLdParser` first, `RecipeMicrodataParser` as fallback. JSON-LD must stay tolerant — real sites nest the Recipe at any depth (`@graph`, `mainEntity`), prefix its type (`schema:Recipe`), and ship JSON with raw newlines/trailing commas. A strict parse silently returns 422 "no recipe found" (issue #809). Add a unit test with the offending markup for any new site that fails.
   - `HouseholdContext` — scoped carrier for the current household ID
   - `ShoppingListHelpers`, `BillHelpers` — shared domain logic helpers
 - `Configuration/` — `AdminSettings`, `JwtSettings`, `ImageSettings` (bound from appsettings)

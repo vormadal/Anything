@@ -269,6 +269,232 @@ public class RecipeParserServiceTests
         Assert.Empty(result.Ingredients);
         Assert.Empty(result.Steps);
     }
+
+    // --- Tolerant JSON-LD extraction (issue #809) ---
+
+    private const string MinimalRecipe = """{"@type":"Recipe","name":"Found","recipeIngredient":["1 tsk salt"],"recipeInstructions":["Mix"]}""";
+
+    [Fact]
+    public async Task ParseFromUrl_WithLdJsonLinkBeforeScript_StillFindsScriptBlock()
+    {
+        // A non-script element mentioning the MIME type used to swallow the real block.
+        var html = $"""<html><head><link rel="alternate" type="application/ld+json" href="/x.json"><script type="application/ld+json">{MinimalRecipe}</script></head></html>""";
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("Found", result.Name);
+    }
+
+    [Theory]
+    [InlineData("<script type='application/ld+json'>")]
+    [InlineData("<script type=application/ld+json>")]
+    [InlineData("<script id=\"schema\" type=\"application/ld+json\" class=\"yoast-schema-graph\">")]
+    public async Task ParseFromUrl_WithScriptTagVariants_FindsRecipe(string openTag)
+    {
+        var html = $"<html><head>{openTag}{MinimalRecipe}</script></head></html>";
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("Found", result.Name);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithRawNewlineInsideString_FindsRecipe()
+    {
+        var html = WrapInHtml("{\"@type\":\"Recipe\",\"name\":\"Found\",\"description\":\"Line one\nLine two\",\"recipeIngredient\":[],\"recipeInstructions\":[]}");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("Found", result.Name);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithTrailingCommas_FindsRecipe()
+    {
+        var html = WrapInHtml("""{"@type":"Recipe","name":"Found","recipeIngredient":["1 tsk salt",],"recipeInstructions":[],}""");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Single(result.Ingredients);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithCdataWrapper_FindsRecipe()
+    {
+        var html = WrapInHtml($"/*<![CDATA[*/{MinimalRecipe}/*]]>*/");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithRecipeNestedUnderMainEntity_FindsRecipe()
+    {
+        var html = WrapInHtml($$"""[{"@type":"WebSite"},{"@type":"WebPage","mainEntity":{{MinimalRecipe}} }]""");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("Found", result.Name);
+    }
+
+    [Theory]
+    [InlineData("schema:Recipe")]
+    [InlineData("https://schema.org/Recipe")]
+    [InlineData("http://schema.org/Recipe")]
+    public async Task ParseFromUrl_WithPrefixedRecipeType_FindsRecipe(string type)
+    {
+        var html = WrapInHtml($$"""{"@type":"{{type}}","name":"Found","recipeIngredient":[],"recipeInstructions":[]}""");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_SkipsNonRecipeBlocksBeforeRecipe()
+    {
+        var html = $$"""<script type="application/ld+json">{"@type":"Organization","name":"Arla"}</script><script type="application/ld+json">{{MinimalRecipe}}</script>""";
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("Found", result.Name);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithNameAsArray_UsesFirstName()
+    {
+        var html = WrapInHtml("""{"@type":"Recipe","name":["Marry me chicken","Alt"],"recipeIngredient":[],"recipeInstructions":[]}""");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("Marry me chicken", result.Name);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_DecodesHtmlEntitiesInIngredients()
+    {
+        var html = WrapInHtml("""{"@type":"Recipe","name":"Pasta &amp; burrata","recipeIngredient":["2 dl fl&oslash;de","1&nbsp;tsk salt"],"recipeInstructions":[]}""");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("Pasta & burrata", result.Name);
+        Assert.Equal("fløde", result.Ingredients[0].Name);
+        Assert.Equal("dl", result.Ingredients[0].Unit);
+        Assert.Equal("tsk", result.Ingredients[1].Unit);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithIngredientsAsSingleString_SplitsLines()
+    {
+        var html = WrapInHtml("""{"@type":"Recipe","name":"T","recipeIngredient":"200 g pasta\n1 burrata","recipeInstructions":[]}""");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Ingredients.Count);
+        Assert.Equal("pasta", result.Ingredients[0].Name);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithHtmlInstructionsString_SplitsIntoSteps()
+    {
+        var html = WrapInHtml("""{"@type":"Recipe","name":"T","recipeIngredient":[],"recipeInstructions":"<p>Boil the pasta.</p><p>Add the <b>sauce</b> and stir.</p>"}""");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal(new[] { "Boil the pasta.", "Add the sauce and stir." }, result.Steps.Select(s => s.Text));
+        Assert.Equal(new[] { 1, 2 }, result.Steps.Select(s => s.Order));
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithNestedHowToSections_FlattensSteps()
+    {
+        var html = WrapInHtml("""
+            {"@type":"Recipe","name":"T","recipeIngredient":[],"recipeInstructions":{"@type":"HowToSection","itemListElement":[
+              {"@type":["HowToSection"],"itemListElement":[{"@type":"HowToStep","text":"Inner"}]},
+              {"@type":"HowToStep","text":"Outer"}]}}
+            """);
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal(new[] { "Inner", "Outer" }, result.Steps.Select(s => s.Text));
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithImageObjectContentUrl_ReturnsImage()
+    {
+        var html = WrapInHtml("""{"@type":"Recipe","name":"T","image":{"@type":"ImageObject","contentUrl":"https://example.com/a.jpg"}}""");
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("https://example.com/a.jpg", result.ImageUrl);
+    }
+
+    // --- Microdata fallback ---
+
+    [Fact]
+    public async Task ParseFromUrl_WithMicrodataOnly_ParsesRecipe()
+    {
+        const string html = """
+            <html><head><meta itemprop="name" content="Not in scope"></head><body>
+            <div itemscope itemtype="https://schema.org/Recipe">
+              <h1 itemprop="name">Pasta med tomatsauce</h1>
+              <img itemprop="image" src="https://example.com/pasta.jpg" alt="">
+              <ul>
+                <li itemprop="recipeIngredient">200 g <span>pasta</span></li>
+                <li itemprop="recipeIngredient">1 burrata</li>
+              </ul>
+              <div itemprop="recipeInstructions"><p>Boil pasta.</p><p>Serve.</p></div>
+            </div></body></html>
+            """;
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com/pasta");
+
+        Assert.NotNull(result);
+        Assert.Equal("Pasta med tomatsauce", result.Name);
+        Assert.Equal("https://example.com/pasta.jpg", result.ImageUrl);
+        Assert.Equal(2, result.Ingredients.Count);
+        Assert.Equal(200m, result.Ingredients[0].Amount);
+        Assert.Equal("g", result.Ingredients[0].Unit);
+        Assert.Equal("pasta", result.Ingredients[0].Name);
+        Assert.Equal(new[] { "Boil pasta.", "Serve." }, result.Steps.Select(s => s.Text));
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_WithEmptyMicrodataRecipe_ReturnsNull()
+    {
+        const string html = """<div itemscope itemtype="http://schema.org/Recipe"><span itemprop="name">Only a name</span></div>""";
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ParseFromUrl_PrefersJsonLdOverMicrodata()
+    {
+        var html = $"""
+            <script type="application/ld+json">{MinimalRecipe}</script>
+            <div itemscope itemtype="https://schema.org/Recipe"><li itemprop="recipeIngredient">2 eggs</li></div>
+            """;
+
+        var result = await CreateService(html).ParseFromUrl("https://example.com");
+
+        Assert.NotNull(result);
+        Assert.Equal("Found", result.Name);
+    }
 }
 
 file class FakeHttpMessageHandler(string content) : HttpMessageHandler
