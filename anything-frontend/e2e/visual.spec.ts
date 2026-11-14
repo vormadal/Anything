@@ -1476,6 +1476,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByText("Milk")).toBeVisible();
     await expect(page.getByText("2 loaves")).toBeVisible();
     await expect(page.getByRole("button", { name: "Remove list from note" })).toBeVisible();
+    // The header doubles as the way to the list's own page (#808).
+    await expect(page.getByRole("link", { name: "Weekly Groceries" })).toHaveAttribute("href", "/lists/1");
     await expect(page).toHaveScreenshot("note-detail-with-list.png", screenshotOptions);
   });
 
@@ -1573,6 +1575,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByRole("button", { name: "Check item" }).first()).toBeDisabled();
     await expect(page.getByRole("button", { name: "Remove list from note" })).toHaveCount(0);
     await expect(page.getByRole("toolbar", { name: "Formatting" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Weekly Groceries" })).toBeVisible();
     await expect(page).toHaveScreenshot("note-detail-list-readonly.png", screenshotOptions);
   });
 

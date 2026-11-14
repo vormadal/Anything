@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
-import { ListChecks, ShoppingCart, X } from "lucide-react";
+import { ArrowUpRight, ListChecks, ShoppingCart, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   useShoppingList,
@@ -20,6 +21,8 @@ const CARD_CLASSES = "rounded-lg border border-gray-200 dark:border-gray-700 ove
 const HEADER_CLASSES =
   "flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30";
 const MESSAGE_CLASSES = "px-3 py-4 text-center text-sm text-gray-600 dark:text-gray-400";
+const TITLE_CLASSES = "flex-1 text-sm font-medium text-gray-900 dark:text-white";
+const LINK_CLASSES = `${TITLE_CLASSES} group flex min-w-0 items-center gap-1 rounded hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`;
 const REMOVE_CLASSES =
   "shrink-0 rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white print:hidden";
 
@@ -77,7 +80,8 @@ interface EmbeddedListCardProps {
  * optimistic updates and the offline outbox without any extra plumbing.
  *
  * Ticking items off is the only mutation offered here; adding, removing,
- * renaming and reordering items stay on the list's own page.
+ * renaming and reordering items stay on the list's own page, which the header
+ * links to.
  *
  * Kept free of Tiptap types so it can be unit-tested without an editor —
  * `EmbeddedListNodeView` below is the thin adapter that supplies its props.
@@ -106,6 +110,12 @@ export function EmbeddedListCard({ listId, label, interactive, onRemove }: Embed
       toast.error("Failed to update item. Please try again.");
     }
   };
+
+  // A soft-deleted list would only 404 on its page, so stop offering the link
+  // once we know it's gone. A network failure says nothing about the list, and
+  // the page may have it cached, so the link stays then.
+  const listGone = !items && !!error && !isNetworkError(error);
+  const title = list?.name ?? label;
 
   const renderBody = () => {
     // Items first: a cached list still renders while a background refetch fails.
@@ -142,9 +152,17 @@ export function EmbeddedListCard({ listId, label, interactive, onRemove }: Embed
           className={`h-4 w-4 shrink-0 ${shopping ? "text-green-500" : "text-blue-500"}`}
           aria-hidden="true"
         />
-        <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white">
-          {list?.name ?? label}
-        </span>
+        {listGone ? (
+          <span className={TITLE_CLASSES}>{title}</span>
+        ) : (
+          <Link href={`/lists/${listId}`} className={LINK_CLASSES} title={`Open ${title}`}>
+            <span className="truncate">{title}</span>
+            <ArrowUpRight
+              className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 print:hidden"
+              aria-hidden="true"
+            />
+          </Link>
+        )}
         {onRemove && (
           <button
             type="button"
