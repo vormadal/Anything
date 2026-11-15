@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -193,14 +194,26 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent side="left" className="w-72 flex flex-col p-0">
-          <SheetHeader className="px-6 pt-6 pb-2">
-            <SheetTitle className="text-xl">Anything</SheetTitle>
+          <SheetHeader className="shrink-0 px-6 pt-6 pb-2">
+            <SheetTitle className="flex items-center gap-3 text-xl">
+              <Image
+                src="/logo.svg"
+                alt=""
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-lg"
+                priority
+              />
+              Anything
+            </SheetTitle>
             <SheetDescription className="sr-only">
               Navigation menu
             </SheetDescription>
           </SheetHeader>
 
-          <nav className="flex-1 px-3 py-2 space-y-1">
+          {/* min-h-0 lets the nav shrink below its content so it scrolls instead of
+              pushing the account/logout footer off the bottom of the drawer. */}
+          <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-2 space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const showBadge = Boolean(item.showUnreadBadge) && unread > 0;
@@ -266,7 +279,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             </button>
           </nav>
 
-          <div className="border-t border-gray-200 dark:border-gray-800 p-4">
+          <div className="shrink-0 border-t border-gray-200 dark:border-gray-800 p-4">
             {user && (
               <button
                 onClick={() => navigate("/profile")}
