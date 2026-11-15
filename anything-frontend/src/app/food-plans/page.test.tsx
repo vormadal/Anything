@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import FoodPlanPage from './page'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
+import { differenceInCalendarDays, format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { toDateInputValue } from '@/lib/foodPlanUtils'
 
@@ -44,18 +44,32 @@ const mockScrollTo = jest.fn()
 Object.defineProperty(window, 'scrollTo', { value: mockScrollTo, writable: true })
 
 // ---- IntersectionObserver mock (jsdom does not implement it) ----
+// The page observes several elements (today's row, plus the two infinite-scroll
+// sentinels), so callbacks are tracked per observed element.
 type IntersectionCallback = (entries: IntersectionObserverEntry[]) => void
-let intersectionCallback: IntersectionCallback | null = null
-const mockIntersectionObserverDisconnect = jest.fn()
-const mockIntersectionObserverObserve = jest.fn()
+const observedCallbacks = new Map<Element, IntersectionCallback>()
 
 class MockIntersectionObserver {
+  private readonly callback: IntersectionCallback
   constructor(callback: IntersectionCallback) {
-    intersectionCallback = callback
+    this.callback = callback
   }
-  observe = mockIntersectionObserverObserve
-  disconnect = mockIntersectionObserverDisconnect
+  observe = (el: Element) => {
+    observedCallbacks.set(el, this.callback)
+  }
+  disconnect = () => {
+    for (const [el, cb] of observedCallbacks) {
+      if (cb === this.callback) observedCallbacks.delete(el)
+    }
+  }
 }
+
+function triggerIntersection(el: Element | null, isIntersecting: boolean) {
+  if (!el) throw new Error('element to intersect not found')
+  observedCallbacks.get(el)?.([{ isIntersecting, target: el } as unknown as IntersectionObserverEntry])
+}
+
+const todayRow = () => document.querySelector('[data-today="true"]')
 
 Object.defineProperty(window, 'IntersectionObserver', {
   writable: true,
@@ -330,51 +344,83 @@ describe('FoodPlanPage', () => {
     expect(screen.getAllByText(mondayDateStr)[0]).toBeInTheDocument()
   })
 
-  // ------- 4. Load more buttons -------
-  it('should show "Load earlier" and "Load more" buttons', async () => {
+  // ------- 4. Infinite scroll -------
+  // Each assertion compares the earliest/latest startDate/endDate requested.
+  function requestedEntryRanges() {
+    return mockEntriesGet.mock.calls.map(
+      ([config]) => config.queryParameters as { startDate: Date; endDate: Date },
+    )
+  }
+
+  it('should not render load more buttons', async () => {
     render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
 
-    await waitFor(() => {
-      expect(screen.getByText('i dag')).toBeInTheDocument()
-    })
-
-    expect(screen.getByRole('button', { name: 'Load earlier' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Load more' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load earlier' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
   })
 
-  it('should fetch a wider date range when "Load earlier" is clicked', async () => {
-    const user = userEvent.setup()
-
+  it('should load eight weeks either side of today by default', async () => {
     render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
+
+    const [{ startDate, endDate }] = requestedEntryRanges()
+    expect(differenceInCalendarDays(today, startDate)).toBe(56)
+    expect(differenceInCalendarDays(endDate, today)).toBe(56)
+  })
+
+  it('should fetch later weeks when the bottom sentinel scrolls into range', async () => {
+    render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
+
+    act(() => triggerIntersection(screen.getByTestId('food-plan-bottom-sentinel'), true))
 
     await waitFor(() => {
-      expect(screen.getByText('i dag')).toBeInTheDocument()
-    })
-
-    const initialCallCount = mockEntriesGet.mock.calls.length
-
-    await user.click(screen.getByRole('button', { name: 'Load earlier' }))
-
-    await waitFor(() => {
-      expect(mockEntriesGet).toHaveBeenCalledTimes(initialCallCount + 1)
+      const latest = Math.max(...requestedEntryRanges().map((r) => r.endDate.getTime()))
+      expect(differenceInCalendarDays(new Date(latest), today)).toBe(112)
     })
   })
 
-  it('should fetch a wider date range when "Load more" is clicked', async () => {
-    const user = userEvent.setup()
+  it('should fetch earlier weeks when the top sentinel scrolls into range', async () => {
+    render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
 
+    act(() => triggerIntersection(screen.getByTestId('food-plan-top-sentinel'), true))
+
+    await waitFor(() => {
+      const earliest = Math.min(...requestedEntryRanges().map((r) => r.startDate.getTime()))
+      expect(differenceInCalendarDays(today, new Date(earliest))).toBe(112)
+    })
+  })
+
+  it('should keep the existing rows on screen while a wider range loads', async () => {
+    render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
+
+    // Hold the extension's fetch open: the list must not collapse to "Loading...".
+    mockEntriesGet.mockReturnValue(new Promise(() => {}))
+    act(() => triggerIntersection(screen.getByTestId('food-plan-bottom-sentinel'), true))
+
+    await waitFor(() => expect(mockEntriesGet.mock.calls.length).toBeGreaterThan(1))
+    expect(screen.getByText('i dag')).toBeInTheDocument()
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
+  })
+
+  it('should anchor on the next active day and still extend when today is not an active day', async () => {
+    const todayBit = 1 << ((today.getDay() + 6) % 7)
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 & ~todayBit })
     render(<FoodPlanPage />)
 
+    await waitFor(() =>
+      expect(mockScrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'instant' })),
+    )
+    expect(todayRow()).toBeNull()
+
+    act(() => triggerIntersection(screen.getByTestId('food-plan-bottom-sentinel'), true))
+
     await waitFor(() => {
-      expect(screen.getByText('i dag')).toBeInTheDocument()
-    })
-
-    const initialCallCount = mockEntriesGet.mock.calls.length
-
-    await user.click(screen.getByRole('button', { name: 'Load more' }))
-
-    await waitFor(() => {
-      expect(mockEntriesGet).toHaveBeenCalledTimes(initialCallCount + 1)
+      const latest = Math.max(...requestedEntryRanges().map((r) => r.endDate.getTime()))
+      expect(differenceInCalendarDays(new Date(latest), today)).toBe(112)
     })
   })
 
@@ -1063,6 +1109,11 @@ describe('FoodPlanPage', () => {
       )
     })
 
+    // The coming week only — never the (much wider) range loaded for scrolling.
+    const { startDate, endDate } = mockAddToShoppingListPost.mock.calls[0][0]
+    expect(startDate).toEqual(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())))
+    expect(differenceInCalendarDays(endDate, startDate)).toBe(7)
+
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith('Ingredients added to shopping list')
     })
@@ -1329,7 +1380,7 @@ describe('FoodPlanPage', () => {
 
     // Simulate today going out of view
     act(() => {
-      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
+      triggerIntersection(todayRow(), false)
     })
 
     await waitFor(() => {
@@ -1348,8 +1399,8 @@ describe('FoodPlanPage', () => {
 
     // Simulate today going out of view then back in
     act(() => {
-      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
-      intersectionCallback?.([{ isIntersecting: true } as IntersectionObserverEntry])
+      triggerIntersection(todayRow(), false)
+      triggerIntersection(todayRow(), true)
     })
 
     await waitFor(() => {
@@ -1383,7 +1434,7 @@ describe('FoodPlanPage', () => {
 
     // Make button visible first
     act(() => {
-      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
+      triggerIntersection(todayRow(), false)
     })
 
     await waitFor(() => {

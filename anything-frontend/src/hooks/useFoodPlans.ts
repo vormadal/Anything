@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DateOnly } from "@microsoft/kiota-abstractions";
 import { apiClient } from "@/lib/apiClient";
 import type {
@@ -108,8 +108,10 @@ export function useDeleteSeasonalTagRule() {
   });
 }
 
-export function useFoodPlanEntries(startDate: string, endDate: string) {
-  return useQuery({
+// Shared with the food-plan page, which prefetches a wider range before
+// rendering it so infinite scroll never flashes a loading state.
+export function foodPlanEntriesQueryOptions(startDate: string, endDate: string) {
+  return queryOptions({
     queryKey: ["foodPlanEntries", startDate, endDate],
     queryFn: () =>
       apiClient.api.foodPlan.entries.get({
@@ -117,6 +119,10 @@ export function useFoodPlanEntries(startDate: string, endDate: string) {
       }) as Promise<FoodPlanEntry[]>,
     enabled: !!startDate && !!endDate,
   });
+}
+
+export function useFoodPlanEntries(startDate: string, endDate: string) {
+  return useQuery(foodPlanEntriesQueryOptions(startDate, endDate));
 }
 
 export function useAddFoodPlanEntry() {
@@ -185,8 +191,8 @@ export function useAddFoodPlanToShoppingList() {
   });
 }
 
-export function useFoodPlanNotes(startDate: string, endDate: string) {
-  return useQuery({
+export function foodPlanNotesQueryOptions(startDate: string, endDate: string) {
+  return queryOptions({
     queryKey: ["foodPlanNotes", startDate, endDate],
     queryFn: () =>
       apiClient.api.foodPlan.notes.get({
@@ -197,6 +203,10 @@ export function useFoodPlanNotes(startDate: string, endDate: string) {
       }) as Promise<FoodPlanNote[]>,
     enabled: !!startDate && !!endDate,
   });
+}
+
+export function useFoodPlanNotes(startDate: string, endDate: string) {
+  return useQuery(foodPlanNotesQueryOptions(startDate, endDate));
 }
 
 export function useUpsertFoodPlanNote() {

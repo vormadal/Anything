@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   useFoodPlanSettings,
-  useFoodPlanEntries,
-  useFoodPlanNotes,
+  foodPlanEntriesQueryOptions,
+  foodPlanNotesQueryOptions,
   useFoodPlanSuggestions,
   useAddFoodPlanEntry,
   useDeleteFoodPlanEntry,
@@ -18,7 +18,8 @@ import {
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { FoodPlanEntry, RecipeListItemResponse } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
@@ -33,6 +34,15 @@ import { da } from "date-fns/locale";
 const DEFAULT_ACTIVE_DAYS = 31;
 const SUGGESTION_BLUR_DELAY_MS = 150;
 const MAX_RANKED_SUGGESTIONS = 5;
+// Entries are cheap to fetch, so start wide and grow in big steps: fewer
+// extensions means fewer chances for the list to shift under the reader.
+const INITIAL_WEEKS = 8;
+const EXTEND_WEEKS = 8;
+// Start extending well before the reader reaches either end of the list.
+const SENTINEL_ROOT_MARGIN = "800px 0px";
+// The shopping-list action covers the coming week, not whatever range happens
+// to be loaded — with infinite scroll that could be months.
+const SHOPPING_LIST_DAYS = 7;
 
 function addDays(date: Date, days: number): Date {
   return dateFnsAddDays(date, days);
@@ -100,8 +110,9 @@ function DayRow({
 
   return (
     <button
-      ref={isToday ? todayRef : undefined}
+      ref={todayRef}
       aria-label={`${weekday}${relative ? `, ${relative}` : ""}`}
+      data-day={dateStr}
       data-today={isToday ? "true" : undefined}
       className={`w-full text-left rounded-lg border p-3 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 ${
         isToday
@@ -625,8 +636,18 @@ function AddToShoppingListDialog({
 
 export default function FoodPlanPage() {
   const router = useRouter();
-  const [weeksBack, setWeeksBack] = useState(1);
-  const [weeksForward, setWeeksForward] = useState(1);
+  const queryClient = useQueryClient();
+  const [weeksBack, setWeeksBack] = useState(INITIAL_WEEKS);
+  const [weeksForward, setWeeksForward] = useState(INITIAL_WEEKS);
+  // Infinite scroll stays off until today has been scrolled into view — the
+  // page renders at the top first, which would otherwise trip the top sentinel.
+  const [hasScrolledToToday, setHasScrolledToToday] = useState(false);
+  const isExtending = useRef(false);
+  // Document height just before rows were prepended; the layout effect below
+  // scrolls by the difference so the rows the reader is looking at stay put.
+  const heightBeforePrepend = useRef<number | null>(null);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [suggestOnOpen, setSuggestOnOpen] = useState(false);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
@@ -646,6 +667,7 @@ export default function FoodPlanPage() {
       const elementTop = el.getBoundingClientRect().top + window.scrollY;
       const offset = window.innerHeight * 0.25;
       window.scrollTo({ top: elementTop - offset, behavior: "instant" });
+      setHasScrolledToToday(true);
 
       const observer = new IntersectionObserver(
         ([entry]) => setIsTodayVisible(entry.isIntersecting),
@@ -672,11 +694,17 @@ export default function FoodPlanPage() {
   const endDateStr = toDateInputValue(endDay);
 
   const { data: settings } = useFoodPlanSettings();
-  const { data: entries, isLoading } = useFoodPlanEntries(
-    startDateStr + "T00:00:00Z",
-    endDateStr + "T23:59:59Z"
-  );
-  const { data: notes } = useFoodPlanNotes(startDateStr, endDateStr);
+  // keepPreviousData is a safety net: extend() prefetches the wider range
+  // before switching to it, but if that prefetch failed the list must keep
+  // its rows rather than collapse into "Loading..." and lose the scroll spot.
+  const { data: entries, isLoading } = useQuery({
+    ...foodPlanEntriesQueryOptions(startDateStr + "T00:00:00Z", endDateStr + "T23:59:59Z"),
+    placeholderData: keepPreviousData,
+  });
+  const { data: notes } = useQuery({
+    ...foodPlanNotesQueryOptions(startDateStr, endDateStr),
+    placeholderData: keepPreviousData,
+  });
   const { data: recipes } = useRecipes();
 
   const activeDays = settings?.activeDays ?? DEFAULT_ACTIVE_DAYS;
@@ -691,6 +719,14 @@ export default function FoodPlanPage() {
       return { date, active: activeDaySet.has(ourDay) };
     }).filter(({ active }) => active);
   }, [startDay, totalDays, activeDaySet]);
+
+  // The row scrolled into view on load: today, or the next active day when
+  // today isn't one (e.g. a weekend with a Mon–Fri plan).
+  const anchorKey = useMemo(() => {
+    const todayKey = toDateInputValue(today);
+    const anchor = orderedDays.find(({ date }) => toDateInputValue(date) >= todayKey);
+    return anchor ? toDateInputValue(anchor.date) : null;
+  }, [orderedDays, today]);
 
   const getNoteForDate = (date: Date): FoodPlanNote | null => {
     if (!notes) return null;
@@ -708,6 +744,91 @@ export default function FoodPlanPage() {
       return toDateInputValue(new Date(e.date)) === ds;
     });
   };
+
+  const extend = useCallback(
+    async (direction: "back" | "forward") => {
+      if (isExtending.current) return;
+      isExtending.current = true;
+      try {
+        const nextStart = direction === "back" ? addDays(today, -((weeksBack + EXTEND_WEEKS) * 7)) : startDay;
+        const nextEnd = direction === "forward" ? addDays(today, (weeksForward + EXTEND_WEEKS) * 7) : endDay;
+        const s = toDateInputValue(nextStart);
+        const e = toDateInputValue(nextEnd);
+        // Fetch first, render second: the new rows then appear in one commit
+        // with their meals already in them, so their height is final and the
+        // prepend compensation below is exact.
+        await Promise.all([
+          queryClient.prefetchQuery(foodPlanEntriesQueryOptions(s + "T00:00:00Z", e + "T23:59:59Z")),
+          queryClient.prefetchQuery(foodPlanNotesQueryOptions(s, e)),
+        ]);
+        if (direction === "back") {
+          heightBeforePrepend.current = document.documentElement.scrollHeight;
+          setWeeksBack((w) => w + EXTEND_WEEKS);
+        } else {
+          setWeeksForward((w) => w + EXTEND_WEEKS);
+        }
+      } finally {
+        isExtending.current = false;
+      }
+    },
+    [queryClient, today, weeksBack, weeksForward, startDay, endDay]
+  );
+
+  useLayoutEffect(() => {
+    const before = heightBeforePrepend.current;
+    if (before === null) return;
+    heightBeforePrepend.current = null;
+    const delta = document.documentElement.scrollHeight - before;
+    if (delta > 0) window.scrollTo({ top: window.scrollY + delta, behavior: "instant" });
+  }, [weeksBack]);
+
+  // Browser scroll anchoring would also try to compensate for prepended rows
+  // (Chrome/Firefox, not Safari), doubling the correction. Turn it off so the
+  // manual compensation above is the only one, on every browser.
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.style.overflowAnchor;
+    root.style.overflowAnchor = "none";
+    return () => {
+      root.style.overflowAnchor = previous;
+    };
+  }, []);
+
+  // Re-created whenever the range changes so a sentinel that is *still* in
+  // range after an extension fires again (observers only report changes).
+  useEffect(() => {
+    // With no anchor row in range there is nothing to scroll to first.
+    if (isLoading || (!hasScrolledToToday && anchorKey !== null)) return;
+    const observers = (
+      [
+        [topSentinelRef.current, "back"],
+        [bottomSentinelRef.current, "forward"],
+      ] as const
+    ).flatMap(([el, direction]) => {
+      if (!el) return [];
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry?.isIntersecting) void extend(direction);
+        },
+        { rootMargin: SENTINEL_ROOT_MARGIN }
+      );
+      observer.observe(el);
+      return [observer];
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [hasScrolledToToday, isLoading, anchorKey, extend]);
+
+  const shoppingStart = today;
+  const shoppingEnd = useMemo(() => addDays(today, SHOPPING_LIST_DAYS), [today]);
+  const shoppingEntries = useMemo(() => {
+    const from = toDateInputValue(shoppingStart);
+    const to = toDateInputValue(shoppingEnd);
+    return (entries ?? []).filter((e) => {
+      if (!e.date) return false;
+      const ds = toDateInputValue(new Date(e.date));
+      return ds >= from && ds <= to;
+    });
+  }, [entries, shoppingStart, shoppingEnd]);
 
   // Scroll today into view, positioned ~1/4 down from the top of the viewport
   const scrollToToday = useCallback(() => {
@@ -752,12 +873,7 @@ export default function FoodPlanPage() {
     <div className="container mx-auto px-4 py-4 max-w-2xl">
       <PageTitle>Food Plan</PageTitle>
 
-      {/* Load earlier — starts above the viewport on initial load */}
-      <div className="flex justify-center py-3">
-        <Button variant="outline" size="sm" onClick={() => setWeeksBack((w) => w + 1)}>
-          Load earlier
-        </Button>
-      </div>
+      <div ref={topSentinelRef} data-testid="food-plan-top-sentinel" aria-hidden="true" />
 
       {isLoading && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -781,18 +897,13 @@ export default function FoodPlanPage() {
                 );
                 setSelectedDay(date);
               }}
-              todayRef={todayRefCallback}
+              todayRef={toDateInputValue(date) === anchorKey ? todayRefCallback : undefined}
             />
           ))}
         </div>
       )}
 
-      {/* Load more — starts below the viewport on initial load */}
-      <div className="flex justify-center py-3">
-        <Button variant="outline" size="sm" onClick={() => setWeeksForward((w) => w + 1)}>
-          Load more
-        </Button>
-      </div>
+      <div ref={bottomSentinelRef} data-testid="food-plan-bottom-sentinel" aria-hidden="true" />
 
       {selectedDay && (
         <DayManagementDialog
@@ -807,9 +918,9 @@ export default function FoodPlanPage() {
 
       {showShoppingListDialog && (
         <AddToShoppingListDialog
-          startDate={startDay}
-          endDate={endDay}
-          entries={entries}
+          startDate={shoppingStart}
+          endDate={shoppingEnd}
+          entries={shoppingEntries}
           recipes={recipes}
           onClose={() => setShowShoppingListDialog(false)}
         />
