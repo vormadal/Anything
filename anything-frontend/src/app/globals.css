@@ -200,7 +200,12 @@ body {
 .app-header {
   background: var(--ink);
   color: var(--ink-foreground);
-  border-color: var(--ink);
+  /* A 2px coral rule: the 1px border plus a 1px shadow below it, so the
+     header keeps its 57px height (NoteEditor's sticky toolbar sits at top-14
+     and the header's z-40 paints the rule over it). Also what separates the
+     bar from the page in dark mode, where ink and background are close. */
+  border-color: var(--coral);
+  box-shadow: 0 1px 0 var(--coral);
 }
 .app-header :is(h1, h2, button, a),
 .app-header :is(button, a) svg {
