@@ -28,6 +28,14 @@ Shared utilities and the generated API client.
 - Never cast API response types to `any`; use the generated model types from `api-client/models/index`.
 - **Never use raw `fetch` or `apiFetch` for API calls** — use the configured `apiClient`. If the endpoint you need isn't in the generated client yet, do **not** reach for `apiFetch` as a stopgap: push the backend change (or open the PR) first so the `update-api-client` workflow regenerates and commits `api-client/**`, pull/rebase those changes, then implement the call against the regenerated `apiClient`. This holds even when the file you're editing already uses raw `fetch`/`apiFetch` — and when you touch such a file, migrate its legacy calls to `apiClient` as part of your change rather than copying the pattern.
 
+## Recent searches (`recentSearches.ts`)
+
+Global-search history is **device-local only** (`localStorage["recentSearches"]`, newest first, capped at `MAX_RECENT_SEARCHES`), read through `useRecentSearches` (a `useSyncExternalStore` hook). Three things to keep:
+
+- **A term is saved on commit, not on keystroke** — opening a result or pressing Enter in `GlobalSearchCard`. Saving each debounced term would fill the list with half-typed prefixes.
+- **`getRecentSearches` must return a stable reference** while the raw string is unchanged (it caches by raw value); a fresh array per call makes `useSyncExternalStore` re-render forever.
+- **`clearTokens` (logout) wipes it**, so a shared device doesn't show the previous user's searches. Every storage access is in `try/catch` — history is a convenience and must never break search.
+
 ## Security Rules
 
 - **Access and refresh tokens live in `localStorage` (`apiClient.ts`), so any XSS is a full account takeover.** Never use `dangerouslySetInnerHTML` or render externally-sourced HTML/markup directly. The note importers are the model: all foreign HTML goes through `generateJSON(html, noteExtensions)` so only schema-known nodes survive. Text from the API or a parsed file renders as React text children (auto-escaped), never as markup.
