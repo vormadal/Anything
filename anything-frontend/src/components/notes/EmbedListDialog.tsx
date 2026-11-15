@@ -11,6 +11,7 @@ import { CountBadge } from "@/components/ui/count-badge";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { isShoppingList } from "@/lib/listTypes";
 import type { ShoppingListResponse } from "@/lib/api-client/models/index";
+import { KIND_TEXT } from "@/lib/kinds";
 
 const MESSAGE_CLASSES = "py-6 text-center text-sm text-gray-600 dark:text-gray-400";
 const ROW_CLASSES =
@@ -50,7 +51,7 @@ export function EmbedListDialog({ open, onOpenChange, onSelect }: Props) {
               <button type="button" className={ROW_CLASSES} onClick={() => handleSelect(list)}>
                 <span className="flex items-center gap-2 min-w-0">
                   <ListIcon
-                    className={`h-4 w-4 shrink-0 ${shopping ? "text-green-500" : "text-blue-500"}`}
+                    className={`h-4 w-4 shrink-0 ${KIND_TEXT.lists}`}
                     aria-hidden="true"
                   />
                   <span className="truncate text-sm font-medium text-gray-900 dark:text-white">

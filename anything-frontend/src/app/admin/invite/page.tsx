@@ -83,7 +83,7 @@ export default function AdminInvitePage() {
   const getInviteStatus = (invite: InviteResponse) => {
     if (invite.isUsed) return { label: "Accepted", className: "text-green-600 dark:text-green-400" };
     if (invite.isExpired) return { label: "Expired", className: "text-red-600 dark:text-red-400" };
-    return { label: "Pending", className: "text-yellow-600 dark:text-yellow-400" };
+    return { label: "Pending", className: "text-amber-600 dark:text-amber-400" };
   };
 
   return (

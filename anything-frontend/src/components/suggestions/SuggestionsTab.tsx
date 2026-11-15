@@ -153,7 +153,7 @@ function RecommendationRow({
             <span
               className={`mt-1 inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs ${
                 isShared
-                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                  ? "bg-kind-lists/15 text-gray-800 dark:text-gray-100"
                   : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
               }`}
             >
@@ -168,7 +168,7 @@ function RecommendationRow({
           <div className="flex items-center gap-2 shrink-0">
             {showUncategorizedMarker && !rec.categoryId && (
               <span
-                className="h-2.5 w-2.5 rounded-full bg-yellow-400 dark:bg-yellow-300"
+                className="h-2.5 w-2.5 rounded-full bg-amber-400 dark:bg-amber-300"
                 title="Uncategorized"
                 aria-label="Uncategorized"
                 role="img"

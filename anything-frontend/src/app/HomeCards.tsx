@@ -18,7 +18,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { itemPath } from "@/lib/inventory";
 import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
-import { KIND_EDGE, KIND_TEXT } from "@/lib/kinds";
+import { BILL_PAYMENT, KIND_EDGE, KIND_TEXT } from "@/lib/kinds";
 import { RenovationHomeCard } from "@/components/renovation/home/RenovationHomeCard";
 
 // Maps a search result's entityType to its detail-page route. Entity types not
@@ -298,11 +298,11 @@ export function BillsCard() {
             </p>
             <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
               <span className="flex items-center gap-1">
-                <Zap className="h-3 w-3 text-green-500" />
+                <Zap className={`h-3 w-3 ${BILL_PAYMENT.auto.icon}`} />
                 {billSummary.automatedCount} auto
               </span>
               <span className="flex items-center gap-1">
-                <Hand className="h-3 w-3 text-orange-400" />
+                <Hand className={`h-3 w-3 ${BILL_PAYMENT.manual.icon}`} />
                 {billSummary.manualCount} manual
               </span>
               <span>{billSummary.totalBills} bills total</span>
@@ -350,7 +350,7 @@ export function QuickCreateCard() {
         onCreated={(listId) => router.push(`/lists/${listId}`)}
       />
       <div className="flex items-center gap-2 mb-3">
-        <Zap className="h-5 w-5 text-amber-500" />
+        <Zap className="h-5 w-5 text-coral" />
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Create</h2>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

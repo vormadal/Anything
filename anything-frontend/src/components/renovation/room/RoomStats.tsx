@@ -11,8 +11,8 @@ interface RoomStatsProps {
 const TILE_CLASS = "flex flex-col gap-0.5 rounded-lg bg-gray-50 dark:bg-gray-800 p-2.5";
 const TILE_LABEL_CLASS = "text-xs text-gray-500 dark:text-gray-400";
 const TILE_VALUE_CLASS = "text-sm font-semibold text-gray-900 dark:text-white";
-const OVER_TILE_CLASS = "flex flex-col gap-0.5 rounded-lg bg-orange-50 dark:bg-orange-900/20 p-2.5";
-const OVER_TEXT_CLASS = "text-orange-700 dark:text-orange-400";
+const OVER_TILE_CLASS = "flex flex-col gap-0.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2.5";
+const OVER_TEXT_CLASS = "text-amber-700 dark:text-amber-400";
 
 /** Estimate, spent and forecast for one room. Forecast turns orange once it passes the estimate. */
 export function RoomStats({ estimate, actual, forecast }: RoomStatsProps) {

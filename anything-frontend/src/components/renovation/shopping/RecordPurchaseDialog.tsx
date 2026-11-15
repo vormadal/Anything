@@ -13,7 +13,7 @@ import { distributeQuantity, parseQuantity, previewSplit, todayIso } from "./sho
 
 const NEW_VENDOR = "new";
 const NO_VENDOR = "";
-const OVER_CLASS = "text-orange-700 dark:text-orange-400";
+const OVER_CLASS = "text-amber-700 dark:text-amber-400";
 const UNDER_CLASS = "text-blue-700 dark:text-blue-400";
 const MUTED_CLASS = "text-gray-500 dark:text-gray-400";
 

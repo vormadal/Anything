@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { BILL_CATEGORY_CHIP, BILL_PAYMENT } from "@/lib/kinds";
 
 export default function BillDetailPage() {
   const params = useParams();
@@ -214,17 +215,17 @@ export default function BillDetailPage() {
           </div>
           <div className="flex items-center gap-1 flex-wrap justify-end">
             {bill.category && (
-              <span className="px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-medium">
+              <span className={`px-2 py-1 rounded-full ${BILL_CATEGORY_CHIP} text-xs font-medium`}>
                 {bill.category}
               </span>
             )}
             {bill.isAutomated ? (
-              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium">
+              <span className={`flex items-center gap-1 px-2 py-1 rounded-full ${BILL_PAYMENT.auto.chip} text-xs font-medium`}>
                 <Zap className="h-3 w-3" />
                 Auto
               </span>
             ) : (
-              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-medium">
+              <span className={`flex items-center gap-1 px-2 py-1 rounded-full ${BILL_PAYMENT.manual.chip} text-xs font-medium`}>
                 <Hand className="h-3 w-3" />
                 Manual
               </span>

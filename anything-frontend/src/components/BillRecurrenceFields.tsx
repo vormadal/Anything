@@ -1,6 +1,7 @@
 "use client";
 
 import { PAYMENT_FREQUENCIES, FREQUENCY_LABELS } from "@/hooks/useBills";
+import { SELECTED_SEGMENT } from "@/lib/kinds";
 
 interface BillRecurrenceFieldsProps {
   /** Prefix for element ids (e.g. "bill" or "edit-bill") to keep ids unique per form. */
@@ -135,7 +136,7 @@ export function BillRecurrenceFields({
                 onClick={() => onIsAutomatedChange(true)}
                 className={`flex-1 py-2 text-xs font-medium transition-colors ${
                   isAutomated
-                    ? "bg-green-600 text-white"
+                    ? SELECTED_SEGMENT
                     : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
                 }`}
               >
@@ -146,7 +147,7 @@ export function BillRecurrenceFields({
                 onClick={() => onIsAutomatedChange(false)}
                 className={`flex-1 py-2 text-xs font-medium transition-colors ${
                   !isAutomated
-                    ? "bg-orange-500 text-white"
+                    ? SELECTED_SEGMENT
                     : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300"
                 }`}
               >

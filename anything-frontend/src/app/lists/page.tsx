@@ -21,6 +21,7 @@ import { useSortableOrder } from "@/hooks/useSortableOrder";
 import type { ShoppingListResponse } from "@/lib/api-client/models/index";
 import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
+import { KIND_TEXT } from "@/lib/kinds";
 
 const getListId = (list: ShoppingListResponse) => list.id ?? 0;
 
@@ -70,7 +71,7 @@ function DraggableListItem({
         onClick={onClick}
       >
         <div className="flex items-center gap-2">
-          <ListIcon className={`h-4 w-4 shrink-0 ${list.type === 0 ? "text-blue-500" : "text-green-500"}`} />
+          <ListIcon className={`h-4 w-4 shrink-0 ${KIND_TEXT.lists}`} />
           <span className="text-gray-900 dark:text-white font-medium text-sm">
             {list.name}
           </span>

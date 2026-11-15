@@ -16,6 +16,7 @@ import { isShoppingList } from "@/lib/listTypes";
 import { sortMostRecentlyCheckedFirst } from "@/lib/checklistOrder";
 import { useFlipAnimation } from "@/hooks/useFlipAnimation";
 import type { ShoppingListItem } from "@/lib/api-client/models/index";
+import { KIND_TEXT } from "@/lib/kinds";
 
 const CARD_CLASSES = "rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden";
 const HEADER_CLASSES =
@@ -149,7 +150,7 @@ export function EmbeddedListCard({ listId, label, interactive, onRemove }: Embed
     <div className={CARD_CLASSES}>
       <div className={HEADER_CLASSES}>
         <ListIcon
-          className={`h-4 w-4 shrink-0 ${shopping ? "text-green-500" : "text-blue-500"}`}
+          className={`h-4 w-4 shrink-0 ${KIND_TEXT.lists}`}
           aria-hidden="true"
         />
         {listGone ? (

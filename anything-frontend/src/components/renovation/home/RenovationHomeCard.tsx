@@ -32,7 +32,7 @@ export function budgetStatus(
 ): { label: string; className: string } | null {
   if (budget === null || budget === undefined || budget <= 0) return null;
   return forecast > budget
-    ? { label: "Over budget", className: "text-orange-700 dark:text-orange-400" }
+    ? { label: "Over budget", className: "text-amber-700 dark:text-amber-400" }
     : { label: "On track", className: "text-green-700 dark:text-green-400" };
 }
 

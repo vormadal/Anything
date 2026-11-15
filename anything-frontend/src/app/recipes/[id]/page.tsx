@@ -32,6 +32,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useCookingMode, type CookingSession } from "@/context/CookingModeContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { COOKING } from "@/lib/kinds";
 
 const OFFLINE_TITLE_REIMPORT = "Reimporting a recipe requires an internet connection";
 
@@ -62,7 +63,7 @@ function CookingHeaderButton({
       size="icon"
       onClick={handleClick}
       aria-label={isCooking ? "Stop cooking mode" : "Start cooking mode"}
-      className={isCooking ? "text-orange-600 bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/40" : ""}
+      className={isCooking ? COOKING.toggleActive : ""}
     >
       <ChefHat className="h-5 w-5" />
     </Button>

@@ -48,7 +48,7 @@ export function ProjectBudgetCard({ project, onSetBudget }: ProjectBudgetCardPro
           <span
             className={
               over
-                ? "rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
+                ? "rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
                 : "rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
             }
           >
@@ -108,7 +108,7 @@ export function ProjectBudgetCard({ project, onSetBudget }: ProjectBudgetCardPro
         <div
           className={
             bought.delta > 0
-              ? "flex flex-col gap-0.5 rounded-lg bg-orange-50 px-3 py-2.5 dark:bg-orange-900/20"
+              ? "flex flex-col gap-0.5 rounded-lg bg-amber-50 px-3 py-2.5 dark:bg-amber-900/20"
               : "flex flex-col gap-0.5 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-900/40"
           }
         >
