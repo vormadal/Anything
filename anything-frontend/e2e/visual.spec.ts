@@ -1132,6 +1132,21 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-with-data.png", screenshotOptions);
   });
 
+  test("app drawer - open on a short viewport", async ({ page }) => {
+    // A short viewport is the case that matters: the nav must scroll so the
+    // account/logout footer stays in view instead of being pushed off-screen.
+    await page.setViewportSize({ width: 390, height: 560 });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^Open menu/ }).click();
+    const drawer = page.getByRole("dialog");
+    await expect(drawer.locator('img[src*="logo"]')).toBeVisible();
+    await expect(drawer.getByRole("button", { name: "Log out" })).toBeInViewport();
+    await expect(page).toHaveScreenshot("app-drawer-short-viewport.png", {
+      animations: "disabled" as const,
+    });
+  });
+
   test("home page - quick create card", async ({ page }) => {
     // Show the Quick Create card (List / Recipe / Bill / Meal shortcuts) on top.
     await page.route("**/api/home/card-preferences**", (route) => {
