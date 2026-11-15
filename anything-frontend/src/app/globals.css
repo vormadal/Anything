@@ -15,44 +15,78 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --primary: #171717;
-  --primary-foreground: #fafafa;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #171717;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --accent: #f5f5f5;
-  --accent-foreground: #171717;
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --ring: #171717;
+  /*
+   * "Octopus" theme. Ink violet is the brand colour, coral the accent; the
+   * neutrals are tinted towards the ink rather than pure grey. The bulk of the
+   * app styles itself with Tailwind's `gray-*`/`blue-*` utilities rather than
+   * these tokens, so the `@theme` block below re-points those two scales at
+   * the same palette — that is what actually recolours ~2,700 class usages
+   * without touching a component.
+   */
+  --background: #f7f6fa;
+  --foreground: #1d1a2a;
+  --primary: #3a2e6e;
+  --primary-foreground: #ffffff;
+  --secondary: #efedf4;
+  --secondary-foreground: #1d1a2a;
+  --muted: #efedf4;
+  --muted-foreground: #6f6984;
+  --accent: #efedf4;
+  --accent-foreground: #1d1a2a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e3e0ea;
+  --input: #e3e0ea;
+  --ring: #5442a8;
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
+  --popover-foreground: #1d1a2a;
+
+  /* The header bar. Same in both schemes: it is the brand surface. */
+  --ink: #2b2350;
+  --ink-foreground: #f1edf8;
+  --coral: #e85a4a;
+
+  /*
+   * One colour per kind of thing — the octopus's arms. Used for the home-card
+   * edges, their heading icons and the navigation drawer, via
+   * `@/lib/kinds.ts`. Keep the two lists in step.
+   */
+  --kind-lists: #e85a4a;
+  --kind-notes: #7a5cd6;
+  --kind-food: #3f9a57;
+  --kind-bills: #c99520;
+  --kind-storage: #2a9d8f;
+  --kind-renovation: #4f7cc4;
 }
 
 @media screen and (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-    --primary: #fafafa;
-    --primary-foreground: #171717;
-    --secondary: #262626;
-    --secondary-foreground: #fafafa;
-    --muted: #262626;
-    --muted-foreground: #a3a3a3;
-    --accent: #262626;
-    --accent-foreground: #fafafa;
+    --background: #100e18;
+    --foreground: #f1edf8;
+    --primary: #ff7a6a;
+    --primary-foreground: #1a1426;
+    --secondary: #28243a;
+    --secondary-foreground: #f1edf8;
+    --muted: #28243a;
+    --muted-foreground: #9d97ae;
+    --accent: #28243a;
+    --accent-foreground: #f1edf8;
     --destructive: #dc2626;
-    --destructive-foreground: #fafafa;
-    --border: #262626;
-    --input: #262626;
-    --ring: #d4d4d4;
-    --popover: #0a0a0a;
-    --popover-foreground: #fafafa;
+    --destructive-foreground: #ffffff;
+    --border: #28243a;
+    --input: #3f3a52;
+    --ring: #8b7ad6;
+    --popover: #1a1726;
+    --popover-foreground: #f1edf8;
+
+    --coral: #ff7a6a;
+
+    --kind-lists: #ff7a6a;
+    --kind-notes: #9c84f0;
+    --kind-food: #5cc174;
+    --kind-bills: #e7be55;
+    --kind-storage: #47c2b4;
+    --kind-renovation: #7fa3e0;
   }
 }
 
@@ -74,14 +108,106 @@
   --color-ring: var(--ring);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-coral: var(--coral);
+  --color-kind-lists: var(--kind-lists);
+  --color-kind-notes: var(--kind-notes);
+  --color-kind-food: var(--kind-food);
+  --color-kind-bills: var(--kind-bills);
+  --color-kind-storage: var(--kind-storage);
+  --color-kind-renovation: var(--kind-renovation);
+
+  /* Self-hosted via @fontsource-variable (imported in layout.tsx), so builds
+     and visual snapshots never depend on reaching Google Fonts. */
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk Variable", "Inter Variable", system-ui, sans-serif;
+}
+
+@theme {
+  /* Ink-tinted neutrals in place of Tailwind's cool grey. */
+  --color-gray-50: #f7f6fa;
+  --color-gray-100: #efedf4;
+  --color-gray-200: #e3e0ea;
+  --color-gray-300: #cdc8d8;
+  --color-gray-400: #9d97ae;
+  --color-gray-500: #6f6984;
+  --color-gray-600: #565068;
+  --color-gray-700: #3f3a52;
+  --color-gray-800: #28243a;
+  --color-gray-900: #1a1726;
+  --color-gray-950: #100e18;
+
+  /* `blue-*` is the app's de-facto primary (buttons, links, focus rings);
+     re-pointed at the ink violet. */
+  --color-blue-50: #f2f0fb;
+  --color-blue-100: #e5e1f7;
+  --color-blue-200: #ccc4ef;
+  --color-blue-300: #ab9fe3;
+  --color-blue-400: #8b7ad6;
+  --color-blue-500: #6c58c4;
+  --color-blue-600: #5442a8;
+  --color-blue-700: #43358a;
+  --color-blue-800: #3a2e6e;
+  --color-blue-900: #2b2350;
+  --color-blue-950: #1c1636;
+
+  /*
+   * Squared-off corners: every named radius collapses to 4px (2px for the
+   * smallest), so the ~350 `rounded-*` usages follow without edits.
+   * `rounded-full` is untouched on purpose — pills, avatars and badges stay
+   * round, which is the contrast that keeps the square cards from feeling stark.
+   */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
+  --radius-2xl: 0.25rem;
+  --radius-3xl: 0.25rem;
+  --radius-4xl: 0.25rem;
+
+  /* Flat surfaces: the small shadows that cards, inputs and buttons carry are
+     dropped in favour of their borders. The larger ones stay — dialogs, menus
+     and toasts float above the page and need them to read as layered. */
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/*
+ * The app header is an ink bar in both schemes. Headers mix the shell's own
+ * controls with whatever a page injects through `setHeaderActions`, and those
+ * carry their own `text-gray-*` classes written for a light bar — so the
+ * colours are forced here, unlayered (outranks the utilities, see the print
+ * note further down), rather than chased through every page.
+ */
+.app-header {
+  background: var(--ink);
+  color: var(--ink-foreground);
+  border-color: var(--ink);
+}
+.app-header :is(h1, h2, button, a),
+.app-header :is(button, a) svg {
+  color: inherit;
+}
+.app-header button:hover {
+  background: rgb(255 255 255 / 0.12);
 }
 
 /* Animation keyframes for shadcn sheet/dialog */

@@ -57,7 +57,7 @@ export default function HouseholdSearchIndexPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <PageTitle>Search Index</PageTitle>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3 mb-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             What&apos;s currently searchable for your household through the home page search widget.

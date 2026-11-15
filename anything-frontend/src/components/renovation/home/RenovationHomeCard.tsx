@@ -9,6 +9,7 @@ import { useRenovationProjects } from "@/hooks/useRenovation";
 import type { RenovationProjectSummaryResponse } from "@/lib/api-client/models/index";
 import { formatKr } from "@/lib/renovation";
 import { loadFailure } from "@/lib/queryState";
+import { KIND_EDGE, KIND_TEXT } from "@/lib/kinds";
 
 const MUTED_CLASS = "text-gray-500 dark:text-gray-400";
 
@@ -39,7 +40,7 @@ function CardHeader() {
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
-        <Hammer className="h-5 w-5 text-orange-600" aria-hidden="true" />
+        <Hammer className={`h-5 w-5 ${KIND_TEXT.renovation}`} aria-hidden="true" />
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Renovation</h2>
       </div>
     </div>
@@ -74,7 +75,7 @@ export function RenovationHomeCard() {
     return (
       <section>
         <CardHeader />
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.renovation} p-4 text-center`}>
           <p className={`text-sm mb-2 ${MUTED_CLASS}`}>No renovation projects yet</p>
           <Link
             href="/renovation"
@@ -98,7 +99,7 @@ export function RenovationHomeCard() {
       <CardHeader />
       <Link
         href={`/renovation/${id}`}
-        className="flex w-full flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700/50"
+        className={`flex w-full flex-col gap-2 rounded-lg border border-gray-200 ${KIND_EDGE.renovation} bg-white px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700/50`}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">

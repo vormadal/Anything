@@ -28,7 +28,7 @@ export default function AdminInvitePage() {
   if (user && !isAdmin(user.role)) {
     return (
       <div className="flex items-center justify-center p-4 mt-20">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 w-full max-w-md text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Access Denied
           </h1>
@@ -89,7 +89,7 @@ export default function AdminInvitePage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl">
       <PageTitle>Invite Users</PageTitle>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Generate a one-time registration link for a specific email address.
         </p>
@@ -168,7 +168,7 @@ export default function AdminInvitePage() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Invites</h2>
         {invitesLoading ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">Loading invites...</p>

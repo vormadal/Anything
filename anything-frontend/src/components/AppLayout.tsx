@@ -46,6 +46,7 @@ import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { OnboardingTourDialog } from "@/components/OnboardingTourDialog";
 import { NotificationBadge } from "@/components/NotificationBadge";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
+import { KIND_TEXT, ROUTE_KIND } from "@/lib/kinds";
 
 const PUBLIC_PATHS = ["/login", "/register", "/shared"];
 
@@ -144,7 +145,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     // (the note editor does) instead of guessing at a `calc(100dvh - …)` — the
     // header is 57px, not the 56px its h-14 suggests, thanks to its border.
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 print:block print:bg-none">
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 print:hidden">
+      <header className="app-header sticky top-0 z-40 border-b print:hidden">
         <div className="flex items-center h-14 px-4">
           {leftAction.type === "back" ? (
             <Button
@@ -214,7 +215,11 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                     isActive(item.path) ? NAV_ACTIVE_CLASS : NAV_INACTIVE_CLASS
                   }`}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
+                  <Icon
+                    className={`h-5 w-5 shrink-0 ${
+                      ROUTE_KIND[item.path] ? KIND_TEXT[ROUTE_KIND[item.path]] : ""
+                    }`}
+                  />
                   {item.label}
                   {item.showUnreadBadge && (
                     <NotificationBadge count={unread} className="ml-auto" />

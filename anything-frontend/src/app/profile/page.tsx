@@ -75,7 +75,7 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-xl space-y-6">
       <PageTitle>Profile</PageTitle>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Profile
         </h2>
@@ -118,7 +118,7 @@ export default function ProfilePage() {
         </form>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Change Password
         </h2>

@@ -26,6 +26,17 @@ Reusable UI components shared across multiple pages.
 - `button.test.tsx` is an example of a unit test for a UI primitive — follow that pattern when adding new ui/ components.
 - New components with distinct visual states (dialogs, multi-step flows) must be covered by a Playwright visual snapshot — see `.claude/rules/e2e.md` for the authoritative rule.
 
+## Theme ("octopus")
+
+The look lives almost entirely in `src/app/globals.css`, and mostly **not** in the shadcn tokens — the app styles itself with `gray-*`/`blue-*` utilities, so the theme works by re-pointing those scales in `@theme`:
+
+- `gray-*` is an ink-tinted neutral scale and `blue-*` is the ink-violet brand colour. Keep writing `gray-*`/`blue-*` in components; don't hard-code hex values or reach for `indigo`/`violet`, which are *not* remapped and will look off-palette.
+- Every named radius (`rounded-sm` … `rounded-3xl`) is 4px. `rounded-full` is deliberately untouched — pills, avatars and badges stay round.
+- `shadow-2xs/xs/sm` are flattened to nothing; surfaces get a border instead (`border border-gray-200 dark:border-gray-700`). Bigger shadows are kept for things that float (dialogs, menus, toasts). Don't use `shadow-lg` on an in-page card.
+- Fonts are self-hosted via `@fontsource-variable/{inter,space-grotesk}` (imported in `layout.tsx`); `h1`–`h3` get Space Grotesk from a base-layer rule, so a heading needs no font class.
+- **The header is an ink bar in both schemes**, and `.app-header` force-sets the colour of buttons, links and icons inside it (unlayered, so it beats their `text-gray-*`). Anything passed through `setHeaderActions` inherits that — don't fight it with per-page colours. Inputs inside the header are left alone.
+- **One colour per kind of thing** comes from `@/lib/kinds.ts` (`KIND_TEXT`, `KIND_EDGE`, `ROUTE_KIND`) over the `--kind-*` tokens. Currently used by the home cards (heading icon + left edge) and the navigation drawer's icons. Use the maps rather than building `text-kind-${kind}` strings — Tailwind can't see interpolated class names.
+
 ## Inventory photos (`inventory/`)
 
 Attachments split across four components. All four are presentational — each detail page owns the attachment hooks (list/upload/download/delete) for *its* entity and passes the results down, so no component knows whether it's attached to an item, a box or a place.

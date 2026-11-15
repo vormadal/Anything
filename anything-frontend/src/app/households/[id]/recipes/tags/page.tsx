@@ -57,7 +57,7 @@ export default function RecipeTagsPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <PageTitle>Recipe Tags</PageTitle>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         {/* Tabs */}
         <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4 -mx-4 sm:-mx-6 px-4 sm:px-6">
           {TABS.map(({ id, label, icon: Icon }) => (
