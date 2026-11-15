@@ -34,6 +34,7 @@ Global-search history is **device-local only** (`localStorage["recentSearches"]`
 
 - **A term is saved on commit, not on keystroke** — opening a result or pressing Enter in `GlobalSearchCard`. Saving each debounced term would fill the list with half-typed prefixes.
 - **`getRecentSearches` must return a stable reference** while the raw string is unchanged (it caches by raw value); a fresh array per call makes `useSyncExternalStore` re-render forever.
+- **The list only renders while the search field has focus** (focus tracked on a wrapper around field + list, closing when `relatedTarget` leaves it). Its buttons `preventDefault` on `mousedown` so pressing one doesn't blur the input and unmount the list before the click lands — Safari never focuses buttons on click, so the `relatedTarget` check alone isn't enough.
 - **`clearTokens` (logout) wipes it**, so a shared device doesn't show the previous user's searches. Every storage access is in `try/catch` — history is a convenience and must never break search.
 
 ## Security Rules
