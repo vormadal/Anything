@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/apiClient";
+import { clearRecentSearches } from "@/lib/recentSearches";
 
 // Storage keys
 const ACCESS_TOKEN_KEY = "accessToken";
@@ -35,6 +36,8 @@ export function clearTokens(): void {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    // Device-local search history belongs to whoever was signed in.
+    clearRecentSearches();
   }
 }
 

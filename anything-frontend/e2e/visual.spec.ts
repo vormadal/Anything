@@ -1298,6 +1298,34 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-search-card-with-results.png", screenshotOptions);
   });
 
+  test("home page - search card with recent searches", async ({ page }) => {
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "search", sortOrder: 0, isVisible: true },
+            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
+            { cardKey: "lists", sortOrder: 2, isVisible: true },
+            { cardKey: "bills", sortOrder: 3, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+    // Recent searches are device-local (localStorage), newest first.
+    await page.addInitScript(() => {
+      localStorage.setItem("recentSearches", JSON.stringify(["christmas lights", "pasta", "drill"]));
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    // The list only appears once the search field is entered.
+    await expect(page.getByRole("list", { name: "Recent searches" })).toBeHidden();
+    await page.getByLabel("Search everything").click();
+    await expect(page.getByRole("list", { name: "Recent searches" })).toBeVisible();
+    await expect(page).toHaveScreenshot("home-search-card-recent.png", screenshotOptions);
+  });
+
   test("home page - search card error state", async ({ page }) => {
     await page.route("**/api/home/card-preferences**", (route) => {
       if (route.request().method() === "GET") {
