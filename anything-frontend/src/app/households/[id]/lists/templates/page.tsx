@@ -132,7 +132,7 @@ export default function TemplatesPage() {
           router.push(`/households/${householdId}/lists/templates/${templateId}`)
         }
       />
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Reusable templates for creating new lists. Rename or delete a template, or open one to
           edit its items.

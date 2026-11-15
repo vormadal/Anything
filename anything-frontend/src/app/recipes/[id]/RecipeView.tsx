@@ -4,6 +4,7 @@ import { Clock, Users, Package, Layers, ImageIcon } from "lucide-react";
 import { useRecipeDetails } from "@/hooks/useRecipes";
 import Image from "next/image";
 import { useCookingMode } from "@/context/CookingModeContext";
+import { COOKING } from "@/lib/kinds";
 
 interface Props {
   recipeId: number;
@@ -211,7 +212,7 @@ export function RecipeView({ recipeId }: Props) {
               <button
                 type="button"
                 onClick={stopCooking}
-                className="mt-6 w-full py-2.5 px-4 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                className={`mt-6 w-full py-2.5 px-4 rounded-lg border ${COOKING.outline} text-sm font-medium transition-colors`}
               >
                 Stop cooking mode
               </button>

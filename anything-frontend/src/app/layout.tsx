@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 import { QueryProvider } from "@/context/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#2b2350",
 };
 
 export default function RootLayout({

@@ -214,7 +214,7 @@ export default function UnitsPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg">
       <PageTitle>Units</PageTitle>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Units appear as autocomplete options for recipes and shopping lists.

@@ -117,9 +117,9 @@ describe("RenovationRoomPage", () => {
     expect(screen.getByText("Partial · 6,0 m² of 13,9 m²").closest("button")).toHaveTextContent("Floor")
   })
 
-  it("flags the forecast in orange when it is above the estimate", () => {
+  it("flags the forecast in amber when it is above the estimate", () => {
     renderWithClient(<RenovationRoomPage />)
-    expect(screen.getByText("104.677 kr.")).toHaveClass("text-orange-700")
+    expect(screen.getByText("104.677 kr.")).toHaveClass("text-amber-700")
   })
 
   it("shows a not-found message for a room that is not in the project", () => {

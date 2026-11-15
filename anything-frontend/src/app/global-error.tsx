@@ -17,7 +17,7 @@ export default function GlobalError({
     <html lang="en">
       <body className="antialiased">
         <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center bg-gray-50 dark:bg-gray-900">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 max-w-md w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 max-w-md w-full">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               Application Error
             </h1>

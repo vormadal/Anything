@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { isSafeUrl } from "@/lib/utils";
 import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
+import { BILL_CATEGORY_SELECTED, BILL_PAYMENT, SELECTED_SEGMENT } from "@/lib/kinds";
 import {
   Plus,
   ChevronRight,
@@ -118,7 +119,7 @@ export default function BillsPage() {
                   onClick={() => setLocationFilter(loc)}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                     locationFilter === loc
-                      ? "bg-blue-600 text-white"
+                      ? SELECTED_SEGMENT
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
@@ -135,7 +136,7 @@ export default function BillsPage() {
                   onClick={() => setCategoryFilter(cat)}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                     categoryFilter === cat
-                      ? "bg-purple-600 text-white"
+                      ? BILL_CATEGORY_SELECTED
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
@@ -200,9 +201,9 @@ export default function BillsPage() {
                     {FREQUENCY_LABELS[bill.frequency]}
                   </span>
                   {bill.isAutomated ? (
-                    <span title="Automated"><Zap className="h-3 w-3 text-green-500" /></span>
+                    <span title="Automated"><Zap className={`h-3 w-3 ${BILL_PAYMENT.auto.icon}`} /></span>
                   ) : (
-                    <span title="Manual"><Hand className="h-3 w-3 text-orange-400" /></span>
+                    <span title="Manual"><Hand className={`h-3 w-3 ${BILL_PAYMENT.manual.icon}`} /></span>
                   )}
                   {bill.managementUrl && isSafeUrl(bill.managementUrl) && (
                     <a

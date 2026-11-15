@@ -20,6 +20,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { itemPath } from "@/lib/inventory";
 import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
+import { BILL_PAYMENT, KIND_EDGE, KIND_TEXT } from "@/lib/kinds";
 import { RenovationHomeCard } from "@/components/renovation/home/RenovationHomeCard";
 
 // Maps a search result's entityType to its detail-page route. Entity types not
@@ -85,7 +86,7 @@ export function FoodPlanCard() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <CalendarDays className="h-5 w-5 text-blue-600" />
+          <CalendarDays className={`h-5 w-5 ${KIND_TEXT.food}`} />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {isShowingTomorrow ? "Tomorrow's Menu" : "Today's Menu"}
           </h2>
@@ -109,7 +110,7 @@ export function FoodPlanCard() {
           isRetrying={entriesLoad.isRetrying}
         />
       ) : todayEntries.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.food} p-4 text-center`}>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
             No meals planned for {dayName}.
           </p>
@@ -128,7 +129,7 @@ export function FoodPlanCard() {
           )}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.food} divide-y divide-gray-100 dark:divide-gray-700`}>
           {todayEntries.map((entry) => {
             const recipe = entry.recipeId ? recipes?.find((r) => r.id === entry.recipeId) : null;
             const displayName = recipe?.name ?? entry.name ?? "Unknown";
@@ -180,7 +181,7 @@ export function ListsCard() {
       />
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <LayoutList className="h-5 w-5 text-green-600" />
+          <LayoutList className={`h-5 w-5 ${KIND_TEXT.lists}`} />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Lists
           </h2>
@@ -203,7 +204,7 @@ export function ListsCard() {
       ) : listsLoad.failed ? (
         <LoadErrorState what="lists" onRetry={listsLoad.retry} isRetrying={listsLoad.isRetrying} />
       ) : topLists.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.lists} p-4 text-center`}>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No shopping lists yet.</p>
           <Button
             size="sm"
@@ -216,7 +217,7 @@ export function ListsCard() {
           </Button>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.lists} divide-y divide-gray-100 dark:divide-gray-700`}>
           {topLists.map((list) => (
             <button
               key={list.id}
@@ -264,7 +265,7 @@ export function BillsCard() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Receipt className="h-5 w-5 text-indigo-600" />
+          <Receipt className={`h-5 w-5 ${KIND_TEXT.bills}`} />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bills</h2>
         </div>
         <Button
@@ -284,7 +285,7 @@ export function BillsCard() {
       ) : (
         <button
           type="button"
-          className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+          className={`w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.bills} px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left`}
           onClick={() => router.push("/bills")}
         >
           <div className="space-y-1">
@@ -299,11 +300,11 @@ export function BillsCard() {
             </p>
             <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
               <span className="flex items-center gap-1">
-                <Zap className="h-3 w-3 text-green-500" />
+                <Zap className={`h-3 w-3 ${BILL_PAYMENT.auto.icon}`} />
                 {billSummary.automatedCount} auto
               </span>
               <span className="flex items-center gap-1">
-                <Hand className="h-3 w-3 text-orange-400" />
+                <Hand className={`h-3 w-3 ${BILL_PAYMENT.manual.icon}`} />
                 {billSummary.manualCount} manual
               </span>
               <span>{billSummary.totalBills} bills total</span>
@@ -351,7 +352,7 @@ export function QuickCreateCard() {
         onCreated={(listId) => router.push(`/lists/${listId}`)}
       />
       <div className="flex items-center gap-2 mb-3">
-        <Zap className="h-5 w-5 text-amber-500" />
+        <Zap className="h-5 w-5 text-coral" />
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Create</h2>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -582,7 +583,7 @@ export function NotesCard() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <NotebookPen className="h-5 w-5 text-purple-600" />
+          <NotebookPen className={`h-5 w-5 ${KIND_TEXT.notes}`} />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notes</h2>
         </div>
         <Button
@@ -603,7 +604,7 @@ export function NotesCard() {
       ) : notesLoad.failed ? (
         <LoadErrorState what="notes" onRetry={notesLoad.retry} isRetrying={notesLoad.isRetrying} />
       ) : !notes || notes.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.notes} p-4 text-center`}>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
             No notes yet. Jot down anything you want to keep.
           </p>
@@ -618,7 +619,7 @@ export function NotesCard() {
           </Button>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.notes} divide-y divide-gray-100 dark:divide-gray-700`}>
           {notes.map((note) => (
             <button
               key={note.id}

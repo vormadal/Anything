@@ -90,7 +90,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 w-full max-w-md">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
           Welcome to Anything
         </h1>

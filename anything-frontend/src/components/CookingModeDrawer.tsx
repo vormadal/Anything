@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCookingMode } from "@/context/CookingModeContext";
 import { Button } from "@/components/ui/button";
 import { ChefHat, X } from "lucide-react";
+import { COOKING } from "@/lib/kinds";
 
 export function CookingModeDrawer() {
   const { session, stopCooking, completedStepIds } = useCookingMode();
@@ -20,12 +21,12 @@ export function CookingModeDrawer() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 pointer-events-none">
-      <div className="bg-orange-600 dark:bg-orange-700 text-white rounded-xl shadow-lg p-3 flex items-center gap-3 pointer-events-auto">
+      <div className={`${COOKING.bar} rounded-xl shadow-lg p-3 flex items-center gap-3 pointer-events-auto`}>
         <ChefHat className="h-5 w-5 shrink-0" aria-hidden="true" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{session.recipeName}</p>
           {totalSteps > 0 && (
-            <p className="text-xs text-orange-200">
+            <p className="text-xs opacity-75">
               {completedCount}/{totalSteps} steps done
             </p>
           )}

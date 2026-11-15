@@ -1,42 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <clipPath id="circle-clip">
-      <circle cx="256" cy="256" r="248"/>
-    </clipPath>
-  </defs>
-
-  <!-- Border ring -->
-  <circle cx="256" cy="256" r="252" fill="#2a2648"/>
-
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="248" fill="#1c1a2e"/>
-
-  <!-- Dark crimson blob: upper-left -->
-  <ellipse cx="148" cy="148" rx="188" ry="168" fill="#8c1c46" opacity="0.90"
-    transform="rotate(-15 148 148)" clip-path="url(#circle-clip)"/>
-
-  <!-- Teal blob: lower-center -->
-  <ellipse cx="244" cy="348" rx="220" ry="160" fill="#1e6b6b" opacity="0.94"
-    transform="rotate(10 244 348)" clip-path="url(#circle-clip)"/>
-
-  <!-- Orange ellipse: upper-right -->
-  <ellipse cx="318" cy="178" rx="88" ry="60" fill="#e8923a"
-    transform="rotate(-10 318 178)" clip-path="url(#circle-clip)"/>
-
-  <!-- Olive/golden circle: left of center -->
-  <circle cx="172" cy="310" r="48" fill="#8a7a20" clip-path="url(#circle-clip)"/>
-
-  <!-- Small yellow dot -->
-  <circle cx="332" cy="360" r="13" fill="#d4b444" clip-path="url(#circle-clip)"/>
-
-  <!-- Small teal-green dot -->
-  <circle cx="358" cy="336" r="9" fill="#4a9a9a" clip-path="url(#circle-clip)"/>
-
-  <!-- White "A" letter -->
-  <text x="256" y="308" font-family="Georgia, 'DejaVu Serif', serif" font-size="190" font-weight="bold"
-    fill="white" text-anchor="middle" clip-path="url(#circle-clip)">A</text>
-
-  <!-- Orange crossbar on the A -->
-  <rect x="182" y="268" width="148" height="18" fill="#e8923a" rx="3"
-    clip-path="url(#circle-clip)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="512" height="512">
+  <!-- Octopus: eight arms, holding anything. Full-bleed ink square so the
+       platform's own mask (iOS, Android adaptive icons) shapes the corners;
+       the figure is scaled into the central safe zone for maskable use. -->
+  <rect width="120" height="120" fill="#2B2350"/>
+  <g transform="translate(60 60) scale(0.8) translate(-60 -62)">
+    <g fill="none" stroke="#FF6B5B" stroke-width="9" stroke-linecap="round">
+      <path d="M42 62C34 74 26 78 18 76"/>
+      <path d="M50 68C46 82 40 90 32 96"/>
+      <path d="M60 70C60 84 62 94 68 102"/>
+      <path d="M70 68C76 82 84 88 94 90"/>
+      <path d="M78 62C88 70 96 70 102 64"/>
+    </g>
+    <ellipse cx="60" cy="46" rx="26" ry="24" fill="#FF6B5B"/>
+    <circle cx="51" cy="46" r="6" fill="#fff"/>
+    <circle cx="69" cy="46" r="6" fill="#fff"/>
+    <circle cx="52" cy="47" r="3" fill="#2B2350"/>
+    <circle cx="70" cy="47" r="3" fill="#2B2350"/>
+    <rect x="11" y="69" width="13" height="13" rx="2" fill="#2FA79A"/>
+    <circle cx="103" cy="62" r="6.5" fill="#F4C95D"/>
+    <path d="M27 92l4 4 7-8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>
