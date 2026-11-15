@@ -36,6 +36,8 @@ The look lives almost entirely in `src/app/globals.css`, and mostly **not** in t
 - Fonts are self-hosted via `@fontsource-variable/{inter,space-grotesk}` (imported in `layout.tsx`); `h1`–`h3` get Space Grotesk from a base-layer rule, so a heading needs no font class.
 - **The header is an ink bar in both schemes**, and `.app-header` force-sets the colour of buttons, links and icons inside it (unlayered, so it beats their `text-gray-*`). Anything passed through `setHeaderActions` inherits that — don't fight it with per-page colours. Inputs inside the header are left alone.
 - **One colour per kind of thing** comes from `@/lib/kinds.ts` (`KIND_TEXT`, `KIND_EDGE`, `ROUTE_KIND`) over the `--kind-*` tokens. Currently used by the home cards (heading icon + left edge) and the navigation drawer's icons. Use the maps rather than building `text-kind-${kind}` strings — Tailwind can't see interpolated class names.
+- **Status colours are the only off-brand hues allowed**: green = success/on track, amber = warning (offline, failed load, over budget, pending, expiring), red = destructive/error. Don't use orange, purple or yellow as decoration — pick a kind colour, `coral`, or brand `blue-*`, and put any accent reused across files in `lib/kinds.ts` (`BILL_PAYMENT`, `COOKING`, `SELECTED_SEGMENT`, …).
+- The header's coral rule is 2px, and a thin band like that falls under the visual suite's 2% diff threshold. A theme change that only touches small areas will **not** regenerate baselines on its own — delete the affected PNGs (see the root CLAUDE.md gotcha).
 
 ## Inventory photos (`inventory/`)
 
