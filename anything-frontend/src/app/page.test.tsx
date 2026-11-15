@@ -785,6 +785,52 @@ describe('Home Page Integration Tests', () => {
     expect(screen.queryByRole('button', { name: /Flour/ })).toBeDisabled()
   })
 
+  it('should remember a selected search and show it, newest first, in the empty search box', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    localStorage.setItem('recentSearches', JSON.stringify(['lights']))
+    mockSearchGet.mockResolvedValue([
+      { entityType: 'Recipe', entityId: 7, title: 'Chicken Curry', snippet: 'Chicken Curry, spicy' },
+    ])
+
+    render(<Home />)
+
+    const recentList = await screen.findByRole('list', { name: 'Recent searches' })
+    expect(within(recentList).getByText('lights')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Search everything'), 'chicken')
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
+    await user.click(await screen.findByText('Chicken Curry'))
+
+    expect(JSON.parse(localStorage.getItem('recentSearches') ?? '[]')).toEqual(['chicken', 'lights'])
+
+    await user.click(screen.getByLabelText('Clear search'))
+    const items = within(screen.getByRole('list', { name: 'Recent searches' })).getAllByRole('listitem')
+    expect(items.map((li) => li.textContent)).toEqual(['chicken', 'lights'])
+  })
+
+  it('should fill the search box from a recent search and allow removing one', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    localStorage.setItem('recentSearches', JSON.stringify(['pasta', 'lights']))
+
+    render(<Home />)
+
+    await user.click(await screen.findByRole('button', { name: 'Remove "pasta" from recent searches' }))
+    expect(screen.queryByRole('button', { name: 'pasta' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'lights' }))
+    expect(screen.getByLabelText('Search everything')).toHaveValue('lights')
+  })
+
   it('should navigate to an inventory item when a search result is selected', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))

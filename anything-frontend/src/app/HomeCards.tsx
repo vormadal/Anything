@@ -9,8 +9,10 @@ import { useBillSummary } from "@/hooks/useBills";
 import { useSearch, type SearchResultResponse } from "@/hooks/useSearch";
 import { useNotes } from "@/hooks/useNotes";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useRecentSearches } from "@/hooks/useRecentSearches";
+import { filterRecentSearches } from "@/lib/recentSearches";
 import { useRouter } from "next/navigation";
-import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, Package, NotebookPen, Hammer } from "lucide-react";
+import { CalendarDays, LayoutList, Plus, ChevronRight, Receipt, Zap, Hand, BookOpen, UtensilsCrossed, ListChecks, Search as SearchIcon, X, History, Package, NotebookPen, Hammer } from "lucide-react";
 import { CountBadge } from "@/components/ui/count-badge";
 import { toDateInputValue } from "@/lib/foodPlanUtils";
 import { CreateListDialog } from "@/components/CreateListDialog";
@@ -371,6 +373,63 @@ export function QuickCreateCard() {
   );
 }
 
+// While typing, only a few matching recents are offered above the results so
+// they don't push the actual results down.
+const RECENT_WHILE_TYPING = 3;
+
+function RecentSearches({
+  terms,
+  showClear,
+  onPick,
+  onRemove,
+  onClear,
+}: Readonly<{
+  terms: readonly string[];
+  showClear: boolean;
+  onPick: (term: string) => void;
+  onRemove: (term: string) => void;
+  onClear: () => void;
+}>) {
+  return (
+    <div className="mb-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between px-4 pt-2 pb-1">
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Recent searches</p>
+        {showClear && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <ul aria-label="Recent searches" className="divide-y divide-gray-100 dark:divide-gray-700">
+        {terms.map((term) => (
+          <li key={term} className="flex items-center">
+            <button
+              type="button"
+              onClick={() => onPick(term)}
+              className="flex-1 min-w-0 px-4 py-2 flex items-center gap-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <History className="h-4 w-4 text-gray-400 shrink-0" />
+              <span className="text-sm text-gray-900 dark:text-white truncate">{term}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove(term)}
+              aria-label={`Remove "${term}" from recent searches`}
+              className="p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function GlobalSearchCard() {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -379,11 +438,24 @@ export function GlobalSearchCard() {
   const searchQuery = useSearch(debouncedQuery);
   const { data: results, isLoading } = searchQuery;
   const searchLoad = loadFailure(searchQuery);
+  const recentSearches = useRecentSearches();
+  const isTyping = query.trim().length > 0;
+  const matchingRecent = filterRecentSearches(recentSearches.recent, query);
+  const shownRecent = isTyping ? matchingRecent.slice(0, RECENT_WHILE_TYPING) : matchingRecent;
 
+  // A search is remembered once the user commits to it — opening a result or
+  // pressing Enter — not on every debounced keystroke, which would fill the
+  // history with half-typed prefixes.
   const handleSelect = (result: SearchResultResponse) => {
     const toHref = result.entityType ? SEARCH_RESULT_ROUTES[result.entityType] : undefined;
     if (!toHref || result.entityId == null) return;
+    recentSearches.add(query);
     router.push(toHref(result.entityId));
+  };
+
+  const handlePickRecent = (term: string) => {
+    setQuery(term);
+    recentSearches.add(term);
   };
 
   return (
@@ -399,6 +471,9 @@ export function GlobalSearchCard() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") recentSearches.add(query);
+          }}
           placeholder="Search recipes, lists, notes…"
           aria-label="Search everything"
           className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder:text-gray-400"
@@ -414,6 +489,16 @@ export function GlobalSearchCard() {
           </button>
         )}
       </div>
+
+      {shownRecent.length > 0 && (
+        <RecentSearches
+          terms={shownRecent}
+          showClear={!isTyping}
+          onPick={handlePickRecent}
+          onRemove={recentSearches.remove}
+          onClear={recentSearches.clear}
+        />
+      )}
 
       {hasQuery &&
         (isLoading ? (
