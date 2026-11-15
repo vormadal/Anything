@@ -798,7 +798,12 @@ describe('Home Page Integration Tests', () => {
 
     render(<Home />)
 
-    const recentList = await screen.findByRole('list', { name: 'Recent searches' })
+    // Hidden until the search field is entered — it's not a permanent part of the card.
+    const input = await screen.findByLabelText('Search everything')
+    expect(screen.queryByRole('list', { name: 'Recent searches' })).not.toBeInTheDocument()
+
+    await user.click(input)
+    const recentList = screen.getByRole('list', { name: 'Recent searches' })
     expect(within(recentList).getByText('lights')).toBeInTheDocument()
 
     await user.type(screen.getByLabelText('Search everything'), 'chicken')
@@ -824,11 +829,29 @@ describe('Home Page Integration Tests', () => {
 
     render(<Home />)
 
-    await user.click(await screen.findByRole('button', { name: 'Remove "pasta" from recent searches' }))
+    await user.click(await screen.findByLabelText('Search everything'))
+    await user.click(screen.getByRole('button', { name: 'Remove "pasta" from recent searches' }))
     expect(screen.queryByRole('button', { name: 'pasta' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'lights' }))
     expect(screen.getByLabelText('Search everything')).toHaveValue('lights')
+  })
+
+  it('should hide recent searches once focus leaves the search field', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockFoodPlanEntriesGet.mockResolvedValue([])
+    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesGet.mockResolvedValue(searchVisible)
+    localStorage.setItem('recentSearches', JSON.stringify(['pasta']))
+
+    render(<Home />)
+
+    await user.click(await screen.findByLabelText('Search everything'))
+    expect(screen.getByRole('list', { name: 'Recent searches' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('heading', { name: 'Search' }))
+    expect(screen.queryByRole('list', { name: 'Recent searches' })).not.toBeInTheDocument()
   })
 
   it('should navigate to an inventory item when a search result is selected', async () => {

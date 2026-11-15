@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type FocusEvent, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { useFoodPlanEntries, useFoodPlanNotes } from "@/hooks/useFoodPlans";
 import { useShoppingLists } from "@/hooks/useShoppingLists";
@@ -377,6 +377,12 @@ export function QuickCreateCard() {
 // they don't push the actual results down.
 const RECENT_WHILE_TYPING = 3;
 
+// The recent list only exists while the search field has focus, so a button
+// inside it must not steal that focus on press — otherwise the list unmounts on
+// mousedown, before the click lands (Safari never focuses buttons on click, so
+// a relatedTarget check alone can't catch this).
+const keepInputFocus = (e: MouseEvent) => e.preventDefault();
+
 function RecentSearches({
   terms,
   showClear,
@@ -397,6 +403,7 @@ function RecentSearches({
         {showClear && (
           <button
             type="button"
+            onMouseDown={keepInputFocus}
             onClick={onClear}
             className="text-xs text-blue-600 hover:underline dark:text-blue-400"
           >
@@ -409,6 +416,7 @@ function RecentSearches({
           <li key={term} className="flex items-center">
             <button
               type="button"
+              onMouseDown={keepInputFocus}
               onClick={() => onPick(term)}
               className="flex-1 min-w-0 px-4 py-2 flex items-center gap-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
@@ -417,6 +425,7 @@ function RecentSearches({
             </button>
             <button
               type="button"
+              onMouseDown={keepInputFocus}
               onClick={() => onRemove(term)}
               aria-label={`Remove "${term}" from recent searches`}
               className="p-2 mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
@@ -433,6 +442,8 @@ function RecentSearches({
 export function GlobalSearchCard() {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(query);
   const hasQuery = debouncedQuery.trim().length > 0;
   const searchQuery = useSearch(debouncedQuery);
@@ -458,6 +469,12 @@ export function GlobalSearchCard() {
     recentSearches.add(term);
   };
 
+  // Keep the recent list open while focus moves within the field + list
+  // (e.g. tabbing onto a recent entry), close it once focus leaves both.
+  const handleBlur = (e: FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setIsFocused(false);
+  };
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
@@ -465,40 +482,47 @@ export function GlobalSearchCard() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Search</h2>
       </div>
 
-      <div className="relative flex items-center mb-2">
-        <SearchIcon className="absolute left-3 h-4 w-4 text-gray-400 pointer-events-none" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") recentSearches.add(query);
-          }}
-          placeholder="Search recipes, lists, notes…"
-          aria-label="Search everything"
-          className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder:text-gray-400"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={() => setQuery("")}
-            aria-label="Clear search"
-            className="absolute right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-          >
-            <X className="h-4 w-4" />
-          </button>
+      <div onFocus={() => setIsFocused(true)} onBlur={handleBlur}>
+        <div className="relative flex items-center mb-2">
+          <SearchIcon className="absolute left-3 h-4 w-4 text-gray-400 pointer-events-none" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") recentSearches.add(query);
+            }}
+            placeholder="Search recipes, lists, notes…"
+            aria-label="Search everything"
+            className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder:text-gray-400"
+          />
+          {query && (
+            <button
+              type="button"
+              onMouseDown={keepInputFocus}
+              onClick={() => {
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              aria-label="Clear search"
+              className="absolute right-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {isFocused && shownRecent.length > 0 && (
+          <RecentSearches
+            terms={shownRecent}
+            showClear={!isTyping}
+            onPick={handlePickRecent}
+            onRemove={recentSearches.remove}
+            onClear={recentSearches.clear}
+          />
         )}
       </div>
-
-      {shownRecent.length > 0 && (
-        <RecentSearches
-          terms={shownRecent}
-          showClear={!isTyping}
-          onPick={handlePickRecent}
-          onRemove={recentSearches.remove}
-          onClear={recentSearches.clear}
-        />
-      )}
 
       {hasQuery &&
         (isLoading ? (

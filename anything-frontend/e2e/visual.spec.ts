@@ -1319,6 +1319,9 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    // The list only appears once the search field is entered.
+    await expect(page.getByRole("list", { name: "Recent searches" })).toBeHidden();
+    await page.getByLabel("Search everything").click();
     await expect(page.getByRole("list", { name: "Recent searches" })).toBeVisible();
     await expect(page).toHaveScreenshot("home-search-card-recent.png", screenshotOptions);
   });
