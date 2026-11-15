@@ -1109,10 +1109,11 @@ describe('FoodPlanPage', () => {
       )
     })
 
-    // The coming week only — never the (much wider) range loaded for scrolling.
+    // Default period: today + the next six days — never the (much wider)
+    // range loaded for scrolling.
     const { startDate, endDate } = mockAddToShoppingListPost.mock.calls[0][0]
     expect(startDate).toEqual(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())))
-    expect(differenceInCalendarDays(endDate, startDate)).toBe(7)
+    expect(differenceInCalendarDays(endDate, startDate)).toBe(6)
 
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith('Ingredients added to shopping list')
@@ -1207,7 +1208,7 @@ describe('FoodPlanPage', () => {
     await user.click(shoppingCartButton)
 
     await waitFor(() => {
-      expect(screen.getByText('Set the multiplier for each recipe:')).toBeInTheDocument()
+      expect(screen.getByText(/Ingredients from these recipes will be added/)).toBeInTheDocument()
     })
 
     expect(screen.getByRole('button', { name: 'Increase multiplier for Pasta' })).toBeInTheDocument()
@@ -1238,7 +1239,74 @@ describe('FoodPlanPage', () => {
       expect(screen.getByText('Add to Shopping List')).toBeInTheDocument()
     })
 
-    expect(screen.queryByText('Set the multiplier for each recipe:')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Ingredients from these recipes will be added/)).not.toBeInTheDocument()
+    expect(await screen.findByText('No recipes planned in this period.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'My List' })).toBeDisabled()
+  })
+
+  async function openShoppingDialog() {
+    render(<FoodPlanPage />)
+    await waitFor(() => expect(mockSetHeaderActions).toHaveBeenCalled())
+    const { container } = render(mockSetHeaderActions.mock.calls[0][0])
+    await userEvent.setup().click(within(container).getByRole('button', { name: 'Add to shopping list' }))
+    await screen.findByText('Add to Shopping List')
+  }
+
+  it('should default the shopping list period to today through six days ahead', async () => {
+    await openShoppingDialog()
+
+    expect(screen.getByLabelText('From')).toHaveValue(toDateInputValue(today))
+    expect(screen.getByLabelText('To')).toHaveValue(toDateInputValue(addDays(today, 6)))
+  })
+
+  it('should fetch and send the period the user picks', async () => {
+    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pasta', 10, { recipeId: 1 })])
+    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
+    mockShoppingListsGet.mockResolvedValue([{ id: 10, name: 'Weekly Groceries' }])
+    mockAddToShoppingListPost.mockResolvedValue(undefined)
+    await openShoppingDialog()
+
+    const newEnd = addDays(today, 14)
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: toDateInputValue(newEnd) } })
+
+    await waitFor(() => {
+      const ends = mockEntriesGet.mock.calls.map(([c]) => toDateInputValue(c.queryParameters.endDate))
+      expect(ends).toContain(toDateInputValue(newEnd))
+    })
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Weekly Groceries' }))
+
+    await waitFor(() => expect(mockAddToShoppingListPost).toHaveBeenCalled())
+    const { startDate, endDate } = mockAddToShoppingListPost.mock.calls[0][0]
+    expect(differenceInCalendarDays(endDate, startDate)).toBe(14)
+  })
+
+  it('should move "To" along when "From" is set past it', async () => {
+    await openShoppingDialog()
+
+    const later = toDateInputValue(addDays(today, 20))
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: later } })
+
+    expect(screen.getByLabelText('To')).toHaveValue(later)
+  })
+
+  it('should list each recipe once with the days it is planned and whether it was added before', async () => {
+    mockEntriesGet.mockResolvedValue([
+      buildEntry(1, 'Pasta', 1, { recipeId: 1 }),
+      buildEntry(2, 'Pasta', 3, { recipeId: 1 }),
+      buildEntry(3, 'Salad', 2, { recipeId: 2, addedToShoppingListOn: '2025-01-01T00:00:00Z' }),
+    ])
+    mockRecipesFetch([
+      { id: 1, name: 'Pasta' },
+      { id: 2, name: 'Salad' },
+    ])
+    await openShoppingDialog()
+
+    const dialog = (await screen.findByRole('button', { name: 'Increase multiplier for Pasta' })).closest('ul')!
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(2)
+    const day = (offset: number) => format(addDays(today, offset), 'EEE d. MMM', { locale: da })
+    expect(within(dialog).getByText(`${day(1)}, ${day(3)}`)).toBeInTheDocument()
+    expect(within(dialog).getByText(`${day(2)} · added before`)).toBeInTheDocument()
   })
 
   // ------- 9. Header actions registration -------

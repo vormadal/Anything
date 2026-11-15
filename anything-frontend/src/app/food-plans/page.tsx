@@ -40,9 +40,9 @@ const INITIAL_WEEKS = 8;
 const EXTEND_WEEKS = 8;
 // Start extending well before the reader reaches either end of the list.
 const SENTINEL_ROOT_MARGIN = "800px 0px";
-// The shopping-list action covers the coming week, not whatever range happens
-// to be loaded — with infinite scroll that could be months.
-const SHOPPING_LIST_DAYS = 7;
+// Default period for "Add to shopping list" (the user can change it in the
+// dialog): today plus the next six days.
+const SHOPPING_LIST_DEFAULT_DAYS = 7;
 
 function addDays(date: Date, days: number): Date {
   return dateFnsAddDays(date, days);
@@ -505,16 +505,19 @@ function DayManagementDialog({
   );
 }
 
+function parseDateInput(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d, 12);
+}
+
 function AddToShoppingListDialog({
-  startDate,
-  endDate,
-  entries,
+  defaultStart,
+  defaultEnd,
   recipes,
   onClose,
 }: {
-  startDate: Date;
-  endDate: Date;
-  entries: FoodPlanEntry[] | undefined;
+  defaultStart: Date;
+  defaultEnd: Date;
   recipes: RecipeListItemResponse[] | undefined;
   onClose: () => void;
 }) {
@@ -522,13 +525,33 @@ function AddToShoppingListDialog({
   const addToShoppingList = useAddFoodPlanToShoppingList();
   const isOnline = useOnlineStatus();
 
-  const recipeEntries = (entries ?? []).filter((e) => e.recipeId != null);
-  const uniqueRecipeIds = [...new Set(recipeEntries.map((e) => e.recipeId ?? 0))];
-  const recipeMap = new Map((recipes ?? []).map((r) => [r.id, r]));
-
-  const [multipliers, setMultipliers] = useState<Record<number, number>>(() =>
-    Object.fromEntries(uniqueRecipeIds.map((id) => [id, 1]))
+  // The period is the user's to choose; the coming week is only the default.
+  // Its own query (not the page's) so any period works, loaded or not.
+  const [from, setFrom] = useState(() => toDateInputValue(defaultStart));
+  const [to, setTo] = useState(() => toDateInputValue(defaultEnd));
+  const { data: entries, isLoading: entriesLoading } = useQuery(
+    foodPlanEntriesQueryOptions(from + "T00:00:00Z", to + "T23:59:59Z")
   );
+
+  const recipeMap = new Map((recipes ?? []).map((r) => [r.id, r]));
+  // One row per recipe — the backend adds each recipe's ingredients once,
+  // however many days it is planned — listing the days it falls on.
+  const plannedRecipes = useMemo(() => {
+    const byRecipe = new Map<number, { dates: Date[]; added: boolean }>();
+    for (const e of entries ?? []) {
+      if (e.recipeId == null || !e.date) continue;
+      const row = byRecipe.get(e.recipeId) ?? { dates: [], added: true };
+      row.dates.push(new Date(e.date));
+      row.added = row.added && !!e.addedToShoppingListOn;
+      byRecipe.set(e.recipeId, row);
+    }
+    return [...byRecipe.entries()]
+      .map(([recipeId, row]) => ({ recipeId, ...row, dates: row.dates.sort((a, b) => a.getTime() - b.getTime()) }))
+      .sort((a, b) => a.dates[0].getTime() - b.dates[0].getTime());
+  }, [entries]);
+  const uniqueRecipeIds = plannedRecipes.map((r) => r.recipeId);
+
+  const [multipliers, setMultipliers] = useState<Record<number, number>>({});
 
   const setMultiplier = (recipeId: number, delta: number) => {
     setMultipliers((prev) => ({
@@ -536,6 +559,19 @@ function AddToShoppingListDialog({
       [recipeId]: Math.max(0, (prev[recipeId] ?? 1) + delta),
     }));
   };
+
+  const handleFromChange = (value: string) => {
+    if (!value) return;
+    setFrom(value);
+    if (value > to) setTo(value);
+  };
+  const handleToChange = (value: string) => {
+    if (!value) return;
+    setTo(value);
+    if (value < from) setFrom(value);
+  };
+
+  const nothingToAdd = !entriesLoading && uniqueRecipeIds.length === 0;
 
   const handleSelect = async (listId: number) => {
     try {
@@ -545,8 +581,8 @@ function AddToShoppingListDialog({
       }));
       await addToShoppingList.mutateAsync({
         shoppingListId: listId,
-        startDate: toUtcMidnight(startDate),
-        endDate: toUtcMidnight(endDate),
+        startDate: toUtcMidnight(parseDateInput(from)),
+        endDate: toUtcMidnight(parseDateInput(to)),
         recipeMultipliers,
       });
       toast.success("Ingredients added to shopping list");
@@ -562,19 +598,54 @@ function AddToShoppingListDialog({
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           Add to Shopping List
         </h3>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <label className="text-sm text-gray-600 dark:text-gray-300">
+            From
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => handleFromChange(e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+            />
+          </label>
+          <label className="text-sm text-gray-600 dark:text-gray-300">
+            To
+            <input
+              type="date"
+              value={to}
+              min={from}
+              onChange={(e) => handleToChange(e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+            />
+          </label>
+        </div>
+        {entriesLoading && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Loading…</p>
+        )}
+        {nothingToAdd && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            No recipes planned in this period.
+          </p>
+        )}
         {uniqueRecipeIds.length > 0 && (
           <div className="mb-4">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Set the multiplier for each recipe:
+              Ingredients from these recipes will be added. Set a multiplier, or 0 to skip one:
             </p>
             <ul className="space-y-2">
-              {uniqueRecipeIds.map((recipeId) => {
+              {plannedRecipes.map(({ recipeId, dates, added }) => {
                 const recipe = recipeMap.get(recipeId);
                 return (
                   <li key={recipeId} className="flex items-center justify-between gap-2 py-1">
-                    <span className="text-sm text-gray-800 dark:text-gray-200 flex-1 min-w-0 truncate">
-                      {recipe?.name ?? `Recipe #${recipeId}`}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-800 dark:text-gray-200 truncate">
+                        {recipe?.name ?? `Recipe #${recipeId}`}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {dates.map((d) => format(d, "EEE d. MMM", { locale: da })).join(", ")}
+                        {added && " · added before"}
+                      </p>
+                    </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
@@ -613,7 +684,7 @@ function AddToShoppingListDialog({
                 type="button"
                 className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-sm text-gray-800 dark:text-gray-200 disabled:opacity-50"
                 onClick={() => list.id != null && handleSelect(list.id)}
-                disabled={addToShoppingList.isPending || !isOnline}
+                disabled={addToShoppingList.isPending || !isOnline || entriesLoading || nothingToAdd}
                 title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
               >
                 {list.name}
@@ -818,17 +889,7 @@ export default function FoodPlanPage() {
     return () => observers.forEach((o) => o.disconnect());
   }, [hasScrolledToToday, isLoading, anchorKey, extend]);
 
-  const shoppingStart = today;
-  const shoppingEnd = useMemo(() => addDays(today, SHOPPING_LIST_DAYS), [today]);
-  const shoppingEntries = useMemo(() => {
-    const from = toDateInputValue(shoppingStart);
-    const to = toDateInputValue(shoppingEnd);
-    return (entries ?? []).filter((e) => {
-      if (!e.date) return false;
-      const ds = toDateInputValue(new Date(e.date));
-      return ds >= from && ds <= to;
-    });
-  }, [entries, shoppingStart, shoppingEnd]);
+  const shoppingDefaultEnd = useMemo(() => addDays(today, SHOPPING_LIST_DEFAULT_DAYS - 1), [today]);
 
   // Scroll today into view, positioned ~1/4 down from the top of the viewport
   const scrollToToday = useCallback(() => {
@@ -918,9 +979,8 @@ export default function FoodPlanPage() {
 
       {showShoppingListDialog && (
         <AddToShoppingListDialog
-          startDate={shoppingStart}
-          endDate={shoppingEnd}
-          entries={shoppingEntries}
+          defaultStart={today}
+          defaultEnd={shoppingDefaultEnd}
           recipes={recipes}
           onClose={() => setShowShoppingListDialog(false)}
         />

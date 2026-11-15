@@ -2504,6 +2504,33 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  // Add-to-shopping-list dialog: a user-chosen period (defaults to today + six
+  // days) with each recipe listed once, the days it falls on, and whether it
+  // was added before.
+  test("food plans - add to shopping list dialog", async ({ page }) => {
+    await page.route("**/api/food-plan/entries**", (route) =>
+      route.fulfill({
+        json: [
+          { id: 3, date: "2025-01-15", name: "Beef Tacos", recipeId: 3, addedToShoppingListOn: null },
+          { id: 4, date: "2025-01-16", name: "Chicken Stir Fry", recipeId: 2, addedToShoppingListOn: "2025-01-14T10:00:00Z" },
+          { id: 5, date: "2025-01-17", name: "Pasta Carbonara", recipeId: 1, addedToShoppingListOn: null },
+          { id: 6, date: "2025-01-19", name: "Beef Tacos", recipeId: 3, addedToShoppingListOn: null },
+        ],
+      })
+    );
+    await page.goto("/food-plans");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Add to shopping list" }).click();
+    await expect(page.getByLabel("From", { exact: true })).toHaveValue("2025-01-15");
+    await expect(page.getByLabel("To", { exact: true })).toHaveValue("2025-01-21");
+    await expect(page.getByRole("button", { name: "Increase multiplier for Beef Tacos" })).toBeVisible();
+    await expect(page.getByText(/added before/)).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "food-plans-add-to-shopping-list.png",
+      foodPlanScreenshotOptions
+    );
+  });
+
   // Settings page with the suggestion tuning fields and seasonal tag rules.
   test("food plans - settings suggestions and seasonal tags", async ({ page }) => {
     await page.goto("/food-plans/settings");
