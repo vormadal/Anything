@@ -59,3 +59,7 @@ per-category opt-outs. Three things that are deliberate:
   app-relative literal built by a backend handler (see
   `src/Anything.Application/agent.md`). If a future endpoint ever takes a
   caller-supplied link, this becomes an open-redirect and needs a guard.
+
+## App icons / PWA manifest
+
+When the app icon changes, give the files **new names** (`icon-192-v3.png`, …) and update every reference — `manifest.ts`, `layout.tsx` (`icons.apple`) and `public/sw.js` (`STATIC_ASSETS`, `NOTIFICATION_ICON`) — and bump `CACHE_NAME` in `sw.js`. Overwriting the PNGs at the same URL leaves installed apps showing the old icon: `sw.js` serves static assets cache-first, and the URL is the clearest signal Chrome's WebAPK updater has. iOS never refreshes a home-screen icon at all; users must remove it and add it again.
