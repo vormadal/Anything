@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useIsRestoring } from "@tanstack/react-query";
 import { HOUSEHOLD_ID_KEY } from "@/lib/apiClient";
 import { useHouseholds, type Household } from "@/hooks/useHouseholds";
 
@@ -49,7 +50,8 @@ function persistHouseholdId(id: number): void {
 }
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
-  const { data: households = [], isLoading } = useHouseholds();
+  const { data: households = [], isLoading, isFetching } = useHouseholds();
+  const isRestoring = useIsRestoring();
   const [selectedId, setSelectedId] = useState<number | null>(
     getStoredHouseholdId
   );
@@ -61,12 +63,21 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
   // Derive the effective household ID: use stored selection if valid,
   // otherwise fall back to the first household.
+  //
+  // Only fall back once the list is fresh. After a reload the persisted query
+  // cache restores the households list as it was when last saved, which can
+  // predate a household the user just created or joined. Falling back on that
+  // stale list would overwrite the stored id (and with it the X-Household-Id
+  // header apiClient reads from localStorage) until the refetch lands, sending
+  // requests to the wrong household in between.
   const effectiveId = useMemo(() => {
     if (isLoading || households.length === 0) return selectedId;
+    if (selectedId === null) return households[0].id;
 
-    const isValid = selectedId !== null && households.some((h) => h.id === selectedId);
-    return isValid ? selectedId : households[0].id;
-  }, [selectedId, households, isLoading]);
+    const isValid = households.some((h) => h.id === selectedId);
+    if (isValid || isRestoring || isFetching) return selectedId;
+    return households[0].id;
+  }, [selectedId, households, isLoading, isRestoring, isFetching]);
 
   // Persist the effective ID to localStorage whenever it changes (side effect outside render).
   useEffect(() => {
