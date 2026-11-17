@@ -32,6 +32,15 @@ export interface EditableHomeCard {
   component: ComponentType;
 }
 
+/**
+ * Visible cards first, hidden ones after, each group keeping its order. Hidden
+ * cards don't render outside edit mode, so where they sit among visible ones
+ * means nothing — keeping them at the bottom keeps the editor reading like the page.
+ */
+export function hiddenLast(cards: EditableHomeCard[]): EditableHomeCard[] {
+  return [...cards.filter((c) => c.isVisible), ...cards.filter((c) => !c.isVisible)];
+}
+
 const OFFLINE_TITLE = "Customizing the home page requires an internet connection";
 
 // Sizes change mid-drag (every card collapses to its header), so droppable
@@ -132,11 +141,11 @@ export function EditableHomeCards({
     const oldIndex = cards.findIndex((c) => c.key === active.id);
     const newIndex = cards.findIndex((c) => c.key === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
-    onChange(arrayMove(cards, oldIndex, newIndex));
+    onChange(hiddenLast(arrayMove(cards, oldIndex, newIndex)));
   };
 
   const handleToggle = (key: string, isVisible: boolean) =>
-    onChange(cards.map((c) => (c.key === key ? { ...c, isVisible } : c)));
+    onChange(hiddenLast(cards.map((c) => (c.key === key ? { ...c, isVisible } : c))));
 
   return (
     <HomeCardEditingProvider value={true}>

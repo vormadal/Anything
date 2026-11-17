@@ -5,7 +5,7 @@ import { Check, Settings } from "lucide-react";
 import { HeaderMenu } from "@/components/HeaderMenu";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
-import { EditableHomeCards, type EditableHomeCard } from "@/components/home/EditableHomeCards";
+import { EditableHomeCards, hiddenLast, type EditableHomeCard } from "@/components/home/EditableHomeCards";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { DEFAULT_HOME_CARD_ORDER, HOME_CARD_REGISTRY, type HomeCardKey } from "./HomeCards";
 import {
@@ -58,7 +58,7 @@ export default function Home() {
             {
               label: "Customize home page",
               icon: Settings,
-              onSelect: () => setDraft(toEditableCards(preferences)),
+              onSelect: () => setDraft(hiddenLast(toEditableCards(preferences))),
               // Every edit saves straight to the API.
               disabled: !isOnline || preferencesLoading,
             },

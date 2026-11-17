@@ -514,6 +514,31 @@ describe('Home Page Integration Tests', () => {
   })
 
   // ------- Home card preferences (order/visibility) -------
+  const switchOrder = () => screen.getAllByRole('switch').map((el) => el.getAttribute('aria-label'))
+
+  it('should put a card switched back on at the end of the visible cards', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockHomeCardPreferencesPut.mockResolvedValue(undefined)
+    mockHomeCardPreferencesGet.mockResolvedValue([
+      { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
+      { cardKey: 'bills', sortOrder: 1, isVisible: true },
+      { cardKey: 'lists', sortOrder: 2, isVisible: false },
+      { cardKey: 'notes', sortOrder: 3, isVisible: false },
+    ])
+
+    render(<Home />)
+    await enterEditMode(user)
+    await user.click(screen.getByRole('switch', { name: 'Show Notes on home page' }))
+
+    expect(switchOrder()).toEqual([
+      'Show Menu of the Day on home page',
+      'Show Bills on home page',
+      'Show Notes on home page',
+      'Show Lists on home page',
+    ])
+  })
+
   async function enterEditMode(user: ReturnType<typeof userEvent.setup>) {
     await waitFor(() => expect(screen.getByText("Today's Menu")).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: 'More options' }))
@@ -552,6 +577,12 @@ describe('Home Page Integration Tests', () => {
 
     expect(screen.getByRole('heading', { name: 'Lists' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Show Lists on home page' })).not.toBeChecked()
+    // Hidden cards are listed after the visible ones.
+    expect(switchOrder()).toEqual([
+      'Show Menu of the Day on home page',
+      'Show Bills on home page',
+      'Show Lists on home page',
+    ])
     expect(screen.getByText('Hidden')).toBeInTheDocument()
     expect(screen.getByText('Shows up once you add a bill.')).toBeInTheDocument()
   })
@@ -569,11 +600,17 @@ describe('Home Page Integration Tests', () => {
       expect(mockHomeCardPreferencesPut).toHaveBeenCalledWith({
         cards: [
           { cardKey: 'foodplan', isVisible: true },
-          { cardKey: 'lists', isVisible: false },
           { cardKey: 'bills', isVisible: true },
+          { cardKey: 'lists', isVisible: false },
         ],
       })
     })
+    // A card switched off drops below the visible ones.
+    expect(switchOrder()).toEqual([
+      'Show Menu of the Day on home page',
+      'Show Bills on home page',
+      'Show Lists on home page',
+    ])
 
     await user.click(screen.getByRole('button', { name: 'Done' }))
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
