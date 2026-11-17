@@ -1154,6 +1154,34 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-header-menu.png", screenshotOptions);
   });
 
+  test("home page - edit mode", async ({ page }) => {
+    // Lists moved first and Bills hidden, so the snapshot shows the dashed
+    // borders, drag handles, switches and a dimmed hidden card.
+    await page.route("**/api/home/card-preferences**", (route) => {
+      if (route.request().method() === "GET") {
+        route.fulfill({
+          json: [
+            { cardKey: "lists", sortOrder: 0, isVisible: true },
+            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
+            { cardKey: "bills", sortOrder: 2, isVisible: false },
+            { cardKey: "notes", sortOrder: 3, isVisible: true },
+          ],
+        });
+      } else {
+        route.fulfill({ status: 204, body: "" });
+      }
+    });
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Customize home page" }).click();
+    await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
+    await expect(page.getByRole("switch", { name: "Show Bills on home page" })).not.toBeChecked();
+    await expect(page.getByRole("button", { name: "Drag to reorder Lists" })).toBeVisible();
+    await expect(page).toHaveScreenshot("home-edit-mode.png", screenshotOptions);
+  });
+
   test("app drawer - open on a short viewport", async ({ page }) => {
     // A short viewport is the case that matters: the nav must scroll so the
     // account/logout footer stays in view instead of being pushed off-screen.
@@ -1400,27 +1428,6 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.getByLabel("Search everything").fill("pasta");
     await expect(page.getByText("Couldn't load search results")).toBeVisible();
     await expect(page).toHaveScreenshot("home-search-card-error.png", screenshotOptions);
-  });
-
-  test("home preferences - reorder and toggle cards", async ({ page }) => {
-    // Reordered (Lists first) with Bills hidden, to showcase the drag handles and toggles.
-    await page.route("**/api/home/card-preferences**", (route) => {
-      if (route.request().method() === "GET") {
-        route.fulfill({
-          json: [
-            { cardKey: "lists", sortOrder: 0, isVisible: true },
-            { cardKey: "foodplan", sortOrder: 1, isVisible: true },
-            { cardKey: "bills", sortOrder: 2, isVisible: false },
-          ],
-        });
-      } else {
-        route.fulfill({ status: 204, body: "" });
-      }
-    });
-
-    await page.goto("/home-preferences");
-    await page.waitForLoadState("networkidle");
-    await expect(page).toHaveScreenshot("home-preferences.png", screenshotOptions);
   });
 
   // ---- Notes ----

@@ -23,6 +23,7 @@ const mockFoodPlanNotesGet = jest.fn()
 const mockShoppingListsGet = jest.fn()
 const mockBillSummaryGet = jest.fn()
 const mockHomeCardPreferencesGet = jest.fn()
+const mockHomeCardPreferencesPut = jest.fn()
 const mockSearchGet = jest.fn()
 const mockNotesGet = jest.fn()
 const mockRenovationProjectsGet = jest.fn()
@@ -74,7 +75,10 @@ jest.mock('@/lib/apiClient', () => ({
         summary: { get: (...args: unknown[]) => mockBillSummaryGet(...args) },
       },
       home: {
-        cardPreferences: { get: (...args: unknown[]) => mockHomeCardPreferencesGet(...args), put: jest.fn() },
+        cardPreferences: {
+          get: (...args: unknown[]) => mockHomeCardPreferencesGet(...args),
+          put: (...args: unknown[]) => mockHomeCardPreferencesPut(...args),
+        },
       },
       search: {
         get: (...args: unknown[]) => mockSearchGet(...args),
@@ -510,19 +514,108 @@ describe('Home Page Integration Tests', () => {
   })
 
   // ------- Home card preferences (order/visibility) -------
-  it('should link to home preferences from the header menu', async () => {
+  const switchOrder = () => screen.getAllByRole('switch').map((el) => el.getAttribute('aria-label'))
+
+  it('should put a card switched back on at the end of the visible cards', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
-    mockFoodPlanEntriesGet.mockResolvedValue([])
-    mockShoppingListsGet.mockResolvedValue([])
+    mockHomeCardPreferencesPut.mockResolvedValue(undefined)
+    mockHomeCardPreferencesGet.mockResolvedValue([
+      { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
+      { cardKey: 'bills', sortOrder: 1, isVisible: true },
+      { cardKey: 'lists', sortOrder: 2, isVisible: false },
+      { cardKey: 'notes', sortOrder: 3, isVisible: false },
+    ])
 
     render(<Home />)
+    await enterEditMode(user)
+    await user.click(screen.getByRole('switch', { name: 'Show Notes on home page' }))
 
+    expect(switchOrder()).toEqual([
+      'Show Menu of the Day on home page',
+      'Show Bills on home page',
+      'Show Notes on home page',
+      'Show Lists on home page',
+    ])
+  })
+
+  async function enterEditMode(user: ReturnType<typeof userEvent.setup>) {
+    await waitFor(() => expect(screen.getByText("Today's Menu")).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: 'More options' }))
-    expect(await screen.findByRole('menuitem', { name: 'Customize home page' })).toHaveAttribute(
-      'href',
-      '/home-preferences',
-    )
+    await user.click(await screen.findByRole('menuitem', { name: 'Customize home page' }))
+    await screen.findByRole('button', { name: 'Done' })
+  }
+
+  it('should enter edit mode from the header menu with a switch and drag handle per card', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+
+    render(<Home />)
+    await enterEditMode(user)
+
+    expect(screen.getAllByRole('switch').map((el) => el.getAttribute('aria-label'))).toEqual([
+      'Show Menu of the Day on home page',
+      'Show Lists on home page',
+      'Show Bills on home page',
+    ])
+    expect(screen.getByRole('button', { name: 'Drag to reorder Lists' })).toBeInTheDocument()
+    // The cards themselves are inert previews while editing.
+    expect(screen.getByTestId('home-card-edit-lists').querySelector('[inert]')).not.toBeNull()
+  })
+
+  it('should show a hidden card (dimmed, switched off) in edit mode and keep the no-bills card draggable', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockHomeCardPreferencesGet.mockResolvedValue([
+      { cardKey: 'foodplan', sortOrder: 0, isVisible: true },
+      { cardKey: 'lists', sortOrder: 1, isVisible: false },
+      { cardKey: 'bills', sortOrder: 2, isVisible: true },
+    ])
+
+    render(<Home />)
+    await enterEditMode(user)
+
+    expect(screen.getByRole('heading', { name: 'Lists' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Show Lists on home page' })).not.toBeChecked()
+    // Hidden cards are listed after the visible ones.
+    expect(switchOrder()).toEqual([
+      'Show Menu of the Day on home page',
+      'Show Bills on home page',
+      'Show Lists on home page',
+    ])
+    expect(screen.getByText('Hidden')).toBeInTheDocument()
+    expect(screen.getByText('Shows up once you add a bill.')).toBeInTheDocument()
+  })
+
+  it('should save the toggled visibility and apply it once editing is done', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
+    mockHomeCardPreferencesPut.mockResolvedValue(undefined)
+
+    render(<Home />)
+    await enterEditMode(user)
+    await user.click(screen.getByRole('switch', { name: 'Show Lists on home page' }))
+
+    await waitFor(() => {
+      expect(mockHomeCardPreferencesPut).toHaveBeenCalledWith({
+        cards: [
+          { cardKey: 'foodplan', isVisible: true },
+          { cardKey: 'bills', isVisible: true },
+          { cardKey: 'lists', isVisible: false },
+        ],
+      })
+    })
+    // A card switched off drops below the visible ones.
+    expect(switchOrder()).toEqual([
+      'Show Menu of the Day on home page',
+      'Show Bills on home page',
+      'Show Lists on home page',
+    ])
+
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Lists' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument()
   })
 
   it('should render cards in the order returned by preferences', async () => {

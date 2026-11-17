@@ -22,6 +22,7 @@ import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
 import { BILL_PAYMENT, KIND_EDGE, KIND_TEXT } from "@/lib/kinds";
 import { RenovationHomeCard } from "@/components/renovation/home/RenovationHomeCard";
+import { HomeCardAction, useHomeCardEditing } from "@/components/home/HomeCardEditContext";
 
 // Maps a search result's entityType to its detail-page route. Entity types not
 // listed here render as non-navigable rows instead of a broken link.
@@ -91,14 +92,16 @@ export function FoodPlanCard() {
             {isShowingTomorrow ? "Tomorrow's Menu" : "Today's Menu"}
           </h2>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/food-plans")}
-          className="text-xs"
-        >
-          Food plan
-        </Button>
+        <HomeCardAction>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/food-plans")}
+            className="text-xs"
+          >
+            Food plan
+          </Button>
+        </HomeCardAction>
       </div>
 
       {entriesLoading ? (
@@ -193,17 +196,19 @@ export function ListsCard() {
             Lists
           </h2>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsCreatingList(true)}
-          disabled={!isOnline}
-          title={isOnline ? undefined : "Creating lists requires an internet connection"}
-          className="text-xs"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Create
-        </Button>
+        <HomeCardAction>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCreatingList(true)}
+            disabled={!isOnline}
+            title={isOnline ? undefined : "Creating lists requires an internet connection"}
+            className="text-xs"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Create
+          </Button>
+        </HomeCardAction>
       </div>
 
       {listsLoading ? (
@@ -260,11 +265,14 @@ export function BillsCard() {
   const { data: billSummary } = summaryQuery;
   const summaryLoad = loadFailure(summaryQuery);
   const isOnline = useOnlineStatus();
+  const editing = useHomeCardEditing();
 
   // A household with no bills hides this card entirely, so a failed load must
   // not take the same path — silently disappearing is exactly how an outage
-  // ends up looking like "you have no bills".
-  if (!summaryLoad.failed && (!billSummary || billSummary.totalBills === 0)) {
+  // ends up looking like "you have no bills". In edit mode it still needs a
+  // body to drag, so it says why it's normally absent.
+  const hasNoBills = !summaryLoad.failed && (!billSummary || billSummary.totalBills === 0);
+  if (hasNoBills && !editing) {
     return null;
   }
 
@@ -275,19 +283,25 @@ export function BillsCard() {
           <Receipt className={`h-5 w-5 ${KIND_TEXT.bills}`} />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bills</h2>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/bills/new")}
-          disabled={!isOnline}
-          title={isOnline ? undefined : "Creating bills requires an internet connection"}
-          className="text-xs"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Create
-        </Button>
+        <HomeCardAction>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/bills/new")}
+            disabled={!isOnline}
+            title={isOnline ? undefined : "Creating bills requires an internet connection"}
+            className="text-xs"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Create
+          </Button>
+        </HomeCardAction>
       </div>
-      {summaryLoad.failed || !billSummary ? (
+      {hasNoBills ? (
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.bills} p-4 text-center`}>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Shows up once you add a bill.</p>
+        </div>
+      ) : summaryLoad.failed || !billSummary ? (
         <LoadErrorState what="bills" onRetry={summaryLoad.retry} isRetrying={summaryLoad.isRetrying} />
       ) : (
         <button
@@ -593,17 +607,19 @@ export function NotesCard() {
           <NotebookPen className={`h-5 w-5 ${KIND_TEXT.notes}`} />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notes</h2>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/notes/new")}
-          disabled={!isOnline}
-          title={isOnline ? undefined : "Creating notes requires an internet connection"}
-          className="text-xs"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          New
-        </Button>
+        <HomeCardAction>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/notes/new")}
+            disabled={!isOnline}
+            title={isOnline ? undefined : "Creating notes requires an internet connection"}
+            className="text-xs"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            New
+          </Button>
+        </HomeCardAction>
       </div>
 
       {isLoading ? (
