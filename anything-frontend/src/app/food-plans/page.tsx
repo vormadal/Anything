@@ -716,9 +716,9 @@ export default function FoodPlanPage() {
   // page renders at the top first, which would otherwise trip the top sentinel.
   const [hasScrolledToToday, setHasScrolledToToday] = useState(false);
   const isExtending = useRef(false);
-  // Document height just before rows were prepended; the layout effect below
-  // scrolls by the difference so the rows the reader is looking at stay put.
-  const heightBeforePrepend = useRef<number | null>(null);
+  // A row on screen just before rows were prepended, and where it was; the
+  // layout effect below scrolls it back there so the reader's place is kept.
+  const prependAnchor = useRef<{ day: string; top: number } | null>(null);
   const topSentinelRef = useRef<HTMLDivElement | null>(null);
   const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -734,13 +734,6 @@ export default function FoodPlanPage() {
     (el: HTMLButtonElement | null) => {
       todayRef.current = el;
       if (!el) return;
-
-      // Scroll today into view immediately when it first attaches to the DOM
-      // (data may not have been available at mount time, so we do this here instead of useEffect).
-      const elementTop = el.getBoundingClientRect().top + window.scrollY;
-      const offset = window.innerHeight * 0.25;
-      window.scrollTo({ top: elementTop - offset, behavior: "instant" });
-      setHasScrolledToToday(true);
 
       const observer = new IntersectionObserver(
         ([entry]) => setIsTodayVisible(entry.isIntersecting),
@@ -766,7 +759,7 @@ export default function FoodPlanPage() {
   const startDateStr = toDateInputValue(startDay);
   const endDateStr = toDateInputValue(endDay);
 
-  const { data: settings } = useFoodPlanSettings();
+  const { data: settings, isLoading: settingsLoading } = useFoodPlanSettings();
   // keepPreviousData is a safety net: extend() prefetches the wider range
   // before switching to it, but if that prefetch failed the list must keep
   // its rows rather than collapse into "Loading..." and lose the scroll spot.
@@ -774,7 +767,7 @@ export default function FoodPlanPage() {
     ...foodPlanEntriesQueryOptions(startDateStr + "T00:00:00Z", endDateStr + "T23:59:59Z"),
     placeholderData: keepPreviousData,
   });
-  const { data: notes } = useQuery({
+  const { data: notes, isLoading: notesLoading } = useQuery({
     ...foodPlanNotesQueryOptions(startDateStr, endDateStr),
     placeholderData: keepPreviousData,
   });
@@ -800,6 +793,19 @@ export default function FoodPlanPage() {
     const anchor = orderedDays.find(({ date }) => toDateInputValue(date) >= todayKey);
     return anchor ? toDateInputValue(anchor.date) : null;
   }, [orderedDays, today]);
+
+  // Scroll today into view (~1/4 down the viewport) once, after everything
+  // that sizes the rows above it has loaded: settings decide which days are
+  // rows, notes add a line to a row. Scrolling earlier left today drifting
+  // down by however much arrived afterwards.
+  useLayoutEffect(() => {
+    if (hasScrolledToToday || isLoading || notesLoading || settingsLoading) return;
+    const el = todayRef.current;
+    if (!el) return;
+    const elementTop = el.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: elementTop - window.innerHeight * 0.25, behavior: "instant" });
+    setHasScrolledToToday(true);
+  }, [hasScrolledToToday, isLoading, notesLoading, settingsLoading, anchorKey]);
 
   const getNoteForDate = (date: Date): FoodPlanNote | null => {
     if (!notes) return null;
@@ -835,7 +841,12 @@ export default function FoodPlanPage() {
           queryClient.prefetchQuery(foodPlanNotesQueryOptions(s, e)),
         ]);
         if (direction === "back") {
-          heightBeforePrepend.current = document.documentElement.scrollHeight;
+          const visible = [...document.querySelectorAll<HTMLElement>("[data-day]")].find(
+            (el) => el.getBoundingClientRect().bottom > 0
+          );
+          if (visible?.dataset.day) {
+            prependAnchor.current = { day: visible.dataset.day, top: visible.getBoundingClientRect().top };
+          }
           setWeeksBack((w) => w + EXTEND_WEEKS);
         } else {
           setWeeksForward((w) => w + EXTEND_WEEKS);
@@ -847,25 +858,21 @@ export default function FoodPlanPage() {
     [queryClient, today, weeksBack, weeksForward, startDay, endDay]
   );
 
+  // Measuring the anchor row (rather than the change in page height) makes
+  // this correct with or without native scroll anchoring: where the browser
+  // already compensated (Chrome/Firefox) the row hasn't moved and this is a
+  // no-op; where it didn't (Safari) this does the whole correction. Native
+  // anchoring must stay on — it is also what keeps today in place when notes
+  // load into rows above it after the initial scroll.
   useLayoutEffect(() => {
-    const before = heightBeforePrepend.current;
-    if (before === null) return;
-    heightBeforePrepend.current = null;
-    const delta = document.documentElement.scrollHeight - before;
-    if (delta > 0) window.scrollTo({ top: window.scrollY + delta, behavior: "instant" });
+    const anchor = prependAnchor.current;
+    if (!anchor) return;
+    prependAnchor.current = null;
+    const el = document.querySelector(`[data-day="${anchor.day}"]`);
+    if (!el) return;
+    const drift = el.getBoundingClientRect().top - anchor.top;
+    if (drift !== 0) window.scrollTo({ top: window.scrollY + drift, behavior: "instant" });
   }, [weeksBack]);
-
-  // Browser scroll anchoring would also try to compensate for prepended rows
-  // (Chrome/Firefox, not Safari), doubling the correction. Turn it off so the
-  // manual compensation above is the only one, on every browser.
-  useEffect(() => {
-    const root = document.documentElement;
-    const previous = root.style.overflowAnchor;
-    root.style.overflowAnchor = "none";
-    return () => {
-      root.style.overflowAnchor = previous;
-    };
-  }, []);
 
   // Re-created whenever the range changes so a sentinel that is *still* in
   // range after an extension fires again (observers only report changes).
