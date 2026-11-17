@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useLayoutEffect, useRef, useState, type ComponentType } from "react";
 import {
   DndContext,
   closestCenter,
@@ -47,6 +47,53 @@ const OFFLINE_TITLE = "Customizing the home page requires an internet connection
 // rects must be re-measured continuously instead of once at drag start.
 const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } };
 
+const SLIDE_DURATION_MS = 300;
+
+function cardElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(":scope > [data-card-key]"));
+}
+
+/**
+ * Slides cards from where they were to where they now are, for the one change
+ * that moves cards without the user dragging them: a visibility toggle
+ * (`hiddenLast` sends the card to the other group). Call `capture()` just
+ * before that change. Drops are left alone on purpose — dnd-kit already
+ * animates those, and a second, generic FLIP would fight it.
+ */
+function useToggleSlide<T extends HTMLElement>() {
+  const containerRef = useRef<T>(null);
+  const pendingTops = useRef<Map<string, number> | null>(null);
+
+  const capture = () => {
+    const container = containerRef.current;
+    if (!container) return;
+    pendingTops.current = new Map(
+      cardElements(container).map((el) => [el.dataset.cardKey!, el.getBoundingClientRect().top])
+    );
+  };
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const previousTops = pendingTops.current;
+    pendingTops.current = null;
+    if (!container || !previousTops) return;
+    if (globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    for (const el of cardElements(container)) {
+      const previousTop = previousTops.get(el.dataset.cardKey!);
+      const delta = previousTop == null ? 0 : previousTop - el.getBoundingClientRect().top;
+      // jsdom (and very old browsers) have no Element.animate; the move itself still happens.
+      if (Math.abs(delta) < 0.5 || typeof el.animate !== "function") continue;
+      el.animate([{ transform: `translateY(${delta}px)` }, { transform: "translateY(0)" }], {
+        duration: SLIDE_DURATION_MS,
+        easing: "ease",
+      });
+    }
+  });
+
+  return { containerRef, capture };
+}
+
 function SortableHomeCard({
   card,
   collapsed,
@@ -67,9 +114,10 @@ function SortableHomeCard({
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       data-testid={`home-card-edit-${card.key}`}
+      data-card-key={card.key}
       className={cn(
         // -mx-3 cancels border + padding so the card itself stays exactly where it sits outside edit mode.
-        "relative -mx-3 rounded-xl border-2 border-dashed p-2.5",
+        "relative -mx-3 rounded-xl border-2 border-dashed p-2.5 bg-background",
         card.isVisible ? "border-blue-300 dark:border-blue-700" : "border-gray-300 dark:border-gray-600",
         isDragging && "z-10 shadow-lg ring-2 ring-blue-500 bg-white dark:bg-gray-900"
       )}
@@ -128,6 +176,7 @@ export function EditableHomeCards({
   onChange: (next: EditableHomeCard[]) => void;
 }>) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const { containerRef, capture } = useToggleSlide<HTMLDivElement>();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -144,8 +193,10 @@ export function EditableHomeCards({
     onChange(hiddenLast(arrayMove(cards, oldIndex, newIndex)));
   };
 
-  const handleToggle = (key: string, isVisible: boolean) =>
+  const handleToggle = (key: string, isVisible: boolean) => {
+    capture();
     onChange(hiddenLast(cards.map((c) => (c.key === key ? { ...c, isVisible } : c))));
+  };
 
   return (
     <HomeCardEditingProvider value={true}>
@@ -158,7 +209,7 @@ export function EditableHomeCards({
         onDragCancel={() => setActiveKey(null)}
       >
         <SortableContext items={cards.map((c) => c.key)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
+          <div ref={containerRef} className="space-y-2">
             {cards.map((card) => (
               <SortableHomeCard
                 key={card.key}
