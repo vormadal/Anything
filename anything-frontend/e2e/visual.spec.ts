@@ -2466,6 +2466,9 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/food-plans");
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("button", { name: "Load more" })).toHaveCount(0);
+    // The page's one action is a labelled floating button; settings moved to ⋮.
+    await expect(page.getByRole("button", { name: "Add to shopping list" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Food plan settings" })).toHaveCount(0);
     await expect(page).toHaveScreenshot(
       "food-plans-with-entries.png",
       foodPlanScreenshotOptions
