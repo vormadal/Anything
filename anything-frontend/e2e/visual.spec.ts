@@ -2506,7 +2506,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   // Add-to-shopping-list wizard. Step 1: the next four weeks' recipes, each
   // once with its days; coming-week recipes not yet added start at 1, the rest
-  // (Chicken Stir Fry, added before) at 0. Step 2: the derived period + lists.
+  // (Chicken Stir Fry, added before) at 0. Step 2: the lists to add to.
   test("food plans - add to shopping list wizard", async ({ page }) => {
     await page.route("**/api/food-plan/entries**", (route) =>
       route.fulfill({
@@ -2521,7 +2521,6 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/food-plans");
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "Add to shopping list" }).click();
-    await expect(page.getByText("Step 1 of 2")).toBeVisible();
     await expect(page.getByRole("button", { name: "Increase multiplier for Beef Tacos" })).toBeVisible();
     await expect(page.getByText(/added before/)).toBeVisible();
     await expect(page).toHaveScreenshot(
@@ -2530,8 +2529,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
 
     await page.getByRole("button", { name: "Next" }).click();
-    await expect(page.getByText("Step 2 of 2")).toBeVisible();
-    await expect(page.getByText("Select a shopping list:")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Weekly Groceries" })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "food-plans-add-to-shopping-list-lists.png",
       foodPlanScreenshotOptions

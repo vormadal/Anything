@@ -1117,7 +1117,6 @@ describe('FoodPlanPage', () => {
     await user.click(screen.getByRole('button', { name: 'Increase multiplier for Tacos' }))
     await user.click(screen.getByRole('button', { name: 'Next' }))
 
-    expect(screen.getByText(/2 recipes/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Weekly Groceries' }))
 
     await waitFor(() => expect(mockAddToShoppingListPost).toHaveBeenCalled())
@@ -1142,7 +1141,7 @@ describe('FoodPlanPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Increase multiplier for Pasta' }))
     await user.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByText('Select a shopping list:')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Weekly Groceries' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Back' }))
     expect(multiplierOf('Pasta')).toBe('2')

@@ -602,18 +602,12 @@ function AddToShoppingListDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Add to Shopping List
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Step {step === "recipes" ? 1 : 2} of 2
-        </p>
 
         {step === "recipes" ? (
           <>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Choose how many times to add each recipe&apos;s ingredients. 0 skips it.
-            </p>
             {entriesLoading && (
               <p className="text-sm text-gray-500 dark:text-gray-400 py-2">Loading…</p>
             )}
@@ -678,20 +672,6 @@ function AddToShoppingListDialog({
           </>
         ) : (
           <>
-            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
-              {selected.length} {selected.length === 1 ? "recipe" : "recipes"}
-              {rangeStart && rangeEnd && (
-                <>
-                  {" · "}
-                  {isSameDay(rangeStart, rangeEnd)
-                    ? formatDay(rangeStart)
-                    : `${formatDay(rangeStart)} – ${formatDay(rangeEnd)}`}
-                </>
-              )}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-              Select a shopping list:
-            </p>
             <ul className="space-y-2 mb-4">
               {shoppingLists?.map((list) => (
                 <li key={list.id}>
