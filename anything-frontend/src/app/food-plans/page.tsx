@@ -727,9 +727,11 @@ export default function FoodPlanPage() {
   const [isTodayVisible, setIsTodayVisible] = useState(true);
   const todayRef = useRef<HTMLButtonElement | null>(null);
 
-  // Combined callback ref: updates todayRef for scrolling and sets up IntersectionObserver.
+  // Callback ref for the anchor row (today, or the next active day): records it in
+  // todayRef for the initial scroll and the "I dag" button, and watches its visibility.
+  // The initial scroll itself lives in a layout effect that waits for notes/settings.
   // React 19 callback refs support returning a cleanup function, so this re-runs whenever
-  // the today element attaches to the DOM (e.g. after data finishes loading).
+  // the anchor element attaches to the DOM (e.g. after data finishes loading).
   const todayRefCallback = useCallback(
     (el: HTMLButtonElement | null) => {
       todayRef.current = el;
