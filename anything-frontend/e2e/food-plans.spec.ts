@@ -105,14 +105,21 @@ test("can navigate between weeks on the food plan", async ({ page }) => {
   const todayRow = foodPlan.todayRow();
   await expect(todayRow).toBeVisible();
 
-  // Load more days into the future
-  await page.getByRole("button", { name: "Load more" }).click();
+  // Infinite scroll: reaching either end of the list loads more days there.
+  const dayRows = page.locator("[data-day]");
+  const initialCount = await dayRows.count();
+  const initialLast = await dayRows.last().getAttribute("data-day");
+  const initialFirst = await dayRows.first().getAttribute("data-day");
 
-  // Load earlier days into the past
-  await page.getByRole("button", { name: "Load earlier" }).click();
+  await page.getByTestId("food-plan-bottom-sentinel").scrollIntoViewIfNeeded();
+  await expect.poll(() => dayRows.last().getAttribute("data-day")).not.toBe(initialLast);
 
-  // Today's row should still be visible
-  await expect(todayRow).toBeVisible();
+  await page.getByTestId("food-plan-top-sentinel").scrollIntoViewIfNeeded();
+  await expect.poll(() => dayRows.first().getAttribute("data-day")).not.toBe(initialFirst);
+
+  expect(await dayRows.count()).toBeGreaterThan(initialCount);
+  // Today's row is still rendered (no reset to a loading state)
+  await expect(todayRow).toBeAttached();
 });
 
 

@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { onlineManager } from '@tanstack/react-query'
 import { render } from '@/__tests__/utils/test-utils'
@@ -385,21 +385,21 @@ describe('Home Page Integration Tests', () => {
     })
   })
 
-  it('should display day note on home page when no meals are planned', async () => {
+  it('should show a note-only day as a single clickable row instead of the empty state', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockFoodPlanEntriesGet.mockResolvedValue([])
     mockFoodPlanNotesGet.mockResolvedValue([
-      { id: 1, date: '2025-06-16', note: 'Eating at friends tonight' },
+      { id: 1, date: '2025-06-16', note: 'Leftovers' },
     ])
     mockShoppingListsGet.mockResolvedValue([])
 
     render(<Home />)
 
-    await waitFor(() => {
-      expect(screen.getByText(/No meals planned for Monday/i)).toBeInTheDocument()
-    })
+    const row = await screen.findByRole('button', { name: 'Leftovers' })
+    expect(screen.queryByText(/No meals planned/i)).not.toBeInTheDocument()
 
-    expect(screen.getByText('Eating at friends tonight')).toBeInTheDocument()
+    fireEvent.click(row)
+    expect(mockPush).toHaveBeenCalledWith('/food-plans')
   })
 
   it('should not display note section when no day note exists', async () => {

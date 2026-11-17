@@ -112,7 +112,10 @@ test("food plan ingredients can be sent to a shopping list", async ({
 }) => {
   const suffix = Date.now();
   const listName = `Ingredients List ${suffix}`;
+  const recipeName = `Ingredients Recipe ${suffix}`;
   let listId: number | null = null;
+  let recipeId: number | null = null;
+  let entryId: number | null = null;
 
   try {
     // 1. Create a shopping list to receive the ingredients
@@ -124,16 +127,32 @@ test("food plan ingredients can be sent to a shopping list", async ({
     await expect(page).toHaveURL(/\/lists\/\d+/);
     listId = Number(page.url().match(/\/lists\/(\d+)/)?.[1]);
 
-    // 2. Navigate to the food plan
-    await page.goto("/food-plans");
+    // 2. Plan a recipe for today — the wizard preselects recipes in the
+    //    coming week, and "Next" needs at least one selected.
+    recipeId = (await apiRequest<{ id: number }>(page, "POST", "/api/recipes", { name: recipeName })).id;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    entryId = (
+      await apiRequest<{ id: number }>(page, "POST", "/api/food-plan/entries", {
+        name: recipeName,
+        recipeId,
+        date: `${today}T00:00:00Z`,
+      })
+    ).id;
 
-    // 3. Open the "add to shopping list" dialog
+    // 3. Open the "add to shopping list" wizard on the food plan
+    await page.goto("/food-plans");
     await page.getByRole("button", { name: "Add to shopping list" }).click();
     await expect(
       page.getByRole("heading", { name: "Add to Shopping List" })
     ).toBeVisible();
 
-    // 4. The shopping list we just created should appear in the dialog
+    // 4. Step 1: our recipe is listed; continue to the list step, where the
+    //    shopping list we just created should appear
+    await expect(
+      page.getByRole("button", { name: `Increase multiplier for ${recipeName}` })
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Next" }).click();
     await expect(page.getByText(listName)).toBeVisible();
 
     // 5. Select the shopping list — ingredients (if any) are added
@@ -144,6 +163,12 @@ test("food plan ingredients can be sent to a shopping list", async ({
       page.getByRole("heading", { name: "Add to Shopping List" })
     ).not.toBeVisible();
   } finally {
+    if (entryId != null) {
+      await apiRequest(page, "DELETE", `/api/food-plan/entries/${entryId}`);
+    }
+    if (recipeId != null) {
+      await apiRequest(page, "DELETE", `/api/recipes/${recipeId}`);
+    }
     if (listId != null) {
       await apiRequest(page, "DELETE", `/api/checklists/${listId}`);
     }
@@ -181,17 +206,18 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
     // Step 3 — Schedule the recipe on the food plan via the food plan page
     const foodPlan = new FoodPlanPage(page);
     await foodPlan.goto();
-    // Click the first day row card to open the day management dialog.
-    await foodPlan.openFirstDayDialog();
+    // Today (or the next active day): the shopping-list wizard only offers
+    // upcoming recipes, and the list loads weeks of past days above today.
+    await foodPlan.openUpcomingDayDialog();
 
     const mealInput = page.getByPlaceholder("Meal name...");
     await mealInput.fill(recipeName);
 
-    // If the typeahead shows the recipe, select it (links it to the recipe id)
+    // Select the recipe from the typeahead so the entry links to it — the
+    // shopping-list wizard only lists recipe-linked entries.
     const suggestion = page.locator("li").filter({ hasText: recipeName }).first();
-    if (await suggestion.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await suggestion.click();
-    }
+    await expect(suggestion).toBeVisible();
+    await suggestion.click();
 
     await page.locator('button[type="submit"]').click();
     // Scope to the <li> with a "Remove entry" button to avoid a strict-mode
@@ -212,6 +238,10 @@ test("full flow: create recipe, schedule it, shop from the list", async ({
     await expect(
       page.getByRole("heading", { name: "Add to Shopping List" })
     ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: `Increase multiplier for ${recipeName}` })
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Next" }).click();
     await expect(page.getByText(listName)).toBeVisible();
     await page.getByText(listName).click();
     await expect(

@@ -1080,6 +1080,16 @@ const screenshotOptions = {
   animations: "disabled" as const,
 };
 
+// The food-plan list loads ±8 weeks and grows by infinite scroll, so a
+// full-page capture would be thousands of pixels tall — and Chromium's
+// full-page capture enlarges the viewport, which puts both scroll sentinels in
+// range and loads more weeks mid-capture. Capture the viewport instead; the
+// page scrolls today into view on load, so that is the part worth seeing.
+const foodPlanScreenshotOptions = {
+  ...screenshotOptions,
+  fullPage: false,
+};
+
 // ---------------------------------------------------------------------------
 // Login page (unauthenticated)
 // ---------------------------------------------------------------------------
@@ -1173,6 +1183,9 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.route("**/api/food-plan/entries**", (route) =>
       route.fulfill({ json: [] })
     );
+    await page.route("**/api/food-plan/notes**", (route) =>
+      route.fulfill({ json: [] })
+    );
     await page.route("**/api/checklists**", (route) => {
       if (route.request().method() === "GET") {
         route.fulfill({ json: [] });
@@ -1194,6 +1207,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("No renovation projects yet")).toBeVisible();
+    await expect(page.getByText(/No meals planned for/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
     await expect(page).toHaveScreenshot("home-empty.png", screenshotOptions);
   });
 
@@ -1251,6 +1266,9 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("No renovation projects yet")).toBeVisible();
+    // The note is the day's plan: one clickable row, no empty-state message.
+    await expect(page.getByRole("button", { name: "Eating out tonight" })).toBeVisible();
+    await expect(page.getByText(/No meals planned/)).toHaveCount(0);
     await expect(page).toHaveScreenshot("home-note-without-meals.png", screenshotOptions);
   });
 
@@ -2425,9 +2443,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("food plans - with entries", async ({ page }) => {
     await page.goto("/food-plans");
     await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("button", { name: "Load more" })).toHaveCount(0);
     await expect(page).toHaveScreenshot(
       "food-plans-with-entries.png",
-      screenshotOptions
+      foodPlanScreenshotOptions
     );
   });
 
@@ -2439,42 +2458,38 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "food-plans-empty.png",
-      screenshotOptions
+      foodPlanScreenshotOptions
     );
   });
 
-  // "mandag" = Monday 2025-01-13, which has Pasta Carbonara + a note in the mock data.
-  // The page clock is set to 2025-01-15 (Wednesday), so Monday is 2 days back (no relative
-  // label), giving aria-label "mandag".
+  // Monday 2025-01-13 has Pasta Carbonara + a note in the mock data.
   test("food plans - day dialog with entries and note", async ({ page }) => {
     await page.goto("/food-plans");
-    await page.waitForSelector('[aria-label="mandag"]');
-    await page.getByRole("button", { name: "mandag" }).first().click();
+    // Pinned by date: with ±8 weeks loaded there are many "mandag" rows.
+    await page.locator('[data-day="2025-01-13"]').click();
     await page.waitForSelector('[aria-label="Close dialog"]');
     await expect(page).toHaveScreenshot(
       "food-plans-day-dialog-with-entries.png",
-      screenshotOptions
+      foodPlanScreenshotOptions
     );
   });
 
-  // "torsdag" = Thursday 2025-01-16, one day after the fixed-date Wednesday.
-  // aria-label becomes "torsdag, i morgen" (tomorrow). Has no entries in mock data,
-  // so the dialog opens with the ranked suggestions dropdown visible.
+  // Thursday 2025-01-09 (past, no entries in the mock data).
   test("food plans - day dialog empty day", async ({ page }) => {
     await page.goto("/food-plans");
-    await page.waitForSelector('button[aria-label*="torsdag"]');
-    await page.getByRole("button", { name: /torsdag/i }).first().click();
+    // The past Thursday (Jan 9) — an upcoming one would auto-open suggestions.
+    await page.locator('[data-day="2025-01-09"]').click();
     await page.waitForSelector('[aria-label="Close dialog"]');
     await expect(page).toHaveScreenshot(
       "food-plans-day-dialog-empty.png",
-      screenshotOptions
+      foodPlanScreenshotOptions
     );
   });
 
   // Empty upcoming day → dialog opens with ranked suggestions (names + reasons) and
   // the calendar behind shows the dashed "Suggest meal" chips on empty days.
-  // NB: two torsdag rows are rendered (Jan 9 + Jan 16); target the upcoming one via
-  // its full "torsdag, i morgen" label — the past one does not auto-open suggestions.
+  // NB: many torsdag rows are rendered; target the upcoming one via its full
+  // "torsdag, i morgen" label — past ones do not auto-open suggestions.
   test("food plans - day dialog ranked suggestions", async ({ page }) => {
     await page.route("**/api/food-plan/entries**", (route) =>
       route.fulfill({ json: [] })
@@ -2485,7 +2500,39 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.getByText("Suggestions", { exact: true }).waitFor();
     await expect(page).toHaveScreenshot(
       "food-plans-day-dialog-suggestions.png",
-      screenshotOptions
+      foodPlanScreenshotOptions
+    );
+  });
+
+  // Add-to-shopping-list wizard. Step 1: the next four weeks' recipes, each
+  // once with its days; coming-week recipes not yet added start at 1, the rest
+  // (Chicken Stir Fry, added before) at 0. Step 2: the lists to add to.
+  test("food plans - add to shopping list wizard", async ({ page }) => {
+    await page.route("**/api/food-plan/entries**", (route) =>
+      route.fulfill({
+        json: [
+          { id: 3, date: "2025-01-15", name: "Beef Tacos", recipeId: 3, addedToShoppingListOn: null },
+          { id: 4, date: "2025-01-16", name: "Chicken Stir Fry", recipeId: 2, addedToShoppingListOn: "2025-01-14T10:00:00Z" },
+          { id: 5, date: "2025-01-17", name: "Pasta Carbonara", recipeId: 1, addedToShoppingListOn: null },
+          { id: 6, date: "2025-01-19", name: "Beef Tacos", recipeId: 3, addedToShoppingListOn: null },
+        ],
+      })
+    );
+    await page.goto("/food-plans");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Add to shopping list" }).click();
+    await expect(page.getByRole("button", { name: "Increase multiplier for Beef Tacos" })).toBeVisible();
+    await expect(page.getByText(/added before/)).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "food-plans-add-to-shopping-list-recipes.png",
+      foodPlanScreenshotOptions
+    );
+
+    await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.getByRole("button", { name: "Weekly Groceries" })).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "food-plans-add-to-shopping-list-lists.png",
+      foodPlanScreenshotOptions
     );
   });
 

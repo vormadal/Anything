@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import FoodPlanPage from './page'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
+import { differenceInCalendarDays, format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { toDateInputValue } from '@/lib/foodPlanUtils'
 
@@ -44,18 +44,32 @@ const mockScrollTo = jest.fn()
 Object.defineProperty(window, 'scrollTo', { value: mockScrollTo, writable: true })
 
 // ---- IntersectionObserver mock (jsdom does not implement it) ----
+// The page observes several elements (today's row, plus the two infinite-scroll
+// sentinels), so callbacks are tracked per observed element.
 type IntersectionCallback = (entries: IntersectionObserverEntry[]) => void
-let intersectionCallback: IntersectionCallback | null = null
-const mockIntersectionObserverDisconnect = jest.fn()
-const mockIntersectionObserverObserve = jest.fn()
+const observedCallbacks = new Map<Element, IntersectionCallback>()
 
 class MockIntersectionObserver {
+  private readonly callback: IntersectionCallback
   constructor(callback: IntersectionCallback) {
-    intersectionCallback = callback
+    this.callback = callback
   }
-  observe = mockIntersectionObserverObserve
-  disconnect = mockIntersectionObserverDisconnect
+  observe = (el: Element) => {
+    observedCallbacks.set(el, this.callback)
+  }
+  disconnect = () => {
+    for (const [el, cb] of observedCallbacks) {
+      if (cb === this.callback) observedCallbacks.delete(el)
+    }
+  }
 }
+
+function triggerIntersection(el: Element | null, isIntersecting: boolean) {
+  if (!el) throw new Error('element to intersect not found')
+  observedCallbacks.get(el)?.([{ isIntersecting, target: el } as unknown as IntersectionObserverEntry])
+}
+
+const todayRow = () => document.querySelector('[data-today="true"]')
 
 Object.defineProperty(window, 'IntersectionObserver', {
   writable: true,
@@ -330,51 +344,83 @@ describe('FoodPlanPage', () => {
     expect(screen.getAllByText(mondayDateStr)[0]).toBeInTheDocument()
   })
 
-  // ------- 4. Load more buttons -------
-  it('should show "Load earlier" and "Load more" buttons', async () => {
+  // ------- 4. Infinite scroll -------
+  // Each assertion compares the earliest/latest startDate/endDate requested.
+  function requestedEntryRanges() {
+    return mockEntriesGet.mock.calls.map(
+      ([config]) => config.queryParameters as { startDate: Date; endDate: Date },
+    )
+  }
+
+  it('should not render load more buttons', async () => {
     render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
 
-    await waitFor(() => {
-      expect(screen.getByText('i dag')).toBeInTheDocument()
-    })
-
-    expect(screen.getByRole('button', { name: 'Load earlier' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Load more' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load earlier' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
   })
 
-  it('should fetch a wider date range when "Load earlier" is clicked', async () => {
-    const user = userEvent.setup()
-
+  it('should load eight weeks either side of today by default', async () => {
     render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
+
+    const [{ startDate, endDate }] = requestedEntryRanges()
+    expect(differenceInCalendarDays(today, startDate)).toBe(56)
+    expect(differenceInCalendarDays(endDate, today)).toBe(56)
+  })
+
+  it('should fetch later weeks when the bottom sentinel scrolls into range', async () => {
+    render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
+
+    act(() => triggerIntersection(screen.getByTestId('food-plan-bottom-sentinel'), true))
 
     await waitFor(() => {
-      expect(screen.getByText('i dag')).toBeInTheDocument()
-    })
-
-    const initialCallCount = mockEntriesGet.mock.calls.length
-
-    await user.click(screen.getByRole('button', { name: 'Load earlier' }))
-
-    await waitFor(() => {
-      expect(mockEntriesGet).toHaveBeenCalledTimes(initialCallCount + 1)
+      const latest = Math.max(...requestedEntryRanges().map((r) => r.endDate.getTime()))
+      expect(differenceInCalendarDays(new Date(latest), today)).toBe(112)
     })
   })
 
-  it('should fetch a wider date range when "Load more" is clicked', async () => {
-    const user = userEvent.setup()
+  it('should fetch earlier weeks when the top sentinel scrolls into range', async () => {
+    render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
 
+    act(() => triggerIntersection(screen.getByTestId('food-plan-top-sentinel'), true))
+
+    await waitFor(() => {
+      const earliest = Math.min(...requestedEntryRanges().map((r) => r.startDate.getTime()))
+      expect(differenceInCalendarDays(today, new Date(earliest))).toBe(112)
+    })
+  })
+
+  it('should keep the existing rows on screen while a wider range loads', async () => {
+    render(<FoodPlanPage />)
+    await waitFor(() => expect(screen.getByText('i dag')).toBeInTheDocument())
+
+    // Hold the extension's fetch open: the list must not collapse to "Loading...".
+    mockEntriesGet.mockReturnValue(new Promise(() => {}))
+    act(() => triggerIntersection(screen.getByTestId('food-plan-bottom-sentinel'), true))
+
+    await waitFor(() => expect(mockEntriesGet.mock.calls.length).toBeGreaterThan(1))
+    expect(screen.getByText('i dag')).toBeInTheDocument()
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
+  })
+
+  it('should anchor on the next active day and still extend when today is not an active day', async () => {
+    const todayBit = 1 << ((today.getDay() + 6) % 7)
+    mockSettingsGet.mockResolvedValue({ activeDays: 127 & ~todayBit })
     render(<FoodPlanPage />)
 
+    await waitFor(() =>
+      expect(mockScrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'instant' })),
+    )
+    expect(todayRow()).toBeNull()
+
+    act(() => triggerIntersection(screen.getByTestId('food-plan-bottom-sentinel'), true))
+
     await waitFor(() => {
-      expect(screen.getByText('i dag')).toBeInTheDocument()
-    })
-
-    const initialCallCount = mockEntriesGet.mock.calls.length
-
-    await user.click(screen.getByRole('button', { name: 'Load more' }))
-
-    await waitFor(() => {
-      expect(mockEntriesGet).toHaveBeenCalledTimes(initialCallCount + 1)
+      const latest = Math.max(...requestedEntryRanges().map((r) => r.endDate.getTime()))
+      expect(differenceInCalendarDays(new Date(latest), today)).toBe(112)
     })
   })
 
@@ -957,237 +1003,185 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  // ------- 8. Shopping list dialog -------
-  it('should open the shopping list dialog via header action', async () => {
-    mockShoppingListsGet.mockResolvedValue([{ id: 1, name: 'Weekly Groceries' }])
-
+  // ------- 8. Add-to-shopping-list wizard -------
+  async function openShoppingDialog() {
     render(<FoodPlanPage />)
+    await waitFor(() => expect(mockSetHeaderActions).toHaveBeenCalled())
+    const { container } = render(mockSetHeaderActions.mock.calls[0][0])
+    await userEvent.setup().click(within(container).getByRole('button', { name: 'Add to shopping list' }))
+    await screen.findByText('Add to Shopping List')
+  }
+
+  // The multiplier shown between a recipe's −/+ buttons.
+  function multiplierOf(name: string) {
+    return screen.getByRole('button', { name: `Increase multiplier for ${name}` }).previousElementSibling?.textContent
+  }
+
+  function lastAddCall() {
+    return mockAddToShoppingListPost.mock.calls.at(-1)![0] as {
+      shoppingListId: number
+      startDate: Date
+      endDate: Date
+      recipeMultipliers: { recipeId: number; multiplier: number }[]
+    }
+  }
+
+  const utcDay = (offset: number) => {
+    const d = addDays(today, offset)
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  }
+
+  beforeEach(() => {
+    mockRecipesFetch([
+      { id: 1, name: 'Pasta' },
+      { id: 2, name: 'Salad' },
+      { id: 3, name: 'Tacos' },
+    ])
+    mockShoppingListsGet.mockResolvedValue([{ id: 10, name: 'Weekly Groceries' }])
+    mockAddToShoppingListPost.mockResolvedValue(undefined)
+  })
+
+  it('should fetch the next four weeks of recipes for the wizard', async () => {
+    await openShoppingDialog()
 
     await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const shoppingCartButton = within(container).getByRole('button', { name: 'Add to shopping list' })
-
-    const user = userEvent.setup()
-    await user.click(shoppingCartButton)
-
-    await waitFor(() => {
-      expect(screen.getByText('Add to Shopping List')).toBeInTheDocument()
+      const ranges = mockEntriesGet.mock.calls.map(([c]) => c.queryParameters)
+      expect(ranges).toContainEqual({
+        startDate: new Date(toDateInputValue(today) + 'T00:00:00Z'),
+        endDate: new Date(toDateInputValue(addDays(today, 27)) + 'T23:59:59Z'),
+      })
     })
   })
 
-  it('should show shopping lists in the dialog', async () => {
-    const entries = [buildEntry(1, 'Pasta', 0, { recipeId: 1 })]
-    mockEntriesGet.mockResolvedValue(entries)
-    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
-    mockShoppingListsGet.mockResolvedValue([
-      { id: 1, name: 'Weekly Groceries' },
-      { id: 2, name: 'Party Supplies' },
+  it('should preselect recipes in the coming week that were not added before', async () => {
+    mockEntriesGet.mockResolvedValue([
+      buildEntry(1, 'Pasta', 1, { recipeId: 1 }),
+      buildEntry(2, 'Salad', 2, { recipeId: 2, addedToShoppingListOn: '2025-01-01T00:00:00Z' }),
+      buildEntry(3, 'Tacos', 10, { recipeId: 3 }),
     ])
+    await openShoppingDialog()
 
-    render(<FoodPlanPage />)
+    await screen.findByRole('button', { name: 'Increase multiplier for Tacos' })
+    expect(multiplierOf('Pasta')).toBe('1')
+    expect(multiplierOf('Salad')).toBe('0')
+    expect(multiplierOf('Tacos')).toBe('0')
+    expect(screen.getByText(/added before/)).toBeInTheDocument()
+  })
 
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
+  it('should list a recipe once with every day it is planned', async () => {
+    mockEntriesGet.mockResolvedValue([
+      buildEntry(1, 'Pasta', 1, { recipeId: 1 }),
+      buildEntry(2, 'Pasta', 3, { recipeId: 1 }),
+    ])
+    await openShoppingDialog()
 
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const shoppingCartButton = within(container).getByRole('button', { name: 'Add to shopping list' })
+    await screen.findByRole('button', { name: 'Increase multiplier for Pasta' })
+    expect(screen.getAllByRole('button', { name: 'Increase multiplier for Pasta' })).toHaveLength(1)
+    const day = (offset: number) => format(addDays(today, offset), 'EEE d. MMM', { locale: da })
+    expect(screen.getByText(`${day(1)}, ${day(3)}`)).toBeInTheDocument()
+  })
 
+  it('should disable Next until a recipe has a multiplier above 0', async () => {
+    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Tacos', 10, { recipeId: 3 })])
+    await openShoppingDialog()
     const user = userEvent.setup()
-    await user.click(shoppingCartButton)
 
-    await waitFor(() => {
-      expect(screen.getByText('Weekly Groceries')).toBeInTheDocument()
-      expect(screen.getByText('Party Supplies')).toBeInTheDocument()
-    })
+    const next = await screen.findByRole('button', { name: 'Next' })
+    await screen.findByRole('button', { name: 'Increase multiplier for Tacos' })
+    expect(next).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Increase multiplier for Tacos' }))
+    expect(next).toBeEnabled()
+  })
+
+  it('should say when no recipes are planned in the coming weeks', async () => {
+    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Leftovers', 1)]) // no recipe
+    await openShoppingDialog()
+
+    expect(await screen.findByText('No recipes planned in the coming weeks.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+  })
+
+  it('should derive the range from the selected recipes and send the rest as 0', async () => {
+    mockEntriesGet.mockResolvedValue([
+      buildEntry(1, 'Pasta', 1, { recipeId: 1 }),
+      buildEntry(2, 'Salad', 3, { recipeId: 2 }),
+      buildEntry(3, 'Tacos', 12, { recipeId: 3 }),
+    ])
+    await openShoppingDialog()
+    const user = userEvent.setup()
+
+    // Skip Salad in the middle, add Tacos from the week after twice.
+    await user.click(await screen.findByRole('button', { name: 'Decrease multiplier for Salad' }))
+    await user.click(screen.getByRole('button', { name: 'Increase multiplier for Tacos' }))
+    await user.click(screen.getByRole('button', { name: 'Increase multiplier for Tacos' }))
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+
+    await user.click(screen.getByRole('button', { name: 'Weekly Groceries' }))
+
+    await waitFor(() => expect(mockAddToShoppingListPost).toHaveBeenCalled())
+    const call = lastAddCall()
+    expect(call.shoppingListId).toBe(10)
+    expect(call.startDate).toEqual(utcDay(1))
+    expect(call.endDate).toEqual(utcDay(12))
+    expect(call.recipeMultipliers).toEqual(
+      expect.arrayContaining([
+        { recipeId: 1, multiplier: 1 },
+        { recipeId: 2, multiplier: 0 },
+        { recipeId: 3, multiplier: 2 },
+      ]),
+    )
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Ingredients added to shopping list'))
+  })
+
+  it('should go back to the recipes step keeping the chosen multipliers', async () => {
+    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pasta', 1, { recipeId: 1 })])
+    await openShoppingDialog()
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Increase multiplier for Pasta' }))
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+    expect(screen.getByRole('button', { name: 'Weekly Groceries' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    expect(multiplierOf('Pasta')).toBe('2')
   })
 
   it('should show "No shopping lists available." when none exist', async () => {
-    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pasta', 0, { recipeId: 1 })])
-    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
     mockShoppingListsGet.mockResolvedValue([])
-
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const shoppingCartButton = within(container).getByRole('button', { name: 'Add to shopping list' })
-
+    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pasta', 1, { recipeId: 1 })])
+    await openShoppingDialog()
     const user = userEvent.setup()
-    await user.click(shoppingCartButton)
 
-    await waitFor(() => {
-      expect(screen.getByText('No shopping lists available.')).toBeInTheDocument()
-    })
-  })
+    await screen.findByRole('button', { name: 'Increase multiplier for Pasta' })
+    await user.click(screen.getByRole('button', { name: 'Next' }))
 
-  it('should add entries to shopping list and show success toast', async () => {
-    const entries = [buildEntry(1, 'Pasta', 0, { recipeId: 1 })]
-    mockEntriesGet.mockResolvedValue(entries)
-    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
-    mockShoppingListsGet.mockResolvedValue([{ id: 10, name: 'Weekly Groceries' }])
-    mockAddToShoppingListPost.mockResolvedValue(undefined)
-
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const shoppingCartButton = within(container).getByRole('button', { name: 'Add to shopping list' })
-
-    const user = userEvent.setup()
-    await user.click(shoppingCartButton)
-
-    await waitFor(() => {
-      expect(screen.getByText('Weekly Groceries')).toBeInTheDocument()
-    })
-
-    const listButton = screen.getByRole('button', { name: 'Weekly Groceries' })
-    await user.click(listButton)
-
-    await waitFor(() => {
-      expect(mockAddToShoppingListPost).toHaveBeenCalledWith(
-        expect.objectContaining({ shoppingListId: 10 }),
-      )
-    })
-
-    await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith('Ingredients added to shopping list')
-    })
+    expect(await screen.findByText('No shopping lists available.')).toBeInTheDocument()
   })
 
   it('should show error toast when adding to shopping list fails', async () => {
-    const entries = [buildEntry(1, 'Pasta', 0, { recipeId: 1 })]
-    mockEntriesGet.mockResolvedValue(entries)
-    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
-    mockShoppingListsGet.mockResolvedValue([{ id: 10, name: 'Weekly Groceries' }])
     mockAddToShoppingListPost.mockRejectedValue(new Error('Server error'))
-
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const shoppingCartButton = within(container).getByRole('button', { name: 'Add to shopping list' })
-
+    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pasta', 1, { recipeId: 1 })])
+    await openShoppingDialog()
     const user = userEvent.setup()
-    await user.click(shoppingCartButton)
 
-    await waitFor(() => {
-      expect(screen.getByText('Weekly Groceries')).toBeInTheDocument()
-    })
-
-    const listButton = screen.getByRole('button', { name: 'Weekly Groceries' })
-    await user.click(listButton)
+    await screen.findByRole('button', { name: 'Increase multiplier for Pasta' })
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+    await user.click(await screen.findByRole('button', { name: 'Weekly Groceries' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to add ingredients. Please try again.')
     })
   })
 
-  it('should close the shopping list dialog when Cancel is clicked', async () => {
-    mockEntriesGet.mockResolvedValue([buildEntry(1, 'Pasta', 0, { recipeId: 1 })])
-    mockRecipesFetch([{ id: 1, name: 'Pasta' }])
+  it('should close the wizard when Cancel is clicked', async () => {
+    await openShoppingDialog()
 
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const shoppingCartButton = within(container).getByRole('button', { name: 'Add to shopping list' })
-
-    const user = userEvent.setup()
-    await user.click(shoppingCartButton)
-
-    await waitFor(() => {
-      expect(screen.getByText('Add to Shopping List')).toBeInTheDocument()
-    })
-
-    const cancelButton = screen.getByRole('button', { name: 'Cancel' })
-    await user.click(cancelButton)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Cancel' }))
 
     await waitFor(() => {
       expect(screen.queryByText('Add to Shopping List')).not.toBeInTheDocument()
     })
-  })
-
-  it('should show recipe multiplier controls in the shopping list dialog', async () => {
-    const entries = [
-      buildEntry(1, 'Pasta', 0, { recipeId: 1 }),
-      buildEntry(2, 'Pasta', 2, { recipeId: 1 }), // same recipe, different day
-      buildEntry(3, 'Salad', 1, { recipeId: 2 }),
-    ]
-    mockEntriesGet.mockResolvedValue(entries)
-    mockRecipesFetch([
-      { id: 1, name: 'Pasta' },
-      { id: 2, name: 'Salad' },
-    ])
-    mockShoppingListsGet.mockResolvedValue([{ id: 1, name: 'My List' }])
-
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const shoppingCartButton = within(container).getByRole('button', { name: 'Add to shopping list' })
-
-    const user = userEvent.setup()
-    await user.click(shoppingCartButton)
-
-    await waitFor(() => {
-      expect(screen.getByText('Set the multiplier for each recipe:')).toBeInTheDocument()
-    })
-
-    expect(screen.getByRole('button', { name: 'Increase multiplier for Pasta' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Increase multiplier for Salad' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Decrease multiplier for Pasta' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Decrease multiplier for Salad' })).toBeInTheDocument()
-  })
-
-  it('should not show multiplier controls when no recipe entries exist', async () => {
-    const entries = [buildEntry(1, 'Leftovers', 0)] // no recipeId
-    mockEntriesGet.mockResolvedValue(entries)
-    mockShoppingListsGet.mockResolvedValue([{ id: 1, name: 'My List' }])
-
-    render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const shoppingCartButton = within(container).getByRole('button', { name: 'Add to shopping list' })
-
-    const user = userEvent.setup()
-    await user.click(shoppingCartButton)
-
-    await waitFor(() => {
-      expect(screen.getByText('Add to Shopping List')).toBeInTheDocument()
-    })
-
-    expect(screen.queryByText('Set the multiplier for each recipe:')).not.toBeInTheDocument()
   })
 
   // ------- 9. Header actions registration -------
@@ -1329,7 +1323,7 @@ describe('FoodPlanPage', () => {
 
     // Simulate today going out of view
     act(() => {
-      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
+      triggerIntersection(todayRow(), false)
     })
 
     await waitFor(() => {
@@ -1348,8 +1342,8 @@ describe('FoodPlanPage', () => {
 
     // Simulate today going out of view then back in
     act(() => {
-      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
-      intersectionCallback?.([{ isIntersecting: true } as IntersectionObserverEntry])
+      triggerIntersection(todayRow(), false)
+      triggerIntersection(todayRow(), true)
     })
 
     await waitFor(() => {
@@ -1383,7 +1377,7 @@ describe('FoodPlanPage', () => {
 
     // Make button visible first
     act(() => {
-      intersectionCallback?.([{ isIntersecting: false } as IntersectionObserverEntry])
+      triggerIntersection(todayRow(), false)
     })
 
     await waitFor(() => {
