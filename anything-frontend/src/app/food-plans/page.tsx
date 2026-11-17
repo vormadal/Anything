@@ -40,8 +40,9 @@ const INITIAL_WEEKS = 8;
 const EXTEND_WEEKS = 8;
 // Start extending well before the reader reaches either end of the list.
 const SENTINEL_ROOT_MARGIN = "800px 0px";
-// Default period for "Add to shopping list" (the user can change it in the
-// dialog): today plus the next six days.
+// "Add to shopping list" offers recipes planned over the next four weeks and
+// preselects (multiplier 1) those in the coming week; the rest start at 0.
+const SHOPPING_LIST_WINDOW_DAYS = 28;
 const SHOPPING_LIST_DEFAULT_DAYS = 7;
 
 function addDays(date: Date, days: number): Date {
@@ -505,85 +506,89 @@ function DayManagementDialog({
   );
 }
 
-function parseDateInput(value: string): Date {
-  const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, m - 1, d, 12);
+const MULTIPLIER_BUTTON_CLASS =
+  "w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold disabled:opacity-50";
+
+interface PlannedRecipe {
+  recipeId: number;
+  dates: Date[];
+  added: boolean;
 }
 
+/** One row per recipe — the backend adds each recipe's ingredients once,
+ *  however many days it is planned — with the days it falls on. */
+function groupByRecipe(entries: FoodPlanEntry[] | undefined): PlannedRecipe[] {
+  const byRecipe = new Map<number, PlannedRecipe>();
+  for (const e of entries ?? []) {
+    if (e.recipeId == null || !e.date) continue;
+    const row = byRecipe.get(e.recipeId) ?? { recipeId: e.recipeId, dates: [], added: true };
+    row.dates.push(new Date(e.date));
+    row.added = row.added && !!e.addedToShoppingListOn;
+    byRecipe.set(e.recipeId, row);
+  }
+  return [...byRecipe.values()]
+    .map((row) => ({ ...row, dates: row.dates.sort((a, b) => a.getTime() - b.getTime()) }))
+    .sort((a, b) => a.dates[0].getTime() - b.dates[0].getTime());
+}
+
+/**
+ * Two-step wizard. Step 1 lists the upcoming planned recipes with a
+ * multiplier each — 1 for those in the coming week not already added, 0 for
+ * the rest. Step 2 picks the list. The endpoint takes a date range, so the
+ * range is derived from the recipes left above 0 (earliest to latest day);
+ * every other recipe in the window is sent with multiplier 0, which the
+ * backend skips.
+ */
 function AddToShoppingListDialog({
-  defaultStart,
-  defaultEnd,
+  today,
   recipes,
   onClose,
 }: {
-  defaultStart: Date;
-  defaultEnd: Date;
+  today: Date;
   recipes: RecipeListItemResponse[] | undefined;
   onClose: () => void;
 }) {
   const { data: shoppingLists } = useShoppingLists();
   const addToShoppingList = useAddFoodPlanToShoppingList();
   const isOnline = useOnlineStatus();
+  const [step, setStep] = useState<"recipes" | "list">("recipes");
 
-  // The period is the user's to choose; the coming week is only the default.
-  // Its own query (not the page's) so any period works, loaded or not.
-  const [from, setFrom] = useState(() => toDateInputValue(defaultStart));
-  const [to, setTo] = useState(() => toDateInputValue(defaultEnd));
+  const windowStart = toDateInputValue(today);
+  const windowEnd = toDateInputValue(addDays(today, SHOPPING_LIST_WINDOW_DAYS - 1));
   const { data: entries, isLoading: entriesLoading } = useQuery(
-    foodPlanEntriesQueryOptions(from + "T00:00:00Z", to + "T23:59:59Z")
+    foodPlanEntriesQueryOptions(windowStart + "T00:00:00Z", windowEnd + "T23:59:59Z")
   );
-
+  const plannedRecipes = useMemo(() => groupByRecipe(entries), [entries]);
   const recipeMap = new Map((recipes ?? []).map((r) => [r.id, r]));
-  // One row per recipe — the backend adds each recipe's ingredients once,
-  // however many days it is planned — listing the days it falls on.
-  const plannedRecipes = useMemo(() => {
-    const byRecipe = new Map<number, { dates: Date[]; added: boolean }>();
-    for (const e of entries ?? []) {
-      if (e.recipeId == null || !e.date) continue;
-      const row = byRecipe.get(e.recipeId) ?? { dates: [], added: true };
-      row.dates.push(new Date(e.date));
-      row.added = row.added && !!e.addedToShoppingListOn;
-      byRecipe.set(e.recipeId, row);
-    }
-    return [...byRecipe.entries()]
-      .map(([recipeId, row]) => ({ recipeId, ...row, dates: row.dates.sort((a, b) => a.getTime() - b.getTime()) }))
-      .sort((a, b) => a.dates[0].getTime() - b.dates[0].getTime());
-  }, [entries]);
-  const uniqueRecipeIds = plannedRecipes.map((r) => r.recipeId);
 
-  const [multipliers, setMultipliers] = useState<Record<number, number>>({});
+  // Only overrides are stored; everything else falls back to the default, so
+  // defaults are right even for entries that arrive after the dialog opens.
+  const [overrides, setOverrides] = useState<Record<number, number>>({});
+  const defaultSelectedUntil = toDateInputValue(addDays(today, SHOPPING_LIST_DEFAULT_DAYS - 1));
+  const multiplierFor = (r: PlannedRecipe) =>
+    overrides[r.recipeId] ??
+    (!r.added && toDateInputValue(r.dates[0]) <= defaultSelectedUntil ? 1 : 0);
 
-  const setMultiplier = (recipeId: number, delta: number) => {
-    setMultipliers((prev) => ({
-      ...prev,
-      [recipeId]: Math.max(0, (prev[recipeId] ?? 1) + delta),
-    }));
+  const setMultiplier = (r: PlannedRecipe, delta: number) => {
+    setOverrides((prev) => ({ ...prev, [r.recipeId]: Math.max(0, multiplierFor(r) + delta) }));
   };
 
-  const handleFromChange = (value: string) => {
-    if (!value) return;
-    setFrom(value);
-    if (value > to) setTo(value);
-  };
-  const handleToChange = (value: string) => {
-    if (!value) return;
-    setTo(value);
-    if (value < from) setFrom(value);
-  };
-
-  const nothingToAdd = !entriesLoading && uniqueRecipeIds.length === 0;
+  const selected = plannedRecipes.filter((r) => multiplierFor(r) > 0);
+  const selectedDates = selected.flatMap((r) => r.dates).map((d) => d.getTime());
+  const rangeStart = selectedDates.length > 0 ? new Date(Math.min(...selectedDates)) : null;
+  const rangeEnd = selectedDates.length > 0 ? new Date(Math.max(...selectedDates)) : null;
 
   const handleSelect = async (listId: number) => {
+    if (!rangeStart || !rangeEnd) return;
     try {
-      const recipeMultipliers = uniqueRecipeIds.map((recipeId) => ({
-        recipeId,
-        multiplier: multipliers[recipeId] ?? 1,
-      }));
       await addToShoppingList.mutateAsync({
         shoppingListId: listId,
-        startDate: toUtcMidnight(parseDateInput(from)),
-        endDate: toUtcMidnight(parseDateInput(to)),
-        recipeMultipliers,
+        startDate: toUtcMidnight(rangeStart),
+        endDate: toUtcMidnight(rangeEnd),
+        recipeMultipliers: plannedRecipes.map((r) => ({
+          recipeId: r.recipeId,
+          multiplier: multiplierFor(r),
+        })),
       });
       toast.success("Ingredients added to shopping list");
       onClose();
@@ -592,78 +597,63 @@ function AddToShoppingListDialog({
     }
   };
 
+  const formatDay = (d: Date) => format(d, "EEE d. MMM", { locale: da });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
           Add to Shopping List
         </h3>
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <label className="text-sm text-gray-600 dark:text-gray-300">
-            From
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => handleFromChange(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
-            />
-          </label>
-          <label className="text-sm text-gray-600 dark:text-gray-300">
-            To
-            <input
-              type="date"
-              value={to}
-              min={from}
-              onChange={(e) => handleToChange(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
-            />
-          </label>
-        </div>
-        {entriesLoading && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Loading…</p>
-        )}
-        {nothingToAdd && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            No recipes planned in this period.
-          </p>
-        )}
-        {uniqueRecipeIds.length > 0 && (
-          <div className="mb-4">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          Step {step === "recipes" ? 1 : 2} of 2
+        </p>
+
+        {step === "recipes" ? (
+          <>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Ingredients from these recipes will be added. Set a multiplier, or 0 to skip one:
+              Choose how many times to add each recipe&apos;s ingredients. 0 skips it.
             </p>
-            <ul className="space-y-2">
-              {plannedRecipes.map(({ recipeId, dates, added }) => {
-                const recipe = recipeMap.get(recipeId);
+            {entriesLoading && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-2">Loading…</p>
+            )}
+            {!entriesLoading && plannedRecipes.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                No recipes planned in the coming weeks.
+              </p>
+            )}
+            <ul className="space-y-2 mb-4">
+              {plannedRecipes.map((r) => {
+                const recipe = recipeMap.get(r.recipeId);
+                const name = recipe?.name ?? `Recipe #${r.recipeId}`;
+                const multiplier = multiplierFor(r);
                 return (
-                  <li key={recipeId} className="flex items-center justify-between gap-2 py-1">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800 dark:text-gray-200 truncate">
-                        {recipe?.name ?? `Recipe #${recipeId}`}
-                      </p>
+                  <li key={r.recipeId} className="flex items-center justify-between gap-2 py-1">
+                    <div className={`flex-1 min-w-0 ${multiplier === 0 ? "opacity-60" : ""}`}>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 truncate">{name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {dates.map((d) => format(d, "EEE d. MMM", { locale: da })).join(", ")}
-                        {added && " · added before"}
+                        {r.dates.map(formatDay).join(", ")}
+                        {r.added && " · added before"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setMultiplier(recipeId, -1)}
-                        disabled={(multipliers[recipeId] ?? 1) <= 0}
-                        className="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold disabled:opacity-50"
-                        aria-label={`Decrease multiplier for ${recipe?.name}`}
+                        onClick={() => setMultiplier(r, -1)}
+                        disabled={multiplier <= 0}
+                        className={MULTIPLIER_BUTTON_CLASS}
+                        aria-label={`Decrease multiplier for ${name}`}
                       >
                         −
                       </button>
                       <span className="w-5 text-center text-sm font-semibold text-gray-900 dark:text-white">
-                        {multipliers[recipeId] ?? 1}
+                        {multiplier}
                       </span>
                       <button
                         type="button"
-                        onClick={() => setMultiplier(recipeId, 1)}
-                        className="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold"
-                        aria-label={`Increase multiplier for ${recipe?.name}`}
+                        onClick={() => setMultiplier(r, 1)}
+                        className={MULTIPLIER_BUTTON_CLASS}
+                        aria-label={`Increase multiplier for ${name}`}
                       >
                         +
                       </button>
@@ -672,34 +662,66 @@ function AddToShoppingListDialog({
                 );
               })}
             </ul>
-          </div>
-        )}
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-          Select a shopping list:
-        </p>
-        <ul className="space-y-2 mb-4">
-          {shoppingLists?.map((list) => (
-            <li key={list.id}>
-              <button
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" className="flex-1" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
                 type="button"
-                className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-sm text-gray-800 dark:text-gray-200 disabled:opacity-50"
-                onClick={() => list.id != null && handleSelect(list.id)}
-                disabled={addToShoppingList.isPending || !isOnline || entriesLoading || nothingToAdd}
-                title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
+                className="flex-1"
+                onClick={() => setStep("list")}
+                disabled={selected.length === 0}
               >
-                {list.name}
-              </button>
-            </li>
-          ))}
-          {(!shoppingLists || shoppingLists.length === 0) && (
-            <li className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
-              No shopping lists available.
-            </li>
-          )}
-        </ul>
-        <Button type="button" variant="ghost" className="w-full" onClick={onClose}>
-          Cancel
-        </Button>
+                Next
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
+              {selected.length} {selected.length === 1 ? "recipe" : "recipes"}
+              {rangeStart && rangeEnd && (
+                <>
+                  {" · "}
+                  {isSameDay(rangeStart, rangeEnd)
+                    ? formatDay(rangeStart)
+                    : `${formatDay(rangeStart)} – ${formatDay(rangeEnd)}`}
+                </>
+              )}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              Select a shopping list:
+            </p>
+            <ul className="space-y-2 mb-4">
+              {shoppingLists?.map((list) => (
+                <li key={list.id}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-sm text-gray-800 dark:text-gray-200 disabled:opacity-50"
+                    onClick={() => list.id != null && handleSelect(list.id)}
+                    disabled={addToShoppingList.isPending || !isOnline}
+                    title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
+                  >
+                    {list.name}
+                  </button>
+                </li>
+              ))}
+              {(!shoppingLists || shoppingLists.length === 0) && (
+                <li className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
+                  No shopping lists available.
+                </li>
+              )}
+            </ul>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" className="flex-1" onClick={() => setStep("recipes")}>
+                Back
+              </Button>
+              <Button type="button" variant="ghost" className="flex-1" onClick={onClose}>
+                Cancel
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -889,7 +911,6 @@ export default function FoodPlanPage() {
     return () => observers.forEach((o) => o.disconnect());
   }, [hasScrolledToToday, isLoading, anchorKey, extend]);
 
-  const shoppingDefaultEnd = useMemo(() => addDays(today, SHOPPING_LIST_DEFAULT_DAYS - 1), [today]);
 
   // Scroll today into view, positioned ~1/4 down from the top of the viewport
   const scrollToToday = useCallback(() => {
@@ -979,8 +1000,7 @@ export default function FoodPlanPage() {
 
       {showShoppingListDialog && (
         <AddToShoppingListDialog
-          defaultStart={today}
-          defaultEnd={shoppingDefaultEnd}
+          today={today}
           recipes={recipes}
           onClose={() => setShowShoppingListDialog(false)}
         />

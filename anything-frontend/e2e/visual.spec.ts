@@ -2504,10 +2504,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
-  // Add-to-shopping-list dialog: a user-chosen period (defaults to today + six
-  // days) with each recipe listed once, the days it falls on, and whether it
-  // was added before.
-  test("food plans - add to shopping list dialog", async ({ page }) => {
+  // Add-to-shopping-list wizard. Step 1: the next four weeks' recipes, each
+  // once with its days; coming-week recipes not yet added start at 1, the rest
+  // (Chicken Stir Fry, added before) at 0. Step 2: the derived period + lists.
+  test("food plans - add to shopping list wizard", async ({ page }) => {
     await page.route("**/api/food-plan/entries**", (route) =>
       route.fulfill({
         json: [
@@ -2521,12 +2521,19 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/food-plans");
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "Add to shopping list" }).click();
-    await expect(page.getByLabel("From", { exact: true })).toHaveValue("2025-01-15");
-    await expect(page.getByLabel("To", { exact: true })).toHaveValue("2025-01-21");
+    await expect(page.getByText("Step 1 of 2")).toBeVisible();
     await expect(page.getByRole("button", { name: "Increase multiplier for Beef Tacos" })).toBeVisible();
     await expect(page.getByText(/added before/)).toBeVisible();
     await expect(page).toHaveScreenshot(
-      "food-plans-add-to-shopping-list.png",
+      "food-plans-add-to-shopping-list-recipes.png",
+      foodPlanScreenshotOptions
+    );
+
+    await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.getByText("Step 2 of 2")).toBeVisible();
+    await expect(page.getByText("Select a shopping list:")).toBeVisible();
+    await expect(page).toHaveScreenshot(
+      "food-plans-add-to-shopping-list-lists.png",
       foodPlanScreenshotOptions
     );
   });
