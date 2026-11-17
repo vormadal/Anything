@@ -126,6 +126,14 @@ describe('BillsPage', () => {
     })
   })
 
+  it('offers a New bill floating action linking to the create page', async () => {
+    mockBillsGet.mockResolvedValue([])
+
+    render(<BillsPage />)
+
+    expect(await screen.findByRole('link', { name: 'New bill' })).toHaveAttribute('href', '/bills/new')
+  })
+
   it('should navigate to new bill page when add button is clicked', async () => {
     mockBillsGet.mockResolvedValue([])
 
