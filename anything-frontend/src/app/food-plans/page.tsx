@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   useFoodPlanSettings,
-  useFoodPlanEntries,
-  useFoodPlanNotes,
+  foodPlanEntriesQueryOptions,
+  foodPlanNotesQueryOptions,
   useFoodPlanSuggestions,
   useAddFoodPlanEntry,
   useDeleteFoodPlanEntry,
@@ -18,7 +18,8 @@ import {
 import { useShoppingLists } from "@/hooks/useShoppingLists";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { FoodPlanEntry, RecipeListItemResponse } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
@@ -34,6 +35,16 @@ import { da } from "date-fns/locale";
 const DEFAULT_ACTIVE_DAYS = 31;
 const SUGGESTION_BLUR_DELAY_MS = 150;
 const MAX_RANKED_SUGGESTIONS = 5;
+// Entries are cheap to fetch, so start wide and grow in big steps: fewer
+// extensions means fewer chances for the list to shift under the reader.
+const INITIAL_WEEKS = 8;
+const EXTEND_WEEKS = 8;
+// Start extending well before the reader reaches either end of the list.
+const SENTINEL_ROOT_MARGIN = "800px 0px";
+// "Add to shopping list" offers recipes planned over the next four weeks and
+// preselects (multiplier 1) those in the coming week; the rest start at 0.
+const SHOPPING_LIST_WINDOW_DAYS = 28;
+const SHOPPING_LIST_DEFAULT_DAYS = 7;
 
 function addDays(date: Date, days: number): Date {
   return dateFnsAddDays(date, days);
@@ -101,8 +112,9 @@ function DayRow({
 
   return (
     <button
-      ref={isToday ? todayRef : undefined}
+      ref={todayRef}
       aria-label={`${weekday}${relative ? `, ${relative}` : ""}`}
+      data-day={dateStr}
       data-today={isToday ? "true" : undefined}
       className={`w-full text-left rounded-lg border p-3 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 ${
         isToday
@@ -495,49 +507,89 @@ function DayManagementDialog({
   );
 }
 
+const MULTIPLIER_BUTTON_CLASS =
+  "w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold disabled:opacity-50";
+
+interface PlannedRecipe {
+  recipeId: number;
+  dates: Date[];
+  added: boolean;
+}
+
+/** One row per recipe — the backend adds each recipe's ingredients once,
+ *  however many days it is planned — with the days it falls on. */
+function groupByRecipe(entries: FoodPlanEntry[] | undefined): PlannedRecipe[] {
+  const byRecipe = new Map<number, PlannedRecipe>();
+  for (const e of entries ?? []) {
+    if (e.recipeId == null || !e.date) continue;
+    const row = byRecipe.get(e.recipeId) ?? { recipeId: e.recipeId, dates: [], added: true };
+    row.dates.push(new Date(e.date));
+    row.added = row.added && !!e.addedToShoppingListOn;
+    byRecipe.set(e.recipeId, row);
+  }
+  return [...byRecipe.values()]
+    .map((row) => ({ ...row, dates: row.dates.sort((a, b) => a.getTime() - b.getTime()) }))
+    .sort((a, b) => a.dates[0].getTime() - b.dates[0].getTime());
+}
+
+/**
+ * Two-step wizard. Step 1 lists the upcoming planned recipes with a
+ * multiplier each — 1 for those in the coming week not already added, 0 for
+ * the rest. Step 2 picks the list. The endpoint takes a date range, so the
+ * range is derived from the recipes left above 0 (earliest to latest day);
+ * every other recipe in the window is sent with multiplier 0, which the
+ * backend skips.
+ */
 function AddToShoppingListDialog({
-  startDate,
-  endDate,
-  entries,
+  today,
   recipes,
   onClose,
 }: {
-  startDate: Date;
-  endDate: Date;
-  entries: FoodPlanEntry[] | undefined;
+  today: Date;
   recipes: RecipeListItemResponse[] | undefined;
   onClose: () => void;
 }) {
   const { data: shoppingLists } = useShoppingLists();
   const addToShoppingList = useAddFoodPlanToShoppingList();
   const isOnline = useOnlineStatus();
+  const [step, setStep] = useState<"recipes" | "list">("recipes");
 
-  const recipeEntries = (entries ?? []).filter((e) => e.recipeId != null);
-  const uniqueRecipeIds = [...new Set(recipeEntries.map((e) => e.recipeId ?? 0))];
+  const windowStart = toDateInputValue(today);
+  const windowEnd = toDateInputValue(addDays(today, SHOPPING_LIST_WINDOW_DAYS - 1));
+  const { data: entries, isLoading: entriesLoading } = useQuery(
+    foodPlanEntriesQueryOptions(windowStart + "T00:00:00Z", windowEnd + "T23:59:59Z")
+  );
+  const plannedRecipes = useMemo(() => groupByRecipe(entries), [entries]);
   const recipeMap = new Map((recipes ?? []).map((r) => [r.id, r]));
 
-  const [multipliers, setMultipliers] = useState<Record<number, number>>(() =>
-    Object.fromEntries(uniqueRecipeIds.map((id) => [id, 1]))
-  );
+  // Only overrides are stored; everything else falls back to the default, so
+  // defaults are right even for entries that arrive after the dialog opens.
+  const [overrides, setOverrides] = useState<Record<number, number>>({});
+  const defaultSelectedUntil = toDateInputValue(addDays(today, SHOPPING_LIST_DEFAULT_DAYS - 1));
+  const multiplierFor = (r: PlannedRecipe) =>
+    overrides[r.recipeId] ??
+    (!r.added && toDateInputValue(r.dates[0]) <= defaultSelectedUntil ? 1 : 0);
 
-  const setMultiplier = (recipeId: number, delta: number) => {
-    setMultipliers((prev) => ({
-      ...prev,
-      [recipeId]: Math.max(0, (prev[recipeId] ?? 1) + delta),
-    }));
+  const setMultiplier = (r: PlannedRecipe, delta: number) => {
+    setOverrides((prev) => ({ ...prev, [r.recipeId]: Math.max(0, multiplierFor(r) + delta) }));
   };
 
+  const selected = plannedRecipes.filter((r) => multiplierFor(r) > 0);
+  const selectedDates = selected.flatMap((r) => r.dates).map((d) => d.getTime());
+  const rangeStart = selectedDates.length > 0 ? new Date(Math.min(...selectedDates)) : null;
+  const rangeEnd = selectedDates.length > 0 ? new Date(Math.max(...selectedDates)) : null;
+
   const handleSelect = async (listId: number) => {
+    if (!rangeStart || !rangeEnd) return;
     try {
-      const recipeMultipliers = uniqueRecipeIds.map((recipeId) => ({
-        recipeId,
-        multiplier: multipliers[recipeId] ?? 1,
-      }));
       await addToShoppingList.mutateAsync({
         shoppingListId: listId,
-        startDate: toUtcMidnight(startDate),
-        endDate: toUtcMidnight(endDate),
-        recipeMultipliers,
+        startDate: toUtcMidnight(rangeStart),
+        endDate: toUtcMidnight(rangeEnd),
+        recipeMultipliers: plannedRecipes.map((r) => ({
+          recipeId: r.recipeId,
+          multiplier: multiplierFor(r),
+        })),
       });
       toast.success("Ingredients added to shopping list");
       onClose();
@@ -546,43 +598,57 @@ function AddToShoppingListDialog({
     }
   };
 
+  const formatDay = (d: Date) => format(d, "EEE d. MMM", { locale: da });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Add to Shopping List
         </h3>
-        {uniqueRecipeIds.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Set the multiplier for each recipe:
-            </p>
-            <ul className="space-y-2">
-              {uniqueRecipeIds.map((recipeId) => {
-                const recipe = recipeMap.get(recipeId);
+
+        {step === "recipes" ? (
+          <>
+            {entriesLoading && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-2">Loading…</p>
+            )}
+            {!entriesLoading && plannedRecipes.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                No recipes planned in the coming weeks.
+              </p>
+            )}
+            <ul className="space-y-2 mb-4">
+              {plannedRecipes.map((r) => {
+                const recipe = recipeMap.get(r.recipeId);
+                const name = recipe?.name ?? `Recipe #${r.recipeId}`;
+                const multiplier = multiplierFor(r);
                 return (
-                  <li key={recipeId} className="flex items-center justify-between gap-2 py-1">
-                    <span className="text-sm text-gray-800 dark:text-gray-200 flex-1 min-w-0 truncate">
-                      {recipe?.name ?? `Recipe #${recipeId}`}
-                    </span>
+                  <li key={r.recipeId} className="flex items-center justify-between gap-2 py-1">
+                    <div className={`flex-1 min-w-0 ${multiplier === 0 ? "opacity-60" : ""}`}>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 truncate">{name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {r.dates.map(formatDay).join(", ")}
+                        {r.added && " · added before"}
+                      </p>
+                    </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setMultiplier(recipeId, -1)}
-                        disabled={(multipliers[recipeId] ?? 1) <= 0}
-                        className="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold disabled:opacity-50"
-                        aria-label={`Decrease multiplier for ${recipe?.name}`}
+                        onClick={() => setMultiplier(r, -1)}
+                        disabled={multiplier <= 0}
+                        className={MULTIPLIER_BUTTON_CLASS}
+                        aria-label={`Decrease multiplier for ${name}`}
                       >
                         −
                       </button>
                       <span className="w-5 text-center text-sm font-semibold text-gray-900 dark:text-white">
-                        {multipliers[recipeId] ?? 1}
+                        {multiplier}
                       </span>
                       <button
                         type="button"
-                        onClick={() => setMultiplier(recipeId, 1)}
-                        className="w-7 h-7 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold"
-                        aria-label={`Increase multiplier for ${recipe?.name}`}
+                        onClick={() => setMultiplier(r, 1)}
+                        className={MULTIPLIER_BUTTON_CLASS}
+                        aria-label={`Increase multiplier for ${name}`}
                       >
                         +
                       </button>
@@ -591,61 +657,85 @@ function AddToShoppingListDialog({
                 );
               })}
             </ul>
-          </div>
-        )}
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-          Select a shopping list:
-        </p>
-        <ul className="space-y-2 mb-4">
-          {shoppingLists?.map((list) => (
-            <li key={list.id}>
-              <button
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" className="flex-1" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
                 type="button"
-                className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-sm text-gray-800 dark:text-gray-200 disabled:opacity-50"
-                onClick={() => list.id != null && handleSelect(list.id)}
-                disabled={addToShoppingList.isPending || !isOnline}
-                title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
+                className="flex-1"
+                onClick={() => setStep("list")}
+                disabled={selected.length === 0}
               >
-                {list.name}
-              </button>
-            </li>
-          ))}
-          {(!shoppingLists || shoppingLists.length === 0) && (
-            <li className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
-              No shopping lists available.
-            </li>
-          )}
-        </ul>
-        <Button type="button" variant="ghost" className="w-full" onClick={onClose}>
-          Cancel
-        </Button>
+                Next
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <ul className="space-y-2 mb-4">
+              {shoppingLists?.map((list) => (
+                <li key={list.id}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-sm text-gray-800 dark:text-gray-200 disabled:opacity-50"
+                    onClick={() => list.id != null && handleSelect(list.id)}
+                    disabled={addToShoppingList.isPending || !isOnline}
+                    title={isOnline ? undefined : "Adding ingredients requires an internet connection"}
+                  >
+                    {list.name}
+                  </button>
+                </li>
+              ))}
+              {(!shoppingLists || shoppingLists.length === 0) && (
+                <li className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
+                  No shopping lists available.
+                </li>
+              )}
+            </ul>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" className="flex-1" onClick={() => setStep("recipes")}>
+                Back
+              </Button>
+              <Button type="button" variant="ghost" className="flex-1" onClick={onClose}>
+                Cancel
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
 export default function FoodPlanPage() {
-  const [weeksBack, setWeeksBack] = useState(1);
-  const [weeksForward, setWeeksForward] = useState(1);
+  const queryClient = useQueryClient();
+  const [weeksBack, setWeeksBack] = useState(INITIAL_WEEKS);
+  const [weeksForward, setWeeksForward] = useState(INITIAL_WEEKS);
+  // Infinite scroll stays off until today has been scrolled into view — the
+  // page renders at the top first, which would otherwise trip the top sentinel.
+  const [hasScrolledToToday, setHasScrolledToToday] = useState(false);
+  const isExtending = useRef(false);
+  // A row on screen just before rows were prepended, and where it was; the
+  // layout effect below scrolls it back there so the reader's place is kept.
+  const prependAnchor = useRef<{ day: string; top: number } | null>(null);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [suggestOnOpen, setSuggestOnOpen] = useState(false);
   const [showShoppingListDialog, setShowShoppingListDialog] = useState(false);
   const [isTodayVisible, setIsTodayVisible] = useState(true);
   const todayRef = useRef<HTMLButtonElement | null>(null);
 
-  // Combined callback ref: updates todayRef for scrolling and sets up IntersectionObserver.
+  // Callback ref for the anchor row (today, or the next active day): records it in
+  // todayRef for the initial scroll and the "I dag" button, and watches its visibility.
+  // The initial scroll itself lives in a layout effect that waits for notes/settings.
   // React 19 callback refs support returning a cleanup function, so this re-runs whenever
-  // the today element attaches to the DOM (e.g. after data finishes loading).
+  // the anchor element attaches to the DOM (e.g. after data finishes loading).
   const todayRefCallback = useCallback(
     (el: HTMLButtonElement | null) => {
       todayRef.current = el;
       if (!el) return;
-
-      // Scroll today into view immediately when it first attaches to the DOM
-      // (data may not have been available at mount time, so we do this here instead of useEffect).
-      const elementTop = el.getBoundingClientRect().top + window.scrollY;
-      const offset = window.innerHeight * 0.25;
-      window.scrollTo({ top: elementTop - offset, behavior: "instant" });
 
       const observer = new IntersectionObserver(
         ([entry]) => setIsTodayVisible(entry.isIntersecting),
@@ -671,12 +761,18 @@ export default function FoodPlanPage() {
   const startDateStr = toDateInputValue(startDay);
   const endDateStr = toDateInputValue(endDay);
 
-  const { data: settings } = useFoodPlanSettings();
-  const { data: entries, isLoading } = useFoodPlanEntries(
-    startDateStr + "T00:00:00Z",
-    endDateStr + "T23:59:59Z"
-  );
-  const { data: notes } = useFoodPlanNotes(startDateStr, endDateStr);
+  const { data: settings, isLoading: settingsLoading } = useFoodPlanSettings();
+  // keepPreviousData is a safety net: extend() prefetches the wider range
+  // before switching to it, but if that prefetch failed the list must keep
+  // its rows rather than collapse into "Loading..." and lose the scroll spot.
+  const { data: entries, isLoading } = useQuery({
+    ...foodPlanEntriesQueryOptions(startDateStr + "T00:00:00Z", endDateStr + "T23:59:59Z"),
+    placeholderData: keepPreviousData,
+  });
+  const { data: notes, isLoading: notesLoading } = useQuery({
+    ...foodPlanNotesQueryOptions(startDateStr, endDateStr),
+    placeholderData: keepPreviousData,
+  });
   const { data: recipes } = useRecipes();
 
   const activeDays = settings?.activeDays ?? DEFAULT_ACTIVE_DAYS;
@@ -691,6 +787,27 @@ export default function FoodPlanPage() {
       return { date, active: activeDaySet.has(ourDay) };
     }).filter(({ active }) => active);
   }, [startDay, totalDays, activeDaySet]);
+
+  // The row scrolled into view on load: today, or the next active day when
+  // today isn't one (e.g. a weekend with a Mon–Fri plan).
+  const anchorKey = useMemo(() => {
+    const todayKey = toDateInputValue(today);
+    const anchor = orderedDays.find(({ date }) => toDateInputValue(date) >= todayKey);
+    return anchor ? toDateInputValue(anchor.date) : null;
+  }, [orderedDays, today]);
+
+  // Scroll today into view (~1/4 down the viewport) once, after everything
+  // that sizes the rows above it has loaded: settings decide which days are
+  // rows, notes add a line to a row. Scrolling earlier left today drifting
+  // down by however much arrived afterwards.
+  useLayoutEffect(() => {
+    if (hasScrolledToToday || isLoading || notesLoading || settingsLoading) return;
+    const el = todayRef.current;
+    if (!el) return;
+    const elementTop = el.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: elementTop - window.innerHeight * 0.25, behavior: "instant" });
+    setHasScrolledToToday(true);
+  }, [hasScrolledToToday, isLoading, notesLoading, settingsLoading, anchorKey]);
 
   const getNoteForDate = (date: Date): FoodPlanNote | null => {
     if (!notes) return null;
@@ -708,6 +825,81 @@ export default function FoodPlanPage() {
       return toDateInputValue(new Date(e.date)) === ds;
     });
   };
+
+  const extend = useCallback(
+    async (direction: "back" | "forward") => {
+      if (isExtending.current) return;
+      isExtending.current = true;
+      try {
+        const nextStart = direction === "back" ? addDays(today, -((weeksBack + EXTEND_WEEKS) * 7)) : startDay;
+        const nextEnd = direction === "forward" ? addDays(today, (weeksForward + EXTEND_WEEKS) * 7) : endDay;
+        const s = toDateInputValue(nextStart);
+        const e = toDateInputValue(nextEnd);
+        // Fetch first, render second: the new rows then appear in one commit
+        // with their meals already in them, so their height is final and the
+        // prepend compensation below is exact.
+        await Promise.all([
+          queryClient.prefetchQuery(foodPlanEntriesQueryOptions(s + "T00:00:00Z", e + "T23:59:59Z")),
+          queryClient.prefetchQuery(foodPlanNotesQueryOptions(s, e)),
+        ]);
+        if (direction === "back") {
+          const visible = [...document.querySelectorAll<HTMLElement>("[data-day]")].find(
+            (el) => el.getBoundingClientRect().bottom > 0
+          );
+          if (visible?.dataset.day) {
+            prependAnchor.current = { day: visible.dataset.day, top: visible.getBoundingClientRect().top };
+          }
+          setWeeksBack((w) => w + EXTEND_WEEKS);
+        } else {
+          setWeeksForward((w) => w + EXTEND_WEEKS);
+        }
+      } finally {
+        isExtending.current = false;
+      }
+    },
+    [queryClient, today, weeksBack, weeksForward, startDay, endDay]
+  );
+
+  // Measuring the anchor row (rather than the change in page height) makes
+  // this correct with or without native scroll anchoring: where the browser
+  // already compensated (Chrome/Firefox) the row hasn't moved and this is a
+  // no-op; where it didn't (Safari) this does the whole correction. Native
+  // anchoring must stay on — it is also what keeps today in place when notes
+  // load into rows above it after the initial scroll.
+  useLayoutEffect(() => {
+    const anchor = prependAnchor.current;
+    if (!anchor) return;
+    prependAnchor.current = null;
+    const el = document.querySelector(`[data-day="${anchor.day}"]`);
+    if (!el) return;
+    const drift = el.getBoundingClientRect().top - anchor.top;
+    if (drift !== 0) window.scrollTo({ top: window.scrollY + drift, behavior: "instant" });
+  }, [weeksBack]);
+
+  // Re-created whenever the range changes so a sentinel that is *still* in
+  // range after an extension fires again (observers only report changes).
+  useEffect(() => {
+    // With no anchor row in range there is nothing to scroll to first.
+    if (isLoading || (!hasScrolledToToday && anchorKey !== null)) return;
+    const observers = (
+      [
+        [topSentinelRef.current, "back"],
+        [bottomSentinelRef.current, "forward"],
+      ] as const
+    ).flatMap(([el, direction]) => {
+      if (!el) return [];
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry?.isIntersecting) void extend(direction);
+        },
+        { rootMargin: SENTINEL_ROOT_MARGIN }
+      );
+      observer.observe(el);
+      return [observer];
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [hasScrolledToToday, isLoading, anchorKey, extend]);
+
 
   // Scroll today into view, positioned ~1/4 down from the top of the viewport
   const scrollToToday = useCallback(() => {
@@ -742,12 +934,7 @@ export default function FoodPlanPage() {
     <div className="container mx-auto px-4 py-4 max-w-2xl">
       <PageTitle>Food Plan</PageTitle>
 
-      {/* Load earlier — starts above the viewport on initial load */}
-      <div className="flex justify-center py-3">
-        <Button variant="outline" size="sm" onClick={() => setWeeksBack((w) => w + 1)}>
-          Load earlier
-        </Button>
-      </div>
+      <div ref={topSentinelRef} data-testid="food-plan-top-sentinel" aria-hidden="true" />
 
       {isLoading && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -771,18 +958,13 @@ export default function FoodPlanPage() {
                 );
                 setSelectedDay(date);
               }}
-              todayRef={todayRefCallback}
+              todayRef={toDateInputValue(date) === anchorKey ? todayRefCallback : undefined}
             />
           ))}
         </div>
       )}
 
-      {/* Load more — starts below the viewport on initial load */}
-      <div className="flex justify-center py-3">
-        <Button variant="outline" size="sm" onClick={() => setWeeksForward((w) => w + 1)}>
-          Load more
-        </Button>
-      </div>
+      <div ref={bottomSentinelRef} data-testid="food-plan-bottom-sentinel" aria-hidden="true" />
 
       {selectedDay && (
         <DayManagementDialog
@@ -797,9 +979,7 @@ export default function FoodPlanPage() {
 
       {showShoppingListDialog && (
         <AddToShoppingListDialog
-          startDate={startDay}
-          endDate={endDay}
-          entries={entries}
+          today={today}
           recipes={recipes}
           onClose={() => setShowShoppingListDialog(false)}
         />

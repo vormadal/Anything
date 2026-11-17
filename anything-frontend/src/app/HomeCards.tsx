@@ -109,24 +109,31 @@ export function FoodPlanCard() {
           onRetry={entriesLoad.retry}
           isRetrying={entriesLoad.isRetrying}
         />
+      ) : todayEntries.length === 0 && todayNote?.note ? (
+        // A comment with no meals ("Leftovers", "Eating out") *is* the plan
+        // for the day, so it gets a meal-sized row instead of the empty state.
+        <button
+          type="button"
+          className={`w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.food} px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left`}
+          onClick={() => router.push("/food-plans")}
+        >
+          <span className="text-sm text-gray-900 dark:text-white">{todayNote.note}</span>
+          <ChevronRight className="h-4 w-4 text-gray-400 shrink-0 ml-2" />
+        </button>
       ) : todayEntries.length === 0 ? (
-        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.food} p-4 text-center`}>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.food} px-4 py-2 flex items-center justify-between gap-2`}>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             No meals planned for {dayName}.
           </p>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="shrink-0"
             onClick={() => router.push("/food-plans")}
           >
             <Plus className="h-4 w-4 mr-1" />
-            Add meals
+            Add
           </Button>
-          {todayNote?.note && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 italic mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-              {todayNote.note}
-            </p>
-          )}
         </div>
       ) : (
         <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${KIND_EDGE.food} divide-y divide-gray-100 dark:divide-gray-700`}>

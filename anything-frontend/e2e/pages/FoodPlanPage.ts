@@ -54,6 +54,26 @@ export class FoodPlanPage {
   }
 
   /**
+   * Opens the DayManagementDialog for today, or the next active day when today
+   * isn't one (e.g. a weekend with a Mon–Fri plan). The list loads weeks of
+   * past days too, so the first row is far in the past — use this when the
+   * entry must count as upcoming (e.g. for "Add to shopping list").
+   */
+  async openUpcomingDayDialog() {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    await this.page.locator("[data-day]").first().waitFor();
+    const day = await this.page
+      .locator("[data-day]")
+      .evaluateAll(
+        (rows, t) => rows.map((r) => r.getAttribute("data-day") ?? "").find((d) => d >= t) ?? null,
+        today
+      );
+    if (!day) throw new Error(`No day row on or after ${today}`);
+    await this.page.locator(`[data-day="${day}"]`).locator("h3").first().click();
+  }
+
+  /**
    * Opens the DayManagementDialog for today's row (see openFirstDayDialog for
    * why the h3 heading is clicked).
    */
