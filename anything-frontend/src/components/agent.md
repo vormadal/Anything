@@ -42,6 +42,14 @@ Things that are easy to get wrong:
 - **The bottom-right corner is taken.** `AppLayout` pads `<main>` by `pb-24` whenever actions exist so the last row isn't covered; toasts are `top-center` below the header; the food plan's "Today" pill moved bottom-left; and the FAB lifts itself above the cooking-mode bar (`useCookingDrawerVisible`). Don't add another `fixed bottom-* right-*` element — make it an action.
 - **Testing:** `renderWithClient` renders `FloatingActions`, so page tests query actions by role. A dial hides its items until expanded — call `expandPageActions(user)` from `@/__tests__/utils/test-utils` first. In Playwright use the `PageActions` page object (`e2e/pages/PageActions.ts`), which retries because a page's FAB can change shape while it loads (a list shows a lone "Edit items" until its items arrive, then becomes a dial).
 
+## Home page edit mode (`home/`)
+
+The home page's ⋮ → "Customize home page" switches it into edit mode in place (there is no separate preferences page any more): `EditableHomeCards` renders **every** card, hidden ones dimmed, as a live preview inside an `inert` wrapper, with a visibility switch and drag handle overlaid top-right. Each change saves immediately through `useUpdateHomeCardPreferences`; "Done" just leaves the mode.
+
+- **A new home card must wrap its header action in `HomeCardAction`.** In edit mode it keeps the action's space but hides it, so the overlaid switch/handle sit where it was and the card doesn't change height. A card that returns `null` in some state (Bills with no bills) must check `useHomeCardEditing()` and render a placeholder instead, or there's nothing to drag.
+- **Collapse-while-dragging deliberately uses no `DragOverlay`.** Every card shrinks to its header once a drag starts. `DragOverlay` sizes itself from the active node's rect *at drag start*, so it would stay full-height and throw off `closestCenter`; without it dnd-kit compensates for the active node's rect changing, and `MeasuringStrategy.Always` re-measures the shrunken droppables.
+- **Drag order isn't unit-testable.** jsdom has no layout, so the keyboard sensor finds no neighbour to move to. The Jest tests cover the toggle/save/Done flow; drag was verified with a real mouse drag in a local Playwright run.
+
 ## Theme ("octopus")
 
 The look lives almost entirely in `src/app/globals.css`, and mostly **not** in the shadcn tokens — the app styles itself with `gray-*`/`blue-*` utilities, so the theme works by re-pointing those scales in `@theme`:
