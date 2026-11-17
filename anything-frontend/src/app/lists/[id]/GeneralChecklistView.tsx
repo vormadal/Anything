@@ -1,6 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { CircleCheckBig } from "lucide-react";
+import { usePageActions } from "@/hooks/usePageActions";
 import {
   useShoppingListItems,
   useUpdateShoppingListItem,
@@ -59,6 +60,20 @@ export function GeneralChecklistView({ listId }: Props) {
   const canCloseList = !!items && items.length > 0 && uncheckedItems.length === 0;
   const rowDisabled = updateItem.isPending || deleteList.isPending;
 
+  usePageActions(
+    canCloseList
+      ? [
+          {
+            label: "Close list",
+            icon: CircleCheckBig,
+            primary: true,
+            onSelect: handleCloseList,
+            disabled: deleteList.isPending,
+          },
+        ]
+      : []
+  );
+
   const renderRow = (item: ShoppingListItem) => (
     <ChecklistItemRow
       key={item.id}
@@ -78,16 +93,6 @@ export function GeneralChecklistView({ listId }: Props) {
           {uncheckedItems.map(renderRow)}
           {checkedItems.map(renderRow)}
         </ul>
-      )}
-
-      {canCloseList && (
-        <Button
-          onClick={handleCloseList}
-          disabled={deleteList.isPending}
-          className="fixed bottom-6 right-6 z-30 shadow-lg"
-        >
-          {deleteList.isPending ? "Closing..." : "Close List"}
-        </Button>
       )}
     </>
   );

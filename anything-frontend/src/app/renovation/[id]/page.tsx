@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -8,9 +8,8 @@ import { Plus } from "lucide-react";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { LoadErrorState } from "@/components/LoadErrorState";
-import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
+import { useDetailActions } from "@/components/inventory/useDetailActions";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
-import { useHeaderActions } from "@/context/PageActionsContext";
 import { loadFailure } from "@/lib/queryState";
 import {
   useDeleteRenovationProject,
@@ -37,7 +36,6 @@ export default function RenovationProjectPage() {
   const params = useParams();
   const projectId = Number(params.id);
   const router = useRouter();
-  const { setHeaderActions } = useHeaderActions();
 
   const projectQuery = useRenovationProject(projectId);
   const { data: project, isLoading, error } = projectQuery;
@@ -50,18 +48,13 @@ export default function RenovationProjectPage() {
 
   const hasProject = project !== undefined;
 
-  useEffect(() => {
-    if (!hasProject) return;
-    setHeaderActions(
-      <DetailActionsMenu
-        onEdit={() => setEditOpen(true)}
-        onDelete={() => setDeleteOpen(true)}
-        deleteLabel="Delete project"
-      />,
-      false,
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions, hasProject]);
+  useDetailActions({
+    editLabel: "Edit project",
+    onEdit: () => setEditOpen(true),
+    deleteLabel: "Delete project",
+    onDelete: () => setDeleteOpen(true),
+    enabled: hasProject,
+  });
 
   const handleSave = async (values: ProjectFormValues) => {
     try {

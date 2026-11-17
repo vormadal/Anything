@@ -1,5 +1,6 @@
 import React from 'react'
 import { screen, waitFor, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import HouseholdDetailPage from './page'
 import { toast } from 'sonner'
@@ -141,18 +142,20 @@ describe('HouseholdDetailPage', () => {
     })
   })
 
-  it('opens rename dialog when pencil button is clicked', async () => {
+  it('opens rename dialog from the header menu', async () => {
     render(<HouseholdDetailPage />)
-    await waitFor(() => screen.getByRole('button', { name: /rename household/i }))
-    fireEvent.click(screen.getByRole('button', { name: /rename household/i }))
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /rename household/i }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Rename Household')).toBeInTheDocument()
   })
 
   it('calls updateHousehold when rename form is submitted', async () => {
     render(<HouseholdDetailPage />)
-    await waitFor(() => screen.getByRole('button', { name: /rename household/i }))
-    fireEvent.click(screen.getByRole('button', { name: /rename household/i }))
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /rename household/i }))
 
     const input = screen.getByDisplayValue('Smith Family')
     fireEvent.change(input, { target: { value: 'New Name' } })
@@ -382,7 +385,9 @@ describe('HouseholdDetailPage', () => {
       expect(screen.getByRole('button', { name: /^delete$/i })).toBeDisabled()
       expect(screen.getByLabelText(/change role for bob/i)).toBeDisabled()
       expect(screen.getByLabelText(/remove bob/i)).toBeDisabled()
-      expect(screen.getByRole('button', { name: /rename household/i })).toBeDisabled()
+
+      await userEvent.setup().click(screen.getByRole('button', { name: 'More options' }))
+      expect(await screen.findByRole('menuitem', { name: /rename household/i })).toHaveAttribute('aria-disabled', 'true')
     })
   })
 })

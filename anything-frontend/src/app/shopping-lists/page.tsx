@@ -6,7 +6,7 @@ import { useShoppingLists, useCreateShoppingList, useReorderShoppingLists } from
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useHeaderActions } from "@/context/PageActionsContext";
+import { usePageActions } from "@/hooks/usePageActions";
 import { PageTitle } from "@/components/PageTitle";
 import { Plus, GripVertical } from "lucide-react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
@@ -81,7 +81,6 @@ export default function ShoppingListsPage() {
   const createList = useCreateShoppingList();
   const reorderLists = useReorderShoppingLists();
   const router = useRouter();
-  const { setHeaderActions } = useHeaderActions();
   const isOnline = useOnlineStatus();
 
   const { orderedItems: orderedLists, sortableIds, sensors, handleDragEnd } =
@@ -112,23 +111,15 @@ export default function ShoppingListsPage() {
     setNewListName("");
   };
 
-  useEffect(() => {
-    setHeaderActions(
-      <div className="flex items-center gap-1 ml-auto">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCreating(true)}
-          aria-label="Create shopping list"
-          disabled={!isOnline}
-          title={isOnline ? undefined : "Creating lists requires an internet connection"}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-      </div>
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions, isOnline]);
+  usePageActions([
+    {
+      label: "New shopping list",
+      icon: Plus,
+      onSelect: () => setIsCreating(true),
+      disabled: !isOnline,
+      disabledReason: "Creating lists requires an internet connection",
+    },
+  ]);
 
   useEffect(() => {
     if (isCreating) {

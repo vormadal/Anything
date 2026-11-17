@@ -122,7 +122,8 @@ test("food plan settings page loads and shows day toggles", async ({
   await page.goto("/food-plans");
 
   // Open settings
-  await page.getByRole("button", { name: "Food plan settings" }).click();
+  await page.getByRole("button", { name: "More options" }).click();
+  await page.getByRole("menuitem", { name: "Food plan settings" }).click();
   await expect(page).toHaveURL("/food-plans/settings");
   await expect(
     page.getByRole("heading", { name: "Food Plan", level: 1 })

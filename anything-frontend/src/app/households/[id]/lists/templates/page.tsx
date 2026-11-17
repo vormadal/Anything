@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/PageTitle";
+import { usePageActions } from "@/hooks/usePageActions";
 import {
   Dialog,
   DialogContent,
@@ -43,7 +44,7 @@ export default function TemplatesPage() {
   const params = useParams();
   const householdId = typeof params.id === "string" ? params.id : "";
   const { getHouseholdRole, isLoading: householdsLoading } = useHouseholdContext();
-  const { setLeftAction, setHeaderActions } = useHeaderActions();
+  const { setLeftAction } = useHeaderActions();
   const isOnline = useOnlineStatus();
 
   const { data: templates, isLoading } = useShoppingListTemplates();
@@ -63,23 +64,15 @@ export default function TemplatesPage() {
     return () => setLeftAction({ type: "menu" });
   }, [setLeftAction, householdId]);
 
-  useEffect(() => {
-    setHeaderActions(
-      <div className="flex items-center gap-1 ml-auto">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCreating(true)}
-          aria-label="New template"
-          disabled={!isOnline}
-          title={isOnline ? undefined : "Creating templates requires an internet connection"}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-      </div>
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions, isOnline]);
+  usePageActions([
+    {
+      label: "New template",
+      icon: Plus,
+      onSelect: () => setIsCreating(true),
+      disabled: !isOnline,
+      disabledReason: "Creating templates requires an internet connection",
+    },
+  ]);
 
   if (
     user &&

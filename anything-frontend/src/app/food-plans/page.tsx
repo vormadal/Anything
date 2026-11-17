@@ -23,7 +23,8 @@ import { toast } from "sonner";
 import type { FoodPlanEntry, RecipeListItemResponse } from "@/lib/api-client/models/index";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { useRouter } from "next/navigation";
+import { HeaderMenu } from "@/components/HeaderMenu";
+import { usePageActions } from "@/hooks/usePageActions";
 import { ShoppingCart, X, Settings, CalendarDays, Sparkles, Plus } from "lucide-react";
 import { bitmaskToDaySet, toDateInputValue, toUtcMidnight } from "@/lib/foodPlanUtils";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -624,7 +625,6 @@ function AddToShoppingListDialog({
 }
 
 export default function FoodPlanPage() {
-  const router = useRouter();
   const [weeksBack, setWeeksBack] = useState(1);
   const [weeksForward, setWeeksForward] = useState(1);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -720,30 +720,20 @@ export default function FoodPlanPage() {
 
   useEffect(() => {
     setHeaderActions(
-      <div className="flex items-center gap-1 ml-auto">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push("/food-plans/settings")}
-          aria-label="Food plan settings"
-          title="Food plan settings"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowShoppingListDialog(true)}
-          aria-label="Add to shopping list"
-          title={isOnline ? "Add all recipe ingredients to shopping list" : "Adding ingredients requires an internet connection"}
-          disabled={!isOnline}
-        >
-          <ShoppingCart className="h-5 w-5" />
-        </Button>
-      </div>
+      <HeaderMenu items={[{ label: "Food plan settings", icon: Settings, href: "/food-plans/settings" }]} />
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions, router, isOnline]);
+  }, [setHeaderActions]);
+
+  usePageActions([
+    {
+      label: "Add to shopping list",
+      icon: ShoppingCart,
+      onSelect: () => setShowShoppingListDialog(true),
+      disabled: !isOnline,
+      disabledReason: "Adding ingredients requires an internet connection",
+    },
+  ]);
 
   const selectedDayEntries = selectedDay ? getEntriesForDate(selectedDay) : [];
   const selectedDayNote = selectedDay ? getNoteForDate(selectedDay) : null;
@@ -815,11 +805,12 @@ export default function FoodPlanPage() {
         />
       )}
 
-      {/* Floating back-to-today button — fades in when today is scrolled out of view */}
+      {/* Floating back-to-today button — fades in when today is scrolled out of view.
+          Bottom left: the bottom-right corner is the floating action button's. */}
       <button
         onClick={scrollToToday}
         aria-label="Scroll to today"
-        className={`fixed bottom-20 right-4 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-opacity duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+        className={`fixed bottom-6 left-4 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-opacity duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
           isTodayVisible ? "opacity-0 pointer-events-none" : "opacity-100"
         }`}
       >

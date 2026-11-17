@@ -39,6 +39,7 @@ import {
 } from "@/context/PageActionsContext";
 import { CookingModeProvider } from "@/context/CookingModeContext";
 import { CookingModeDrawer } from "@/components/CookingModeDrawer";
+import { FloatingActions } from "@/components/FloatingActions";
 import { useSmartBack } from "@/hooks/useSmartBack";
 import { useIsAuthenticated } from "@/hooks/useAuth";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
@@ -110,7 +111,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const isAuthenticated = useIsAuthenticated();
-  const { headerActions, hideTitle, leftAction, title } = useHeaderActions();
+  const { headerActions, hideTitle, leftAction, title, pageActions } = useHeaderActions();
   const { data: unreadCount } = useUnreadNotificationCount();
   const unread = unreadCount ?? 0;
   const { navigateBack } = useSmartBack();
@@ -305,8 +306,12 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </SheetContent>
       </Sheet>
 
-      <main className="flex grow flex-col print:block">{children}</main>
+      {/* Room below the last row so the floating action button never covers it. */}
+      <main className={`flex grow flex-col print:block ${pageActions.length > 0 ? "pb-24" : ""}`}>
+        {children}
+      </main>
       <CookingModeDrawer />
+      <FloatingActions />
       <OnboardingTourDialog
         open={tour.open}
         onOpenChange={tour.setOpen}

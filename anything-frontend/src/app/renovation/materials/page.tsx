@@ -5,7 +5,7 @@ import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
-import { Button } from "@/components/ui/button";
+import { usePageActions } from "@/hooks/usePageActions";
 import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
 import { FIELD_INPUT_CLASS } from "@/components/inventory/inventoryFormStyles";
@@ -39,7 +39,7 @@ export default function RenovationMaterialsPage() {
   const createMaterial = useCreateRenovationMaterial();
   const updateMaterial = useUpdateRenovationMaterial();
   const deleteMaterial = useDeleteRenovationMaterial();
-  const { setHeaderActions, setLeftAction } = useHeaderActions();
+  const { setLeftAction } = useHeaderActions();
 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(ALL_CATEGORIES);
@@ -62,19 +62,7 @@ export default function RenovationMaterialsPage() {
     return () => setLeftAction({ type: "menu" });
   }, [setLeftAction]);
 
-  useEffect(() => {
-    setHeaderActions(
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setOpenRow(NEW_MATERIAL)}
-        aria-label="Add material"
-      >
-        <Plus className="h-5 w-5" />
-      </Button>
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  usePageActions([{ label: "New material", icon: Plus, onSelect: () => setOpenRow(NEW_MATERIAL) }]);
 
   const toggleRow = (id: number) => setOpenRow((current) => (current === id ? null : id));
 

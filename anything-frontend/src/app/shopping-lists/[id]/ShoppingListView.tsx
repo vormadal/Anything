@@ -1,8 +1,8 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Check, ChefHat, Clock, List } from "lucide-react";
+import { Check, ChefHat, CircleCheckBig, Clock, List } from "lucide-react";
+import { usePageActions } from "@/hooks/usePageActions";
 import {
   useShoppingListItems,
   useUpdateShoppingListItem,
@@ -186,6 +186,21 @@ export function ShoppingListView({ listId }: Props) {
       handleCompleteList(false);
     }
   };
+
+  usePageActions(
+    items && items.length > 0
+      ? [
+          {
+            label: "Complete list",
+            icon: CircleCheckBig,
+            primary: true,
+            onSelect: handleCompleteClick,
+            disabled: completeList.isPending || !isOnline,
+            disabledReason: isOnline ? undefined : "Completing a list requires an internet connection",
+          },
+        ]
+      : []
+  );
 
   return (
     <>
@@ -375,17 +390,6 @@ export function ShoppingListView({ listId }: Props) {
               ))}
             </ul>
           )}
-
-          <div className="fixed bottom-6 right-6 z-30">
-            <Button
-              onClick={handleCompleteClick}
-              disabled={completeList.isPending || !isOnline}
-              title={isOnline ? undefined : "Completing a list requires an internet connection"}
-              className="shadow-lg"
-            >
-              {completeList.isPending ? "Completing..." : "Complete List"}
-            </Button>
-          </div>
         </>
       )}
     </>

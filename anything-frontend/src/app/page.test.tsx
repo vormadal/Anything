@@ -510,7 +510,7 @@ describe('Home Page Integration Tests', () => {
   })
 
   // ------- Home card preferences (order/visibility) -------
-  it('should navigate to home preferences when the settings button is clicked', async () => {
+  it('should link to home preferences from the header menu', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockFoodPlanEntriesGet.mockResolvedValue([])
@@ -518,8 +518,11 @@ describe('Home Page Integration Tests', () => {
 
     render(<Home />)
 
-    await user.click(screen.getByRole('button', { name: 'Customize home page' }))
-    expect(mockPush).toHaveBeenCalledWith('/home-preferences')
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    expect(await screen.findByRole('menuitem', { name: 'Customize home page' })).toHaveAttribute(
+      'href',
+      '/home-preferences',
+    )
   })
 
   it('should render cards in the order returned by preferences', async () => {
@@ -560,7 +563,8 @@ describe('Home Page Integration Tests', () => {
   })
 
   // ------- Offline mode: edit options disabled -------
-  it('should disable the Customize home page button while offline', async () => {
+  it('should disable the Customize home page menu item while offline', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     setOnline(false)
     jest.useFakeTimers().setSystemTime(new Date('2025-06-16T10:00:00'))
     mockFoodPlanEntriesGet.mockResolvedValue([])
@@ -568,9 +572,11 @@ describe('Home Page Integration Tests', () => {
 
     render(<Home />)
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Customize home page' })).toBeDisabled()
-    })
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    expect(await screen.findByRole('menuitem', { name: 'Customize home page' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
   })
 
   it('should disable the Lists card Create button while offline', async () => {

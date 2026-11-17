@@ -1,5 +1,6 @@
 import React from 'react'
 import { screen, waitFor, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { render } from '@/__tests__/utils/test-utils'
 import BillDetailPage from './page'
 
@@ -51,11 +52,6 @@ jest.mock('sonner', () => ({
 }))
 
 // Prevent infinite re-render from router in useEffect deps
-const mockSetHeaderActions = jest.fn()
-jest.mock('@/context/PageActionsContext', () => ({
-  useHeaderActions: () => ({ setHeaderActions: mockSetHeaderActions, setPageTitle: jest.fn(), headerActions: null, leftAction: { type: 'menu' }, setLeftAction: jest.fn() }),
-  PageActionsProvider: ({ children }: { children: React.ReactNode }) => children,
-}))
 
 const mockBill = {
   id: 1,
@@ -234,11 +230,11 @@ describe('BillDetailPage', () => {
     mockBillByIdDelete.mockResolvedValue(undefined)
     jest.spyOn(window, 'confirm').mockReturnValue(true)
 
+    const user = userEvent.setup()
     render(<BillDetailPage />)
 
-    await waitFor(() => expect(screen.getByText('Delete bill')).toBeInTheDocument())
-
-    fireEvent.click(screen.getByText('Delete bill'))
+    await user.click(await screen.findByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete bill' }))
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/bills')
@@ -326,15 +322,18 @@ describe('BillDetailPage', () => {
       mockPriceHistoryGet.mockResolvedValue(mockPriceHistory)
       setOnline(false)
 
+      const user = userEvent.setup()
       render(<BillDetailPage />)
 
-      await waitFor(() => expect(screen.getByText('Delete bill')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('Add entry')).toBeInTheDocument())
 
       fireEvent.click(screen.getByText('Add entry'))
       expect(screen.getByPlaceholderText('Amount').closest('form')?.querySelector('button[type="submit"]')).toBeDisabled()
       expect(screen.getByText('Add file')).toBeDisabled()
-      expect(screen.getByText('Delete bill')).toBeDisabled()
       expect(screen.getAllByLabelText('Delete price entry')[0]).toBeDisabled()
+
+      await user.click(screen.getByRole('button', { name: 'More options' }))
+      expect(await screen.findByRole('menuitem', { name: 'Delete bill' })).toHaveAttribute('aria-disabled', 'true')
     })
   })
 })

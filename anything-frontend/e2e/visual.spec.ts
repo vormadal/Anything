@@ -31,6 +31,7 @@
  */
 
 import { test, expect, Page, Route } from "@playwright/test";
+import { PageActions } from "./pages/PageActions";
 
 // ---------------------------------------------------------------------------
 // Fixed clock date – keeps date-sensitive UI strings consistent across runs.
@@ -1132,6 +1133,17 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page).toHaveScreenshot("home-with-data.png", screenshotOptions);
   });
 
+  test("home page - header menu", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    // Settings moved from a header icon into the ⋮ menu; the home page has no
+    // floating action of its own.
+    await page.getByRole("button", { name: "More options" }).click();
+    await expect(page.getByRole("menuitem", { name: "Customize home page" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Page actions" })).toHaveCount(0);
+    await expect(page).toHaveScreenshot("home-header-menu.png", screenshotOptions);
+  });
+
   test("app drawer - open on a short viewport", async ({ page }) => {
     // A short viewport is the case that matters: the nav must scroll so the
     // account/logout footer stays in view instead of being pushed off-screen.
@@ -1448,7 +1460,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     // diff-ratio threshold, so a baseline predating it would still "match".
     await expect(page.getByRole("button", { name: "Insert table" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Insert list" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Rename note" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "More options" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
     await expect(page).toHaveScreenshot("note-detail.png", screenshotOptions);
   });
@@ -1534,6 +1546,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.goto("/notes/1");
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "More options" }).click();
+    await expect(page.getByRole("menuitem", { name: "Rename" })).toBeVisible();
     await expect(page.getByRole("menuitem", { name: "Print" })).toBeVisible();
     await expect(page.getByRole("menuitem", { name: "Delete" })).toBeVisible();
     await expect(page).toHaveScreenshot("note-print-menu.png", screenshotOptions);
@@ -1548,7 +1561,6 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(page.getByText("Reboot it if the lights go red")).toBeVisible();
     await expect(page.getByRole("toolbar", { name: "Formatting" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "More options" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Rename note" })).toHaveCount(0);
     await expect(page).toHaveScreenshot("note-detail-print.png", screenshotOptions);
   });
 
@@ -1638,7 +1650,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("note - rename dialog", async ({ page }) => {
     await page.goto("/notes/1");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: "Rename note" }).click();
+    await page.getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Rename" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByLabel("Title")).toHaveValue("Wifi password");
     await expect(page).toHaveScreenshot("note-rename-dialog.png", screenshotOptions);
@@ -1769,7 +1782,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("storage - new place dialog with parent picker", async ({ page }) => {
     await page.goto("/inventory");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: "Create place" }).click();
+    await page.getByRole("button", { name: "New place" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     // Places can nest (e.g. a shed inside the summerhouse), so a place can be
     // picked as another one's parent — breadcrumb label included for clarity.
@@ -2092,6 +2105,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("lists - with items", async ({ page }) => {
     await page.goto("/lists");
     await page.waitForLoadState("networkidle");
+    // A single action shows as a labelled pill rather than a bare + button.
+    await expect(page.getByRole("button", { name: "New list" })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "lists-with-items.png",
       screenshotOptions
@@ -2133,7 +2148,6 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("create list dialog - default (checklist)", async ({ page }) => {
     await page.goto("/lists");
-    await page.waitForSelector('[aria-label="New list"]');
     await page.getByRole("button", { name: "New list" }).click();
     await page.waitForSelector('[role="dialog"]');
     await expect(page).toHaveScreenshot(
@@ -2144,7 +2158,6 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("create list dialog - from template", async ({ page }) => {
     await page.goto("/lists");
-    await page.waitForSelector('[aria-label="New list"]');
     await page.getByRole("button", { name: "New list" }).click();
     await page.waitForSelector('[role="dialog"]');
     await page.getByRole("button", { name: "From template" }).click();
@@ -2159,6 +2172,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("shopping list detail", async ({ page }) => {
     await page.goto("/lists/1");
     await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("button", { name: "Page actions" })).toBeVisible();
     await expect(page).toHaveScreenshot(
       "list-detail.png",
       screenshotOptions
@@ -2210,13 +2224,23 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     );
   });
 
+  test("shopping list detail - floating actions expanded", async ({ page }) => {
+    await page.goto("/lists/1");
+    await page.waitForLoadState("networkidle");
+    // Two actions collapse behind the + button; "Complete list" is primary, so
+    // it sits nearest the button with the accent colour.
+    await page.getByRole("button", { name: "Page actions" }).click();
+    await expect(page.getByRole("button", { name: "Complete list" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Edit items" })).toBeVisible();
+    await expect(page).toHaveScreenshot("list-detail-actions-open.png", screenshotOptions);
+  });
+
   test("general checklist detail - ordering ui in edit mode", async ({ page }) => {
     await page.route(/\/api\/checklists\/3\/items/, (route) =>
       route.fulfill({ json: mockGeneralChecklistItems })
     );
     await page.goto("/lists/3");
-    await page.waitForSelector('[aria-label="Edit list"]');
-    await page.getByRole("button", { name: "Edit list" }).click();
+    await new PageActions(page).click("Edit items");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot(
       "list-detail-general-edit-ordering.png",
@@ -2247,8 +2271,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
   test("shopping list - typo-tolerant item suggestions", async ({ page }) => {
     // Baseline regenerated from scratch after correcting the scenario below.
     await page.goto("/lists/1");
-    await page.waitForSelector('[aria-label="Edit list"]');
-    await page.getByRole("button", { name: "Edit list" }).click();
+    await new PageActions(page).click("Edit items");
 
     // "buttr" is a typo for the "Butter" recommendation (which is not already on
     // this list), so the ranked, typo-tolerant search still surfaces it in the
@@ -2281,8 +2304,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
       Object.defineProperty(navigator, "onLine", { get: () => false, configurable: true });
     });
     await page.goto("/lists/1");
-    await page.waitForSelector('[aria-label="Edit list"]');
-    await page.getByRole("button", { name: "Edit list" }).click();
+    await new PageActions(page).click("Edit items");
     await page.waitForLoadState("networkidle");
 
     // Adding an item while offline queues it in the outbox and renders it
@@ -2736,7 +2758,6 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("create template dialog - default (checklist)", async ({ page }) => {
     await page.goto("/households/1/lists/templates");
-    await page.waitForSelector('[aria-label="New template"]');
     await page.getByRole("button", { name: "New template" }).click();
     await page.waitForSelector('[role="dialog"]');
     await expect(page).toHaveScreenshot(
@@ -2801,7 +2822,7 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Bin day moved to Thursday")).toBeVisible();
     await expect(page.getByRole("button", { name: /mark all read/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Sent announcements" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Send an announcement" })).toBeVisible();
     await expect(page).toHaveScreenshot("notifications-inbox.png", screenshotOptions);
   });
 
@@ -2930,7 +2951,10 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     await expect(
       page.getByRole("button", { name: "Send an announcement" })
     ).toBeHidden();
-    await expect(page.getByRole("link", { name: "Sent announcements" })).toBeHidden();
+    await page.getByRole("button", { name: "More options" }).click();
+    await expect(page.getByRole("menuitem", { name: "Notification settings" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Sent announcements" })).toBeHidden();
+    await page.keyboard.press("Escape");
     await expect(page).toHaveScreenshot(
       "notifications-inbox-member.png",
       screenshotOptions
@@ -3091,8 +3115,8 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
 
   test("recipe share dialog - initial (empty shares)", async ({ page }) => {
     await page.goto("/recipes/1");
-    await page.waitForSelector('[aria-label="Share recipe"]');
-    await page.getByRole("button", { name: /share recipe/i }).click();
+    await page.getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Share recipe" }).click();
     await page.waitForSelector('[role="dialog"]');
     await expect(page).toHaveScreenshot("share-dialog-initial.png", screenshotOptions);
   });
@@ -3102,19 +3126,40 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
       route.fulfill({ json: mockRecipeShares })
     );
     await page.goto("/recipes/1");
-    await page.waitForSelector('[aria-label="Share recipe"]');
-    await page.getByRole("button", { name: /share recipe/i }).click();
+    await page.getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Share recipe" }).click();
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveScreenshot("share-dialog-with-shares.png", screenshotOptions);
   });
 
   test("recipe share dialog - share with user tab", async ({ page }) => {
     await page.goto("/recipes/1");
-    await page.waitForSelector('[aria-label="Share recipe"]');
-    await page.getByRole("button", { name: /share recipe/i }).click();
+    await page.getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Share recipe" }).click();
     await page.waitForSelector('[role="dialog"]');
     await page.getByRole("button", { name: /share with user/i }).click();
     await expect(page).toHaveScreenshot("share-dialog-user-tab.png", screenshotOptions);
+  });
+
+  // ---- Floating action button ----
+
+  test("recipe detail - floating actions expanded", async ({ page }) => {
+    await page.goto("/recipes/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Page actions" }).click();
+    for (const name of ["Start cooking", "Add to food plan", "Add to shopping list", "Edit recipe"]) {
+      await expect(page.getByRole("button", { name })).toBeVisible();
+    }
+    await expect(page).toHaveScreenshot("recipe-detail-actions-open.png", screenshotOptions);
+  });
+
+  test("recipe detail - header menu keeps share and delete", async ({ page }) => {
+    await page.goto("/recipes/1");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "More options" }).click();
+    await expect(page.getByRole("menuitem", { name: "Share recipe" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /Delete Recipe/i })).toBeVisible();
+    await expect(page).toHaveScreenshot("recipe-detail-header-menu.png", screenshotOptions);
   });
 
   // ---- Recipe Edit Mode (issue #621: merged into the detail page, no Done button) ----

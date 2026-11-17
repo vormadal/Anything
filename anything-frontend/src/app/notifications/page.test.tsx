@@ -187,12 +187,14 @@ describe("NotificationsPage", () => {
     mockGet.mockResolvedValue([]);
     mockHouseholdRole = "Admin";
 
+    const user = userEvent.setup();
     renderWithClient(<NotificationsPage />);
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole("link", { name: "Sent announcements" })
-      ).toHaveAttribute("href", "/notifications/sent")
+    expect(await screen.findByRole("button", { name: "Send an announcement" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    expect(await screen.findByRole("menuitem", { name: "Sent announcements" })).toHaveAttribute(
+      "href",
+      "/notifications/sent"
     );
   });
 
@@ -200,11 +202,13 @@ describe("NotificationsPage", () => {
     mockGet.mockResolvedValue([]);
     mockHouseholdRole = "Member";
 
+    const user = userEvent.setup();
     renderWithClient(<NotificationsPage />);
 
     await waitFor(() => expect(screen.getByText(/Nothing here yet/)).toBeInTheDocument());
-    expect(
-      screen.queryByRole("link", { name: "Sent announcements" })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send an announcement" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    expect(await screen.findByRole("menuitem", { name: "Notification settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Sent announcements" })).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
+import { HeaderMenu } from "@/components/HeaderMenu";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -79,19 +80,19 @@ export default function HouseholdDetailPage() {
     setLeftAction({ type: "back", href: "/households" });
     if (household && canManage) {
       setHeaderActions(
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            setNewName(household.name);
-            setShowRename(true);
-          }}
-          aria-label="Rename household"
-          disabled={!isOnline}
-          title={isOnline ? undefined : "Renaming a household requires an internet connection"}
-        >
-          <Pencil className="h-5 w-5" />
-        </Button>
+        <HeaderMenu
+          items={[
+            {
+              label: "Rename household",
+              icon: Pencil,
+              onSelect: () => {
+                setNewName(household.name);
+                setShowRename(true);
+              },
+              disabled: !isOnline,
+            },
+          ]}
+        />
       );
     }
     return () => {

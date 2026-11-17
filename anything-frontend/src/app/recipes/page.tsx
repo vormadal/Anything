@@ -4,13 +4,10 @@ import { useRecipes, useTopRecipeTags } from "@/hooks/useRecipes";
 import type { RecipeListItemResponse } from "@/hooks/useRecipes";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useHeaderActions } from "@/context/PageActionsContext";
+import { usePageActions } from "@/hooks/usePageActions";
 import { PageTitle } from "@/components/PageTitle";
 import { Search, X, CookingPot, Plus, CalendarPlus, Clock, Users, Package, Layers } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { AddToFoodPlanDialog } from "@/components/AddToFoodPlanDialog";
 import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
@@ -123,7 +120,6 @@ export default function RecipesPage() {
   const recipesLoad = loadFailure(recipesQuery);
   const { data: topTags } = useTopRecipeTags(10);
   const router = useRouter();
-  const { setHeaderActions } = useHeaderActions();
 
   // Debounce the search query so we don't fire a request on every keystroke
   useEffect(() => {
@@ -145,21 +141,7 @@ export default function RecipesPage() {
 
   const hasActiveFilter = searchQuery.trim() !== "" || activeTag !== null;
 
-  // Header: just the create-recipe button
-  useEffect(() => {
-    setHeaderActions(
-      <Link
-        href="/recipes/new"
-        aria-label="Create recipe"
-        className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-      >
-        <Plus className="h-5 w-5" />
-      </Link>,
-      false,
-    );
-
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  usePageActions([{ label: "New recipe", icon: Plus, href: "/recipes/new" }]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-6xl">

@@ -136,16 +136,13 @@ describe("InventoryPage", () => {
     );
   });
 
-  it("exposes a create-place action in the header", async () => {
+  it("exposes a New place floating action", async () => {
     const user = userEvent.setup();
     mockLoaded();
 
     renderWithClient(<InventoryPage />);
 
-    await waitFor(() =>
-      expect(screen.getByLabelText("Create place")).toBeInTheDocument()
-    );
-    await user.click(screen.getByLabelText("Create place"));
+    await user.click(await screen.findByRole("button", { name: "New place" }));
 
     expect(screen.getByRole("dialog")).toHaveTextContent("New place");
   });

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { apiRequest } from "./apiRequest";
+import { PageActions } from "./pages/PageActions";
 
 /**
  * Shopping list full flow:
@@ -28,7 +29,7 @@ test("create shopping list, add items, and complete it", async ({ page }) => {
     listId = Number(page.url().match(/\/lists\/(\d+)/)?.[1]);
 
     // Enter edit mode to add items
-    await page.getByRole("button", { name: "Edit list" }).click();
+    await new PageActions(page).click("Edit items");
 
     // Add first item and wait for the form to clear (confirms the API call completed)
     await page.getByPlaceholder("Add an item...").fill("Milk");
@@ -67,9 +68,11 @@ test("create shopping list, add items, and complete it", async ({ page }) => {
     await checkButtons.nth(0).click();
     await checkButtons.nth(1).click();
 
-    // The "Complete List" button appears when few unchecked items remain (≤3)
-    await expect(page.getByRole("button", { name: "Complete List" })).toBeVisible();
-    await page.getByRole("button", { name: "Complete List" }).click();
+    // "Complete list" is in the floating action button whenever the list has items
+    const pageActions = new PageActions(page);
+    await pageActions.expand("Complete list");
+    await expect(pageActions.action("Complete list")).toBeVisible();
+    await pageActions.action("Complete list").click();
 
     // After completion the app navigates to the new carry-over list or back to lists
     await expect(page).toHaveURL(/\/lists/);

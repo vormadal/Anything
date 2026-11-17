@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
+import { HeaderMenu } from "@/components/HeaderMenu";
+import { usePageActions } from "@/hooks/usePageActions";
 import {
   useBill,
   useBillPriceHistory,
@@ -70,20 +72,6 @@ export default function BillDetailPage() {
   const [attachmentDialog, setAttachmentDialog] = useState<{ id: number; name: string } | null>(null);
   const [attachmentDialogName, setAttachmentDialogName] = useState("");
 
-  useEffect(() => {
-    setHeaderActions(
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => router.push(`/bills/${billId}/edit`)}
-        aria-label="Edit bill"
-      >
-        <Pencil className="h-5 w-5" />
-      </Button>
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions, router, billId]);
-
   const handleDelete = async () => {
     if (!confirm("Delete this bill?")) return;
     try {
@@ -94,6 +82,30 @@ export default function BillDetailPage() {
       toast.error("Failed to delete bill");
     }
   };
+
+  const handleDeleteRef = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    handleDeleteRef.current = handleDelete;
+  });
+
+  useEffect(() => {
+    setHeaderActions(
+      <HeaderMenu
+        items={[
+          {
+            label: "Delete bill",
+            icon: Trash2,
+            destructive: true,
+            onSelect: () => handleDeleteRef.current(),
+            disabled: !isOnline,
+          },
+        ]}
+      />
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, isOnline]);
+
+  usePageActions([{ label: "Edit bill", icon: Pencil, href: `/bills/${billId}/edit` }]);
 
   const handleAddPrice = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -444,21 +456,6 @@ export default function BillDetailPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
-      {/* Delete bill */}
-      <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-          onClick={handleDelete}
-          disabled={deleteBill.isPending || !isOnline}
-          title={isOnline ? undefined : "Deleting a bill requires an internet connection"}
-        >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Delete bill
-        </Button>
       </div>
     </div>
   );

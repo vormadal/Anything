@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Box, Package, Plus } from "lucide-react";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
-import { useHeaderActions } from "@/context/PageActionsContext";
 import {
   useDeleteInventoryStorageUnit,
   useDeleteInventoryStorageUnitAttachment,
@@ -23,7 +22,7 @@ import { BoxFormDialog } from "@/components/inventory/BoxFormDialog";
 import { ItemFormDialog } from "@/components/inventory/ItemFormDialog";
 import { PlaceFormDialog } from "@/components/inventory/PlaceFormDialog";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
-import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
+import { useDetailActions } from "@/components/inventory/useDetailActions";
 import { InventoryList, InventoryRow } from "@/components/inventory/InventoryRow";
 import { InventoryDocuments } from "@/components/inventory/InventoryDocuments";
 import { InventoryPhotoGallery } from "@/components/inventory/InventoryPhotoGallery";
@@ -48,7 +47,6 @@ export default function PlaceDetailPage() {
   const params = useParams();
   const placeId = Number(params.id);
   const router = useRouter();
-  const { setHeaderActions } = useHeaderActions();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -68,20 +66,12 @@ export default function PlaceDetailPage() {
   const deleteAttachment = useDeleteInventoryStorageUnitAttachment(placeId);
 
   // Refs keep the header effect's deps stable, matching the lists detail page.
-  const openEditRef = useRef(() => setEditOpen(true));
-  const openDeleteRef = useRef(() => setDeleteOpen(true));
-
-  useEffect(() => {
-    setHeaderActions(
-      <DetailActionsMenu
-        onEdit={() => openEditRef.current()}
-        onDelete={() => openDeleteRef.current()}
-        deleteLabel="Delete place"
-      />,
-      false
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  useDetailActions({
+    editLabel: "Edit place",
+    onEdit: () => setEditOpen(true),
+    deleteLabel: "Delete place",
+    onDelete: () => setDeleteOpen(true),
+  });
 
   const placeBoxes = boxesInPlace(boxes ?? [], placeId);
   const loose = looseItemsInPlace(items ?? [], placeId);

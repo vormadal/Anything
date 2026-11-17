@@ -15,8 +15,8 @@ test("create bill and view its detail page", async ({ page }) => {
     page.getByRole("heading", { name: "Bills", level: 1 })
   ).toBeVisible();
 
-  // Navigate to the new bill form
-  await page.getByRole("button", { name: "Add bill" }).click();
+  // Navigate to the new bill form via the floating action button
+  await page.getByRole("link", { name: "New bill" }).click();
   await expect(page).toHaveURL("/bills/new");
 
   // Fill in the required name field

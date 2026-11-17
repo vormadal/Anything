@@ -72,6 +72,5 @@ export const BILL_CATEGORY_SELECTED = "bg-kind-bills text-gray-950";
 /** Cooking mode belongs to recipes, so it takes the food kind colour. */
 export const COOKING = {
   bar: "bg-ink text-ink-foreground border-l-4 border-l-kind-food",
-  toggleActive: "text-kind-food bg-kind-food/10 hover:bg-kind-food/20",
   outline: "border-kind-food text-kind-food hover:bg-kind-food/10",
 } as const;

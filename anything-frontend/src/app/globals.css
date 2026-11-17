@@ -296,6 +296,10 @@ body {
 .slide-out-to-bottom {
   --tw-exit-translate-y: 100%;
 }
+/* FloatingActions' dial items rise a short way rather than a whole height. */
+.slide-in-from-bottom-2 {
+  --tw-enter-translate-y: 0.5rem;
+}
 
 /*
  * Tiptap placeholder (note editor). The Placeholder extension only tags the

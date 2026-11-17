@@ -32,11 +32,6 @@ jest.mock('sonner', () => ({
 }))
 
 // Prevent infinite re-render loop from router reference in useEffect deps
-const mockSetHeaderActions = jest.fn()
-jest.mock('@/context/PageActionsContext', () => ({
-  useHeaderActions: () => ({ setHeaderActions: mockSetHeaderActions, setPageTitle: jest.fn(), headerActions: null, leftAction: { type: 'menu' }, setLeftAction: jest.fn() }),
-  PageActionsProvider: ({ children }: { children: React.ReactNode }) => children,
-}))
 
 const mockSummary = {
   totalBills: 1,

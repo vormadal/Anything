@@ -110,7 +110,7 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    const plusButton = screen.getByRole('button', { name: 'Create shopping list' })
+    const plusButton = screen.getByRole('button', { name: 'New shopping list' })
     await user.click(plusButton)
 
     expect(screen.getByPlaceholderText('List name...')).toBeInTheDocument()
@@ -124,7 +124,7 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
+    await user.click(screen.getByRole('button', { name: 'New shopping list' }))
 
     const input = screen.getByPlaceholderText('List name...')
     await user.type(input, 'Party Supplies')
@@ -144,7 +144,7 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
+    await user.click(screen.getByRole('button', { name: 'New shopping list' }))
 
     await user.click(screen.getByRole('button', { name: 'Create list' }))
 
@@ -158,7 +158,7 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
+    await user.click(screen.getByRole('button', { name: 'New shopping list' }))
 
     await user.type(screen.getByPlaceholderText('List name...'), 'Fail List')
 
@@ -175,7 +175,7 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
+    await user.click(screen.getByRole('button', { name: 'New shopping list' }))
     expect(screen.getByPlaceholderText('List name...')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -209,7 +209,7 @@ describe('ShoppingListsPage', () => {
 
     render(<ShoppingListsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Create shopping list' }))
+    await user.click(screen.getByRole('button', { name: 'New shopping list' }))
     await user.type(screen.getByPlaceholderText('List name...'), 'Test')
     await user.click(screen.getByRole('button', { name: 'Create list' }))
 
@@ -281,7 +281,7 @@ describe('ShoppingListsPage', () => {
     render(<ShoppingListsPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Create shopping list' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'New shopping list' })).toBeDisabled()
     })
   })
 })

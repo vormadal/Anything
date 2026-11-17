@@ -238,8 +238,7 @@ describe("RenovationProjectPage", () => {
 
     renderWithClient(<RenovationProjectPage />);
 
-    await user.click(screen.getByRole("button", { name: "More options" }));
-    await user.click(await screen.findByText("Edit"));
+    await user.click(screen.getByRole("button", { name: "Edit project" }));
     const dialog = await screen.findByRole("dialog");
     const budget = within(dialog).getByLabelText(/Budget \(kr/);
     await user.clear(budget);
