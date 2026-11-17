@@ -15,6 +15,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
+import { usePageActions } from "@/hooks/usePageActions";
 import { Pencil, Trash2, MoreVertical, SquarePen } from "lucide-react";
 import { ShoppingListView } from "./ShoppingListView";
 import { ShoppingListEditMode } from "./ShoppingListEditMode";
@@ -64,16 +65,6 @@ export default function ShoppingListDetailPage() {
     setLeftAction({ type: "back", href: "/shopping-lists" });
     setHeaderActions(
       <div className="flex items-center gap-1 ml-auto">
-        {!isEditMode && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => { setIsEditMode(true); router.push("?edit=true"); }}
-            aria-label="Edit list"
-          >
-            <Pencil className="h-5 w-5" />
-          </Button>
-        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="More options">
@@ -100,7 +91,19 @@ export default function ShoppingListDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [isEditMode, router, setHeaderActions, setLeftAction]);
+  }, [setHeaderActions, setLeftAction]);
+
+  usePageActions(
+    isEditMode
+      ? []
+      : [
+          {
+            label: "Edit items",
+            icon: Pencil,
+            onSelect: () => { setIsEditMode(true); router.push("?edit=true"); },
+          },
+        ]
+  );
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">

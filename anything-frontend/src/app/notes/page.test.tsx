@@ -64,13 +64,17 @@ describe("NotesPage", () => {
     );
   });
 
-  it("exposes a create action in the header", async () => {
+  it("offers New note and Import notes behind the floating action button", async () => {
     mockNotesGet.mockResolvedValue([]);
+    const user = userEvent.setup();
 
     renderWithClient(<NotesPage />);
 
-    await waitFor(() =>
-      expect(screen.getByLabelText("Create note")).toHaveAttribute("href", "/notes/new")
-    );
+    const trigger = await screen.findByRole("button", { name: "Page actions" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await user.click(trigger);
+
+    expect(screen.getByRole("link", { name: "New note" })).toHaveAttribute("href", "/notes/new");
+    expect(screen.getByRole("link", { name: "Import notes" })).toHaveAttribute("href", "/notes/import");
   });
 });

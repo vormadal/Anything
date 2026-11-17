@@ -17,6 +17,7 @@ The CI workflow uses a fresh local database; the deploy workflow runs against th
 - **Always use timestamp-based unique names for test data** (e.g. `` `E2E Item ${Date.now()}` ``) to avoid collisions with data accumulated from previous runs in the persistent deploy database.
 - **Clean up test data after each test** — delete records created during a test (via the UI or a direct API call in `page.evaluate`) so they don't accumulate in the deploy environment and slow down data-fetching for later tests. Wrap creation in `try {} finally { /* delete */ }` (e.g. `shopping-lists.spec.ts` deletes its list via `apiRequest(page, "DELETE", \`/api/checklists/${listId}\`)`).
 - **Read `env.apiUrl` for direct API calls in `page.evaluate`**, not a hard-coded `localhost` URL. In deploy the API is proxied at the same origin as the frontend (`E2E_API_URL=E2E_BASE_URL`), so direct fetch calls must use `env.apiUrl` from `e2e/env.ts`.
+- **Floating actions go through `PageActions`** (`e2e/pages/PageActions.ts`). Pages with several actions hide them behind a "Page actions" + button, and a page can switch between a single pill and the dial while it loads, so `new PageActions(page).click("Edit items")` expands and retries rather than clicking a bare `getByRole`.
 - **Shared `apiRequest` helper:** `e2e/apiRequest.ts` exports the authenticated `page.evaluate`-based fetch helper (reads the bearer token + household ID from `localStorage`). Import it instead of redefining a local copy per spec file.
 
 ## Food-plan suggestion-ranking leakage

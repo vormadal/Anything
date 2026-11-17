@@ -16,6 +16,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
+import { usePageActions } from "@/hooks/usePageActions";
 import { LayoutList, Trash2, MoreVertical, SquarePen, ShoppingCart, ListChecks, LayoutTemplate, PackagePlus } from "lucide-react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { ShoppingListView } from "@/app/shopping-lists/[id]/ShoppingListView";
@@ -102,16 +103,6 @@ export default function ListDetailPage() {
     setLeftAction({ type: "back", href: "/lists" });
     setHeaderActions(
       <div className="flex items-center gap-1 ml-auto">
-        {!isEditMode && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => { setIsEditMode(true); router.push("?edit=true"); }}
-            aria-label="Edit list"
-          >
-            <LayoutList className="h-5 w-5" />
-          </Button>
-        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="More options">
@@ -171,7 +162,19 @@ export default function ListDetailPage() {
       setLeftAction({ type: "menu" });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, isGeneral, isOnline, listId, !!sourceTemplate, setHeaderActions, setLeftAction]);
+  }, [isGeneral, isOnline, listId, !!sourceTemplate, setHeaderActions, setLeftAction]);
+
+  usePageActions(
+    isEditMode || listLoad.failed
+      ? []
+      : [
+          {
+            label: "Edit items",
+            icon: LayoutList,
+            onSelect: () => { setIsEditMode(true); router.push("?edit=true"); },
+          },
+        ]
+  );
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">

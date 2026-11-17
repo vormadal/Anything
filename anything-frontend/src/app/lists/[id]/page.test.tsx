@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { render } from '@/__tests__/utils/test-utils'
+import { render, expandPageActions } from '@/__tests__/utils/test-utils'
 import ListDetailPage from './page'
 
 const mockGet = jest.fn()
@@ -60,17 +60,23 @@ describe('ListDetailPage', () => {
   })
 
   it('follows the ?edit= search param when it changes after mount', async () => {
+    const user = userEvent.setup()
+    mockGet.mockResolvedValue({ id: 1, name: 'Groceries', type: 0 })
     mockEditParam = false
     const { rerender } = render(<ListDetailPage />)
-    expect(await screen.findByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Edit items|Page actions/ })).toBeInTheDocument())
+    await expandPageActions(user)
+    expect(await screen.findByRole('button', { name: 'Edit items' })).toBeInTheDocument()
 
     mockEditParam = true
     rerender(<ListDetailPage />)
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Edit list' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Edit items' })).not.toBeInTheDocument())
 
     mockEditParam = false
     rerender(<ListDetailPage />)
-    expect(await screen.findByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Edit items|Page actions/ })).toBeInTheDocument())
+    await expandPageActions(user)
+    expect(await screen.findByRole('button', { name: 'Edit items' })).toBeInTheDocument()
   })
   beforeEach(() => {
     jest.clearAllMocks()

@@ -67,4 +67,11 @@ export class BillDetailPage {
     await row.getByRole("button", { name: "Attachment options" }).click();
     await this.page.getByRole("button", { name: "Delete attachment" }).click();
   }
+
+  /** Deletes the bill from the header's ⋮ menu, accepting the confirm() prompt. */
+  async deleteBill() {
+    this.page.once("dialog", (dialog) => dialog.accept());
+    await this.page.getByRole("button", { name: "More options" }).click();
+    await this.page.getByRole("menuitem", { name: "Delete bill" }).click();
+  }
 }

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { HeaderMenu } from "@/components/HeaderMenu";
 import { PageTitle } from "@/components/PageTitle";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { Settings } from "lucide-react";
@@ -21,27 +20,25 @@ function HomeCardsSkeleton() {
 }
 
 export default function Home() {
-  const router = useRouter();
   const { setHeaderActions } = useHeaderActions();
   const { data: preferences, isLoading: preferencesLoading } = useHomeCardPreferences();
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
     setHeaderActions(
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => router.push("/home-preferences")}
-        aria-label="Customize home page"
-        title={isOnline ? "Customize home page" : "Customizing the home page requires an internet connection"}
-        disabled={!isOnline}
-        className="ml-auto"
-      >
-        <Settings className="h-5 w-5" />
-      </Button>
+      <HeaderMenu
+        items={[
+          {
+            label: "Customize home page",
+            icon: Settings,
+            href: "/home-preferences",
+            // The preferences page saves straight to the API.
+            disabled: !isOnline,
+          },
+        ]}
+      />
     );
     return () => setHeaderActions(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- router identity is stable in the real app; omitted to avoid re-running on every render
   }, [setHeaderActions, isOnline]);
 
   const cardKeys: HomeCardKey[] = preferences

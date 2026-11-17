@@ -1,20 +1,18 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCookingMode } from "@/context/CookingModeContext";
+import { useCookingDrawerVisible } from "@/hooks/useCookingDrawerVisible";
 import { Button } from "@/components/ui/button";
 import { ChefHat, X } from "lucide-react";
 import { COOKING } from "@/lib/kinds";
 
 export function CookingModeDrawer() {
   const { session, stopCooking, completedStepIds } = useCookingMode();
-  const pathname = usePathname();
   const router = useRouter();
+  const visible = useCookingDrawerVisible();
 
-  if (!session) return null;
-
-  const isOnRecipePage = pathname === `/recipes/${session.recipeId}`;
-  if (isOnRecipePage) return null;
+  if (!session || !visible) return null;
 
   const completedCount = completedStepIds.size;
   const totalSteps = session.steps.length;

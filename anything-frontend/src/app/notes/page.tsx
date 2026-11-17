@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useNotes } from "@/hooks/useNotes";
-import { useHeaderActions } from "@/context/PageActionsContext";
+import { usePageActions } from "@/hooks/usePageActions";
 import { PageTitle } from "@/components/PageTitle";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { ChevronRight, Plus, Upload } from "lucide-react";
 import { LoadErrorState } from "@/components/LoadErrorState";
 import { loadFailure } from "@/lib/queryState";
@@ -16,34 +12,14 @@ const IMPORT_LABEL = "Import notes";
 
 export default function NotesPage() {
   const router = useRouter();
-  const { setHeaderActions } = useHeaderActions();
   const notesQuery = useNotes();
   const { data: notes, isLoading } = notesQuery;
   const notesLoad = loadFailure(notesQuery);
 
-  useEffect(() => {
-    setHeaderActions(
-      <div className="ml-auto flex items-center gap-1">
-        <Link
-          href="/notes/import"
-          aria-label={IMPORT_LABEL}
-          title={IMPORT_LABEL}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-        >
-          <Upload className="h-5 w-5" />
-        </Link>
-        <Link
-          href="/notes/new"
-          aria-label="Create note"
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-        >
-          <Plus className="h-5 w-5" />
-        </Link>
-      </div>,
-      false
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  usePageActions([
+    { label: "New note", icon: Plus, href: "/notes/new" },
+    { label: IMPORT_LABEL, icon: Upload, href: "/notes/import" },
+  ]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-2xl space-y-4">

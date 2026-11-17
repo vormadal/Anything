@@ -32,11 +32,6 @@ jest.mock('sonner', () => ({
 }))
 
 // Prevent infinite re-render loop from router reference in useEffect deps
-const mockSetHeaderActions = jest.fn()
-jest.mock('@/context/PageActionsContext', () => ({
-  useHeaderActions: () => ({ setHeaderActions: mockSetHeaderActions, setPageTitle: jest.fn(), headerActions: null, leftAction: { type: 'menu' }, setLeftAction: jest.fn() }),
-  PageActionsProvider: ({ children }: { children: React.ReactNode }) => children,
-}))
 
 const mockSummary = {
   totalBills: 1,
@@ -129,6 +124,14 @@ describe('BillsPage', () => {
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/bills/1')
     })
+  })
+
+  it('offers a New bill floating action linking to the create page', async () => {
+    mockBillsGet.mockResolvedValue([])
+
+    render(<BillsPage />)
+
+    expect(await screen.findByRole('link', { name: 'New bill' })).toHaveAttribute('href', '/bills/new')
   })
 
   it('should navigate to new bill page when add button is clicked', async () => {

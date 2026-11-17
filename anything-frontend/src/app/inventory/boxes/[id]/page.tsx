@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Package, Plus } from "lucide-react";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
-import { useHeaderActions } from "@/context/PageActionsContext";
 import {
   useDeleteInventoryBox,
   useDeleteInventoryBoxAttachment,
@@ -21,7 +20,7 @@ import {
 import { BoxFormDialog } from "@/components/inventory/BoxFormDialog";
 import { ItemFormDialog } from "@/components/inventory/ItemFormDialog";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
-import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
+import { useDetailActions } from "@/components/inventory/useDetailActions";
 import { InventoryList, InventoryRow } from "@/components/inventory/InventoryRow";
 import { InventoryDocuments } from "@/components/inventory/InventoryDocuments";
 import { InventoryPhotoGallery } from "@/components/inventory/InventoryPhotoGallery";
@@ -38,7 +37,6 @@ export default function BoxDetailPage() {
   const params = useParams();
   const boxId = Number(params.id);
   const router = useRouter();
-  const { setHeaderActions } = useHeaderActions();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -54,20 +52,12 @@ export default function BoxDetailPage() {
   const downloadAttachment = useDownloadInventoryBoxAttachment(boxId);
   const deleteAttachment = useDeleteInventoryBoxAttachment(boxId);
 
-  const openEditRef = useRef(() => setEditOpen(true));
-  const openDeleteRef = useRef(() => setDeleteOpen(true));
-
-  useEffect(() => {
-    setHeaderActions(
-      <DetailActionsMenu
-        onEdit={() => openEditRef.current()}
-        onDelete={() => openDeleteRef.current()}
-        deleteLabel="Delete box"
-      />,
-      false
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  useDetailActions({
+    editLabel: "Edit box",
+    onEdit: () => setEditOpen(true),
+    deleteLabel: "Delete box",
+    onDelete: () => setDeleteOpen(true),
+  });
 
   const contents = itemsInBox(items ?? [], boxId);
   const place = box?.storageUnitId

@@ -1,12 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { CountBadge } from "@/components/ui/count-badge";
 import { useShoppingLists, useReorderShoppingLists } from "@/hooks/useShoppingLists";
 import { CreateListDialog } from "@/components/CreateListDialog";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useHeaderActions } from "@/context/PageActionsContext";
+import { usePageActions } from "@/hooks/usePageActions";
 import { PageTitle } from "@/components/PageTitle";
 import { Plus, GripVertical, ShoppingCart, ListChecks } from "lucide-react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
@@ -89,7 +88,6 @@ export default function ListsPage() {
   const listsLoad = loadFailure(listsQuery);
   const reorderLists = useReorderShoppingLists();
   const router = useRouter();
-  const { setHeaderActions } = useHeaderActions();
   const isOnline = useOnlineStatus();
 
   const { orderedItems: orderedLists, sortableIds, sensors, handleDragEnd } =
@@ -100,23 +98,15 @@ export default function ListsPage() {
       disabled: !isOnline,
     });
 
-  useEffect(() => {
-    setHeaderActions(
-      <div className="flex items-center gap-1 ml-auto">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCreating(true)}
-          aria-label="New list"
-          disabled={!isOnline}
-          title={isOnline ? undefined : "Creating lists requires an internet connection"}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-      </div>
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions, isOnline]);
+  usePageActions([
+    {
+      label: "New list",
+      icon: Plus,
+      onSelect: () => setIsCreating(true),
+      disabled: !isOnline,
+      disabledReason: "Creating lists requires an internet connection",
+    },
+  ]);
 
   const hasActiveLists = lists && lists.length > 0;
 

@@ -8,6 +8,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
+      // Top centre, just below the 57px app header: the bottom-right corner
+      // belongs to the floating action button.
+      position="top-center"
+      offset={{ top: 72 }}
+      mobileOffset={{ top: 72 }}
       toastOptions={{
         classNames: {
           toast:

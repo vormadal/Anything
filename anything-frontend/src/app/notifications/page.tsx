@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { CheckCheck, Megaphone, Send, Settings, X } from "lucide-react";
 import { PageTitle } from "@/components/PageTitle";
+import { HeaderMenu } from "@/components/HeaderMenu";
+import { usePageActions } from "@/hooks/usePageActions";
 import { SendNotificationDialog } from "@/components/SendNotificationDialog";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { useHouseholdContext } from "@/context/HouseholdContext";
 import {
@@ -107,45 +108,21 @@ export default function NotificationsPage() {
   }, [setLeftAction]);
 
   useEffect(() => {
+    // Sent history is manager-only because only a manager can send. The
+    // endpoint itself isn't gated — a demoted manager reaching the URL still
+    // sees their own history rather than a 403.
     setHeaderActions(
-      <div className="ml-auto flex items-center gap-1">
-        {isManager && (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={SEND_LABEL}
-              title={SEND_LABEL}
-              onClick={() => setSendOpen(true)}
-            >
-              <Megaphone className="h-5 w-5" />
-            </Button>
-            {/* Manager-only because only a manager can send. The endpoint
-                itself isn't gated — a demoted manager reaching the URL still
-                sees their own history rather than a 403. */}
-            <Link
-              href="/notifications/sent"
-              aria-label={SENT_LABEL}
-              title={SENT_LABEL}
-              className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-            >
-              <Send className="h-5 w-5" />
-            </Link>
-          </>
-        )}
-        <Link
-          href="/notifications/settings"
-          aria-label={SETTINGS_LABEL}
-          title={SETTINGS_LABEL}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-        >
-          <Settings className="h-5 w-5" />
-        </Link>
-      </div>,
-      false
+      <HeaderMenu
+        items={[
+          ...(isManager ? [{ label: SENT_LABEL, icon: Send, href: "/notifications/sent" }] : []),
+          { label: SETTINGS_LABEL, icon: Settings, href: "/notifications/settings" },
+        ]}
+      />
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, isManager]);
+
+  usePageActions(isManager ? [{ label: SEND_LABEL, icon: Megaphone, onSelect: () => setSendOpen(true) }] : []);
 
   const handleOpen = (notification: NotificationResponse) => {
     if (!notification.readOn && notification.id) {

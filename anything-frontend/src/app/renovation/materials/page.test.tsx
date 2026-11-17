@@ -159,9 +159,9 @@ describe("RenovationMaterialsPage", () => {
     await waitFor(() => expect(deleteMock.mutateAsync).toHaveBeenCalledWith(2));
   });
 
-  it("creates a new material from the header action", async () => {
+  it("creates a new material from the floating action", async () => {
     renderWithClient(<RenovationMaterialsPage />);
-    fireEvent.click(within(screen.getByTestId("header-actions")).getByRole("button", { name: "Add material" }));
+    fireEvent.click(screen.getByRole("button", { name: "New material" }));
 
     const form = screen.getByRole("form", { name: "New material" });
     fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "Ceiling paint" } });
@@ -174,7 +174,7 @@ describe("RenovationMaterialsPage", () => {
 
   it("shows an inline error and does not save when the name is only spaces", () => {
     renderWithClient(<RenovationMaterialsPage />);
-    fireEvent.click(within(screen.getByTestId("header-actions")).getByRole("button", { name: "Add material" }));
+    fireEvent.click(screen.getByRole("button", { name: "New material" }));
 
     const form = screen.getByRole("form", { name: "New material" });
     // A blank string is stopped by the native `required`; spaces get past it and hit the inline check.

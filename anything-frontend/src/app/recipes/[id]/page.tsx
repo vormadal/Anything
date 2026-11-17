@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useHeaderActions } from "@/context/PageActionsContext";
 import { PageTitle } from "@/components/PageTitle";
+import { usePageActions } from "@/hooks/usePageActions";
 import {
   useRecipeDetails,
   useDeleteRecipe,
@@ -28,47 +29,12 @@ import { ShareRecipeDialog } from "@/components/ShareRecipeDialog";
 import { RecipeView } from "./RecipeView";
 import { RecipeEditMode } from "./RecipeEditMode";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useCookingMode, type CookingSession } from "@/context/CookingModeContext";
+import { useCookingMode } from "@/context/CookingModeContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { COOKING } from "@/lib/kinds";
 
 const OFFLINE_TITLE_REIMPORT = "Reimporting a recipe requires an internet connection";
-
-// Reads live cooking state from context so the button reflects current state
-// even when the header actions are only set once in a useEffect.
-function CookingHeaderButton({
-  recipeId,
-  sessionGetter,
-}: {
-  recipeId: number;
-  sessionGetter: React.RefObject<() => CookingSession | null>;
-}) {
-  const { session, startCooking, stopCooking } = useCookingMode();
-  const isCooking = session?.recipeId === recipeId;
-
-  const handleClick = () => {
-    if (isCooking) {
-      stopCooking();
-    } else {
-      const s = sessionGetter.current?.();
-      if (s) startCooking(s);
-    }
-  };
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={handleClick}
-      aria-label={isCooking ? "Stop cooking mode" : "Start cooking mode"}
-      className={isCooking ? COOKING.toggleActive : ""}
-    >
-      <ChefHat className="h-5 w-5" />
-    </Button>
-  );
-}
 
 export default function RecipeDetailPage() {
   const params = useParams();
@@ -111,18 +77,15 @@ export default function RecipeDetailPage() {
 
   const sortedSteps = steps ? [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 
-  // Stable ref for the session builder so CookingHeaderButton can read current recipe/steps
-  const sessionBuilderRef = useRef<() => CookingSession | null>(() => null);
-  useEffect(() => {
-    sessionBuilderRef.current = () =>
-      recipe
-        ? {
-            recipeId,
-            recipeName: recipe.name ?? "Recipe",
-            steps: sortedSteps,
-          }
-        : null;
-  });
+  const { session, startCooking, stopCooking } = useCookingMode();
+  const isCooking = session?.recipeId === recipeId;
+  const toggleCooking = () => {
+    if (isCooking) {
+      stopCooking();
+    } else if (recipe) {
+      startCooking({ recipeId, recipeName: recipe.name ?? "Recipe", steps: sortedSteps });
+    }
+  };
 
   const handleAddToShoppingList = async (shoppingListId: number) => {
     try {
@@ -163,11 +126,6 @@ export default function RecipeDetailPage() {
 
   const { setHeaderActions, setLeftAction } = useHeaderActions();
 
-  const routerRef = useRef(router);
-  useEffect(() => {
-    routerRef.current = router;
-  });
-
   useEffect(() => {
     setLeftAction({ type: "back", href: "/recipes" });
     setHeaderActions(
@@ -202,23 +160,6 @@ export default function RecipeDetailPage() {
         </div>
       ) : (
         <div className="flex items-center gap-1 ml-auto">
-          <CookingHeaderButton recipeId={recipeId} sessionGetter={sessionBuilderRef} />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setFoodPlanDialogOpen(true)}
-            aria-label="Add to food plan"
-          >
-            <CalendarPlus className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShareDialogOpen(true)}
-            aria-label="Share recipe"
-          >
-            <Share2 className="h-5 w-5" />
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="More options">
@@ -226,18 +167,9 @@ export default function RecipeDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onSelect={() => {
-                  setIsEditMode(true);
-                  routerRef.current.push("?edit=true");
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-                Edit recipe
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setShoppingListDialogOpen(true)} disabled={!isOnline}>
-                <ShoppingCart className="h-4 w-4" />
-                Add to Shopping List
+              <DropdownMenuItem onSelect={() => setShareDialogOpen(true)}>
+                <Share2 className="h-4 w-4" />
+                Share recipe
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
@@ -256,7 +188,36 @@ export default function RecipeDetailPage() {
       setHeaderActions(null);
       setLeftAction({ type: "menu" });
     };
-  }, [isEditMode, recipeId, recipe?.link, setHeaderActions, setLeftAction, isOnline]);
+  }, [isEditMode, recipe?.link, setHeaderActions, setLeftAction, isOnline]);
+
+  usePageActions(
+    isEditMode
+      ? []
+      : [
+          {
+            label: isCooking ? "Stop cooking" : "Start cooking",
+            icon: ChefHat,
+            onSelect: toggleCooking,
+            disabled: !recipe,
+          },
+          { label: "Add to food plan", icon: CalendarPlus, onSelect: () => setFoodPlanDialogOpen(true) },
+          {
+            label: "Add to shopping list",
+            icon: ShoppingCart,
+            onSelect: () => setShoppingListDialogOpen(true),
+            disabled: !isOnline,
+            disabledReason: "Adding ingredients requires an internet connection",
+          },
+          {
+            label: "Edit recipe",
+            icon: Pencil,
+            onSelect: () => {
+              setIsEditMode(true);
+              router.push("?edit=true");
+            },
+          },
+        ]
+  );
 
   return (
     // w-full matters: <main> is a column flex container, and mx-auto on a flex

@@ -18,6 +18,7 @@ React Query hooks for all API interactions. One file per feature domain.
 - Mutations call `queryClient.invalidateQueries(...)` on success to keep the cache fresh.
 - Exception: the three shopping-list-item mutations in `useShoppingLists.ts` (`useAddShoppingListItem`/`useUpdateShoppingListItem`/`useRemoveShoppingListItem`) only invalidate when the mutation actually reached the server — see `src/lib/agent.md`'s "Offline support" section.
 - Query keys follow the pattern `[entityName]` or `[entityName, id]` for consistent invalidation.
+- `usePageActions` (not a data hook) registers the calling component's floating-action-button entries — see `src/components/agent.md` → "Page actions". `useCookingDrawerVisible` is shared by the cooking bar and the FAB, which lifts above it.
 - Tests that involve polling/intervals must use `jest.useFakeTimers()` / `jest.useRealTimers()` to prevent CI hangs.
 - Use `renderWithClient` from `@/__tests__/utils/test-utils` for rendering hooks/components in tests.
 - `useRecommendations.ts` is list-scoped: `useRecommendationSearch(query, shoppingListId?)` and `useAllRecommendations({ shoppingListId?, sharedOnly?, uncategorized?, includeInSuggestions? })` pass the filters as query params, and `useDeleteRecommendationsForList()` clears one list's own suggestions. Pass no `shoppingListId` for the household-wide (recipe) autocomplete. (Backend scoping semantics live in `src/Anything.Application/agent.md`.)

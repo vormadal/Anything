@@ -59,17 +59,6 @@ jest.mock('@/lib/apiClient', () => ({
   },
 }))
 
-// Mock PageActionsContext
-const mockSetHeaderActions = jest.fn()
-jest.mock('@/context/PageActionsContext', () => ({
-  PageActionsProvider: ({ children }: { children: React.ReactNode }) => children,
-  useHeaderActions: () => ({
-    headerActions: null,
-    hideTitle: false,
-    setHeaderActions: mockSetHeaderActions,
-    setPageTitle: jest.fn(),
-  }),
-}))
 
 // Mock next/navigation
 const mockPush = jest.fn()
@@ -196,12 +185,10 @@ describe('RecipesPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/recipes/1')
   })
 
-  it('should register header actions for create button', async () => {
+  it('offers a New recipe floating action linking to the create page', async () => {
     render(<RecipesPage />)
 
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
+    expect(await screen.findByRole('link', { name: 'New recipe' })).toHaveAttribute('href', '/recipes/new')
   })
 
   it('should show always-visible search bar in page body', async () => {

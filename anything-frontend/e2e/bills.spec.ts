@@ -15,8 +15,8 @@ test("create bill and view its detail page", async ({ page }) => {
     page.getByRole("heading", { name: "Bills", level: 1 })
   ).toBeVisible();
 
-  // Navigate to the new bill form
-  await page.getByRole("button", { name: "Add bill" }).click();
+  // Navigate to the new bill form via the floating action button
+  await page.getByRole("link", { name: "New bill" }).click();
   await expect(page).toHaveURL("/bills/new");
 
   // Fill in the required name field
@@ -89,9 +89,8 @@ test("can upload, view, and delete a bill attachment", async ({ page }) => {
     await detailPage.deleteAttachment("invoice");
     await expect(detailPage.attachmentLink("invoice")).not.toBeVisible();
 
-    // 6. Delete the bill through the UI
-    page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "Delete bill" }).click();
+    // 6. Delete the bill through the UI (the header's ⋮ menu)
+    await detailPage.deleteBill();
     await expect(page).toHaveURL("/bills");
     billDeleted = true;
   } finally {

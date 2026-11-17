@@ -153,8 +153,9 @@ describe("NoteWorkspace", () => {
       initialDocument: doc(paragraph("Wifi password"), paragraph("Guest network")),
     });
 
-    await user.click(screen.getByRole("button", { name: "Rename note" }));
-    const input = screen.getByLabelText("Title");
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+    const input = await screen.findByLabelText("Title");
     await user.clear(input);
     await user.type(input, "Router details");
     await user.click(screen.getByRole("button", { name: "Save" }));

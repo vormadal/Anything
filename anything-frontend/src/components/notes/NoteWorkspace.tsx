@@ -102,16 +102,6 @@ export function NoteWorkspace({
     setHeaderActions(
       <div className="ml-auto flex items-center gap-1">
         {!readOnly && <NoteSaveIndicator status={status} />}
-        {!readOnly && (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Rename note"
-            onClick={() => setRenameOpen(true)}
-          >
-            <Pencil className="h-5 w-5" />
-          </Button>
-        )}
         {/* Always rendered: Print needs no saved note and works offline, so
             the menu is no longer gated on Delete being available. */}
         <DropdownMenu>
@@ -121,6 +111,12 @@ export function NoteWorkspace({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {!readOnly && (
+              <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+                <Pencil className="h-4 w-4" />
+                Rename
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={handlePrint}>
               <Printer className="h-4 w-4" />
               Print

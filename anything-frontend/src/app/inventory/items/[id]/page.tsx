@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PageTitle } from "@/components/PageTitle";
-import { useHeaderActions } from "@/context/PageActionsContext";
 import {
   useDeleteInventoryItem,
   useDeleteInventoryItemAttachment,
@@ -18,7 +17,7 @@ import {
 } from "@/hooks/useInventory";
 import { ItemFormDialog } from "@/components/inventory/ItemFormDialog";
 import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
-import { DetailActionsMenu } from "@/components/inventory/DetailActionsMenu";
+import { useDetailActions } from "@/components/inventory/useDetailActions";
 import { WarrantyBadge } from "@/components/inventory/WarrantyBadge";
 import { CustomFieldsEditor } from "@/components/inventory/CustomFieldsEditor";
 import { InventoryDocuments } from "@/components/inventory/InventoryDocuments";
@@ -56,7 +55,6 @@ export default function ItemDetailPage() {
   const params = useParams();
   const itemId = Number(params.id);
   const router = useRouter();
-  const { setHeaderActions } = useHeaderActions();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -71,20 +69,12 @@ export default function ItemDetailPage() {
   const downloadAttachment = useDownloadInventoryItemAttachment(itemId);
   const deleteAttachment = useDeleteInventoryItemAttachment(itemId);
 
-  const openEditRef = useRef(() => setEditOpen(true));
-  const openDeleteRef = useRef(() => setDeleteOpen(true));
-
-  useEffect(() => {
-    setHeaderActions(
-      <DetailActionsMenu
-        onEdit={() => openEditRef.current()}
-        onDelete={() => openDeleteRef.current()}
-        deleteLabel="Delete item"
-      />,
-      false
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  useDetailActions({
+    editLabel: "Edit item",
+    onEdit: () => setEditOpen(true),
+    deleteLabel: "Delete item",
+    onDelete: () => setDeleteOpen(true),
+  });
 
   const box = item?.boxId ? boxes?.find((b) => b.id === item.boxId) : undefined;
   // The box wins over the item's own storageUnitId: if the two ever disagree,

@@ -8,7 +8,7 @@ Reusable UI components shared across multiple pages.
   - Dialogs: `AddToFoodPlanDialog`, `CompleteListDialog`, `CreateLocationDialog`, `CreateVendorDialog`, `EditListNameDialog`
   - `suggestions/` — tab bodies for the consolidated Suggestions admin page (`SuggestionsTab`, `CategoriesTab`, `ImportExportTab`)
   - `inventory/` — pieces shared by the four Storage routes: `PlaceFormDialog`, `BoxFormDialog`, `ItemFormDialog` (create and edit in one component, keyed off whether an entity is passed; item metadata sits behind an "Add more details" toggle, collapsed by default), `ConfirmDeleteDialog`, `DetailActionsMenu`, `InventorySelect`, `InventoryRow`/`InventoryList`, `WarrantyBadge` (renders `describeWarranty` from `@/lib/inventory`), `CustomFieldsEditor` (item-only; wholesale replace via `useUpdateInventoryItemFields`), the photo/document components below, and `inventoryFormStyles.ts` for the repeated Tailwind field classes
-  - Layout/nav: `AppLayout`, `PageTitle`
+  - Layout/nav: `AppLayout`, `PageTitle`, `FloatingActions` (the page's floating action button — see "Page actions" below), `HeaderMenu` (the header's ⋮ menu)
   - Feature UI: `CookingModeDrawer`, `ListItemsStatus`, `RecipeImageUpload`, `BillRecurrenceFields` (Recurring/One-time toggle, an optional Amount+Date row right under it — create form only, since edit has no initial-amount concept to bind — then, only while Recurring, Frequency+Payment; shared by `bills/new` and `bills/[id]/edit` so the two forms can't drift out of sync with the backend's recurrence invariant), `BillEntryForm` (the "quick add" amount+date+notes form used by the price-history section on `bills/[id]`), `BillPriceHistorySection` (that price-history list itself — see "Bills detail page" below)
   - Auth: `AuthGuard`
   - Error: `ErrorBoundary`, `LoadErrorState` (the "this section failed to load, it isn't empty" block — see below)
@@ -25,6 +25,22 @@ Reusable UI components shared across multiple pages.
 - Page-specific components (used by only one route) live next to the route's `page.tsx`, not here.
 - `button.test.tsx` is an example of a unit test for a UI primitive — follow that pattern when adding new ui/ components.
 - New components with distinct visual states (dialogs, multi-step flows) must be covered by a Playwright visual snapshot — see `.claude/rules/e2e.md` for the authoritative rule.
+
+## Page actions (`FloatingActions`, `HeaderMenu`)
+
+Every page splits its actions in two places — never icon buttons in the header:
+
+- **Floating action button (bottom right)** — what the user does *with* the page's thing: New …, Add to …, Complete/Close list, Edit …, Start cooking. Register them with `usePageActions([...])` (`@/hooks/usePageActions`); `AppLayout` renders `FloatingActions` once. One action shows as a labelled pill; 2–4 collapse behind a round + (`aria-label="Page actions"`) that fans out labelled round buttons. Keep it to 4. `primary: true` sorts an action nearest the thumb with the coral accent — use it for the action the page exists to finish (Complete list).
+- **Header ⋮** — what they do *to* it: rename, convert, share, settings, print, and delete last (destructive items get a separator and red text). Use `setHeaderActions(<HeaderMenu items={...} />)` for new menus; the inventory/renovation detail pages share `useDetailActions` (Edit in the FAB, Delete in ⋮).
+- **None at all** on edit forms, wizards and the note editor — they have their own footers or nothing to act on, and a FAB over a text editor covers what you're typing.
+
+Things that are easy to get wrong:
+
+- **Several components can contribute at once.** Actions are registered per calling component (`useId`), merged, primary first — a list page registers "Edit items" while its view registers "Complete list". Nothing overwrites anyone else's, and unmounting removes only your own.
+- **Pass fresh arrays freely, but the label is the key.** `usePageActions` re-registers only when something visible changes (label, href, disabled, disabledReason, primary, icon name) and always calls the latest `onSelect`, so inline closures are fine. Labels must be unique on a page.
+- **Labels are visible text now, not just an `aria-label`.** Write them as a person would say them ("New bill", not "Add" or "Create bill"), and check they don't collide with a form button on the next page (`bills/new` submits with "Add bill", which is why the FAB says "New bill").
+- **The bottom-right corner is taken.** `AppLayout` pads `<main>` by `pb-24` whenever actions exist so the last row isn't covered; toasts are `top-center` below the header; the food plan's "Today" pill moved bottom-left; and the FAB lifts itself above the cooking-mode bar (`useCookingDrawerVisible`). Don't add another `fixed bottom-* right-*` element — make it an action.
+- **Testing:** `renderWithClient` renders `FloatingActions`, so page tests query actions by role. A dial hides its items until expanded — call `expandPageActions(user)` from `@/__tests__/utils/test-utils` first. In Playwright use the `PageActions` page object (`e2e/pages/PageActions.ts`), which retries because a page's FAB can change shape while it loads (a list shows a lone "Edit items" until its items arrive, then becomes a dial).
 
 ## Theme ("octopus")
 

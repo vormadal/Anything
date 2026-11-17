@@ -170,19 +170,6 @@ jest.mock('@/lib/apiClient', () => ({
   },
 }))
 
-// ---- Mock PageActionsContext ----
-const mockSetHeaderActions = jest.fn()
-jest.mock('@/context/PageActionsContext', () => ({
-  PageActionsProvider: ({ children }: { children: React.ReactNode }) => children,
-  useHeaderActions: () => ({
-    headerActions: null,
-    hideTitle: false,
-    setHeaderActions: mockSetHeaderActions,
-    setPageTitle: jest.fn(),
-    leftAction: null,
-    setLeftAction: jest.fn(),
-  }),
-}))
 
 // ---- Mock next/navigation ----
 const mockPush = jest.fn()
@@ -1006,9 +993,7 @@ describe('FoodPlanPage', () => {
   // ------- 8. Add-to-shopping-list wizard -------
   async function openShoppingDialog() {
     render(<FoodPlanPage />)
-    await waitFor(() => expect(mockSetHeaderActions).toHaveBeenCalled())
-    const { container } = render(mockSetHeaderActions.mock.calls[0][0])
-    await userEvent.setup().click(within(container).getByRole('button', { name: 'Add to shopping list' }))
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Add to shopping list' }))
     await screen.findByText('Add to Shopping List')
   }
 
@@ -1184,51 +1169,24 @@ describe('FoodPlanPage', () => {
     })
   })
 
-  // ------- 9. Header actions registration -------
-  it('should register header actions with Settings and ShoppingCart buttons', async () => {
+  // ------- 9. Page actions -------
+  it('should offer Add to shopping list as the floating action', async () => {
     render(<FoodPlanPage />)
 
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    expect(headerActionsJsx).not.toBeNull()
-
-    const { container } = render(headerActionsJsx)
-    expect(within(container).getByRole('button', { name: 'Food plan settings' })).toBeInTheDocument()
-    expect(within(container).getByRole('button', { name: 'Add to shopping list' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Add to shopping list' })).toBeEnabled()
+    expect(screen.queryByRole('button', { name: 'Page actions' })).not.toBeInTheDocument()
   })
 
-  it('should navigate to settings page when Settings header action is clicked', async () => {
+  it('should keep settings in the header menu', async () => {
     const user = userEvent.setup()
-
     render(<FoodPlanPage />)
 
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
+    await user.click(await screen.findByRole('button', { name: 'More options' }))
 
-    const headerActionsJsx = mockSetHeaderActions.mock.calls[0][0]
-    const { container } = render(headerActionsJsx)
-    const settingsButton = within(container).getByRole('button', { name: 'Food plan settings' })
-    await user.click(settingsButton)
-
-    expect(mockPush).toHaveBeenCalledWith('/food-plans/settings')
-  })
-
-  it('should clear header actions on unmount', async () => {
-    const { unmount } = render(<FoodPlanPage />)
-
-    await waitFor(() => {
-      expect(mockSetHeaderActions).toHaveBeenCalled()
-    })
-
-    unmount()
-
-    const calls = mockSetHeaderActions.mock.calls
-    const lastCall = calls[calls.length - 1][0]
-    expect(lastCall).toBeNull()
+    expect(await screen.findByRole('menuitem', { name: 'Food plan settings' })).toHaveAttribute(
+      'href',
+      '/food-plans/settings',
+    )
   })
 
   // ------- 10. Entry chip: recipe links vs plain text -------

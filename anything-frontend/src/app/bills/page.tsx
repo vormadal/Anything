@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useHeaderActions } from "@/context/PageActionsContext";
+import { usePageActions } from "@/hooks/usePageActions";
 import { PageTitle } from "@/components/PageTitle";
 import { useBills, useBillSummary, FREQUENCY_LABELS } from "@/hooks/useBills";
 import { Button } from "@/components/ui/button";
@@ -34,18 +34,10 @@ export default function BillsPage() {
   const { data: bills, isLoading } = billsQuery;
   const billsLoad = loadFailure(billsQuery);
   const { data: billSummary } = useBillSummary();
-  const { setHeaderActions } = useHeaderActions();
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
-  useEffect(() => {
-    setHeaderActions(
-      <Button variant="ghost" size="icon" onClick={() => router.push("/bills/new")} aria-label="Add bill">
-        <Plus className="h-5 w-5" />
-      </Button>
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions, router]);
+  usePageActions([{ label: "New bill", icon: Plus, href: "/bills/new" }]);
 
   const locations = [
     "all",

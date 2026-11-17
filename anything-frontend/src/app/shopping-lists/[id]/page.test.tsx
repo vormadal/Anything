@@ -1,6 +1,17 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { render } from '@/__tests__/utils/test-utils'
+import { render, expandPageActions } from '@/__tests__/utils/test-utils'
+
+type User = ReturnType<typeof userEvent.setup>
+
+/** Clicks a floating action, expanding the dial first if the page has several. */
+async function clickPageAction(user: User, name: string) {
+  await expandPageActions(user)
+  await user.click(screen.getByRole('button', { name }))
+}
+
+/** The floating action button is up — as a single pill or a collapsed dial. */
+const PAGE_ACTIONS_UP = /^(Edit items|Complete list|Page actions)$/
 import ShoppingListDetailPage from './page'
 import { toast } from 'sonner'
 
@@ -72,15 +83,15 @@ describe('ShoppingListDetailPage', () => {
   it('follows the ?edit= search param when it changes after mount', async () => {
     mockEditParam = false
     const { rerender } = render(<ShoppingListDetailPage />)
-    expect(await screen.findByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
 
     mockEditParam = true
     rerender(<ShoppingListDetailPage />)
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Edit list' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Edit items' })).not.toBeInTheDocument())
 
     mockEditParam = false
     rerender(<ShoppingListDetailPage />)
-    expect(await screen.findByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
   })
   beforeEach(() => {
     jest.clearAllMocks()
@@ -279,9 +290,9 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('No items yet.')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
-    expect(screen.queryByRole('button', { name: 'Edit list' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit items' })).not.toBeInTheDocument()
     expect(screen.getByPlaceholderText('Add an item...')).toBeInTheDocument()
   })
 
@@ -293,10 +304,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     const input = screen.getByPlaceholderText('Add an item...')
     await user.type(input, 'Butter')
@@ -318,10 +329,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     await user.type(screen.getByPlaceholderText('Add an item...'), 'Milk')
     await user.type(screen.getByPlaceholderText('Qty'), '2')
@@ -341,10 +352,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     await user.click(screen.getByRole('button', { name: 'Add item' }))
 
@@ -359,10 +370,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     await user.type(screen.getByPlaceholderText('Add an item...'), 'Eggs')
     await user.click(screen.getByRole('button', { name: 'Add item' }))
@@ -384,7 +395,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     await user.click(screen.getByRole('button', { name: 'Remove item' }))
 
@@ -406,7 +417,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
     await user.click(screen.getByRole('button', { name: 'Remove item' }))
 
     await waitFor(() => {
@@ -425,7 +436,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     const itemName = screen.getByRole('button', { name: 'Milk' })
     await user.click(itemName)
@@ -445,7 +456,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
     await user.click(screen.getByRole('button', { name: 'Milk' }))
 
     const editInput = screen.getByDisplayValue('Milk')
@@ -471,7 +482,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
     await user.click(screen.getByRole('button', { name: /Milk/i }))
 
     const qtyInput = screen.getByDisplayValue('1')
@@ -496,7 +507,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
     await user.click(screen.getByRole('button', { name: 'Milk' }))
 
     expect(screen.getByDisplayValue('Milk')).toBeInTheDocument()
@@ -519,7 +530,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
     await user.click(screen.getByRole('button', { name: 'Milk' }))
 
     const editInput = screen.getByDisplayValue('Milk')
@@ -544,7 +555,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
     await user.click(screen.getByRole('button', { name: 'Milk' }))
 
     const editInput = screen.getByDisplayValue('Milk')
@@ -571,7 +582,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
     await user.click(screen.getByRole('button', { name: 'Milk' }))
     await user.keyboard('{Enter}')
 
@@ -581,6 +592,7 @@ describe('ShoppingListDetailPage', () => {
   })
 
   it('should show complete list button when all items are checked', async () => {
+    const user = userEvent.setup()
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: true, shoppingListId: 1 },
       { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
@@ -592,11 +604,14 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Page actions' })).toBeInTheDocument()
     })
+    await expandPageActions(user)
+    expect(screen.getByRole('button', { name: 'Complete list' })).toBeEnabled()
   })
 
   it('should show complete list button when 3 or fewer unchecked items remain', async () => {
+    const user = userEvent.setup()
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
       { id: 2, name: 'Bread', isChecked: true, shoppingListId: 1 },
@@ -607,11 +622,14 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Page actions' })).toBeInTheDocument()
     })
+    await expandPageActions(user)
+    expect(screen.getByRole('button', { name: 'Complete list' })).toBeEnabled()
   })
 
   it('should always show complete list button when items exist', async () => {
+    const user = userEvent.setup()
     const mockItems = [
       { id: 1, name: 'Milk', isChecked: false, shoppingListId: 1 },
       { id: 2, name: 'Bread', isChecked: false, shoppingListId: 1 },
@@ -623,8 +641,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Page actions' })).toBeInTheDocument()
     })
+    await expandPageActions(user)
+    expect(screen.getByRole('button', { name: 'Complete list' })).toBeEnabled()
   })
 
   it('should complete immediately without dialog when all items are checked', async () => {
@@ -639,10 +659,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Page actions' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Complete List' }))
+    await clickPageAction(user, 'Complete list')
 
     await waitFor(() => {
       expect(mockCompletePost).toHaveBeenCalledWith(expect.objectContaining({ markUnchecked: false }))
@@ -704,7 +724,7 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.getByText('Milk')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     const itemName = screen.getByRole('button', { name: 'Milk' })
     itemName.focus()
@@ -725,10 +745,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Page actions' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Complete List' }))
+    await clickPageAction(user, 'Complete list')
 
     await waitFor(() => {
       expect(screen.getByText(/Complete shopping list\?/i)).toBeInTheDocument()
@@ -755,10 +775,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Page actions' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Complete List' }))
+    await clickPageAction(user, 'Complete list')
 
     await waitFor(() => {
       expect(screen.getByText(/Complete shopping list\?/i)).toBeInTheDocument()
@@ -784,10 +804,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Complete List' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Page actions' })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Complete List' }))
+    await clickPageAction(user, 'Complete list')
 
     await waitFor(() => {
       expect(screen.getByText(/Complete shopping list\?/i)).toBeInTheDocument()
@@ -810,10 +830,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     const nameInput = screen.getByPlaceholderText('Add an item...')
     await user.type(nameInput, 'Mi')
@@ -837,10 +857,10 @@ describe('ShoppingListDetailPage', () => {
     render(<ShoppingListDetailPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Edit list' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'Edit list' }))
+    await clickPageAction(user, 'Edit items')
 
     const nameInput = screen.getByPlaceholderText('Add an item...')
     await user.type(nameInput, 'Butter')

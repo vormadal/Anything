@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Box, Plus, Search as SearchIcon, X } from "lucide-react";
 import { PageTitle } from "@/components/PageTitle";
-import { Button } from "@/components/ui/button";
-import { useHeaderActions } from "@/context/PageActionsContext";
+import { usePageActions } from "@/hooks/usePageActions";
 import {
   useInventoryBoxes,
   useInventoryItems,
@@ -31,7 +30,6 @@ const SECTION_HEADING_CLASS =
   "text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400";
 
 export default function InventoryPage() {
-  const { setHeaderActions } = useHeaderActions();
   const [createPlaceOpen, setCreatePlaceOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -45,20 +43,7 @@ export default function InventoryPage() {
   const inventoryLoad = loadFailure(places, boxes, items);
   const error = inventoryLoad.failed;
 
-  useEffect(() => {
-    setHeaderActions(
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Create place"
-        onClick={() => setCreatePlaceOpen(true)}
-      >
-        <Plus className="h-5 w-5" />
-      </Button>,
-      false
-    );
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  usePageActions([{ label: "New place", icon: Plus, onSelect: () => setCreatePlaceOpen(true) }]);
 
   const allItems = useMemo(() => items.data ?? [], [items.data]);
   const allBoxes = useMemo(() => boxes.data ?? [], [boxes.data]);

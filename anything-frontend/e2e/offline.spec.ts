@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { apiRequest } from "./apiRequest";
+import { PageActions } from "./pages/PageActions";
 
 /**
  * Offline shopping-list items: adding an item while offline queues it in the
@@ -24,7 +25,7 @@ test("shopping list item added while offline syncs once back online", async ({
     await expect(page).toHaveURL(/\/lists\/\d+/);
     listId = Number(page.url().match(/\/lists\/(\d+)/)?.[1]);
 
-    await page.getByRole("button", { name: "Edit list" }).click();
+    await new PageActions(page).click("Edit items");
 
     await page.context().setOffline(true);
     await expect(page.getByText(/you're offline/i)).toBeVisible();
@@ -77,7 +78,7 @@ test("shopping list item checked off while offline syncs once back online", asyn
     listId = Number(page.url().match(/\/lists\/(\d+)/)?.[1]);
 
     // Add the item while online so it has a real server-assigned id.
-    await page.getByRole("button", { name: "Edit list" }).click();
+    await new PageActions(page).click("Edit items");
     await page.getByPlaceholder("Add an item...").fill(itemName);
     await page.getByRole("button", { name: "Add item" }).click();
     await expect(page.getByPlaceholder("Add an item...")).toHaveValue("");

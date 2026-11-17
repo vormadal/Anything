@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { render } from '@/__tests__/utils/test-utils'
+import { render, expandPageActions } from '@/__tests__/utils/test-utils'
 import RecipeDetailPage from './page'
 import { toast } from 'sonner'
 
@@ -182,7 +182,7 @@ describe('RecipeDetailPage', () => {
     })
   })
 
-  it('should switch to edit mode in place when Edit recipe is selected', async () => {
+  it('should switch to edit mode in place when Edit recipe is chosen', async () => {
     const user = userEvent.setup()
 
     render(<RecipeDetailPage />)
@@ -191,8 +191,8 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
+    await expandPageActions(user)
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
     // Entering edit mode pushes exactly one history entry (the query param)
     // instead of navigating to a separate route — see issue #621.
@@ -212,8 +212,8 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
+    await expandPageActions(user)
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Recipe name')).toBeInTheDocument()
@@ -226,8 +226,8 @@ describe('RecipeDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'More options' }))
     expect(await screen.findByRole('menuitem', { name: /Reimport from URL/i })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: /Delete Recipe/i })).toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: /Edit recipe/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: /Add to Shopping List/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Page actions' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit recipe' })).not.toBeInTheDocument()
   })
 
   it('should reimport the recipe from the edit-mode dropdown', async () => {
@@ -241,8 +241,8 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(await screen.findByRole('menuitem', { name: /Edit recipe/i }))
+    await expandPageActions(user)
+    await user.click(screen.getByRole('button', { name: 'Edit recipe' }))
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Recipe name')).toBeInTheDocument()
@@ -276,14 +276,31 @@ describe('RecipeDetailPage', () => {
     expect(screen.queryByPlaceholderText('Ingredient name')).not.toBeInTheDocument()
   })
 
-  it('should show add-to-food-plan button in view mode', async () => {
+  it('should offer cooking, food plan, shopping list and edit as floating actions in view mode', async () => {
+    const user = userEvent.setup()
     render(<RecipeDetailPage />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    expect(screen.getByRole('button', { name: /Add to food plan/i })).toBeInTheDocument()
+    await expandPageActions(user)
+    for (const name of ['Start cooking', 'Add to food plan', 'Add to shopping list', 'Edit recipe']) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument()
+    }
+  })
+
+  it('should keep share and delete in the header menu', async () => {
+    const user = userEvent.setup()
+    render(<RecipeDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    expect(await screen.findByRole('menuitem', { name: 'Share recipe' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Delete Recipe/i })).toBeInTheDocument()
   })
 
   it('should open food plan dialog when add-to-food-plan button is clicked', async () => {
@@ -295,7 +312,8 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: /Add to food plan/i }))
+    await expandPageActions(user)
+    await user.click(screen.getByRole('button', { name: 'Add to food plan' }))
 
     await waitFor(() => {
       expect(screen.getByText('Add to Food Plan')).toBeInTheDocument()
@@ -402,8 +420,8 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(await screen.findByRole('menuitem', { name: /Add to Shopping List/i }))
+    await expandPageActions(user)
+    await user.click(screen.getByRole('button', { name: 'Add to shopping list' }))
 
     const listButton = await screen.findByRole('button', { name: 'My List' })
     await user.click(listButton)
@@ -429,8 +447,8 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: 'More options' }))
-    await user.click(await screen.findByRole('menuitem', { name: /Add to Shopping List/i }))
+    await expandPageActions(user)
+    await user.click(screen.getByRole('button', { name: 'Add to shopping list' }))
 
     const listButton = await screen.findByRole('button', { name: 'My List' })
     await user.click(listButton)
@@ -464,10 +482,9 @@ describe('RecipeDetailPage', () => {
         'aria-disabled',
         'true'
       )
-      expect(screen.getByRole('menuitem', { name: /Add to Shopping List/i })).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      )
+      await user.keyboard('{Escape}')
+      await expandPageActions(user)
+      expect(screen.getByRole('button', { name: 'Add to shopping list' })).toBeDisabled()
     })
   })
 })
