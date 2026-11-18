@@ -106,18 +106,17 @@ export function ShoppingListEditMode({ listId }: Props) {
 
   // One tap adds the item. Anything already typed into Qty/Unit wins over the
   // suggested quantity, so "3" then tapping "Milk" adds 3 of it.
-  const handleAddSuggestion = async (suggestion: ItemSuggestionResponse) => {
+  // Deliberately synchronous: it is handed to onAdd/onKeyDown, which expect void.
+  const handleAddSuggestion = (suggestion: ItemSuggestionResponse) => {
     const amount = parseAmount(newItemAmount) ?? suggestion.suggestedAmount ?? null;
     const unit = newItemUnit.trim() || suggestion.suggestedUnit || null;
     setNewItemName("");
     setNewItemAmount("");
     setNewItemUnit("");
     setActiveIndex(-1);
-    try {
-      await addItem.mutateAsync({ name: suggestion.name!, amount, unit });
-    } catch {
-      toast.error(ADD_FAILED_MESSAGE);
-    }
+    addItem
+      .mutateAsync({ name: suggestion.name!, amount, unit })
+      .catch(() => toast.error(ADD_FAILED_MESSAGE));
   };
 
   const handleFillSuggestion = (suggestion: ItemSuggestionResponse) => {
