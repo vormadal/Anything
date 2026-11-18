@@ -7,6 +7,7 @@ using Anything.Core.Services;
 using Anything.Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Anything.Application.Features.ShoppingLists.Queries;
 
@@ -20,6 +21,13 @@ namespace Anything.Application.Features.ShoppingLists.Queries;
 /// Popularity is computed from <see cref="ShoppingListItem"/> history (completed items are kept with
 /// <c>CompletedOn</c> set), so no counters need maintaining and past history counts from day one.
 /// Items deleted by hand are hard-deleted and therefore — deliberately — never counted.
+///
+/// That usage history is cached in memory per list for <see cref="GetItemSuggestionsHandler.UsageCacheDuration"/>
+/// and deliberately not invalidated on writes: popularity over a quarter barely moves in a day, and
+/// invalidating on every add would empty the cache exactly while a list is being filled. What must be
+/// exact stays live on every call — the list/household check, the items currently on the list (so an
+/// item just added is never suggested again) and the name match itself. The cache is per process; with
+/// several API instances each warms its own, which only costs one extra query per instance.
 /// Ranking rules live in <see cref="ItemSuggestionRanker"/>.
 /// </remarks>
 public record GetItemSuggestionsQuery(int ShoppingListId, string? Search = null, int Limit = 8) : IRequest<IResult>;
@@ -29,9 +37,11 @@ public class GetItemSuggestionsHandler(
     IRepository<ShoppingListItem> itemRepository,
     IRepository<ShoppingListRecommendation> recommendationRepository,
     IHouseholdContext householdContext,
-    TimeProvider timeProvider) : IRequestHandler<GetItemSuggestionsQuery, IResult>
+    TimeProvider timeProvider,
+    IMemoryCache cache) : IRequestHandler<GetItemSuggestionsQuery, IResult>
 {
-    public const int UsageWindowMonths = 6;
+    public const int UsageWindowMonths = 3;
+    public static readonly TimeSpan UsageCacheDuration = TimeSpan.FromHours(12);
     public const int MaxLimit = 20;
 
     // Upper bound on matching recommendations pulled before popularity ranking. Large enough that a
@@ -53,19 +63,13 @@ public class GetItemSuggestionsHandler(
             return NoSuggestions();
 
         var limit = Math.Clamp(query.Limit, 1, MaxLimit);
-        var cutoff = timeProvider.GetUtcNow().UtcDateTime.AddMonths(-UsageWindowMonths);
 
         var namesOnList = await itemRepository.Query().AsNoTracking()
             .Where(i => i.ShoppingListId == query.ShoppingListId && i.CompletedOn == null)
             .Select(i => i.Name)
             .ToListAsync(ct);
 
-        var usage = (await itemRepository.Query().AsNoTracking()
-                .Where(i => i.ShoppingListId == query.ShoppingListId && i.CreatedOn >= cutoff)
-                .Select(i => new { i.Name, i.Amount, i.Unit, i.AddedByRecipe, i.CreatedOn })
-                .ToListAsync(ct))
-            .Select(i => new ItemUsageRow(i.Name, i.Amount, i.Unit, i.AddedByRecipe != null, i.CreatedOn))
-            .ToList();
+        var usage = await GetUsage(query.ShoppingListId, ct);
 
         var recommendations = recommendationRepository.Query().AsNoTracking()
             .Where(r => r.HouseholdId == householdId
@@ -110,6 +114,27 @@ public class GetItemSuggestionsHandler(
         }
 
         return Results.Ok(ItemSuggestionRanker.Rank(candidates, usage, namesOnList, query.Search, limit));
+    }
+
+    // Keyed by list id alone: ids are global, and the household check above runs before any cache read.
+    internal static string UsageCacheKey(int shoppingListId) => $"shopping-list-item-usage:{shoppingListId}";
+
+    private async Task<List<ItemUsageRow>> GetUsage(int shoppingListId, CancellationToken ct)
+    {
+        var key = UsageCacheKey(shoppingListId);
+        if (cache.TryGetValue(key, out List<ItemUsageRow>? cached) && cached is not null)
+            return cached;
+
+        var cutoff = timeProvider.GetUtcNow().UtcDateTime.AddMonths(-UsageWindowMonths);
+        var usage = (await itemRepository.Query().AsNoTracking()
+                .Where(i => i.ShoppingListId == shoppingListId && i.CreatedOn >= cutoff)
+                .Select(i => new { i.Name, i.Amount, i.Unit, i.AddedByRecipe, i.CreatedOn })
+                .ToListAsync(ct))
+            .Select(i => new ItemUsageRow(i.Name, i.Amount, i.Unit, i.AddedByRecipe != null, i.CreatedOn))
+            .ToList();
+
+        cache.Set(key, usage, UsageCacheDuration);
+        return usage;
     }
 
     private static IResult NoSuggestions() => Results.Ok(new List<ItemSuggestionResponse>());

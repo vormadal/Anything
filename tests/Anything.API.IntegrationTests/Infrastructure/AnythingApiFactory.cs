@@ -6,6 +6,7 @@ using Anything.Database;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anything.API.IntegrationTests.Infrastructure;
@@ -120,6 +121,11 @@ public class AnythingApiFactory : WebApplicationFactory<Program>
         // Remove all non-admin users to avoid conflicts between tests
         db.Users.RemoveRange(db.Users.Where(u => u.Email != AdminEmail));
         await db.SaveChangesAsync();
+
+        // RESTART IDENTITY reuses ids, so anything cached by id (e.g. a shopping list's item-usage
+        // history) would otherwise leak from one test into the next.
+        if (Services.GetService<IMemoryCache>() is MemoryCache memoryCache)
+            memoryCache.Clear();
     }
 }
 

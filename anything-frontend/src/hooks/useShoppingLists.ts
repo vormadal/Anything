@@ -199,7 +199,7 @@ const ITEM_SUGGESTIONS_KEY = "shoppingListItemSuggestions";
 
 /**
  * Add-box typeahead for one list, ranked server-side by match and then by how
- * often each item was added to this list in the last six months, each with a
+ * often each item was added to this list in the last three months, each with a
  * suggested amount/unit. A blank query returns the list's most-added items, so
  * the box can show "your usuals" as soon as it gets focus.
  *
