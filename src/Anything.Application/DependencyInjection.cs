@@ -31,8 +31,6 @@ public static class DependencyInjection
             .WithScopedLifetime());
 
         // Household context
-        // In-process cache, currently only for shopping-list item-suggestion usage history.
-        services.AddMemoryCache();
         services.AddScoped<HouseholdContext>();
         services.AddScoped<IHouseholdContext>(sp => sp.GetRequiredService<HouseholdContext>());
 
