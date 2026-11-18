@@ -3,6 +3,7 @@ using Anything.Application.Features.ShoppingLists.Queries;
 using Anything.Contracts.ShoppingLists;
 using Anything.Core.Entities;
 using Anything.Mediator;
+using Microsoft.AspNetCore.Mvc;
 using MinimalApis.Extensions.Binding;
 
 namespace Anything.API.Endpoints;
@@ -100,6 +101,17 @@ public static class ShoppingListEndpoints
         })
         .WithName("GetShoppingListItems")
         .Produces<List<ShoppingListItem>>()
+        .RequireAuthorization();
+
+        // Add-box typeahead: matches ranked by how often each item was added to this list in the
+        // last six months, with a suggested amount/unit. A blank query returns the most-added items.
+        group.MapGet("/{id}/item-suggestions", async (int id, [FromQuery] string? query, [FromQuery] int? limit, IMediator mediator) =>
+        {
+            return await mediator.Send(new GetItemSuggestionsQuery(id, query, limit ?? 8));
+        })
+        .WithName("GetShoppingListItemSuggestions")
+        .Produces<List<ItemSuggestionResponse>>()
+        .Produces(404)
         .RequireAuthorization();
 
         group.MapPost("/{id}/items", async (int id, CreateShoppingListItemRequest request, IMediator mediator) =>

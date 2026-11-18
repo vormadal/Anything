@@ -502,7 +502,79 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // --- GET /api/checklists/{id}/item-suggestions ---
+
+    [Fact]
+    public async Task GetItemSuggestions_BlankQuery_ReturnsMostAddedNotOnList_WithMostCommonQuantity()
+    {
+        var list = await CreateShoppingListAsync("Suggestions");
+        await AddItemAsync(list.Id, "Milk", 2, "L");
+        await AddItemAsync(list.Id, "Bread", null, null);
+        await CompleteListAsync(list.Id);
+        await AddItemAsync(list.Id, "Milk", 2, "L");
+        await CompleteListAsync(list.Id);
+        await AddItemAsync(list.Id, "Eggs", 12, null); // still on the list
+
+        var result = await GetItemSuggestionsAsync(list.Id, null);
+
+        Assert.Equal(new[] { "Milk", "Bread" }, result.Select(s => s.Name));
+        Assert.Equal(2, result[0].TimesAdded);
+        Assert.Equal(2m, result[0].SuggestedAmount);
+        Assert.Equal("L", result[0].SuggestedUnit);
+    }
+
+    [Fact]
+    public async Task GetItemSuggestions_Query_MatchesTyposAndRanksPrefixFirst()
+    {
+        var list = await CreateShoppingListAsync("Suggestions");
+        await AddItemAsync(list.Id, "Oat milk", null, null);
+        await AddItemAsync(list.Id, "Oat milk", null, null);
+        await AddItemAsync(list.Id, "Milk", null, null);
+        await AddItemAsync(list.Id, "Tomato", null, null);
+        await CompleteListAsync(list.Id);
+
+        var milk = await GetItemSuggestionsAsync(list.Id, "milk");
+        Assert.Equal(new[] { "Milk", "Oat milk" }, milk.Select(s => s.Name));
+
+        var typo = await GetItemSuggestionsAsync(list.Id, "tomatoe");
+        Assert.Contains(typo, s => s.Name == "Tomato");
+    }
+
+    [Fact]
+    public async Task GetItemSuggestions_UnknownList_Returns404()
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.GetAsync("/api/checklists/99999/item-suggestions", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetItemSuggestions_RequiresAuthentication()
+    {
+        var response = await HttpClient.GetAsync("/api/checklists/1/item-suggestions", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     // --- Helpers ---
+
+    private async Task CompleteListAsync(int listId)
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var response = await client.PostAsJsonAsync($"/api/checklists/{listId}/complete",
+            new { markUnchecked = true }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    private async Task<ItemSuggestionDto[]> GetItemSuggestionsAsync(int listId, string? query)
+    {
+        var client = await GetAuthenticatedHttpClientAsync();
+        var url = $"/api/checklists/{listId}/item-suggestions" + (query is null ? "" : $"?query={Uri.EscapeDataString(query)}");
+        var response = await client.GetAsync(url, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ItemSuggestionDto[]>(JsonOptions, TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        return result;
+    }
 
     // --- PUT /api/checklists/{id}/type ---
 
@@ -763,6 +835,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
     }
 
     private record ShoppingListDto(int Id, string? Name, int Type = 1, DateTime? DeletedOn = null, bool IsTemplate = false, int? SourceTemplateId = null);
+    private record ItemSuggestionDto(int RecommendationId, string Name, decimal? SuggestedAmount, string? SuggestedUnit, int TimesAdded);
     private record ShoppingListItemDto(int Id, string? Name, bool IsChecked, decimal? Amount, string? Unit);
     private record ShoppingListTemplateDto(int Id, string? Name, int Type, int ItemCount);
 }
