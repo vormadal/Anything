@@ -74,6 +74,17 @@ const mockShoppingListItems = [
   { id: 6, listId: 1, name: "Eggs", amount: 6, unit: null, isChecked: false, completedOn: null, addedByRecipe: "Chicken Stir Fry", shoppingListId: 1, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
 ];
 
+// Add-box typeahead for list 1, already ranked as the server would (match, then
+// times added). "Milk" is on mockShoppingListItems, so the page filters it out
+// even though the mock returns it — the same belt-and-braces the real UI keeps.
+const mockItemSuggestions = [
+  { recommendationId: 4, name: "Butter", suggestedAmount: 1, suggestedUnit: "pk", timesAdded: 9 },
+  { recommendationId: 20, name: "Bananas", suggestedAmount: 6, suggestedUnit: null, timesAdded: 7 },
+  { recommendationId: 21, name: "Coffee", suggestedAmount: 500, suggestedUnit: "g", timesAdded: 5 },
+  { recommendationId: 1, name: "Milk", suggestedAmount: 2, suggestedUnit: "L", timesAdded: 4 },
+  { recommendationId: 22, name: "Oat milk", suggestedAmount: 1, suggestedUnit: "L", timesAdded: 2 },
+];
+
 const mockGeneralChecklistItems = [
   { id: 10, name: "Buy nails", amount: null, unit: null, isChecked: false, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
   { id: 11, name: "Get a hammer", amount: null, unit: null, isChecked: true, completedOn: null, shoppingListId: 3, createdOn: "2025-01-14T00:00:00Z", modifiedOn: null },
@@ -697,6 +708,16 @@ async function setupApiMocks(page: Page) {
   await page.route(/\/api\/checklists\/\d+\/items/, (route) =>
     route.fulfill({ json: mockShoppingListItems })
   );
+  // Blank query = the list's usuals; otherwise substring or one-typo matches,
+  // like the backend's ranked search.
+  await page.route(/\/api\/checklists\/\d+\/item-suggestions/, (route) => {
+    const query = (new URL(route.request().url()).searchParams.get("query") ?? "").toLowerCase();
+    const matches = mockItemSuggestions.filter((s) => {
+      const name = s.name.toLowerCase();
+      return !query || name.includes(query) || editDistanceForMock(query, name) <= 1;
+    });
+    route.fulfill({ json: matches });
+  });
   await page.route(/\/api\/checklists\/1$/, (route) =>
     route.fulfill({ json: { id: 1, name: "Weekly Groceries", type: 1, deletedOn: null } })
   );
@@ -2302,10 +2323,43 @@ test.describe("Visual Snapshots - Authenticated Pages", () => {
     // this list), so the ranked, typo-tolerant search still surfaces it in the
     // suggestion dropdown.
     await page.getByPlaceholder("Add an item...").fill("buttr");
-    await page.getByRole("button", { name: "Butter" }).waitFor();
+    await expect(page.getByRole("button", { name: "Add Butter" })).toHaveText("Butter1 pk");
 
     await expect(page).toHaveScreenshot(
       "list-detail-typo-suggestions.png",
+      screenshotOptions
+    );
+  });
+
+  test("shopping list - usual items on focus", async ({ page }) => {
+    await page.goto("/lists/1");
+    await new PageActions(page).click("Edit items");
+
+    // The add box auto-focuses; with nothing typed it lists the most-added items
+    // with their usual quantity, minus anything already on the list ("Milk").
+    const suggestions = page.getByRole("listbox", { name: "Item suggestions" });
+    await expect(suggestions.getByRole("option")).toHaveCount(4);
+    await expect(page.getByRole("button", { name: "Add Coffee" })).toHaveText("Coffee500 g");
+    await expect(page.getByRole("button", { name: "Add Milk" })).toHaveCount(0);
+
+    await expect(page).toHaveScreenshot(
+      "list-detail-usual-suggestions.png",
+      screenshotOptions
+    );
+  });
+
+  test("shopping list - typed item already on the list", async ({ page }) => {
+    await page.goto("/lists/1");
+    await new PageActions(page).click("Edit items");
+
+    await page.getByPlaceholder("Add an item...").fill("milk");
+    await expect(page.getByText("Already on the list")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add Oat milk" })).toBeVisible();
+    // The blank-query usuals must be gone, not lingering until the search lands.
+    await expect(page.getByRole("button", { name: "Add Butter" })).toHaveCount(0);
+
+    await expect(page).toHaveScreenshot(
+      "list-detail-suggestion-already-on-list.png",
       screenshotOptions
     );
   });

@@ -2,7 +2,13 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import type { ShoppingList, ShoppingListResponse, ShoppingListItem, ShoppingListTemplateResponse } from "@/lib/api-client/models/index";
+import type {
+  ItemSuggestionResponse,
+  ShoppingList,
+  ShoppingListResponse,
+  ShoppingListItem,
+  ShoppingListTemplateResponse,
+} from "@/lib/api-client/models/index";
 import { isOffline } from "@/hooks/useOnlineStatus";
 import { isNetworkError } from "@/lib/offline/networkError";
 import { latestDate } from "@/lib/checklistOrder";
@@ -189,6 +195,33 @@ interface AddShoppingListItemInput {
   unit?: string | null;
 }
 
+const ITEM_SUGGESTIONS_KEY = "shoppingListItemSuggestions";
+
+/**
+ * Add-box typeahead for one list, ranked server-side by match and then by how
+ * often each item was added to this list in the last six months, each with a
+ * suggested amount/unit. A blank query returns the list's most-added items, so
+ * the box can show "your usuals" as soon as it gets focus.
+ *
+ * While the next query is in flight the previous *typed* results stay on
+ * screen, so the dropdown doesn't flicker shut on every keystroke — but the
+ * blank-query usuals are never carried over to a typed query, where they'd
+ * look like matches for it.
+ */
+export function useItemSuggestions(listId: number, query: string, enabled = true) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: [ITEM_SUGGESTIONS_KEY, listId, trimmed],
+    enabled,
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[2] ? previous : undefined,
+    queryFn: () =>
+      apiClient.api.checklists.byId(listId).itemSuggestions.get({
+        queryParameters: trimmed ? { query: trimmed } : {},
+      }) as Promise<ItemSuggestionResponse[]>,
+  });
+}
+
 interface AddShoppingListItemVariables extends AddShoppingListItemInput {
   clientId: number;
 }
@@ -252,6 +285,7 @@ export function useAddShoppingListItem(listId: number) {
       if ((data?.id ?? 0) > 0) {
         queryClient.invalidateQueries({ queryKey: ["shoppingLists"] });
         queryClient.invalidateQueries({ queryKey: ["shoppingListItems", listId] });
+        queryClient.invalidateQueries({ queryKey: [ITEM_SUGGESTIONS_KEY, listId] });
       }
     },
   });

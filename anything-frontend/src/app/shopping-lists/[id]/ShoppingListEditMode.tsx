@@ -8,14 +8,23 @@ import {
   useAddShoppingListItem,
   useUpdateShoppingListItem,
   useRemoveShoppingListItem,
+  useItemSuggestions,
 } from "@/hooks/useShoppingLists";
-import { useRecommendationSearch } from "@/hooks/useRecommendations";
 import { useUnits } from "@/hooks/useUnits";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "sonner";
 import { ListItemsStatus } from "@/components/ListItemsStatus";
 import { usePendingItemIds } from "@/lib/offline/outboxStore";
-import type { ShoppingListItem } from "@/lib/api-client/models/index";
+import type { ItemSuggestionResponse, ShoppingListItem } from "@/lib/api-client/models/index";
+import {
+  ItemSuggestions,
+  ITEM_SUGGESTIONS_LISTBOX_ID,
+  suggestionOptionId,
+} from "./ItemSuggestions";
+
+const ADD_FAILED_MESSAGE = "Failed to add item. Please try again.";
+const sameName = (a?: string | null, b?: string | null) =>
+  (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
 
 interface Props {
   listId: number;
@@ -34,6 +43,7 @@ export function ShoppingListEditMode({ listId }: Props) {
     unit: string;
   } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const cancelEditRef = useRef(false);
@@ -46,19 +56,24 @@ export function ShoppingListEditMode({ listId }: Props) {
   const { data: units } = useUnits();
   const pendingItemIds = usePendingItemIds(listId);
 
-  // Ranked, typo-tolerant suggestions from the server (debounced), rather than
-  // loading the whole recommendation list and filtering it in the browser.
+  // Ranked server-side by match, then by how often each item was added to this
+  // list recently. A blank box asks for the list's usuals, so suggestions show
+  // as soon as it is focused. The server already leaves out items on the list;
+  // filtering again here also covers optimistic adds it hasn't seen yet.
   const debouncedName = useDebounce(newItemName, 250);
-  // Scope the typeahead to this list's own suggestions plus the shared ones.
-  const { data: searchResults } = useRecommendationSearch(debouncedName, listId);
-
-  const filteredSuggestions =
-    newItemName.trim().length > 0
-      ? (searchResults ?? []).filter(
-          (r) =>
-            r.name && !items?.some((i) => i.name?.toLowerCase() === r.name?.toLowerCase())
-        )
-      : [];
+  const { data: suggestionResults } = useItemSuggestions(listId, debouncedName, showSuggestions);
+  // Until the debounce catches up with the first keystroke the query is still
+  // the blank one; its usuals aren't matches for what was typed.
+  const awaitingTypedQuery = newItemName.trim() !== "" && debouncedName.trim() === "";
+  const suggestions = awaitingTypedQuery
+    ? []
+    : (suggestionResults ?? []).filter(
+        (s) => s.name && !items?.some((i) => sameName(i.name, s.name))
+      );
+  const existingMatch = newItemName.trim()
+    ? items?.find((i) => sameName(i.name, newItemName))
+    : undefined;
+  const dropdownOpen = showSuggestions && (suggestions.length > 0 || !!existingMatch);
 
   const parseAmount = (value: string): number | null => {
     const parsed = parseFloat(value);
@@ -85,17 +100,69 @@ export function ShoppingListEditMode({ listId }: Props) {
       setShowSuggestions(false);
       inputRef.current?.focus();
     } catch {
-      toast.error("Failed to add item. Please try again.");
+      toast.error(ADD_FAILED_MESSAGE);
     }
   };
 
-  const handleSelectSuggestion = (name: string, preferredUnit?: string | null) => {
+  // One tap adds the item. Anything already typed into Qty/Unit wins over the
+  // suggested quantity, so "3" then tapping "Milk" adds 3 of it.
+  const handleAddSuggestion = async (suggestion: ItemSuggestionResponse) => {
+    const amount = parseAmount(newItemAmount) ?? suggestion.suggestedAmount ?? null;
+    const unit = newItemUnit.trim() || suggestion.suggestedUnit || null;
+    setNewItemName("");
+    setNewItemAmount("");
+    setNewItemUnit("");
+    setActiveIndex(-1);
+    try {
+      await addItem.mutateAsync({ name: suggestion.name!, amount, unit });
+    } catch {
+      toast.error(ADD_FAILED_MESSAGE);
+    }
+  };
+
+  const handleFillSuggestion = (suggestion: ItemSuggestionResponse) => {
     setShowSuggestions(false);
-    setNewItemName(name);
-    if (!newItemUnit.trim() && preferredUnit?.trim()) {
-      setNewItemUnit(preferredUnit.trim());
+    setActiveIndex(-1);
+    setNewItemName(suggestion.name ?? "");
+    if (!newItemAmount.trim() && suggestion.suggestedAmount != null) {
+      setNewItemAmount(String(suggestion.suggestedAmount));
+    }
+    if (!newItemUnit.trim() && suggestion.suggestedUnit) {
+      setNewItemUnit(suggestion.suggestedUnit);
     }
     amountInputRef.current?.focus();
+  };
+
+  const startEditing = (item: ShoppingListItem) =>
+    setEditingItem({
+      id: item.id!,
+      name: item.name!,
+      amount: formatAmount(item.amount),
+      unit: item.unit ?? "",
+    });
+
+  const handleEditExisting = (item: ShoppingListItem) => {
+    setShowSuggestions(false);
+    setNewItemName("");
+    startEditing(item);
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setActiveIndex(-1);
+      return;
+    }
+    if (e.key === "Enter" && dropdownOpen && activeIndex >= 0 && suggestions[activeIndex]) {
+      e.preventDefault();
+      handleAddSuggestion(suggestions[activeIndex]);
+      return;
+    }
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    setShowSuggestions(true);
+    const last = suggestions.length - 1;
+    setActiveIndex((i) => (e.key === "ArrowDown" ? Math.min(i + 1, last) : Math.max(i - 1, -1)));
   };
 
   const handleCancelEdit = () => {
@@ -141,32 +208,34 @@ export function ShoppingListEditMode({ listId }: Props) {
               onChange={(e) => {
                 setNewItemName(e.target.value);
                 setShowSuggestions(true);
+                setActiveIndex(-1);
               }}
+              onKeyDown={handleNameKeyDown}
               onFocus={() => setShowSuggestions(true)}
               onBlur={() =>
                 setTimeout(() => setShowSuggestions(false), SUGGESTION_CLOSE_DELAY_MS)
+              }
+              role="combobox"
+              aria-expanded={dropdownOpen}
+              aria-controls={ITEM_SUGGESTIONS_LISTBOX_ID}
+              aria-autocomplete="list"
+              aria-activedescendant={
+                dropdownOpen && activeIndex >= 0 ? suggestionOptionId(activeIndex) : undefined
               }
               placeholder="Add an item..."
               className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               autoFocus
               autoComplete="off"
             />
-            {showSuggestions && filteredSuggestions.length > 0 && (
-              <ul className="absolute z-10 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                {filteredSuggestions.map((suggestion) => (
-                  <li key={suggestion.id}>
-                    <button
-                      type="button"
-                      onMouseDown={() =>
-                        handleSelectSuggestion(suggestion.name!, suggestion.preferredUnit)
-                      }
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
-                    >
-                      {suggestion.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+            {dropdownOpen && (
+              <ItemSuggestions
+                suggestions={suggestions}
+                activeIndex={activeIndex}
+                existingMatch={existingMatch}
+                onAdd={handleAddSuggestion}
+                onFill={handleFillSuggestion}
+                onEditExisting={handleEditExisting}
+              />
             )}
           </div>
           <input
@@ -275,23 +344,11 @@ export function ShoppingListEditMode({ listId }: Props) {
                   role="button"
                   tabIndex={0}
                   className="flex-1 text-sm cursor-pointer hover:text-blue-600 text-gray-900 dark:text-white"
-                  onClick={() =>
-                    setEditingItem({
-                      id: item.id!,
-                      name: item.name!,
-                      amount: formatAmount(item.amount),
-                      unit: item.unit ?? "",
-                    })
-                  }
+                  onClick={() => startEditing(item)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setEditingItem({
-                        id: item.id!,
-                        name: item.name!,
-                        amount: formatAmount(item.amount),
-                        unit: item.unit ?? "",
-                      });
+                      startEditing(item);
                     }
                   }}
                 >

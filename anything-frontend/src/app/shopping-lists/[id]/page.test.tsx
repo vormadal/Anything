@@ -23,6 +23,7 @@ const mockItemsPost = jest.fn()
 const mockItemsItemPut = jest.fn()
 const mockItemsItemDelete = jest.fn()
 const mockCompletePost = jest.fn()
+const mockSuggestionsGet = jest.fn().mockResolvedValue([])
 const mockItemsItemById: jest.Mock = jest.fn(() => ({ put: mockItemsItemPut, delete: mockItemsItemDelete }))
 const mockById: jest.Mock = jest.fn(() => ({
   get: mockListGet,
@@ -34,6 +35,7 @@ const mockById: jest.Mock = jest.fn(() => ({
     byItemId: mockItemsItemById,
   },
   complete: { post: mockCompletePost },
+  itemSuggestions: { get: mockSuggestionsGet },
 }))
 
 jest.mock('@/lib/apiClient', () => ({
@@ -99,6 +101,7 @@ describe('ShoppingListDetailPage', () => {
     localStorage.setItem('accessToken', 'test-token')
     mockListGet.mockResolvedValue(mockList)
     mockListPut.mockResolvedValue(undefined)
+    mockSuggestionsGet.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -820,33 +823,108 @@ describe('ShoppingListDetailPage', () => {
     })
   })
 
-  it('should populate name field when suggestion is clicked, not add immediately', async () => {
-    const user = userEvent.setup()
-    mockItemsGet.mockResolvedValue([])
-    jest.mocked(
-      (await import('@/lib/apiClient')).apiClient.api.shoppingListRecommendations.search.get
-    ).mockResolvedValue([{ id: 1, name: 'Milk', preferredUnit: 'l' }])
-
+  const openEditMode = async (user: ReturnType<typeof userEvent.setup>, loadedItem?: string) => {
     render(<ShoppingListDetailPage />)
-
+    // The page actions change once items load; wait for them so the click doesn't race it.
+    if (loadedItem) await screen.findByText(loadedItem)
     await waitFor(() => {
       expect(screen.getByRole('button', { name: PAGE_ACTIONS_UP })).toBeInTheDocument()
     })
-
     await clickPageAction(user, 'Edit items')
+    return screen.findByPlaceholderText('Add an item...')
+  }
 
-    const nameInput = screen.getByPlaceholderText('Add an item...')
+  const milkSuggestion = { recommendationId: 1, name: 'Milk', suggestedAmount: 2, suggestedUnit: 'L', timesAdded: 4 }
+
+  it('shows the list\'s usual items as soon as the add box is focused', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    mockSuggestionsGet.mockResolvedValue([milkSuggestion])
+
+    await openEditMode(user)
+
+    expect(await screen.findByRole('button', { name: 'Add Milk' })).toHaveTextContent('2 L')
+    expect(mockSuggestionsGet).toHaveBeenCalledWith({ queryParameters: {} })
+  })
+
+  it('adds a suggestion with its suggested quantity in one tap', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    mockSuggestionsGet.mockResolvedValue([milkSuggestion])
+    mockItemsPost.mockResolvedValueOnce({ id: 9, name: 'Milk', amount: 2, unit: 'L', isChecked: false, shoppingListId: 1 })
+
+    const nameInput = await openEditMode(user)
     await user.type(nameInput, 'Mi')
+    await user.click(await screen.findByRole('button', { name: 'Add Milk' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Milk' })).toBeInTheDocument()
+      expect(mockItemsPost).toHaveBeenCalledWith({ name: 'Milk', amount: 2, unit: 'L' })
     })
+    expect(nameInput).toHaveValue('')
+    expect(document.activeElement).toBe(nameInput)
+  })
 
-    await user.click(screen.getByRole('button', { name: 'Milk' }))
+  it('lets a typed quantity override the suggested one', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    mockSuggestionsGet.mockResolvedValue([milkSuggestion])
+    mockItemsPost.mockResolvedValueOnce({ id: 9, name: 'Milk', isChecked: false, shoppingListId: 1 })
+
+    const nameInput = await openEditMode(user)
+    await user.type(screen.getByPlaceholderText('Qty'), '3')
+    await user.click(nameInput)
+    await user.click(await screen.findByRole('button', { name: 'Add Milk' }))
+
+    await waitFor(() => {
+      expect(mockItemsPost).toHaveBeenCalledWith({ name: 'Milk', amount: 3, unit: 'L' })
+    })
+  })
+
+  it('fills the form instead of adding when the pencil is used', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    mockSuggestionsGet.mockResolvedValue([milkSuggestion])
+
+    const nameInput = await openEditMode(user)
+    await user.type(nameInput, 'Mi')
+    await user.click(await screen.findByRole('button', { name: 'Adjust Milk before adding' }))
 
     expect(mockItemsPost).not.toHaveBeenCalled()
     expect(nameInput).toHaveValue('Milk')
-    expect(screen.getByPlaceholderText('Unit')).toHaveValue('l')
+    expect(screen.getByPlaceholderText('Qty')).toHaveValue(2)
+    expect(screen.getByPlaceholderText('Unit')).toHaveValue('L')
+  })
+
+  it('adds the highlighted suggestion with arrow keys and Enter', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([])
+    mockSuggestionsGet.mockResolvedValue([milkSuggestion])
+    mockItemsPost.mockResolvedValueOnce({ id: 9, name: 'Milk', isChecked: false, shoppingListId: 1 })
+
+    const nameInput = await openEditMode(user)
+    await screen.findByRole('button', { name: 'Add Milk' })
+    await user.click(nameInput)
+    await user.keyboard('{ArrowDown}{Enter}')
+
+    await waitFor(() => {
+      expect(mockItemsPost).toHaveBeenCalledWith({ name: 'Milk', amount: 2, unit: 'L' })
+    })
+  })
+
+  it('does not suggest items already on the list, and says so on an exact match', async () => {
+    const user = userEvent.setup()
+    mockItemsGet.mockResolvedValue([{ id: 1, name: 'Milk', amount: 1, unit: 'L', isChecked: false, shoppingListId: 1 }])
+    mockSuggestionsGet.mockResolvedValue([milkSuggestion])
+
+    const nameInput = await openEditMode(user, 'Milk')
+    await user.type(nameInput, 'milk')
+
+    expect(await screen.findByText('Already on the list (1 L)')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add Milk' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByDisplayValue('Milk')).toBeInTheDocument()
+    expect(nameInput).toHaveValue('')
   })
 
   it('should focus name input after adding an item', async () => {
