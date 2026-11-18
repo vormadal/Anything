@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     title: "Anything App",
   },
   icons: {
-    apple: "/icons/apple-icon-180-v2.png",
+    apple: "/icons/apple-icon-180.png",
   },
 };
 

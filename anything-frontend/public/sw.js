@@ -1,9 +1,9 @@
-const CACHE_NAME = "anything-app-v8";
+const CACHE_NAME = "anything-app-v9";
 const STATIC_ASSETS = [
   "/",
   "/login",
-  "/icons/icon-192-v2.png",
-  "/icons/icon-512-v2.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -81,7 +81,7 @@ self.addEventListener("fetch", (event) => {
 // ---------------------------------------------------------------------------
 
 const NOTIFICATION_FALLBACK_TITLE = "Anything";
-const NOTIFICATION_ICON = "/icons/icon-192-v2.png";
+const NOTIFICATION_ICON = "/icons/icon-192.png";
 
 self.addEventListener("push", (event) => {
   // A push with no data, or with something that isn't our JSON, still has to
