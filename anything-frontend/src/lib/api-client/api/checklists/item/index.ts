@@ -10,6 +10,8 @@ import { CopyItemsToTemplateRequestBuilderRequestsMetadata, type CopyItemsToTemp
 // @ts-ignore
 import { ItemsRequestBuilderNavigationMetadata, ItemsRequestBuilderRequestsMetadata, type ItemsRequestBuilder } from './items/index';
 // @ts-ignore
+import { ItemSuggestionsRequestBuilderRequestsMetadata, type ItemSuggestionsRequestBuilder } from './itemSuggestions/index';
+// @ts-ignore
 import { SaveAsTemplateRequestBuilderRequestsMetadata, type SaveAsTemplateRequestBuilder } from './saveAsTemplate/index';
 // @ts-ignore
 import { type TypeRequestBuilder, TypeRequestBuilderRequestsMetadata } from './type/index';
@@ -32,6 +34,10 @@ export interface ChecklistsItemRequestBuilder extends BaseRequestBuilder<Checkli
      * The items property
      */
     get items(): ItemsRequestBuilder;
+    /**
+     * The itemSuggestions property
+     */
+    get itemSuggestions(): ItemSuggestionsRequestBuilder;
     /**
      * The saveAsTemplate property
      */
@@ -89,6 +95,9 @@ export const ChecklistsItemRequestBuilderNavigationMetadata: Record<Exclude<keyo
     items: {
         requestsMetadata: ItemsRequestBuilderRequestsMetadata,
         navigationMetadata: ItemsRequestBuilderNavigationMetadata,
+    },
+    itemSuggestions: {
+        requestsMetadata: ItemSuggestionsRequestBuilderRequestsMetadata,
     },
     saveAsTemplate: {
         requestsMetadata: SaveAsTemplateRequestBuilderRequestsMetadata,
