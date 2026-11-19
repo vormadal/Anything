@@ -1250,6 +1250,15 @@ export function createInviteResponseFromDiscriminatorValue(parseNode: ParseNode 
 /**
  * Creates a new instance of the appropriate class based on discriminator value
  * @param parseNode The parse node to use to read the discriminator value and create the object
+ * @returns {ItemSuggestionResponse}
+ */
+// @ts-ignore
+export function createItemSuggestionResponseFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+    return deserializeIntoItemSuggestionResponse;
+}
+/**
+ * Creates a new instance of the appropriate class based on discriminator value
+ * @param parseNode The parse node to use to read the discriminator value and create the object
  * @returns {Location}
  */
 // @ts-ignore
@@ -3624,6 +3633,21 @@ export function deserializeIntoInviteResponse(inviteResponse: Partial<InviteResp
 }
 /**
  * The deserialization information for the current model
+ * @param ItemSuggestionResponse The instance to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>}
+ */
+// @ts-ignore
+export function deserializeIntoItemSuggestionResponse(itemSuggestionResponse: Partial<ItemSuggestionResponse> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+    return {
+        "name": n => { itemSuggestionResponse.name = n.getStringValue(); },
+        "recommendationId": n => { itemSuggestionResponse.recommendationId = n.getNumberValue(); },
+        "suggestedAmount": n => { itemSuggestionResponse.suggestedAmount = n.getNumberValue(); },
+        "suggestedUnit": n => { itemSuggestionResponse.suggestedUnit = n.getStringValue(); },
+        "timesAdded": n => { itemSuggestionResponse.timesAdded = n.getNumberValue(); },
+    }
+}
+/**
+ * The deserialization information for the current model
  * @param Location The instance to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>}
  */
@@ -5951,6 +5975,28 @@ export interface InviteResponse extends Parsable {
      * The isUsed property
      */
     isUsed?: boolean | null;
+}
+export interface ItemSuggestionResponse extends Parsable {
+    /**
+     * The name property
+     */
+    name?: string | null;
+    /**
+     * The recommendationId property
+     */
+    recommendationId?: number | null;
+    /**
+     * The suggestedAmount property
+     */
+    suggestedAmount?: number | null;
+    /**
+     * The suggestedUnit property
+     */
+    suggestedUnit?: string | null;
+    /**
+     * The timesAdded property
+     */
+    timesAdded?: number | null;
 }
 export interface Location extends Parsable {
     /**
@@ -8594,6 +8640,21 @@ export function serializeInviteResponse(writer: SerializationWriter, inviteRespo
     writer.writeNumberValue("id", inviteResponse.id);
     writer.writeBooleanValue("isExpired", inviteResponse.isExpired);
     writer.writeBooleanValue("isUsed", inviteResponse.isUsed);
+}
+/**
+ * Serializes information the current object
+ * @param isSerializingDerivedType A boolean indicating whether the serialization is for a derived type.
+ * @param ItemSuggestionResponse The instance to serialize from.
+ * @param writer Serialization writer to use to serialize this model
+ */
+// @ts-ignore
+export function serializeItemSuggestionResponse(writer: SerializationWriter, itemSuggestionResponse: Partial<ItemSuggestionResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false) : void {
+    if (!itemSuggestionResponse || isSerializingDerivedType) { return; }
+    writer.writeStringValue("name", itemSuggestionResponse.name);
+    writer.writeNumberValue("recommendationId", itemSuggestionResponse.recommendationId);
+    writer.writeNumberValue("suggestedAmount", itemSuggestionResponse.suggestedAmount);
+    writer.writeStringValue("suggestedUnit", itemSuggestionResponse.suggestedUnit);
+    writer.writeNumberValue("timesAdded", itemSuggestionResponse.timesAdded);
 }
 /**
  * Serializes information the current object

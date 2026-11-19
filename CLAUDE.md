@@ -389,6 +389,21 @@ purchase with a quantity per line, purchase history, add to inventory) and
 `/renovation/materials`. Hooks are all in `useRenovation.ts`; visual snapshots are the
 `Renovation` block at the end of `e2e/visual.spec.ts`.
 
+Shopping-list **add-box suggestions** (`GET /api/checklists/{id}/item-suggestions?query=&limit=`,
+`GetItemSuggestionsQuery` + the pure `ItemSuggestionRanker`) rank the list's own and shared
+suggestable recommendations by match tier (prefix → substring → trigram) and, inside a tier, by how
+often the item was added to **that list** in the last 3 months, plus the most common amount/unit
+(recipe-added rows count for popularity, not quantity). Popularity is read straight from
+`ShoppingListItem` history — completed items are kept with `CompletedOn` — so there are no counters
+to maintain; hand-deleted items are hard-deleted and deliberately never counted. A blank query
+returns the most-added items not on the list ("usuals"), which `ShoppingListEditMode` shows as soon
+as the box is focused; tapping a row adds it immediately (`ItemSuggestions.tsx`, pencil = fill the
+form instead). The older `/api/shopping-list-recommendations/search` still backs the recipe
+ingredient autocomplete. No per-household window setting exists on purpose — add one only if asked.
+There is deliberately **no cache** in front of it: a 12-hour `IMemoryCache` of the usage history was
+tried and removed — the cached query is one list's quarter of rows on an indexed FK, while the
+per-keystroke trigram match (the part that could ever be slow) can't usefully be cached. Measure first.
+
 All endpoints are under `/api/somethings`:
 - `GET /` — List all (non-deleted)
 - `GET /{id}` — Get by ID

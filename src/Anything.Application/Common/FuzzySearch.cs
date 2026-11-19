@@ -36,4 +36,14 @@ public static class FuzzySearch
     /// (trimmed + lower-cased). Trigram similarity is already case-insensitive.
     /// </summary>
     public static string Normalize(string value) => value.Trim().ToLowerInvariant();
+
+    /// <summary>
+    /// A SQL <c>LIKE</c> pattern matching <paramref name="normalized"/> anywhere in the value, with
+    /// <c>%</c>, <c>_</c> and the escape character itself escaped so typed text is matched literally.
+    /// Backslash is Postgres' default <c>LIKE</c> escape, so no <c>ESCAPE</c> clause is needed. Pair it
+    /// with a lowered column (<c>EF.Functions.Like(x.Name.ToLower(), pattern)</c>) and a
+    /// <see cref="Normalize"/>d term for a case-insensitive substring match.
+    /// </summary>
+    public static string ContainsPattern(string normalized) =>
+        "%" + normalized.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_") + "%";
 }
