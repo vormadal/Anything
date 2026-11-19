@@ -90,6 +90,7 @@ public class GetItemSuggestionsHandler(
         else
         {
             var search = FuzzySearch.Normalize(query.Search);
+            var containsPattern = FuzzySearch.ContainsPattern(search);
             candidates = (await recommendations
                     .Select(r => new
                     {
@@ -97,7 +98,7 @@ public class GetItemSuggestionsHandler(
                         r.Name,
                         r.PreferredUnit,
                         r.ShoppingListId,
-                        NameContains = r.Name.ToLower().Contains(search),
+                        NameContains = EF.Functions.Like(r.Name.ToLower(), containsPattern),
                         NameSimilarity = PgTrigramFunctions.WordSimilarity(search, r.Name),
                     })
                     .Where(x => x.NameContains || x.NameSimilarity > FuzzySearch.SimilarityThreshold)

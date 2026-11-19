@@ -517,7 +517,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
 
         var result = await GetItemSuggestionsAsync(list.Id, null);
 
-        Assert.Equal(new[] { "Milk", "Bread" }, result.Select(s => s.Name));
+        Assert.Equal("Milk, Bread", string.Join(", ", result.Select(s => s.Name)));
         Assert.Equal(2, result[0].TimesAdded);
         Assert.Equal(2m, result[0].SuggestedAmount);
         Assert.Equal("L", result[0].SuggestedUnit);
@@ -534,7 +534,7 @@ public class ShoppingListEndpointTests : IntegrationTestBase
         await CompleteListAsync(list.Id);
 
         var milk = await GetItemSuggestionsAsync(list.Id, "milk");
-        Assert.Equal(new[] { "Milk", "Oat milk" }, milk.Select(s => s.Name));
+        Assert.Equal("Milk, Oat milk", string.Join(", ", milk.Select(s => s.Name)));
 
         var typo = await GetItemSuggestionsAsync(list.Id, "tomatoe");
         Assert.Contains(typo, s => s.Name == "Tomato");

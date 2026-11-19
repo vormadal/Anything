@@ -68,7 +68,7 @@ public class GetItemSuggestionsHandlerTests
 
         var usuals = await GetUsuals();
 
-        Assert.Equal(new[] { "Milk" }, usuals.Select(u => u.Name));
+        Assert.Equal("Milk", string.Join(", ", usuals.Select(u => u.Name)));
     }
 
     [Fact]

@@ -85,10 +85,12 @@ internal static class ItemSuggestionRanker
         return best is null ? (null, null) : (best.Latest.Amount, NullIfBlank(best.Latest.Unit));
     }
 
-    private static int MatchTier(string name, string term) =>
-        name.StartsWith(term, StringComparison.Ordinal) ? 0
-        : name.Contains(term, StringComparison.Ordinal) ? 1
-        : 2;
+    private static int MatchTier(string name, string term)
+    {
+        if (name.StartsWith(term, StringComparison.Ordinal))
+            return 0;
+        return name.Contains(term, StringComparison.Ordinal) ? 1 : 2;
+    }
 
     private static string Key(string value) => value.Trim().ToLowerInvariant();
 

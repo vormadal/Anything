@@ -21,7 +21,7 @@ public class ItemSuggestionRankerTests
             [Used("Almond milk"), Used("Almond milk"), Used("Almond milk")],
             [], "min", 10);
 
-        Assert.Equal(new[] { "Mince", "Almond milk" }, result.Select(r => r.Name));
+        Assert.Equal("Mince, Almond milk", string.Join(", ", result.Select(r => r.Name)));
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class ItemSuggestionRankerTests
             [Used("Milk chocolate"), Used("Milk chocolate"), Used("Milk")],
             [], "mil", 10);
 
-        Assert.Equal(new[] { "Milk chocolate", "Milk" }, result.Select(r => r.Name));
+        Assert.Equal("Milk chocolate, Milk", string.Join(", ", result.Select(r => r.Name)));
         Assert.Equal(2, result[0].TimesAdded);
     }
 
@@ -44,7 +44,7 @@ public class ItemSuggestionRankerTests
             [Used("Milk"), Used("Bread")],
             [" milk "], null, 10);
 
-        Assert.Equal(new[] { "Bread" }, result.Select(r => r.Name));
+        Assert.Equal("Bread", string.Join(", ", result.Select(r => r.Name)));
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class ItemSuggestionRankerTests
             [Used("Apples"), Used("Bread"), Used("Bread")],
             [], "  ", 10);
 
-        Assert.Equal(new[] { "Bread", "Apples" }, result.Select(r => r.Name));
+        Assert.Equal("Bread, Apples", string.Join(", ", result.Select(r => r.Name)));
     }
 
     [Fact]
